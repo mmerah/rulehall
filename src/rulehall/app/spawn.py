@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import shutil
 import signal
 import sys
 from asyncio import StreamReader, shield, subprocess, timeout
@@ -335,15 +336,21 @@ async def _spawn(
     cwd: str,
     heard_line: Callable[[str], None],
 ) -> str:
+    env = child_environment(secrets)
+    # PATHEXT finds the `.cmd` shim npm installs on Windows, which a bare name misses.
+    executable = shutil.which(argv[0], path=env.get("PATH"))
+    if executable is None:
+        raise Refusal(f"the {role} could not be started: {argv[0]} is not on the PATH")
     try:
         process = await subprocess.create_subprocess_exec(
-            *argv,
+            executable,
+            *argv[1:],
             prompt,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             cwd=cwd,
-            env=child_environment(secrets),
+            env=env,
             # Its own group, so an abandoned spawn leaves no child process running.
             start_new_session=True,
             limit=OUTPUT_MAX_BYTES,

@@ -1,7 +1,6 @@
 import asyncio
 import json
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import pytest
 
@@ -38,6 +37,12 @@ class _StubDriver:
     def read_result(self, output: str) -> RunResult:
         del output
         raise AssertionError("the run fails before there is a result to read")
+
+
+@dataclass(slots=True)
+class _Started:
+    found: list[tuple[str, str | None]] = field(default_factory=list[tuple[str, str | None]])
+    argv: tuple[str, ...] = ()
 
 
 CODEX_OUTPUT = "\n".join(
@@ -117,7 +122,7 @@ async def test_a_missing_cli_binary_is_a_refusal_not_a_crash() -> None:
     config = RoleConfig(model="opus", effort="high")
 
     prompt = Prompt(system="", user="PLAY")
-    with pytest.raises(Refusal, match="could not be started"):
+    with pytest.raises(Refusal, match="could not be started: rulehall-no-such-binary"):
         _ = await run_cli(
             "master", config, _StubDriver(("rulehall-no-such-binary",)), 1, prompt, None
         )
@@ -137,7 +142,26 @@ async def test_a_prompt_over_the_cap_is_refused_before_any_command_is_built() ->
         )
 
 
-def _faked(output: bytes, returncode: int) -> Callable[..., Awaitable[object]]:
+async def test_the_cli_is_found_on_the_childs_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    started = _faked(monkeypatch, b"said", 3)
+    config = RoleConfig(model="opus", effort="high")
+    monkeypatch.setenv("PATH", "/opt/cli")
+    prompt = Prompt(system="", user="PLAY")
+
+    with pytest.raises(Refusal, match="exited 3"):
+        _ = await run_cli("narrator", config, _StubDriver(("rulehall-cli", "-p")), 1, prompt, None)
+
+    assert started.found == [("rulehall-cli", "/opt/cli")]
+    assert started.argv == ("/opt/cli/rulehall-cli", "-p", prompt.text)
+
+
+def _faked(monkeypatch: pytest.MonkeyPatch, output: bytes, returncode: int) -> _Started:
+    started = _Started()
+
+    def fake_which(name: str, path: str | None) -> str:
+        started.found.append((name, path))
+        return f"{path}/{name}"
+
     class FakeProcess:
         def __init__(self) -> None:
             self.returncode = returncode
@@ -148,18 +172,19 @@ def _faked(output: bytes, returncode: int) -> Callable[..., Awaitable[object]]:
         async def wait(self) -> int:
             return returncode
 
-    async def fake_create(*_argv: str, **_kwargs: object) -> FakeProcess:
+    async def fake_create(*argv: str, **_kwargs: object) -> FakeProcess:
+        started.argv = argv
         return FakeProcess()
 
-    return fake_create
+    monkeypatch.setattr(spawn.shutil, "which", fake_which)
+    monkeypatch.setattr(spawn.subprocess, "create_subprocess_exec", fake_create)
+    return started
 
 
 async def test_a_crashed_roles_raw_output_never_reaches_the_player(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        spawn.subprocess, "create_subprocess_exec", _faked(b"HIDDEN HERE the arc", 3)
-    )
+    _ = _faked(monkeypatch, b"HIDDEN HERE the arc", 3)
     config = RoleConfig(model="opus", effort="high")
     prompt = Prompt(system="", user="PLAY")
 
@@ -221,7 +246,7 @@ def test_the_child_keeps_what_windows_needs_to_start_a_cli_and_find_its_login(
 
 async def test_a_role_that_floods_its_output_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(spawn, "OUTPUT_MAX_BYTES", 16)
-    monkeypatch.setattr(spawn.subprocess, "create_subprocess_exec", _faked(b"x" * 64, 0))
+    _ = _faked(monkeypatch, b"x" * 64, 0)
     config = RoleConfig(model="opus", effort="high")
     prompt = Prompt(system="", user="PLAY")
 
@@ -232,7 +257,7 @@ async def test_a_role_that_floods_its_output_is_refused(monkeypatch: pytest.Monk
 async def test_a_listener_hears_the_text_so_far_line_by_line(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(spawn.subprocess, "create_subprocess_exec", _faked(b"a\nb\n", 3))
+    _ = _faked(monkeypatch, b"a\nb\n", 3)
     config = RoleConfig(model="opus", effort="high")
     heard: list[str] = []
 

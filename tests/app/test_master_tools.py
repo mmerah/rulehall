@@ -224,8 +224,12 @@ async def test_abandoning_a_spawn_kills_the_process_group_it_started(
     async def fake_create(*_argv: str, **_kwargs: object) -> FakeProcess:
         return FakeProcess()
 
-    monkeypatch.setattr(spawn_module.subprocess, "create_subprocess_exec", fake_create)
+    def found(name: str, path: str | None) -> str:
+        del path
+        return name
 
+    monkeypatch.setattr(spawn_module.subprocess, "create_subprocess_exec", fake_create)
+    monkeypatch.setattr(spawn_module.shutil, "which", found)
     monkeypatch.setattr(spawn_module, "_kill_tree", killed.append)
     settings = updated(
         offline_settings(tmp_path),
