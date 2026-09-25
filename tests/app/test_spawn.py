@@ -6,7 +6,6 @@ import pytest
 
 import rulehall.app.spawn as spawn
 from rulehall.app.spawn import (
-    PROMPT_MAX_BYTES,
     ClaudeDriver,
     CodexDriver,
     RunResult,
@@ -43,6 +42,8 @@ class _StubDriver:
 class _Started:
     found: list[tuple[str, str | None]] = field(default_factory=list[tuple[str, str | None]])
     argv: tuple[str, ...] = ()
+    stdin: list[bytes] = field(default_factory=list[bytes])
+    closed: bool = False
 
 
 CODEX_OUTPUT = "\n".join(
@@ -93,6 +94,16 @@ def test_no_codex_role_gets_a_shell_and_only_the_master_reaches_the_tools() -> N
         assert "apps" in disabled
         assert "--ignore-user-config" in argv
         assert "web_search=disabled" in argv
+        assert argv[-1] == "-"
+
+
+def test_a_resumed_codex_run_still_reads_its_prompt_from_stdin() -> None:
+    config = RoleConfig(provider="codex", model="gpt-5", effort="low")
+
+    argv = CodexDriver().command("narrator", config, "abc-123", "")
+
+    assert argv[:4] == ["codex", "exec", "resume", "abc-123"]
+    assert argv[-1] == "-"
 
 
 def test_no_claude_role_keeps_a_built_in_tool_and_only_the_master_reaches_the_tools() -> None:
@@ -128,31 +139,20 @@ async def test_a_missing_cli_binary_is_a_refusal_not_a_crash() -> None:
         )
 
 
-async def test_a_prompt_over_the_cap_is_refused_before_any_command_is_built() -> None:
-    config = RoleConfig(model="opus", effort="high")
-
-    with pytest.raises(Refusal, match="takes fewer than 131072"):
-        _ = await run_cli(
-            "worldsmith",
-            config,
-            _StubDriver(("rulehall-never-run",)),
-            1,
-            Prompt(system="", user="x" * PROMPT_MAX_BYTES),
-            None,
-        )
-
-
-async def test_the_cli_is_found_on_the_childs_path(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_the_cli_is_found_on_the_childs_path_and_reads_its_prompt_from_stdin(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     started = _faked(monkeypatch, b"said", 3)
     config = RoleConfig(model="opus", effort="high")
     monkeypatch.setenv("PATH", "/opt/cli")
-    prompt = Prompt(system="", user="PLAY")
+    prompt = Prompt(system="", user="x" * 200_000)
 
     with pytest.raises(Refusal, match="exited 3"):
         _ = await run_cli("narrator", config, _StubDriver(("rulehall-cli", "-p")), 1, prompt, None)
 
     assert started.found == [("rulehall-cli", "/opt/cli")]
-    assert started.argv == ("/opt/cli/rulehall-cli", "-p", prompt.text)
+    assert started.argv == ("/opt/cli/rulehall-cli", "-p")
+    assert started.stdin == [prompt.text.encode()] and started.closed
 
 
 def _faked(monkeypatch: pytest.MonkeyPatch, output: bytes, returncode: int) -> _Started:
@@ -162,9 +162,17 @@ def _faked(monkeypatch: pytest.MonkeyPatch, output: bytes, returncode: int) -> _
         started.found.append((name, path))
         return f"{path}/{name}"
 
+    class FakeStdin:
+        def write(self, data: bytes) -> None:
+            started.stdin.append(data)
+
+        def close(self) -> None:
+            started.closed = True
+
     class FakeProcess:
         def __init__(self) -> None:
             self.returncode = returncode
+            self.stdin = FakeStdin()
             self.stdout = asyncio.StreamReader()
             self.stdout.feed_data(output)
             self.stdout.feed_eof()

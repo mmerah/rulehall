@@ -211,10 +211,18 @@ async def test_abandoning_a_spawn_kills_the_process_group_it_started(
     killed: list[int] = []
     reaped: list[int] = []
 
+    class FakeStdin:
+        def write(self, data: bytes) -> None:
+            del data
+
+        def close(self) -> None:
+            pass
+
     class FakeProcess:
         pid = 1234
         returncode = None
 
+        stdin = FakeStdin()
         stdout = asyncio.StreamReader()
 
         async def wait(self) -> int:

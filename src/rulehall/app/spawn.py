@@ -39,7 +39,6 @@ KEPT_ENV = (
     "TEMP",
     "TMP",
 )
-PROMPT_MAX_BYTES = 131_072  # Linux MAX_ARG_STRLEN: the prompt is one argv element
 OUTPUT_MAX_BYTES = 4_194_304  # a role answer is kilobytes; a runaway CLI streams without end
 # The id goes back as an argv element; a leading `-` must not parse as a flag.
 ConversationId = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")]
@@ -114,7 +113,6 @@ class ClaudeDriver:
     def command(
         self, role: Role, config: RoleConfig, conversation: str | None, url: str
     ) -> Sequence[str]:
-        """The prompt follows the last flag, so the last flag takes no list."""
         argv = [
             "claude",
             "-p",
@@ -198,7 +196,8 @@ class CodexDriver:
             # Measured: under `approval_policy=never` an MCP call is refused without this.
             argv += ["-c", "mcp_servers.rulehall.default_tools_approval_mode=approve"]
             argv += ["-c", f"mcp_servers.rulehall.url={url}"]
-        return argv
+        # `resume` reads the prompt from stdin only when told so by `-`.
+        return [*argv, "-"]
 
     def delta(self, line: str) -> str:
         # `codex exec --json` prints a message only once it is complete: nothing to stream.
@@ -267,12 +266,6 @@ async def run_cli(
     heard: Callable[[str], None] | None = None,
 ) -> RunResult:
     """One of the two places that start a process; `line_process.start_process` is the other."""
-    text = prompt.text
-    if (size := len(text.encode())) >= PROMPT_MAX_BYTES:
-        raise Refusal(
-            f"the {role} prompt is {size} bytes; "
-            f"the command line takes fewer than {PROMPT_MAX_BYTES}"
-        )
     url = f"http://localhost:{port}/mcp/"
     argv = driver.command(role, config, conversation, url)
     said = ""
@@ -285,7 +278,7 @@ async def run_cli(
 
     # An empty working directory, so a role cannot read this repository even if it tries.
     with TemporaryDirectory(prefix=f"rulehall-{role}-") as empty:
-        output = await _spawn(role, argv, text, driver.secrets, empty, heard_line)
+        output = await _spawn(role, argv, prompt.text, driver.secrets, empty, heard_line)
     return driver.read_result(output)
 
 
@@ -345,8 +338,8 @@ async def _spawn(
         process = await subprocess.create_subprocess_exec(
             executable,
             *argv[1:],
-            prompt,
-            stdin=subprocess.DEVNULL,
+            # Not argv: Windows caps a command line near 32 KB, and a `.cmd` shim near 8 KB.
+            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             cwd=cwd,
@@ -358,7 +351,10 @@ async def _spawn(
     except OSError as failed:
         raise Refusal(f"the {role} could not be started: {failed}") from failed
     try:
-        assert process.stdout is not None
+        assert process.stdin is not None and process.stdout is not None
+        # No drain: the pipe flushes while the output is read, so a full pipe cannot deadlock.
+        process.stdin.write(prompt.encode())
+        process.stdin.close()
         output = await _capped(role, process.stdout, heard_line)
         _ = await process.wait()
     finally:
