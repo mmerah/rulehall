@@ -1,11 +1,13 @@
 import json
 import logging
+import os
+import signal
+import sys
 from asyncio import StreamReader, shield, subprocess, timeout
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
-from os import environ, killpg
-from signal import SIGKILL
+from subprocess import DEVNULL, run
 from tempfile import TemporaryDirectory
 from time import monotonic
 from typing import Annotated, Protocol
@@ -299,14 +301,14 @@ def final_message(output: str) -> str:
 
 
 def child_environment(secrets: Sequence[str]) -> dict[str, str]:
-    return {name: environ[name] for name in (*KEPT_ENV, *secrets) if name in environ}
+    return {name: os.environ[name] for name in (*KEPT_ENV, *secrets) if name in os.environ}
 
 
 async def stop_process(process: subprocess.Process) -> None:
     if process.returncode is not None:
         return
     with suppress(ProcessLookupError):
-        killpg(process.pid, SIGKILL)
+        _kill_tree(process.pid)
     # Shielded: a second cancel would abandon the wait mid-reap.
     await shield(process.wait())
 
@@ -345,6 +347,14 @@ async def _spawn(
         LOGGER.warning("the %s exited %s: %s", role, process.returncode, output[-500:])
         raise Refusal(f"the {role} exited {process.returncode}")
     return output
+
+
+def _kill_tree(pid: int) -> None:
+    if sys.platform == "win32":
+        # Windows has no process groups; `/T` also kills the child a `.cmd` shim started.
+        _ = run(["taskkill", "/F", "/T", "/PID", str(pid)], stdout=DEVNULL, stderr=DEVNULL)
+    else:
+        os.killpg(pid, signal.SIGKILL)
 
 
 def _claude_mcp(url: str) -> str:

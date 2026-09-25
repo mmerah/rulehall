@@ -208,7 +208,7 @@ async def test_abandoning_a_spawn_kills_the_process_group_it_started(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """The CLI's own children must not outlive the turn, and the killed child is reaped."""
-    killed: list[tuple[int, int]] = []
+    killed: list[int] = []
     reaped: list[int] = []
 
     class FakeProcess:
@@ -226,10 +226,7 @@ async def test_abandoning_a_spawn_kills_the_process_group_it_started(
 
     monkeypatch.setattr(spawn_module.subprocess, "create_subprocess_exec", fake_create)
 
-    def fake_killpg(pid: int, signal: int) -> None:
-        killed.append((pid, signal))
-
-    monkeypatch.setattr(spawn_module, "killpg", fake_killpg)
+    monkeypatch.setattr(spawn_module, "_kill_tree", killed.append)
     settings = updated(
         offline_settings(tmp_path),
         roles={"master": {"timeout": 0.01}},
@@ -237,7 +234,7 @@ async def test_abandoning_a_spawn_kills_the_process_group_it_started(
 
     with pytest.raises(Refusal, match="answered nothing in"):
         await RoleRunner(settings).run("master", Prompt(system="", user="go"), None)
-    assert killed == [(1234, spawn_module.SIGKILL)]
+    assert killed == [1234]
     assert reaped == [1234]
 
 
