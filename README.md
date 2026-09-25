@@ -121,6 +121,7 @@ docker run -d -p 8080:8080 \
 ## Project information
 
 - Read [CLAUDE.md](CLAUDE.md) for development rules and checks.
+- Read [CONTRIBUTING.md](CONTRIBUTING.md) to report a bug, suggest an idea or send a change.
 - Read [SECURITY.md](SECURITY.md) to report a vulnerability.
 - Read [docs/LONER-3E.md](docs/LONER-3E.md) for sources, license, attribution, and implementation differences.
 - Read [docs/TUNNEL-GOONS.md](docs/TUNNEL-GOONS.md) for sources, license, attribution, and implementation differences.
