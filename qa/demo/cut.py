@@ -11,7 +11,7 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).parents[2]
 LONGEST = 119.8  # seconds; the README promises two minutes at most
-POSTER_AT = 25.0
+PACE = 1.5  # the whole take plays this much faster than it was recorded
 
 
 def main() -> None:
@@ -50,21 +50,17 @@ def main() -> None:
         ],
         check=True,
     )
-    _ffmpeg(
-        *("-ss", f"{POSTER_AT}", "-i", str(out / "demo.mp4"), "-frames:v", "1", "-q:v", "2"),
-        str(out / "poster.jpg"),
-    )
 
 
 def _write_listing(frames: Path, listing: Path) -> float:
-    """An ffmpeg concat list: each frame lasts until the next, divided by the speed then."""
+    """An ffmpeg concat list: each frame lasts until the next, divided by its speed and PACE."""
     timeline = json.loads((frames / "frames.json").read_text())
     shots: list[tuple[float, str]] = timeline["frames"]
     speeds: list[tuple[float, float]] = timeline["speeds"]
 
     def played(start: float, stop: float) -> float:
         cuts = sorted({start, stop, *(at for at, _ in speeds if start < at < stop)})
-        return sum((b - a) / _speed_at(speeds, a) for a, b in pairwise(cuts))
+        return sum((b - a) / _speed_at(speeds, a) / PACE for a, b in pairwise(cuts))
 
     lines: list[str] = []
     total = 0.0

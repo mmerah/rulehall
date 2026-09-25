@@ -1,6 +1,6 @@
 # Demo video
 
-These scripts make `docs/demo/demo.mp4`, `demo.gif` and `poster.jpg`. They play the real app with the real AI roles and record it in headless Chromium. Nothing is staged except the frame around the app, the cursor, the captions and the zoom, which `stage.html` draws.
+These scripts make `docs/demo/demo.mp4` and `demo.gif`. They play the real app with the real AI roles and record it in headless Chromium. Nothing is staged except the frame around the app, the cursor, the captions and the zoom, which `stage.html` draws.
 
 ## You need
 
@@ -34,5 +34,5 @@ These scripts make `docs/demo/demo.mp4`, `demo.gif` and `poster.jpg`. They play 
 ## How it works
 
 - `record.py` saves each screencast frame with its time. A slow AI turn is marked to play 7 times faster, and a badge on the frame says so.
-- `cut.py` gives each frame its played length, joins the frames at 60 fps, and stops at 2 minutes.
+- `cut.py` gives each frame its played length, plays the whole take 1.5 times faster (`PACE`), joins the frames at 60 fps, and stops at 2 minutes.
 - To change the story, edit the scene methods in `record.py`: `loner`, `goons`, `relay`, `poke` and `create`.

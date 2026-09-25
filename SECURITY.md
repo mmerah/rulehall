@@ -4,7 +4,7 @@ Thanks for taking the time to look. Rulehall is a hobby project that I maintain 
 
 ## Supported versions
 
-There are no releases yet. I fix issues on `master`, and the fix ships in the next `ghcr.io/mmerah/rulehall:latest` image. If you run an older commit or image, please update first and check the issue is still there.
+I fix issues on `master` and in the latest release. A fix ships in the next release and in the `ghcr.io/mmerah/rulehall:latest` image. If you run an older version, please update first and check the issue is still there.
 
 ## Reporting a vulnerability
 
