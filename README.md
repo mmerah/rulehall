@@ -26,13 +26,32 @@ Four rule sets ship with the app:
 
 A scenario is a backdrop, a premise, a scope and an opening scene. The worldsmith writes one from your prompt, or from a document you drop in (Markdown, text or PDF). A character is one sheet per rule set. Some of both come with the game, and you can make your own in the app. Each rule set plays from a pack, which is either its own tables or a full kit with a backdrop, names, traits and adventure seeds. Loner ships with twelve genre packs, and you can write a pack of your own on the **New pack** page.
 
-Play runs on the AI subscription you already have, through the `claude` or `codex` command. Scene art is optional and off by default, and it uses its own provider key.
+## Choose how the AI plays
 
-A note on that: Rulehall is not affiliated with or endorsed by Anthropic or OpenAI. It drives their command-line tools with your own account. Whether that kind of use is allowed is up to their terms, which can change, and either of them could restrict or end it at any moment. Check their terms yourself, and if you'd rather be on the safe side, point the roles at a completion API instead: OpenRouter with your own key, or a local model (see below).
+Each role runs on one of four providers, and you can mix them. The times below are for one whole turn.
+
+| Provider | What you need | Time per turn | Cost per turn |
+| --- | --- | --- | --- |
+| Claude Code (`claude`) | A Claude subscription | About 20 s (Opus master, Sonnet narrator) | Your subscription |
+| Codex (`codex`) | A ChatGPT subscription | 10 to 15 s (Sol master, Luna narrator) | Your subscription |
+| OpenRouter | An API key | About 5 s with DeepSeek V4 Flash | $0.005 to $0.01 with DeepSeek V4 Flash |
+| Local | A model that supports tool calls, served by Ollama for example | Depends on your hardware | Free |
+
+Scene art is optional and off by default. It uses its own provider key, and a picture costs about $0.03 on OpenRouter.
+
+Rulehall is not affiliated with or endorsed by Anthropic or OpenAI. With `claude` or `codex`, it drives their command-line tools with your own account. Whether that kind of use is allowed is up to their terms, which can change, and either of them could restrict or end it at any moment. Check their terms yourself. OpenRouter and local models don't depend on those terms.
+
+## Status
+
+Rulehall is under active development. Expect bugs, and expect things to change between versions, saves included.
+
+Setup needs a terminal today: you install `uv`, run two commands, and connect an AI provider. If you're comfortable with that, you're the audience for now.
+
+Much of the code is written with AI coding agents. [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md) hold the rules they follow, and the tests and checks in CI guard every change.
 
 ## Start the app
 
-You need `uv` and an AI command-line program, Claude Code (`claude`) or Codex (`codex`), installed and logged in. The default settings use `claude`. Rulehall runs on Linux and Windows. It should run on macOS too, but nobody has tried it there yet.
+You need `uv` and one AI provider from the table above. The default settings use `claude`, installed and logged in. To use another provider, change it on the Settings page (see below). Rulehall runs on Linux and Windows. It should run on macOS too, but nobody has tried it there yet.
 
 1. Install the project.
 
