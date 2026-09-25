@@ -6,13 +6,13 @@ license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.13"
 dependencies = [
-    "nicegui==3.16.0",
-    "pydantic==2.13.4",
+    "nicegui==3.17.1",
+    "pydantic==2.13.5",
     "pydantic-settings==2.15.0",
     "python-dotenv==1.2.3",
     "httpx==0.28.1",
-    "pypdf==6.16.2",
-    "mcp==2.0.0",
+    "pypdf==6.19.0",
+    "mcp==2.2.0",
 ]
 
 [project.scripts]
@@ -27,13 +27,13 @@ packages = ["src/rulehall"]
 
 [dependency-groups]
 dev = [
-    "basedpyright==1.39.10",
+    "basedpyright==1.40.1",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
-    "ruff==0.16.4",
+    "ruff==0.16.8",
 ]
 qa = [
-    "playwright==1.56.0",
+    "playwright==1.63.0",
 ]
 
 [tool.uv]
