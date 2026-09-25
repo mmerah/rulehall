@@ -32,7 +32,7 @@ A note on that: Rulehall is not affiliated with or endorsed by Anthropic or Open
 
 ## Start the app
 
-You need `uv` and an AI command-line program, Claude Code (`claude`) or Codex (`codex`), installed and logged in. The default settings use `claude`.
+You need `uv` and an AI command-line program, Claude Code (`claude`) or Codex (`codex`), installed and logged in. The default settings use `claude`. Rulehall runs on Linux and Windows. It should run on macOS too, but nobody has tried it there yet.
 
 1. Install the project.
 
