@@ -110,10 +110,10 @@ class ClaudeDriver:
             "--effort",
             config.effort,
             *(() if conversation is None else ("--resume", conversation)),
-            # Measured: `--tools ""` disables nothing, naming one tool does.
             "--restricted",
+            # Measured on 2.1.282: no built-in tool is left; the MCP tools stay.
             "--tools",
-            "Read",
+            "",
         ]
         if role == "master":
             argv += ["--allowed-tools", "mcp__rulehall", "--mcp-config", _claude_mcp(url)]
@@ -162,12 +162,26 @@ class CodexDriver:
             "--ignore-user-config",
             "--ignore-rules",
             "--skip-git-repo-check",
+            # `resume` takes no `--sandbox`; `-c` works in both forms.
+            "-c",
+            "sandbox_mode=read-only",
+            "-c",
+            "approval_policy=never",
+            # Measured: the read-only sandbox still lets these tools read any file.
+            "--disable",
+            "shell_tool",
+            "--disable",
+            "unified_exec",
+            "--disable",
+            "view_image",
+            "--disable",
+            "image_generation",
         ]
         if role == "master":
-            # Only `--approve-for-me` lets an MCP call through, and it refuses `--sandbox`.
-            return (*argv, "--approve-for-me", "-c", f"mcp_servers.rulehall.url={url}")
-        # `resume` takes no `--sandbox`, so the sandbox goes through `-c`, which both forms take.
-        return (*argv, "-c", "sandbox_mode=read-only", "-c", "approval_policy=never")
+            # Measured: under `approval_policy=never` an MCP call is refused without this.
+            argv += ["-c", "mcp_servers.rulehall.default_tools_approval_mode=approve"]
+            argv += ["-c", f"mcp_servers.rulehall.url={url}"]
+        return argv
 
     def delta(self, line: str) -> str:
         # `codex exec --json` prints a message only once it is complete: nothing to stream.

@@ -69,23 +69,37 @@ CLAUDE_OUTPUT = "\n".join(
 )
 
 
-def test_only_the_master_is_let_out_of_the_sandbox_and_no_role_sees_the_account() -> None:
+def test_no_codex_role_gets_a_shell_and_only_the_master_reaches_the_tools() -> None:
     config = RoleConfig(provider="codex", model="gpt-5", effort="low")
     master = CodexDriver().command("master", config, None, "http://localhost:1/mcp/")
     narrator = CodexDriver().command("narrator", config, None, "")
 
-    # `resume` accepts no sandbox flag, so a writer's box rides `-c`, which both forms accept.
-    assert "--sandbox" not in master and "--sandbox" not in narrator
-    assert "--approve-for-me" in master and "--approve-for-me" not in narrator
-    assert "sandbox_mode=read-only" in narrator and "approval_policy=never" in narrator
     assert "mcp_servers.rulehall.url=http://localhost:1/mcp/" in master
+    assert "mcp_servers.rulehall.default_tools_approval_mode=approve" in master
     assert not any(line.startswith("mcp_servers") for line in narrator)
     for argv in (master, narrator):
+        # `resume` accepts no sandbox flag, so the box rides `-c`, which both forms accept.
+        assert "--sandbox" not in argv and "--approve-for-me" not in argv
+        assert "sandbox_mode=read-only" in argv and "approval_policy=never" in argv
+        disabled = {argv[at + 1] for at, flag in enumerate(argv) if flag == "--disable"}
+        # The read-only sandbox blocks writes only; these tools read any file on the host.
+        assert {"shell_tool", "unified_exec", "view_image", "image_generation"} <= disabled
         # `--ignore-user-config` leaves the account's own MCP servers standing; this removes them.
-        disabled = argv.index("--disable")
-        assert list(argv[disabled : disabled + 2]) == ["--disable", "apps"]
+        assert "apps" in disabled
         assert "--ignore-user-config" in argv
         assert "web_search=disabled" in argv
+
+
+def test_no_claude_role_keeps_a_built_in_tool_and_only_the_master_reaches_the_tools() -> None:
+    config = RoleConfig(model="haiku", effort="low")
+    master = ClaudeDriver().command("master", config, None, "http://localhost:1/mcp/")
+    narrator = ClaudeDriver().command("narrator", config, None, "")
+
+    assert "--mcp-config" in master and "--mcp-config" not in narrator
+    for argv in (master, narrator):
+        tools = argv.index("--tools")
+        assert argv[tools + 1] == ""
+        assert "--restricted" in argv and argv[-1] == "--strict-mcp-config"
 
 
 def test_a_failed_claude_run_does_not_quote_its_raw_result() -> None:
