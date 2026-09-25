@@ -1,5 +1,10 @@
 # Rulehall
 
+[![check](https://github.com/mmerah/rulehall/actions/workflows/check.yml/badge.svg)](https://github.com/mmerah/rulehall/actions/workflows/check.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.13](https://img.shields.io/badge/python-3.13-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![Docker image](https://img.shields.io/badge/docker-ghcr.io%2Fmmerah%2Frulehall-2496ED?logo=docker&logoColor=white)](https://github.com/mmerah/rulehall/pkgs/container/rulehall)
+
 [![A two-minute demo: one turn in each rule set, a Pokemon battle, and a scenario written from a PDF](docs/demo/demo.gif)](docs/demo/demo.mp4)
 
 Click the demo to watch it in full quality.

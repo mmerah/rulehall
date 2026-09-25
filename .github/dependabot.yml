@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /src/rulehall/engines/pokemon/showdown
+    schedule:
+      interval: weekly
+    ignore:
+      # A new simulator needs `npm run export-dex` in the same change, so it is bumped by hand.
+      - dependency-name: pokemon-showdown
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
