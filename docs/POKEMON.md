@@ -25,7 +25,7 @@ Rulehall is not affiliated with, endorsed or sponsored by Nintendo, Creatures In
 | `dex.json` | This repo, built by `export-dex` | Numbers from Showdown's MIT data. The names, the ability texts and the Pokedex entries are the owners' text, through PokeAPI |
 | Pokemon and trainer sprites, battle backgrounds, music, cries, item icons | Fetched at setup | © Nintendo, Creatures Inc., Game Freak, The Pokemon Company |
 
-The git repo holds no Nintendo art or sound. The setup fetches them to your computer from the same public servers that the Showdown website uses. The Docker image bundles that fetch, so the image runs offline.
+The git repo holds no Nintendo art or sound files. The only Pokemon images in it are screenshots of play, in the demo video and the social card. The setup fetches the art and sound to your computer from the same public servers that the Showdown website uses. The Docker image bundles that fetch, so the image runs offline.
 
 If you hold rights to anything here and want it removed, open an issue. It comes out.
 
