@@ -86,7 +86,7 @@ def test_the_turn_reads_no_settings() -> None:
 
 def test_no_module_names_a_concrete_engine() -> None:
     naming = {
-        str(path.relative_to(SOURCE))
+        path.relative_to(SOURCE).as_posix()
         for path in _python_files(SOURCE)
         for name in _file_imports(path)
         if name.startswith(ENGINES)
