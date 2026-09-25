@@ -1,9 +1,5 @@
 # Repository guidance
 
-## The maintainer
-
-The maintainer has ADHD. Load the `i-have-adhd` skill at the start of each session.
-
 ## Commands
 
 Run these from the repository root. Do not set `UV_CACHE_DIR`. It breaks the tests.

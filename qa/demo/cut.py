@@ -40,12 +40,12 @@ def main() -> None:
     for old in gif_frames.glob("*.png"):
         old.unlink()
     _ffmpeg(
-        *("-i", str(out / "demo.mp4"), "-vf", "fps=10,scale=800:-1:flags=lanczos"),
+        *("-i", str(out / "demo.mp4"), "-vf", "fps=8,scale=720:-1:flags=lanczos"),
         str(gif_frames / "%05d.png"),
     )
     subprocess.run(
         [
-            *("gifski", "--fps", "10", "--quality", "70", "--width", "800", "--quiet"),
+            *("gifski", "--fps", "8", "--quality", "65", "--width", "720", "--quiet"),
             *("-o", str(out / "demo.gif"), *sorted(map(str, gif_frames.glob("*.png")))),
         ],
         check=True,
