@@ -41,6 +41,17 @@ A few things make a review quick:
 - Test behavior, not prose. A new rule gets a test; a reworded prompt doesn't.
 - Don't bump a save format with a migration. Saves have no version, and an old save is simply skipped.
 
+## Releases
+
+The [releases page](https://github.com/mmerah/rulehall/releases) is the changelog. Pushing a signed tag builds it: CI lists every commit since the last tag, puts dependency bumps in their own section, and publishes the versioned Docker image.
+
+```bash
+git tag -s v0.2.0 -m "Rulehall 0.2.0"
+git push origin v0.2.0
+```
+
+So write commit subjects for people: they end up in the changelog as they are.
+
 ## Licence
 
 By contributing, you agree that your work is released under the [MIT licence](LICENSE), the same as the rest of the code.

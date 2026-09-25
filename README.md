@@ -125,6 +125,7 @@ docker run -d -p 8080:8080 \
 ## Project information
 
 - Read [CLAUDE.md](CLAUDE.md) for development rules and checks.
+- Read the [releases](https://github.com/mmerah/rulehall/releases) for what changed in each version.
 - Read [CONTRIBUTING.md](CONTRIBUTING.md) to report a bug, suggest an idea or send a change.
 - Read [SECURITY.md](SECURITY.md) to report a vulnerability.
 - Read [docs/LONER-3E.md](docs/LONER-3E.md) for sources, license, attribution, and implementation differences.
