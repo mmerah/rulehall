@@ -23,7 +23,21 @@ from rulehall.core.validation import Loose, Refusal, parse_json
 LOGGER = logging.getLogger(__name__)
 
 # The child gets nothing else: the parent shell may hold keys no role may see.
-KEPT_ENV = ("PATH", "HOME", "LANG", "TERM")
+# The names past TERM are Windows ones: the CLIs need them to start and to find their logins.
+KEPT_ENV = (
+    "PATH",
+    "HOME",
+    "LANG",
+    "TERM",
+    "SYSTEMROOT",
+    "COMSPEC",
+    "PATHEXT",
+    "USERPROFILE",
+    "APPDATA",
+    "LOCALAPPDATA",
+    "TEMP",
+    "TMP",
+)
 PROMPT_MAX_BYTES = 131_072  # Linux MAX_ARG_STRLEN: the prompt is one argv element
 OUTPUT_MAX_BYTES = 4_194_304  # a role answer is kilobytes; a runaway CLI streams without end
 # The id goes back as an argv element; a leading `-` must not parse as a flag.

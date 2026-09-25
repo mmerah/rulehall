@@ -205,6 +205,20 @@ def test_the_child_environment_holds_nothing_but_the_allowlist(
     assert env["ANTHROPIC_API_KEY"] == "k"
 
 
+def test_the_child_keeps_what_windows_needs_to_start_a_cli_and_find_its_login(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    windows = ("SYSTEMROOT", "COMSPEC", "PATHEXT", "USERPROFILE", "APPDATA", "LOCALAPPDATA")
+    for name in windows:
+        monkeypatch.setenv(name, name.lower())
+    monkeypatch.delenv("TEMP", raising=False)
+
+    env = child_environment(())
+
+    assert all(env[name] == name.lower() for name in windows)
+    assert "TEMP" not in env
+
+
 async def test_a_role_that_floods_its_output_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(spawn, "OUTPUT_MAX_BYTES", 16)
     monkeypatch.setattr(spawn.subprocess, "create_subprocess_exec", _faked(b"x" * 64, 0))
