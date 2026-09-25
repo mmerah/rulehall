@@ -72,7 +72,7 @@ jobs:
         env:
           IMAGE: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
         run: |
-          docker run -d --name smoke --user 1234:100 "$IMAGE"
+          docker run -d --name smoke --user 1234:100 -e FETCH_POKEMON_ASSETS=false "$IMAGE"
           trap 'docker logs smoke' ERR
           for _ in $(seq 60); do
             docker exec smoke python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8080/status")' && break
@@ -82,6 +82,7 @@ jobs:
           docker exec smoke claude --version
           docker exec smoke codex --version
           docker exec smoke node --version
+          docker exec smoke test -d /app/vendor/showdown
       - name: Push
         uses: docker/build-push-action@v7
         with:

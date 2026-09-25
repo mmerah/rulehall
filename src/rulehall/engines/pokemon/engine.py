@@ -66,9 +66,18 @@ from rulehall.engines.rooms.engine import RoomEngine
 from rulehall.engines.rooms.world import RegionProposal
 
 SIMULATOR = SHOWDOWN / "node_modules" / "pokemon-showdown" / "pokemon-showdown"
+ASSETS = Path(__file__).parents[4] / "vendor" / "showdown"
+# fetch-assets.js writes it last, so a fetch cut short leaves it out.
+ASSETS_COMPLETE = ASSETS / "complete"
 SETUP_HINT = (
     "The battle simulator is not installed. "
     "Run `npm --prefix src/rulehall/engines/pokemon/showdown run setup`, then start the app again."
+)
+ASSETS_HINT = (
+    "The Pokemon art and sound are not fetched yet. "
+    "Run `npm --prefix src/rulehall/engines/pokemon/showdown run setup`, then start the app again. "
+    "In Docker, the container fetches them on its first start: wait for "
+    "'Pokemon art and sound: ready' in its log."
 )
 STARTER = "starter"
 AVATAR = "avatar"
@@ -85,7 +94,7 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
     art_style = "Bright anime-style illustration, clean lines, soft colours, no text or lettering."
     portraits = False
     directory = Path(__file__).parent
-    assets = Path(__file__).parents[4] / "vendor" / "showdown"
+    assets = ASSETS
     battle_script = SHOWDOWN / "view.js"
     pack = PokemonPack
     head = PokemonHead
@@ -215,6 +224,8 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
     def simulator_argv(self) -> tuple[str, ...]:
         if not SIMULATOR.is_file():
             raise Refusal(SETUP_HINT)
+        if not ASSETS_COMPLETE.is_file():
+            raise Refusal(ASSETS_HINT)
         # The npm package ships built; a build run prints to stdout before the first block.
         return ("node", str(SIMULATOR), "simulate-battle", "--skip-build")
 

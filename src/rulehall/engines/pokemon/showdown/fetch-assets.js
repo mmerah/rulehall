@@ -232,6 +232,8 @@ async function main() {
     ),
   );
   fetched += sum(await pool([...new Set(itemFiles())], (file) => fetchFile(file, ITEM_URL, true)));
+  // The engine opens a battle only once this marker exists.
+  fs.writeFileSync(path.join(VENDOR, "complete"), "");
   console.log(`fetched ${fetched} files`);
 }
 

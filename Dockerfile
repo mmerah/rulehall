@@ -10,13 +10,11 @@ ENV UV_PYTHON_INSTALL_DIR=/opt/python \
 
 WORKDIR /app
 
-COPY src/rulehall/engines/pokemon/dex.json src/rulehall/engines/pokemon/avatars.json src/rulehall/engines/pokemon/
 COPY src/rulehall/engines/pokemon/showdown/package.json \
      src/rulehall/engines/pokemon/showdown/package-lock.json \
-     src/rulehall/engines/pokemon/showdown/fetch-assets.js \
-     src/rulehall/engines/pokemon/showdown/net.js \
      src/rulehall/engines/pokemon/showdown/
-RUN npm --prefix src/rulehall/engines/pokemon/showdown run setup && npm cache clean --force
+# Only the simulator: the art and sound are fetched on the first start, see docker-entrypoint.sh.
+RUN npm --prefix src/rulehall/engines/pokemon/showdown ci --omit=optional && npm cache clean --force
 
 ARG CLAUDE_CLI_WEEK
 RUN npm install -g @anthropic-ai/claude-code @openai/codex && npm cache clean --force
@@ -29,7 +27,7 @@ COPY characters characters
 COPY src src
 RUN uv sync --locked --no-default-groups
 
-RUN mkdir -m 1777 /home/rulehall /data
+RUN mkdir -m 1777 /home/rulehall /data && ln -s /data/vendor /app/vendor
 ENV SERVER__HOST=0.0.0.0 \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -39,4 +37,6 @@ WORKDIR /data
 EXPOSE 8080
 HEALTHCHECK --interval=30s --start-period=30s \
     CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/status', timeout=5)"]
+COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/rulehall-entrypoint
+ENTRYPOINT ["rulehall-entrypoint"]
 CMD ["rulehall"]
