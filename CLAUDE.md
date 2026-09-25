@@ -20,8 +20,7 @@ The tests run offline. They give the same result every time.
 
 ## How the game works
 
-- Three AI roles play the game. A fourth, the opponent, plays the other side of a battle when a
-  setting turns it on. Each role starts with no memory every turn.
+- Three AI roles play the game. A fourth, the opponent, plays the other side of a battle when a setting turns it on. Each role starts with no memory every turn.
 - Three roles answer with typed proposals. One role plays through tools.
 - Only code changes the game state. Only code rolls dice.
 - An engine owns its world. The layers above the engines do not know the shape of a world.

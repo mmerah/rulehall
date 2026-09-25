@@ -1,8 +1,6 @@
 # Demo video
 
-These scripts make `docs/demo/demo.mp4`, `demo.gif` and `poster.jpg`. They play the real app with
-the real AI roles and record it in headless Chromium. Nothing is staged except the frame around the
-app, the cursor, the captions and the zoom, which `stage.html` draws.
+These scripts make `docs/demo/demo.mp4`, `demo.gif` and `poster.jpg`. They play the real app with the real AI roles and record it in headless Chromium. Nothing is staged except the frame around the app, the cursor, the captions and the zoom, which `stage.html` draws.
 
 ## You need
 
@@ -31,13 +29,10 @@ app, the cursor, the captions and the zoom, which `stage.html` draws.
    uv run python qa/demo/cut.py /tmp/rulehall-demo
    ```
 
-4. Watch `docs/demo/demo.mp4`. The AI writes new words on every take, so a take can go wrong. If it
-   does, stop the server, then do steps 1 to 3 again.
+4. Watch `docs/demo/demo.mp4`. The AI writes new words on every take, so a take can go wrong. If it does, stop the server, then do steps 1 to 3 again.
 
 ## How it works
 
-- `record.py` saves each screencast frame with its time. A slow AI turn is marked to play 7 times
-  faster, and a badge on the frame says so.
+- `record.py` saves each screencast frame with its time. A slow AI turn is marked to play 7 times faster, and a badge on the frame says so.
 - `cut.py` gives each frame its played length, joins the frames at 60 fps, and stops at 2 minutes.
-- To change the story, edit the scene methods in `record.py`: `loner`, `goons`, `relay`, `poke`
-  and `create`.
+- To change the story, edit the scene methods in `record.py`: `loner`, `goons`, `relay`, `poke` and `create`.
