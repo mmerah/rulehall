@@ -13,7 +13,6 @@ WORKDIR /app
 COPY src/rulehall/engines/pokemon/showdown/package.json \
      src/rulehall/engines/pokemon/showdown/package-lock.json \
      src/rulehall/engines/pokemon/showdown/
-# Only the simulator: the art and sound are fetched on the first start, see docker-entrypoint.sh.
 RUN npm --prefix src/rulehall/engines/pokemon/showdown ci --omit=optional && npm cache clean --force
 
 ARG CLAUDE_CLI_WEEK

@@ -11,7 +11,7 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).parents[2]
 LONGEST = 119.8  # seconds; the README promises two minutes at most
-PACE = 1.5  # the whole take plays this much faster than it was recorded
+PACE = 1.5
 
 
 def main() -> None:

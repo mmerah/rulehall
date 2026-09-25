@@ -1,5 +1,5 @@
 #!/bin/sh
-# The image holds no Nintendo art or sound. Each install fetches its own copy into the data volume.
+# The image holds no Nintendo art or sound, so each install fetches its own.
 assets=/data/vendor/showdown
 # The app serves the folder only if it exists at start, so it must exist before the fetch ends.
 mkdir -p "$assets"

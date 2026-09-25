@@ -67,7 +67,6 @@ from rulehall.engines.rooms.world import RegionProposal
 
 SIMULATOR = SHOWDOWN / "node_modules" / "pokemon-showdown" / "pokemon-showdown"
 ASSETS = Path(__file__).parents[4] / "vendor" / "showdown"
-# fetch-assets.js writes it last, so a fetch cut short leaves it out.
 ASSETS_COMPLETE = ASSETS / "complete"
 SETUP_HINT = (
     "The battle simulator is not installed. "
