@@ -13,11 +13,13 @@ from support.table import (
 
 from rulehall.app.session import GameService
 from rulehall.app.turn import Turn
+from rulehall.config import TranscriptConfig
 from rulehall.core.facts import Fact
 from rulehall.core.model import AnyGame
 from rulehall.core.play import (
     PendingDecision,
     PendingOption,
+    Refused,
     SpokenLine,
 )
 from rulehall.core.views import SCENE_TAB, PlayerView, Subject
@@ -146,6 +148,39 @@ async def test_the_live_turn_draws_each_fact_card_once_and_the_narration_heard_s
     await synced()
     assert live.cards.default_slot.children == []
     assert _texts(held) == []
+
+
+@pytest.mark.parametrize(
+    ("shown", "heads"),
+    [(True, ["One", "The rules refused reveal", "Two"]), (False, ["One", "Two"])],
+)
+async def test_the_live_turn_puts_a_refused_call_between_its_facts_only_when_shown(
+    tmp_path: Path, page: Callable[[], Client], *, shown: bool, heads: list[str]
+) -> None:
+    table = open_game(tmp_path)
+    service = table.service
+    service.transcript_config = TranscriptConfig(refusals=shown)
+    page()
+    live = LiveTurn(service)
+    drawn = TurnProgress.of(service)
+    with ui.element("div"):
+        live.build(drawn)
+    service.turn = Turn(
+        engine=service.engine, draft=service.state.draft(), rng=Random(1), facts=[_told("One")]
+    )
+    now = TurnProgress.of(service)
+    live.sync(now, drawn)
+
+    service.turn.refused.append(Refused(tool="reveal", reason="no such thing", after_facts=1))
+    service.turn.facts.append(_told("Two"))
+    live.sync(TurnProgress.of(service), now)
+
+    drawn_heads = [
+        label.text
+        for label in live.cards.descendants()
+        if isinstance(label, ui.label) and "game-fact-head" in label.classes
+    ]
+    assert drawn_heads == heads
 
 
 async def test_a_page_is_not_built_for_a_client_deleted_before_the_handshake(

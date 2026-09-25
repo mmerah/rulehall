@@ -87,6 +87,7 @@ class Snapshot:
             len(self.history) != len(drawn.history)
             or now.working_role != before.working_role
             or now.fact_count != before.fact_count
+            or now.refused_count != before.refused_count
             or now.intent != before.intent
             or now.live != before.live
             or self.view.way_on != drawn.view.way_on

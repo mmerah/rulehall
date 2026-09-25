@@ -21,7 +21,7 @@ from rulehall.core.model import (
     ScenarioMeta,
     WorldsmithRequest,
 )
-from rulehall.core.play import Cause, Chapter, Exchange, PendingOption, SpokenLine
+from rulehall.core.play import Cause, Chapter, Exchange, PendingOption, Refused, SpokenLine
 from rulehall.core.prompt import Prompt, Sections, sections
 from rulehall.core.tools import Call, MasterTool, actions_of, tool, tools_of
 from rulehall.core.validation import EngineId, Refusal, Slug, parse, parse_json, slug
@@ -286,12 +286,14 @@ class Engine[W: World[Any], K: Pack](ABC):
         *,
         words: str = "",
         cause: Cause | None = None,
+        refused: tuple[Refused, ...] = (),
     ) -> Game[W]:
         exchange = Exchange(
             words=words,
             cause=cause,
             lines=lines,
             facts=facts,
+            refused=refused,
             decision="" if draft.pending is None else draft.pending.prompt,
             context=self.context_lines(draft),
         )

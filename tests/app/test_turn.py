@@ -83,6 +83,18 @@ async def test_the_turn_holds_its_facts_in_resolver_order(tmp_path: Path) -> Non
     assert len(exchange.facts) >= len(cards(exchange.facts))
 
 
+async def test_the_exchange_keeps_each_refused_call_where_it_happened(tmp_path: Path) -> None:
+    table = open_game(tmp_path)
+
+    state = await play_turn(
+        table, "I search beneath the desk.", tool_call("reveal", target_id="nowhere"), FOUND
+    )
+
+    (refused,) = state.exchanges()[-1].refused
+    assert (refused.tool, refused.after_facts) == ("reveal", 0)
+    assert refused.reason == table.refusals[0]
+
+
 async def test_a_narrator_failure_still_commits_the_turn_with_no_prose(tmp_path: Path) -> None:
     table = open_game(tmp_path)
     table.spawner.turns.append(table.plays((FOUND, TAKEN)))

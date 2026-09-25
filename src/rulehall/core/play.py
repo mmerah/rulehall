@@ -116,12 +116,21 @@ class Answer(Frozen):
         return self
 
 
+class Refused(Frozen):
+    """A master tool call the rules refused; `after_facts` places it among the turn's facts."""
+
+    tool: str
+    reason: str
+    after_facts: int = Field(ge=0)
+
+
 class Exchange(Frozen):
     words: str
     cause: Cause | None = None
     lines: tuple[SpokenLine, ...]
     # Every fact, told or not; `cards` picks the ones the player may see.
     facts: tuple[Fact, ...] = ()
+    refused: tuple[Refused, ...] = ()
     # The suspending decision's prompt: the pause has to survive after `Game.pending` clears.
     decision: str = ""
     context: str = ""

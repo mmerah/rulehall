@@ -9,7 +9,7 @@ from pydantic import JsonValue
 from rulehall.core.creation import option_of
 from rulehall.core.facts import NOTHING, Fact, traced
 from rulehall.core.model import AnyGame
-from rulehall.core.play import Answer, SpokenLine
+from rulehall.core.play import Answer, Refused, SpokenLine
 from rulehall.core.tools import MasterTool
 from rulehall.core.validation import Refusal
 from rulehall.engines.engine import AnyEngine
@@ -35,6 +35,7 @@ class Turn:
     draft: AnyGame
     rng: Random
     facts: list[Fact] = field(default_factory=list)
+    refused: list[Refused] = field(default_factory=list)
     words: str = ""
     # What the master reads as PLAYER ACTION: the words, or the marker for a chosen option.
     master_input: str = ""
@@ -100,6 +101,15 @@ class Turn:
         return bool(self.facts) or self.draft.pending is not None
 
     def call(self, name: str, raw: JsonValue) -> str:
+        try:
+            return self._called(name, raw)
+        except Refusal as refused:
+            self.refused.append(
+                Refused(tool=name, reason=str(refused), after_facts=len(self.facts))
+            )
+            raise
+
+    def _called(self, name: str, raw: JsonValue) -> str:
         if (ended := self.engine.ending(self.draft)) is not None:
             raise Refusal(f"{ended} {GAME_OVER}")
         found = self.engine.require_tool(name)
@@ -130,7 +140,9 @@ class Turn:
     def finish(self, lines: tuple[SpokenLine, ...]) -> AnyGame:
         if self.played and self.facts:
             self.engine.count_turn(self.draft)
-        return self.engine.record(self.draft, lines, tuple(self.facts), words=self.words)
+        return self.engine.record(
+            self.draft, lines, tuple(self.facts), words=self.words, refused=tuple(self.refused)
+        )
 
     def apply(self, play: Callable[[AnyGame, Random], tuple[Fact, ...]]) -> tuple[Fact, ...]:
         """One execution against a candidate; a refused call leaves the draft and the dice alone."""

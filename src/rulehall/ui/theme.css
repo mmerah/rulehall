@@ -579,6 +579,8 @@ body, body.body--dark {
 .game-fact:hover { border-color: var(--game-border); box-shadow: var(--game-shadow-md), var(--game-highlight) }
 .game-fact-head { font-size: .9rem; font-weight: 700; line-height: 1.35 }
 .game-fact-icon { color: var(--game-accent); font-size: 1.15rem }
+.game-refused:before { background: var(--game-danger) }
+.game-refused .game-fact-icon { color: var(--game-danger) }
 .game-activity {
   align-self: center; border-radius: 999px; padding-inline: 1rem;
   box-shadow: 0 12px 28px -10px var(--game-accent-glow), var(--game-shadow-md);

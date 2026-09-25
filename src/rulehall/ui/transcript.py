@@ -8,7 +8,7 @@ from nicegui import ui
 from rulehall.app.session import GameService, Step
 from rulehall.app.turn import BATTLE_ON, Turn
 from rulehall.core.facts import DiceEvent, Fact, cards
-from rulehall.core.play import Cause, Exchange, SpokenLine
+from rulehall.core.play import Cause, Exchange, Refused, SpokenLine
 from rulehall.core.validation import Slug
 from rulehall.core.views import PlayerView
 from rulehall.ui.widgets import PASS_THROUGH, avatar
@@ -59,6 +59,7 @@ CLOSED_REASONS: dict[Blocker | None, str] = {
 class TurnProgress:
     turn: Turn | None
     fact_count: int
+    refused_count: int
     intent: str
     live: tuple[SpokenLine, ...]
     working_role: Step | None
@@ -69,6 +70,7 @@ class TurnProgress:
         return cls(
             turn=turn,
             fact_count=0 if turn is None else len(turn.facts),
+            refused_count=0 if turn is None else len(turn.refused),
             intent=session.intent,
             live=session.live,
             working_role=session.working_role,
@@ -155,8 +157,8 @@ class LiveTurn:
             self.words.refresh(now)
             self.cards.clear()
             self.add_cards(now, 0, live=True)
-        elif now.fact_count != drawn.fact_count:
-            self.add_cards(now, drawn.fact_count, live=True)
+        elif (now.fact_count, now.refused_count) != (drawn.fact_count, drawn.refused_count):
+            self.add_cards(now, drawn.fact_count + drawn.refused_count, live=True)
         if now.live != drawn.live:
             self.heard.refresh(now.live)
         if now.working_role != drawn.working_role:
@@ -170,11 +172,17 @@ class LiveTurn:
             said(progress.words)
 
     def add_cards(self, progress: TurnProgress, since: int, *, live: bool) -> None:
-        if progress.turn is None:
+        turn = progress.turn
+        if turn is None:
             return
         with self.cards:
-            for fact in cards(progress.turn.facts[since : progress.fact_count]):
-                card(fact, live=live)
+            fact_cards(
+                self.session,
+                turn.facts[: progress.fact_count],
+                turn.refused[: progress.refused_count],
+                since=since,
+                live=live,
+            )
 
     @ui.refreshable_method
     def heard(self, live: tuple[SpokenLine, ...]) -> None:
@@ -214,8 +222,7 @@ def exchange_entry(session: GameService, exchange: Exchange, *, entering: bool) 
         ui.label(CAUSE_LABELS[exchange.cause]).classes("game-cause" + _entering(on=entering))
     else:
         said(exchange.words)
-    for fact in cards(exchange.facts):
-        card(fact)
+    fact_cards(session, exchange.facts, exchange.refused)
     spoken(session, exchange.lines, entering=entering)
 
 
@@ -231,6 +238,23 @@ def spoken(session: GameService, lines: Sequence[SpokenLine], *, entering: bool 
         )
 
 
+def fact_cards(
+    session: GameService,
+    facts: Sequence[Fact],
+    refused: Sequence[Refused],
+    *,
+    since: int = 0,
+    live: bool = False,
+) -> None:
+    """`since` counts facts and refusals together, so a live turn draws only what is new."""
+    for entry in in_order(facts, refused)[since:]:
+        if isinstance(entry, Fact):
+            if entry.told and entry.card:
+                card(entry, live=live)
+        elif session.transcript_config.refusals:
+            refusal_card(entry, live=live)
+
+
 def card(fact: Fact, *, live: bool = False) -> None:
     headline, *detail = fact.card.split("\n")
     with ui.column().classes("game-card game-fact w-full game-gap-sm" + _entering(on=live)):
@@ -243,6 +267,16 @@ def card(fact: Fact, *, live: bool = False) -> None:
             with ui.row().classes("items-start game-gap-2xl"):
                 for group in fact.dice:
                     dice_group(group, live=live)
+
+
+def refusal_card(refused: Refused, *, live: bool) -> None:
+    with ui.column().classes(
+        "game-card game-fact game-refused w-full game-gap-sm" + _entering(on=live)
+    ):
+        with ui.row().classes("items-center no-wrap game-gap-md"):
+            ui.icon("sym_r_block").classes("game-fact-icon")
+            ui.label(f"The rules refused {refused.tool}").classes("game-fact-head")
+        ui.label(refused.reason).classes("text-xs opacity-80")
 
 
 def dice_group(die: DiceEvent, *, live: bool) -> None:
@@ -317,6 +351,15 @@ def near_end(position: float, size: float, container: float, slack: float = 48) 
 
 def draft_spent(draft: str, newest_prompt: str) -> bool:
     return bool(draft) and draft == newest_prompt
+
+
+def in_order(facts: Sequence[Fact], refused: Sequence[Refused]) -> list[Fact | Refused]:
+    """A refusal goes after the facts that came before it and before the facts that came after."""
+    placed: list[tuple[int, int, Fact | Refused]] = [
+        (index, 1, fact) for index, fact in enumerate(facts)
+    ]
+    placed.extend((each.after_facts, 0, each) for each in refused)
+    return [entry for *_, entry in sorted(placed, key=lambda slot: slot[:2])]
 
 
 def rolled_since(facts: Sequence[Fact], seen: int) -> bool:

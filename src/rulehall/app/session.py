@@ -14,7 +14,7 @@ from rulehall.app.line_process import start_process
 from rulehall.app.roles import OPENING_NARRATION, role_answer, run_debrief, run_master, run_narrator
 from rulehall.app.spawn import Spawner
 from rulehall.app.turn import NO_TURN, Turn, require_playable
-from rulehall.config import BattleConfig
+from rulehall.config import BattleConfig, TranscriptConfig
 from rulehall.core.facts import Fact
 from rulehall.core.io import FileStore
 from rulehall.core.model import AnyCharacter, AnyGame, AnyScenario
@@ -61,6 +61,7 @@ class GameService:
     illustrator: Illustrator
     start_transport: Callable[[AnyEngine], Awaitable[Transport]] = start_process
     battle_config: BattleConfig = field(default_factory=BattleConfig)
+    transcript_config: TranscriptConfig = field(default_factory=TranscriptConfig)
     rng: Random = field(default_factory=Random)
     working_role: Step | None = None
     # The player's words for a write that opens no turn; the page shows them as their bubble.

@@ -84,6 +84,14 @@ class BattleConfig(Configured):
     )
 
 
+class TranscriptConfig(Configured):
+    refusals: bool = Field(
+        default=False,
+        description="Show each game master move the rules refused, as a card in the story. "
+        "A refusal can name something the story has not revealed yet.",
+    )
+
+
 class ServerConfig(Configured):
     # `0.0.0.0` opens the game to the LAN; `/mcp` stays loopback-only on its own.
     host: str = LOOPBACK_HOST
@@ -134,6 +142,7 @@ class Settings(BaseSettings):
     roles: RoleSettings = RoleSettings()
     media: MediaConfig = MediaConfig()
     battle: BattleConfig = BattleConfig()
+    transcript: TranscriptConfig = TranscriptConfig()
     server: ServerConfig = ServerConfig()
     saves_dir: Path = Path("saves")
     scenarios_dir: Path = Path("user/scenarios")

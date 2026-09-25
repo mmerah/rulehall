@@ -2,8 +2,9 @@
 
     uv run python qa/demo/serve.py /tmp/rulehall-demo/work
 
-The settings come from `.env` like `uv run rulehall`. The saves start empty, except a played 24XX
-save (`saves/silent-relay--kael.*`) that the relay scene shows when it exists.
+The settings come from `.env` like `uv run rulehall`, with refusal cards shown. The saves start
+empty, except a played 24XX save (`saves/silent-relay--kael.*`) that the relay scene shows when it
+exists.
 """
 
 import logging
@@ -14,7 +15,7 @@ from pathlib import Path
 from nicegui import ui
 
 from rulehall.app.runtime import Runtime
-from rulehall.config import LOOPBACK_HOST, ServerConfig, read_settings
+from rulehall.config import LOOPBACK_HOST, ServerConfig, TranscriptConfig, read_settings
 from rulehall.ui import theme
 from rulehall.ui.app import mount
 
@@ -42,6 +43,7 @@ def main() -> None:
             "characters_dir": work / "characters",
             "packs_dir": work / "packs",
             "server": ServerConfig(port=PORT),
+            "transcript": TranscriptConfig(refusals=True),
         }
     )
     mount(Runtime(settings))

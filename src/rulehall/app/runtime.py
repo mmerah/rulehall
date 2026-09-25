@@ -60,6 +60,7 @@ class Runtime:
             self.spawner.settings = settings
         for session in self._sessions.values():
             session.battle_config = settings.battle
+            session.transcript_config = settings.transcript
             session.illustrator = session.illustrator.configured(settings)
 
     def catalog(self) -> LauncherCatalog:
@@ -144,6 +145,7 @@ class Runtime:
             state=state,
             gate=self.gate,
             battle_config=self.settings.battle,
+            transcript_config=self.settings.transcript,
             illustrator=Illustrator.open(
                 self.settings,
                 self.store,
