@@ -1,0 +1,1299 @@
+{
+  "name": "AP01 Fantasy",
+  "source": "https://lonersrd.zotiquestgames.com/adventure_packs/AP01_fantasy.html",
+  "license": "Adventure Pack 01: Fantasy, Loner SRD site (CC BY-SA 4.0), (c) Roberto Bisceglie / Zotiquest Games",
+  "backdrop": "The world is a realm of ancient mystery and living myth, where enchanted forests shift overnight, and echoes of old gods linger in the wind. Forgotten places stir with purpose, and magic weaves through every shadow and glimmer.\nThe time period resembles a late-medieval fantasy age, marked by crumbling empires, feuding dynasties, and the slow return of forces thought buried. Castles rise on dragon-haunted hills, and relics of the past rewrite the present.\nThe location is a fragmented kingdom called **Aldorath**, a land of rolling hills, cursed ruins, moonlit marshes, and jagged mountain ranges. Power is split among ancient houses, each ruling their province from keeps laced with intrigue. The capital, **Eldrida**, is both a beacon of order and a nest of secrets.\nThe people of Aldorath include humans, elves, dwarves, halflings, and stranger folk touched by old magic. Tensions rise as borders blur, old alliances strain, and ancient pacts fray. Each people clings to fading traditions or forges dangerous new paths.\nMagic is primal, beautiful, and volatile. It is channeled by wizards, witches, and hedge mystics, and loosely regulated by the **College of Wizards**, an increasingly divided authority that clings to relevance while suppressing arcane threats.\nThe kingdom faces growing peril: foreign agents stir civil unrest, outlaws rule the wilds, and dark magic seeps from the cracks beneath the land. Myths once whispered now walk in daylight.\nCompeting factions shape the kingdom’s fate: the fractured monarchy, ambitious noble houses, a paranoid College of Wizards, outlaw cults, exiled heirs, and secret orders that seek to awaken what should remain forgotten.",
+  "names": {
+    "female": [
+      "Elira",
+      "Thariel",
+      "Mirwyn",
+      "Caelia",
+      "Ysolde",
+      "Avenra",
+      "Liora",
+      "Syllin",
+      "Nymeris",
+      "Odrille",
+      "Branna",
+      "Feyra",
+      "Isolde",
+      "Myrren",
+      "Anwen",
+      "Tahlia",
+      "Virelle",
+      "Desmira",
+      "Renya",
+      "Eirwen",
+      "Arlisse",
+      "Naevia",
+      "Joryn",
+      "Callistra",
+      "Velka",
+      "Lineth",
+      "Serida",
+      "Olyra",
+      "Malenne",
+      "Thalyssa",
+      "Nysha",
+      "Eryndel",
+      "Galene",
+      "Sylara",
+      "Tressa",
+      "Zarelle"
+    ],
+    "male": [
+      "Thalen",
+      "Corvin",
+      "Maelor",
+      "Eldric",
+      "Garran",
+      "Sylric",
+      "Brynjar",
+      "Halric",
+      "Fenwyn",
+      "Kaelen",
+      "Orwyn",
+      "Tiberan",
+      "Dorian",
+      "Arvek",
+      "Marnen",
+      "Lucen",
+      "Traskel",
+      "Hadrin",
+      "Roneth",
+      "Varek",
+      "Eryndor",
+      "Silas",
+      "Kendric",
+      "Bastian",
+      "Malric",
+      "Vaelor",
+      "Dryden",
+      "Osric",
+      "Jorren",
+      "Tyvald",
+      "Alric",
+      "Tharos",
+      "Ivaran",
+      "Kevarn",
+      "Elric",
+      "Zareth"
+    ],
+    "neutral": [],
+    "surnames": [
+      "Ironhart",
+      "Windmere",
+      "Duskbane",
+      "Hollowbrook",
+      "Stormbinder",
+      "Thornvale",
+      "Greyfen",
+      "Nightshade",
+      "Emberlain",
+      "Deepwarden",
+      "Stonesworn",
+      "Redmarsh",
+      "Dawntreader",
+      "Ashenfell",
+      "Moonwhisper",
+      "Vexley",
+      "Farrowind",
+      "Flamecrest",
+      "Ravenshade",
+      "Goldbranch",
+      "Frostreaver",
+      "Hollowmere",
+      "Duskridge",
+      "Wyrmholt",
+      "Thornekeep",
+      "Brightmoor",
+      "Oakenshield",
+      "Mirewood",
+      "Fenroar",
+      "Coldmere",
+      "Blackbarrow",
+      "Silverspire",
+      "Runeblade",
+      "Grimhollow",
+      "Ironveil",
+      "Ashgrove"
+    ],
+    "nicknames": [
+      "The Red",
+      "Long-Eyes",
+      "Ashcloak",
+      "Flame-Tongue",
+      "The Whisper",
+      "Ironjaw",
+      "One-Ear",
+      "Nightfox",
+      "Brightfang",
+      "Dustwalker",
+      "Grimhand",
+      "Starborn",
+      "Black Tom",
+      "Silverstep",
+      "Hollow-Eye",
+      "Cloudrider",
+      "Knifetooth",
+      "The Silent",
+      "Goldie",
+      "Blightbane",
+      "Quickblade",
+      "Stormchild",
+      "Cragface",
+      "Nightmare",
+      "the Pale",
+      "Three-Toes",
+      "Firemane",
+      "Bearclaw",
+      "Deep Voice",
+      "the Unseen",
+      "Smiler",
+      "Wormtongue",
+      "Skyhowler",
+      "the Black",
+      "Bonepicker",
+      "Last Hope"
+    ]
+  },
+  "rules": "A character may channel their **Luck** to cast spells or activate magical abilities. Each spell has a specific **Luck cost**, which varies based on its power or complexity. To cast a spell, the protagonist spends the required amount of Luck and rolls the Oracle to determine the outcome:\n\n- **No and**: The spell fails catastrophically — and something else goes wrong.\n- **No**: The spell fails, and the Luck spent is lost.\n- **No but**: The spell fails, but the Luck is not expended.\n- **Yes but**: The spell succeeds, but with a complication, side effect, or unintended cost.\n- **Yes**: The spell succeeds as intended.\n- **Yes and**: The spell succeeds with an extra benefit — such as a bonus effect, lasting impact, or unexpected insight.\n\n**Luck used for spellcasting refreshes** after the character takes a proper rest in a safe place. During a Conflict, the current Luck total applies for the duration and resets when the Conflict ends, as per the core rules.\n\nSpells:\n\n- **Heal** (1 Luck) – Restore a small amount of health to a creature you touch.\n- **Light** (1 Luck) – Create a floating glow that illuminates a small area for one hour.\n- **Identify** (1 Luck) – Reveal the nature and properties of a magical item or enchantment.\n- **Bolt** (1 Luck) – Hurl a streak of elemental energy at a single target.\n- **Detect Magic** (1 Luck) – Sense magical auras and effects nearby.\n- **Mage Armor** (2 Luck) – Summon a shimmering shield of force to absorb physical harm.\n- **Levitate** (2 Luck) – Defy gravity for a short time, hovering above the ground.\n- **Fear** (2 Luck) – Instill dread in a creature, forcing it to flee or falter.\n- **Illusion** (2 Luck) – Create a minor sound or image to mislead the senses.\n- **Charm** (2 Luck) – Momentarily soften a creature’s disposition toward you.\n- **Invisibility** (3 Luck) – Fade from sight for a brief time or until you take action.\n- **Teleport** (4 Luck) – Instantly move yourself to a visible location within range.\n- **Fireball** (3 Luck) – Unleash a fiery explosion that engulfs a small area.\n- **Summon** (3 Luck) – Call forth a small creature bound to aid you in one task.\n- **Enchantment** (2 Luck) – Imbue an item with a temporary magical quality.\n- **Divination** (2 Luck) – Gain insight into a person, place, or mystery.\n- **Abjuration** (3 Luck) – Ward a creature or place from harmful magic.\n- **Conjuration** (4 Luck) – Summon an object or simple tool into your hand.\n- **Necromancy** (4 Luck) – Influence the dead, or command lesser undead.\n- **Transmutation** (4 Luck) – Alter the shape or nature of a creature or object.\n- **Evocation** (4 Luck) – Conjure a sudden burst of elemental power.\n- **Greater Illusion** (4 Luck) – Create a convincing illusion affecting multiple senses.\n- **Alteration** (4 Luck) – Change your own appearance, voice, or minor traits.\n- **Restoration** (4 Luck) – Repair or purify a creature, object, or environment.\n- **Leap** (2 Luck) – Propel yourself or a target to any visible point in range.\n- **Circle of Protection** (3 Luck) – Create a barrier that repels spirits or divine forces.\n- **Darksight** (1 Luck) – Grant a creature the ability to see in complete darkness.\n- **Deafening Wave** (2 Luck) – Deafen all creatures within a short radius.\n- **Latch** (1 Luck) – Open or close a non-magical, unlocked object at will.\n- **Disguise** (3 Luck) – Take on the appearance of a creature you've seen before.\n- **Mirage** (3 Luck) – Project a simple silent illusion to distract or deceive.\n- **Purge Text** (2 Luck) – Erase mundane or arcane writing from any surface.\n- **Shelter** (4 Luck) – Conjure a protective structure that lasts up to 24 hours.\n- **Gravity Domain** (4 Luck) – Manipulate a target's position in space — lift or sink them.\n- **Ice Storm** (2 Luck) – Conjure a hail of frozen shards to strike your enemies.\n- **Make** (4 Luck) – Transform raw materials into a crafted item of your choice.",
+  "locations": [
+    {
+      "name": "Eldrida (The Thorn-Crowned Capital)",
+      "brief": "The jewel of Aldorath, where spires and domes rise behind fortified walls. Home to the **Crown of Thorns**, the **Severed Circle**, and the last remaining Temple of the Hollow Flame. Its streets are crowded with masked envoys, relic smugglers, and whispering spies. Beneath its surface lie catacombs older than the kingdom, sealed and forgotten by decree.",
+      "encounters": "**King Vaelor**, **Keeper Ysryn**, **Magister Syrenth in disguise**, agents of the **Vault of Echoes**"
+    },
+    {
+      "name": "The Dragon’s Spire",
+      "brief": "A scorched peak wreathed in stormclouds. The lair of an **Elder Wyrm**, its hoard buried in molten stone and bone. Fabled as one of the Seven Watchers who once ruled the skies in the First Age. Few reach the peak — fewer return.",
+      "encounters": "The **Elder Wyrm**, relic-thirsty knights of the **Wyrmglaive Compact**, cursed echoes of past challengers"
+    },
+    {
+      "name": "The Forest of Shadowroot",
+      "brief": "Twisted trees, half-alive, grow over ruined altars and moss-cloaked idols. Here, the **Briar Assembly** whispers to beasts and root-spirits. The deeper paths shift, and time itself feels wrong beneath the canopy. Many believe the forest watches intruders. Some say it remembers.",
+      "encounters": "**Mother Talia**, **Medusa**, **Pale Wraith**, roaming goblins, lost pilgrims"
+    },
+    {
+      "name": "Blackwood Hollow",
+      "brief": "Not a castle, but a **cracked and brooding manor** perched over a sinkhole. Lord Blackwood is long dead, but **his bloodline was never ended** — and his spirit may yet speak. The Hollow is both a haunted estate and a political ruin.",
+      "encounters": "**Descendants of the Blackwood Pact**, **Wraiths**, secret cults of the **Thornless Pact**"
+    },
+    {
+      "name": "The Severed Circle (College of Wizards)",
+      "brief": "Once the great tower of the unified College, now fractured into rival arcane halls. Forbidden sections are chained shut, while magical constructs patrol the old vaults. The **Umbral Synod** was exiled from here — but some say their agents remain.",
+      "encounters": "**Archmage Alaric’s successor**, ambitious students, secretive keepers of the **Vault of Echoes**"
+    },
+    {
+      "name": "The Vaulted Ruins of Rhygir",
+      "brief": "Deep in the earth, overgrown and collapsed, lie the remnants of the **pre-collapse civilization** that once ruled Aldorath. Wards still flicker, though the architects are long dead. It’s said even the **Vault of Echoes** fears what lies at its core.",
+      "encounters": "**Orc warbands**, **Blight-Risen**, relic guardians, **Vel Harrowglass’s agents**, traps that whisper"
+    }
+  ],
+  "seeds": [
+    "Steal a wyrm-blood relic from the Elder Wyrm’s hoard before agents of the Wyrmglaive Compact arrive.",
+    "Investigate the village of Embermere, where townsfolk awaken covered in moss — and speak in tongues.",
+    "A child claiming to be the missing heir of the Hollow Flame seeks shelter. Are they prophecy or pawn?",
+    "Explore a submerged ruin that surfaced after a quake. Locals say the dead whisper through its walls.",
+    "Assist King Vaelor in suppressing a secret court of nobles meeting beneath the ruined west chapel.",
+    "A warband of orcs has taken over a fallen temple. The Briar Assembly offers help — for a price.",
+    "Mother Talia offers to cleanse a cursed grove if you recover a relic lost in the Forest of Shadowroot.",
+    "Magister Syrenth’s agents seek an unregistered caster — it’s your mentor. Do you turn them in?",
+    "The Vault of Echoes sends you to retrieve a page torn from a memory-bound tome... currently in a Wraith’s lair.",
+    "A rift opens in Eldrida’s catacombs. The Severed Circle is silent. The Synod is not.",
+    "Scout a ruined fortress where the stars never shine. A pale light glows in the vault beneath.",
+    "Vel Harrowglass offers coin to sabotage a rival’s caravan. But the cargo breathes.",
+    "A dream repeats: a sealed door, a voice calling from beneath. The Briar Assembly warns you not to answer.",
+    "You're offered a mask of office by a secret society. But it won't come off once worn.",
+    "The dragon’s lair is rumored empty. A brave few enter. Only their laughter echoes out.",
+    "A hamlet swears they’re watched at night by statues that move. One statue is missing its face.",
+    "A child in Blackwood Hollow draws glyphs they shouldn’t know. The walls whisper when no one's near.",
+    "In a glade hidden by mist, you find a sword growing from a tree. It calls your name.",
+    "A page from the royal annals is missing. Its absence warps memory — yours included.",
+    "A caravan went missing near the Briar border. The trail ends at a place marked only by bones.",
+    "A ghost begs you to take its place before dawn. You have until midnight to find its killer.",
+    "A noble asks for protection from an assassin. But you recognize her crest from a vision of blood.",
+    "Explore the manor once held by the Last Blackwood. The doors shut behind you. The tapestries blink.",
+    "A young knight requests your aid in burying his shame. The location? His old adventuring party.",
+    "A sealed vault in the Severed Circle is opening. You’re not the only one with a matching key.",
+    "A series of murders mimics forgotten rituals. The last victim was buried with a false name.",
+    "A merchant caravan hires you as protection — but each stop seems staged for ambush.",
+    "A tomb glows faintly at dusk. It is older than the kingdom. The name inside matches your own.",
+    "A village reports rising dead — but none have died recently. They claim the corpses are strangers.",
+    "A lich offers immortality... if you bring it one memory it cannot recall.",
+    "A cult worships the statue of a weeping god. It weeps blood when you're near.",
+    "A disgraced mage offers you their mind — literally — to hide from the Synod. Will you carry them?",
+    "A vampire haunts the court of Eldrida, feeding only on nobles. You must find them before the wrong heir dies.",
+    "Trolls emerge from beneath the old silver mine, seeking not gold — but names.",
+    "A cursed ring binds its bearer to the last person they lie to. You've just accepted it.",
+    "The Forest of Shadowroot steals voices. To speak again, you must answer its question — whispered in your sleep."
+  ],
+  "concepts": [
+    {
+      "id": "silent-assassin",
+      "name": "Silent assassin",
+      "brief": ""
+    },
+    {
+      "id": "battle-scarred-warrior",
+      "name": "Battle-scarred warrior",
+      "brief": ""
+    },
+    {
+      "id": "wandering-spellbinder",
+      "name": "Wandering spellbinder",
+      "brief": ""
+    },
+    {
+      "id": "nimble-cutpurse",
+      "name": "Nimble cutpurse",
+      "brief": ""
+    },
+    {
+      "id": "valiant-swordmaiden",
+      "name": "Valiant swordmaiden",
+      "brief": ""
+    },
+    {
+      "id": "brooding-hexblade",
+      "name": "Brooding hexblade",
+      "brief": ""
+    },
+    {
+      "id": "weathered-veteran",
+      "name": "Weathered veteran",
+      "brief": ""
+    },
+    {
+      "id": "oath-bound-paladin",
+      "name": "Oath-bound paladin",
+      "brief": ""
+    },
+    {
+      "id": "graceful-duelist",
+      "name": "Graceful duelist",
+      "brief": ""
+    },
+    {
+      "id": "frenzied-berserker",
+      "name": "Frenzied berserker",
+      "brief": ""
+    },
+    {
+      "id": "reclusive-wildspeaker",
+      "name": "Reclusive wildspeaker",
+      "brief": ""
+    },
+    {
+      "id": "zealous-miracle-worker",
+      "name": "Zealous miracle-worker",
+      "brief": ""
+    },
+    {
+      "id": "forbidden-arcanist",
+      "name": "Forbidden arcanist",
+      "brief": ""
+    },
+    {
+      "id": "scheming-courtier",
+      "name": "Scheming courtier",
+      "brief": ""
+    },
+    {
+      "id": "bold-frontline-captain",
+      "name": "Bold frontline captain",
+      "brief": ""
+    },
+    {
+      "id": "fanatical-inquisitor",
+      "name": "Fanatical inquisitor",
+      "brief": ""
+    },
+    {
+      "id": "haunted-seer",
+      "name": "Haunted seer",
+      "brief": ""
+    },
+    {
+      "id": "silver-tongued-envoy",
+      "name": "Silver-tongued envoy",
+      "brief": ""
+    },
+    {
+      "id": "inspiring-skald",
+      "name": "Inspiring skald",
+      "brief": ""
+    },
+    {
+      "id": "quick-handed-burglar",
+      "name": "Quick-handed burglar",
+      "brief": ""
+    },
+    {
+      "id": "cold-blooded-sellblade",
+      "name": "Cold-blooded sellblade",
+      "brief": ""
+    },
+    {
+      "id": "inquisitive-loremaster",
+      "name": "Inquisitive loremaster",
+      "brief": ""
+    },
+    {
+      "id": "towering-gladiator",
+      "name": "Towering gladiator",
+      "brief": ""
+    },
+    {
+      "id": "loyal-zealot",
+      "name": "Loyal zealot",
+      "brief": ""
+    },
+    {
+      "id": "spirit-touched-wanderer",
+      "name": "Spirit-touched wanderer",
+      "brief": ""
+    },
+    {
+      "id": "disciplined-ascetic",
+      "name": "Disciplined ascetic",
+      "brief": ""
+    },
+    {
+      "id": "beast-wrangling-scout",
+      "name": "Beast-wrangling scout",
+      "brief": ""
+    },
+    {
+      "id": "masked-infiltrator",
+      "name": "Masked infiltrator",
+      "brief": ""
+    },
+    {
+      "id": "elven-blade-dancer",
+      "name": "Elven blade-dancer",
+      "brief": ""
+    },
+    {
+      "id": "brilliant-tinkerer",
+      "name": "Brilliant tinkerer",
+      "brief": ""
+    },
+    {
+      "id": "sea-worn-corsair",
+      "name": "Sea-worn corsair",
+      "brief": ""
+    },
+    {
+      "id": "regal-matriarch",
+      "name": "Regal matriarch",
+      "brief": ""
+    },
+    {
+      "id": "masked-fool-with-secrets",
+      "name": "Masked fool with secrets",
+      "brief": ""
+    },
+    {
+      "id": "master-tactician",
+      "name": "Master tactician",
+      "brief": ""
+    },
+    {
+      "id": "hard-bitten-navigator",
+      "name": "Hard-bitten navigator",
+      "brief": ""
+    },
+    {
+      "id": "renowned-artisan",
+      "name": "Renowned artisan",
+      "brief": ""
+    }
+  ],
+  "skills": [
+    {
+      "id": "swordsmanship",
+      "name": "Swordsmanship",
+      "brief": ""
+    },
+    {
+      "id": "herbalism",
+      "name": "Herbalism",
+      "brief": ""
+    },
+    {
+      "id": "beast-mastery",
+      "name": "Beast mastery",
+      "brief": ""
+    },
+    {
+      "id": "menace",
+      "name": "Menace",
+      "brief": ""
+    },
+    {
+      "id": "leathercraft",
+      "name": "Leathercraft",
+      "brief": ""
+    },
+    {
+      "id": "star-reading",
+      "name": "Star-reading",
+      "brief": ""
+    },
+    {
+      "id": "bowmanship",
+      "name": "Bowmanship",
+      "brief": ""
+    },
+    {
+      "id": "foraging",
+      "name": "Foraging",
+      "brief": ""
+    },
+    {
+      "id": "mount-handling",
+      "name": "Mount handling",
+      "brief": ""
+    },
+    {
+      "id": "command",
+      "name": "Command",
+      "brief": ""
+    },
+    {
+      "id": "needlework",
+      "name": "Needlework",
+      "brief": ""
+    },
+    {
+      "id": "field-medicine",
+      "name": "Field medicine",
+      "brief": ""
+    },
+    {
+      "id": "brawling",
+      "name": "Brawling",
+      "brief": ""
+    },
+    {
+      "id": "trailcraft",
+      "name": "Trailcraft",
+      "brief": ""
+    },
+    {
+      "id": "mapmaking",
+      "name": "Mapmaking",
+      "brief": ""
+    },
+    {
+      "id": "battlefield-sense",
+      "name": "Battlefield sense",
+      "brief": ""
+    },
+    {
+      "id": "gemcutting",
+      "name": "Gemcutting",
+      "brief": ""
+    },
+    {
+      "id": "element-shaping",
+      "name": "Element-shaping",
+      "brief": ""
+    },
+    {
+      "id": "lockpicking",
+      "name": "Lockpicking",
+      "brief": ""
+    },
+    {
+      "id": "trap-setting",
+      "name": "Trap-setting",
+      "brief": ""
+    },
+    {
+      "id": "wayfinding",
+      "name": "Wayfinding",
+      "brief": ""
+    },
+    {
+      "id": "construction",
+      "name": "Construction",
+      "brief": ""
+    },
+    {
+      "id": "rune-carving",
+      "name": "Rune-carving",
+      "brief": ""
+    },
+    {
+      "id": "shapechanging",
+      "name": "Shapechanging",
+      "brief": ""
+    },
+    {
+      "id": "spellweaving",
+      "name": "Spellweaving",
+      "brief": ""
+    },
+    {
+      "id": "net-casting",
+      "name": "Net-casting",
+      "brief": ""
+    },
+    {
+      "id": "terrain-lore",
+      "name": "Terrain lore",
+      "brief": ""
+    },
+    {
+      "id": "metalworking",
+      "name": "Metalworking",
+      "brief": ""
+    },
+    {
+      "id": "illusions",
+      "name": "Illusions",
+      "brief": ""
+    },
+    {
+      "id": "spirit-binding",
+      "name": "Spirit-binding",
+      "brief": ""
+    },
+    {
+      "id": "potion-making",
+      "name": "Potion-making",
+      "brief": ""
+    },
+    {
+      "id": "camp-cooking",
+      "name": "Camp cooking",
+      "brief": ""
+    },
+    {
+      "id": "persuasion",
+      "name": "Persuasion",
+      "brief": ""
+    },
+    {
+      "id": "woodcraft",
+      "name": "Woodcraft",
+      "brief": ""
+    },
+    {
+      "id": "necromancy",
+      "name": "Necromancy",
+      "brief": ""
+    },
+    {
+      "id": "anatomical-lore",
+      "name": "Anatomical lore",
+      "brief": ""
+    }
+  ],
+  "frailties": [
+    {
+      "id": "proud",
+      "name": "Proud",
+      "brief": ""
+    },
+    {
+      "id": "unreliable",
+      "name": "Unreliable",
+      "brief": ""
+    },
+    {
+      "id": "indecisive",
+      "name": "Indecisive",
+      "brief": ""
+    },
+    {
+      "id": "perfectionist",
+      "name": "Perfectionist",
+      "brief": ""
+    },
+    {
+      "id": "notorious",
+      "name": "Notorious",
+      "brief": ""
+    },
+    {
+      "id": "hot-headed",
+      "name": "Hot-headed",
+      "brief": ""
+    },
+    {
+      "id": "faint-hearted",
+      "name": "Faint-hearted",
+      "brief": ""
+    },
+    {
+      "id": "slothful",
+      "name": "Slothful",
+      "brief": ""
+    },
+    {
+      "id": "gullible",
+      "name": "Gullible",
+      "brief": ""
+    },
+    {
+      "id": "distrustful",
+      "name": "Distrustful",
+      "brief": ""
+    },
+    {
+      "id": "vengeful",
+      "name": "Vengeful",
+      "brief": ""
+    },
+    {
+      "id": "secretive",
+      "name": "Secretive",
+      "brief": ""
+    },
+    {
+      "id": "covetous",
+      "name": "Covetous",
+      "brief": ""
+    },
+    {
+      "id": "self-serving",
+      "name": "Self-serving",
+      "brief": ""
+    },
+    {
+      "id": "apathetic",
+      "name": "Apathetic",
+      "brief": ""
+    },
+    {
+      "id": "spiteful",
+      "name": "Spiteful",
+      "brief": ""
+    },
+    {
+      "id": "overindulgent",
+      "name": "Overindulgent",
+      "brief": ""
+    },
+    {
+      "id": "nervous",
+      "name": "Nervous",
+      "brief": ""
+    },
+    {
+      "id": "envious",
+      "name": "Envious",
+      "brief": ""
+    },
+    {
+      "id": "obstinate",
+      "name": "Obstinate",
+      "brief": ""
+    },
+    {
+      "id": "blunt",
+      "name": "Blunt",
+      "brief": ""
+    },
+    {
+      "id": "overbearing",
+      "name": "Overbearing",
+      "brief": ""
+    },
+    {
+      "id": "lustful",
+      "name": "Lustful",
+      "brief": ""
+    },
+    {
+      "id": "reckless",
+      "name": "Reckless",
+      "brief": ""
+    },
+    {
+      "id": "possessive",
+      "name": "Possessive",
+      "brief": ""
+    },
+    {
+      "id": "rash",
+      "name": "Rash",
+      "brief": ""
+    },
+    {
+      "id": "boastful",
+      "name": "Boastful",
+      "brief": ""
+    },
+    {
+      "id": "rigid-minded",
+      "name": "Rigid-minded",
+      "brief": ""
+    },
+    {
+      "id": "lazy",
+      "name": "Lazy",
+      "brief": ""
+    },
+    {
+      "id": "narrow-minded",
+      "name": "Narrow-minded",
+      "brief": ""
+    },
+    {
+      "id": "deceptive",
+      "name": "Deceptive",
+      "brief": ""
+    },
+    {
+      "id": "naive",
+      "name": "Naïve",
+      "brief": ""
+    },
+    {
+      "id": "cynical",
+      "name": "Cynical",
+      "brief": ""
+    },
+    {
+      "id": "insecure",
+      "name": "Insecure",
+      "brief": ""
+    },
+    {
+      "id": "arrogant",
+      "name": "Arrogant",
+      "brief": ""
+    },
+    {
+      "id": "bigoted",
+      "name": "Bigoted",
+      "brief": ""
+    }
+  ],
+  "gear": [
+    {
+      "id": "longsword",
+      "name": "Longsword",
+      "brief": ""
+    },
+    {
+      "id": "hunting-bow",
+      "name": "Hunting bow",
+      "brief": ""
+    },
+    {
+      "id": "compact-crossbow",
+      "name": "Compact crossbow",
+      "brief": ""
+    },
+    {
+      "id": "curved-dagger",
+      "name": "Curved dagger",
+      "brief": ""
+    },
+    {
+      "id": "boar-spear",
+      "name": "Boar spear",
+      "brief": ""
+    },
+    {
+      "id": "bearded-axe",
+      "name": "Bearded axe",
+      "brief": ""
+    },
+    {
+      "id": "morning-star",
+      "name": "Morning star",
+      "brief": ""
+    },
+    {
+      "id": "spiked-flail",
+      "name": "Spiked flail",
+      "brief": ""
+    },
+    {
+      "id": "round-shield",
+      "name": "Round shield",
+      "brief": ""
+    },
+    {
+      "id": "iron-helm",
+      "name": "Iron helm",
+      "brief": ""
+    },
+    {
+      "id": "chainmail",
+      "name": "Chainmail",
+      "brief": ""
+    },
+    {
+      "id": "reinforced-bracers",
+      "name": "Reinforced bracers",
+      "brief": ""
+    },
+    {
+      "id": "legplates",
+      "name": "Legplates",
+      "brief": ""
+    },
+    {
+      "id": "silent-boots",
+      "name": "Silent boots",
+      "brief": ""
+    },
+    {
+      "id": "hooded-cloak",
+      "name": "Hooded cloak",
+      "brief": ""
+    },
+    {
+      "id": "travel-pack",
+      "name": "Travel pack",
+      "brief": ""
+    },
+    {
+      "id": "arrow-case",
+      "name": "Arrow case",
+      "brief": ""
+    },
+    {
+      "id": "broadhead-arrows",
+      "name": "Broadhead arrows",
+      "brief": ""
+    },
+    {
+      "id": "quarrels",
+      "name": "Quarrels",
+      "brief": ""
+    },
+    {
+      "id": "climbing-rope",
+      "name": "Climbing rope",
+      "brief": ""
+    },
+    {
+      "id": "hooked-launcher",
+      "name": "Hooked launcher",
+      "brief": ""
+    },
+    {
+      "id": "oil-lantern",
+      "name": "Oil lantern",
+      "brief": ""
+    },
+    {
+      "id": "wax-torch",
+      "name": "Wax torch",
+      "brief": ""
+    },
+    {
+      "id": "flint-and-tinder",
+      "name": "Flint and tinder",
+      "brief": ""
+    },
+    {
+      "id": "water-flask",
+      "name": "Water flask",
+      "brief": ""
+    },
+    {
+      "id": "dried-meats",
+      "name": "Dried meats",
+      "brief": ""
+    },
+    {
+      "id": "woolen-bedroll",
+      "name": "Woolen bedroll",
+      "brief": ""
+    },
+    {
+      "id": "canvas-tent",
+      "name": "Canvas tent",
+      "brief": ""
+    },
+    {
+      "id": "rune-compass",
+      "name": "Rune compass",
+      "brief": ""
+    },
+    {
+      "id": "hand-sketched-map",
+      "name": "Hand-sketched map",
+      "brief": ""
+    },
+    {
+      "id": "seer-s-lens",
+      "name": "Seer’s lens",
+      "brief": ""
+    },
+    {
+      "id": "star-scope",
+      "name": "Star scope",
+      "brief": ""
+    },
+    {
+      "id": "elixir-pouch",
+      "name": "Elixir pouch",
+      "brief": ""
+    },
+    {
+      "id": "medic-s-satchel",
+      "name": "Medic’s satchel",
+      "brief": ""
+    },
+    {
+      "id": "thieves-tools",
+      "name": "Thieves’ tools",
+      "brief": ""
+    },
+    {
+      "id": "ornate-lute",
+      "name": "Ornate lute",
+      "brief": ""
+    }
+  ],
+  "spends_luck": true,
+  "factions": [
+    {
+      "name": "The Crown of Thorns",
+      "concept": "Embattled Monarch",
+      "skills": [
+        "Command",
+        "Court Intrigue"
+      ],
+      "frailties": [
+        "Haunted by ancestral failure"
+      ],
+      "gear": [
+        "Fractured crown",
+        "blood-bound seal"
+      ],
+      "goal": "Preserve the throne and unify the splintered provinces",
+      "motive": "Restore the glory of a broken lineage",
+      "nemesis": "The Thornless Pact — a coalition of rebel nobles and exiled bloodlines"
+    },
+    {
+      "name": "The Umbral Synod",
+      "concept": "Shadowbound Sorcerer",
+      "skills": [
+        "Forbidden Lore",
+        "Ritual Magic"
+      ],
+      "frailties": [
+        "Feared even by allies"
+      ],
+      "gear": [
+        "Black-inked grimoire",
+        "silver-masked face"
+      ],
+      "goal": "To control the Wild Magic zones and unlock their ancient power",
+      "motive": "Rewrite magical law by unearthing what the College buried",
+      "nemesis": "The Severed Circle (the official Wizarding College, now fragmented)"
+    },
+    {
+      "name": "The Order of the Hollow Flame",
+      "concept": "Knight of the Vanished Oath",
+      "skills": [
+        "Swordplay",
+        "Devotion"
+      ],
+      "frailties": [
+        "Bound by obsolete vows"
+      ],
+      "gear": [
+        "Broken sigil",
+        "sanctified blade"
+      ],
+      "goal": "Seek the rebirth of the old gods through sacred relics",
+      "motive": "Redemption through divine fire",
+      "nemesis": "The Crown, who branded them heretics after the fall of the Southern Church"
+    },
+    {
+      "name": "The Wyrmglaive Compact",
+      "concept": "Relic-Bound Merchant-Knights",
+      "skills": [
+        "Tradecraft",
+        "Artifact Handling"
+      ],
+      "frailties": [
+        "Addicted to wyrm-blood relics"
+      ],
+      "gear": [
+        "Carved bone tokens",
+        "glowing lockboxes"
+      ],
+      "goal": "Control the relic trade through diplomacy and sabotage",
+      "motive": "Power through forgotten technologies",
+      "nemesis": "Wandering relic hunters and the Adventurers Guild offshoots"
+    },
+    {
+      "name": "The Briar Assembly",
+      "concept": "Druidic Agitator",
+      "skills": [
+        "Herbalism",
+        "Beast Speech"
+      ],
+      "frailties": [
+        "Hunted by both nobles and witches"
+      ],
+      "gear": [
+        "Briarthorn staff",
+        "root-scribed scrolls"
+      ],
+      "goal": "Rewild Aldorath and tear down the blood-fueled empires",
+      "motive": "Revenge for the old forest massacres",
+      "nemesis": "The Noble Houses who scorched the wilds for expansion"
+    },
+    {
+      "name": "The Vault of Echoes",
+      "concept": "Lorekeeper of the Deep Archive",
+      "skills": [
+        "Memory Binding",
+        "Lost Languages"
+      ],
+      "frailties": [
+        "Bound by secrecy"
+      ],
+      "gear": [
+        "Whisperstones",
+        "veiled faceplate"
+      ],
+      "goal": "Preserve and censor the truths of Aldorath’s past",
+      "motive": "Knowledge is power — and silence is safety",
+      "nemesis": "Any who seek to awaken buried truths, especially solo heroes"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "King Vaelor the Thornbound",
+      "concept": "Cursed Heir",
+      "skills": [
+        "Command",
+        "Heraldry"
+      ],
+      "frailties": [
+        "Bound by blood-pact to an ancient oath"
+      ],
+      "gear": [
+        "Thorn-cracked crown",
+        "obsidian signet"
+      ],
+      "goal": "Unify the provinces before civil war erupts",
+      "motive": "To redeem the broken legacy of his forebears",
+      "nemesis": "The Thornless Pact — nobles who claim his bloodline is illegitimate"
+    },
+    {
+      "name": "Magister Syrenth of the Umbral Synod",
+      "concept": "Pale Archivist",
+      "skills": [
+        "Forbidden Lore",
+        "Memory Extraction"
+      ],
+      "frailties": [
+        "Withers in sunlight"
+      ],
+      "gear": [
+        "Black veil",
+        "chained tome of echoes"
+      ],
+      "goal": "Seize control of all Wild Magic zones",
+      "motive": "To unlock the true origin of magic — no matter the cost",
+      "nemesis": "The Severed Circle, who exiled her after the Hollow Flame Incident"
+    },
+    {
+      "name": "Sir Kaelen of the Hollow Flame",
+      "concept": "Burnt Knight",
+      "skills": [
+        "Bladecraft",
+        "Mysticism"
+      ],
+      "frailties": [
+        "Haunted by divine visions"
+      ],
+      "gear": [
+        "Ash-tempered blade",
+        "cracked saint’s mask"
+      ],
+      "goal": "Recover the lost relic of Saint Variel",
+      "motive": "Redemption for past sins in the last crusade",
+      "nemesis": "The Crown, which outlawed his order and razed its monasteries"
+    },
+    {
+      "name": "Vel Harrowglass",
+      "concept": "Relic-Syndicate Broker",
+      "skills": [
+        "Negotiation",
+        "Artifact Appraisal"
+      ],
+      "frailties": [
+        "Relies on wyrm-blood infusion to survive"
+      ],
+      "gear": [
+        "Gilded spine-brace",
+        "vial of wyrm ichor"
+      ],
+      "goal": "Corner the trade in pre-collapse artifacts",
+      "motive": "Maintain power in the Wyrmglaive Compact",
+      "nemesis": "Freelance treasure-hunters who reject the Compact’s monopoly"
+    },
+    {
+      "name": "Mother Talia of the Briar Assembly",
+      "concept": "Forest Prophet",
+      "skills": [
+        "Beast Command",
+        "Poisoncraft"
+      ],
+      "frailties": [
+        "Marked by an ancient curse — cannot enter stone dwellings"
+      ],
+      "gear": [
+        "Crown of antlers",
+        "living roots around her arms"
+      ],
+      "goal": "Collapse Aldorath’s city-states and return the land to wild law",
+      "motive": "Revenge for the burning of the Greywood",
+      "nemesis": "The Noble Houses that still cull the wilds for lumber and fuel"
+    },
+    {
+      "name": "Keeper Ysryn of the Vault of Echoes",
+      "concept": "Oracle of the Lost Pages",
+      "skills": [
+        "Ancient Tongues",
+        "Truth Concealment"
+      ],
+      "frailties": [
+        "Her memories are not her own"
+      ],
+      "gear": [
+        "Whisperstone ring",
+        "mask of silent iron"
+      ],
+      "goal": "Preserve dangerous truths without allowing their use",
+      "motive": "Prevent Aldorath from repeating its buried history",
+      "nemesis": "Any who dig too deep — especially lone adventurers"
+    }
+  ],
+  "monsters": [
+    {
+      "name": "Elder Wyrm",
+      "concept": "Ancient Dragon of the First Age",
+      "skills": [
+        "Flame torrent",
+        "Winged flight"
+      ],
+      "frailties": [
+        "Vulnerable to cold-forged weapons and ancient binding rites"
+      ],
+      "gear": [
+        "Crystal-plated scales",
+        "hoard of relic-gold and cursed crowns"
+      ],
+      "goal": "Guard its lair and slumbering clutch",
+      "motive": "To endure, outlast, and rule forgotten skyholds",
+      "nemesis": "Skyship raiders, relic-hunters, and rebellious wyrmlings"
+    },
+    {
+      "name": "Bloodfang Orc",
+      "concept": "Warlord of the Blasted Steppes",
+      "skills": [
+        "Axe mastery",
+        "Battle frenzy"
+      ],
+      "frailties": [
+        "Superstitious dread of divine symbols"
+      ],
+      "gear": [
+        "Crude iron armor",
+        "twin war axes",
+        "totem of bone"
+      ],
+      "goal": "Lead raids into the fertile provinces of Aldorath",
+      "motive": "Conquest to feed the clans and shatter noble lines",
+      "nemesis": "Border paladins, mercenary guilds, and river-fort militias"
+    },
+    {
+      "name": "Feral Goblin",
+      "concept": "Relic-Scavenger and Saboteur",
+      "skills": [
+        "Guerilla tactics",
+        "Trapcraft"
+      ],
+      "frailties": [
+        "Startled by sudden brightness or loud sound"
+      ],
+      "gear": [
+        "Bone darts",
+        "trap kits",
+        "stolen scraps"
+      ],
+      "goal": "Pillage ruins and caravans undetected",
+      "motive": "Survival in numbers, mischief as instinct",
+      "nemesis": "Town watch, traveling clerics, lightbearers"
+    },
+    {
+      "name": "Blight-Risen",
+      "concept": "Contagious Undead Husk",
+      "skills": [
+        "Undying body",
+        "Plague bite"
+      ],
+      "frailties": [
+        "Fire",
+        "consecrated ground"
+      ],
+      "gear": [
+        "Rotting flesh",
+        "plague stench"
+      ],
+      "goal": "Spread the necrotic blight or serve a necromancer",
+      "motive": "Hunger, or compelled service",
+      "nemesis": "Flamebearers, gravekeepers, warded shrines"
+    },
+    {
+      "name": "The Stone-Eyed Matron",
+      "concept": "Isolated Gorgon Priestess",
+      "skills": [
+        "Petrifying gaze",
+        "Serpentine agility"
+      ],
+      "frailties": [
+        "Mirrors",
+        "direct sunlight"
+      ],
+      "gear": [
+        "Snake hair",
+        "obsidian bracelets",
+        "garden of statues"
+      ],
+      "goal": "To build a sanctuary of stone and silence",
+      "motive": "To be revered, left in peace, and eternally feared",
+      "nemesis": "Curse-breakers, mirror-knights, temple inquisitors"
+    },
+    {
+      "name": "Pale Wraith",
+      "concept": "Soul-Eater of the Forgotten Crypts",
+      "skills": [
+        "Phasing",
+        "Vital drain"
+      ],
+      "frailties": [
+        "Radiant energy",
+        "sacred sigils"
+      ],
+      "gear": [
+        "Shroud of memory",
+        "death-chill aura"
+      ],
+      "goal": "To devour the warmth of the living",
+      "motive": "Hunger eternal or the will of its summoner",
+      "nemesis": "Holy relic bearers, lightcasters, dawnblades"
+    }
+  ],
+  "twist_subjects": null,
+  "twist_actions": null
+}

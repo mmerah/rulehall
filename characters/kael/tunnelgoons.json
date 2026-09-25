@@ -1,0 +1,27 @@
+{
+  "id": "kael",
+  "engine_id": "tunnelgoons",
+  "sheet": {
+    "id": "player",
+    "name": "Kael",
+    "brief": "A scarred relic-hunter who comes wherever something old lies sealed, and does not leave it shut.",
+    "known": true,
+    "place_id": "player",
+    "hp": {
+      "current": 10,
+      "maximum": 10
+    },
+    "sheet": {
+      "abilities": {
+        "brute": 1,
+        "skulker": 2,
+        "erudite": 0
+      }
+    },
+    "kit": [
+      "Pry Bar (melee weapon)",
+      "Rope",
+      "Torch"
+    ]
+  }
+}

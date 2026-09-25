@@ -1,0 +1,238 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "places": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "type": "string"
+            },
+            "known": {
+              "default": false,
+              "type": "boolean"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "brief",
+            "description"
+          ],
+          "type": "object"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "ways": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "items": {
+            "additionalProperties": false,
+            "description": "One way out, in one direction, from the place it is filed under.",
+            "properties": {
+              "to_id": {
+                "type": "string"
+              },
+              "known": {
+                "default": false,
+                "type": "boolean"
+              },
+              "locked": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "to_id"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "npcs": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "type": "string"
+            },
+            "known": {
+              "default": false,
+              "type": "boolean"
+            },
+            "alive": {
+              "default": true,
+              "type": "boolean"
+            },
+            "place_id": {
+              "type": "string"
+            },
+            "roster": {
+              "default": [],
+              "description": "The Pokemon this person battles with, as species and level. Empty for a person who does not battle.",
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "species_id": {
+                    "description": "A species id from SPECIES.",
+                    "type": "string"
+                  },
+                  "level": {
+                    "description": "Its level.",
+                    "maximum": 100,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "species_id",
+                  "level"
+                ],
+                "type": "object"
+              },
+              "maxItems": 6,
+              "type": "array"
+            },
+            "badge": {
+              "default": "",
+              "description": "The badge this trainer gives when beaten, such as a gym leader's. Empty for most trainers.",
+              "type": "string"
+            },
+            "avatar_id": {
+              "description": "How this person looks: exact id from TRAINER CLASSES.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "brief",
+            "place_id",
+            "avatar_id"
+          ],
+          "type": "object"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "items": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "type": "string"
+            },
+            "known": {
+              "default": false,
+              "type": "boolean"
+            },
+            "holder_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "brief",
+            "holder_id"
+          ],
+          "type": "object"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "arc": {
+      "default": "",
+      "description": "The truth behind this map: secrets, what can come, and what ties one hidden thing to another. The player never reads it.",
+      "type": "string"
+    },
+    "start_id": {
+      "description": "Exact id of the place this map starts from.",
+      "type": "string"
+    },
+    "recap": {
+      "description": "One paragraph on the part of the map the player leaves behind: what the player did there, paid and learned. The narrator reads it. Name nothing hidden.",
+      "type": "string"
+    },
+    "wild": {
+      "description": "The wild table of each new place, keyed by place id. A town or a building has no table.",
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "species_id": {
+                "description": "A species id from SPECIES.",
+                "type": "string"
+              },
+              "lowest": {
+                "description": "The lowest level it has here.",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "highest": {
+                "description": "The highest level it has here.",
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "weight": {
+                "description": "How often it shows up, against the other rows.",
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "species_id",
+              "lowest",
+              "highest",
+              "weight"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    }
+  },
+  "required": [
+    "start_id",
+    "recap"
+  ],
+  "type": "object"
+}

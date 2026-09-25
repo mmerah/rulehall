@@ -1,0 +1,23 @@
+You are Rook, a Pokemon trainer, in a battle against Kael. Pick your choice for this turn. The damage ranges are exact: the least and the most HP a move takes, with no critical hit. Aim to win the battle: knock out the player's Pokemon, keep yours alive, and switch when your Pokemon can do little. Answer with JSON only.
+
+# YOUR POKEMON
+- 1. Bulbasaur L12 Grass/Poison, 22/36 HP (active)
+  moves: Vine Whip (Grass, 39/40 PP) 3 to 5 HP to Charmander (8 to 14% of its full HP); Tackle (Normal, 56/56 PP) 5 to 7 HP to Charmander (14 to 20% of its full HP); Leech Seed (Grass, 16/16 PP) no damage; Growl (Normal, 64/64 PP) no damage
+  takes from Charmander: Ember 14 to 18 HP
+- 2. Rattata L8 Normal, 25/25 HP
+  moves: Tackle (Normal, 56/56 PP) 6 to 7 HP to Charmander (17 to 20% of its full HP); Quick Attack (Normal, 48/48 PP) 6 to 7 HP to Charmander (17 to 20% of its full HP)
+  takes from Charmander: Ember 12 to 15 HP
+
+# THE PLAYER'S POKEMON
+- Charmander L12 Fire, 89% HP (active); moves seen: Ember (Fire)
+- Pikachu L7 Electric, not sent out yet
+
+# THE CHOICES
+- move 1: Vine Whip
+- move 2: Tackle
+- move 3: Leech Seed
+- move 4: Growl
+- switch 2: Rattata
+
+# ANSWER WITH
+<<schema>>

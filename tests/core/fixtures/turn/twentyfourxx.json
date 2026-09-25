@@ -1,0 +1,43 @@
+[
+  {
+    "trace": "Vessa Rune[vessa-rune] travels with the player",
+    "told": true,
+    "card": "Vessa Rune joins your party",
+    "dice": []
+  },
+  {
+    "trace": "Slip along the dark gantry — Stealth: d12 [11]",
+    "told": false,
+    "card": "",
+    "dice": []
+  },
+  {
+    "trace": "Slip along the dark gantry — Stealth d12, risking a fall → success",
+    "told": true,
+    "card": "Slip along the dark gantry — Stealth d12 → success",
+    "dice": [
+      {
+        "label": "d12",
+        "faces": [
+          12
+        ],
+        "rolled": [
+          11
+        ],
+        "highlight": []
+      }
+    ]
+  },
+  {
+    "trace": "the player Kael[player] spends ₡1 — Harl's docking logs",
+    "told": true,
+    "card": "₡1 spent — Harl's docking logs",
+    "dice": []
+  },
+  {
+    "trace": "the game master directs: the gantry holds, but the watch above is turning their way",
+    "told": true,
+    "card": "",
+    "dice": []
+  }
+]

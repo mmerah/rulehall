@@ -1,0 +1,14 @@
+{
+  "player": [
+    "red", "green", "ethan", "lyra", "brendan", "may", "lucas", "dawn",
+    "hilbert", "hilda", "nate", "rosa", "calem", "serena", "victor", "gloria"
+  ],
+  "npc": [
+    "youngster", "lass", "bugcatcher", "camper", "picnicker", "hiker", "backpacker", "fisherman",
+    "sailor", "swimmer", "swimmerf", "birdkeeper", "blackbelt", "battlegirl", "beauty", "lady",
+    "gentleman", "richboy", "psychic", "psychicf", "pokemaniac", "biker", "roughneck", "acetrainer",
+    "acetrainerf", "veteran", "veteranf", "pokemonranger", "pokemonrangerf", "dragontamer",
+    "kimonogirl", "sage", "scientist", "scientistf", "nurse", "clerk", "worker", "policeman",
+    "pokefan", "teacher"
+  ]
+}

@@ -1,0 +1,1275 @@
+{
+  "name": "AP06 Horror",
+  "source": "https://lonersrd.zotiquestgames.com/adventure_packs/AP06_horror.html",
+  "license": "Adventure Pack 06: Horror, Loner SRD site (CC BY-SA 4.0), (c) Roberto Bisceglie / Zotiquest Games",
+  "backdrop": "The world is our own, but it breathes with an undercurrent of dread. The familiar becomes suspect — creaking floorboards echo too long, cell reception fades in places it shouldn’t, and ordinary people vanish without trace. The mundane hides the monstrous, and truth is always one page, one scream, or one door away.\nThe time period is the present day, grounded in contemporary life. Technology offers connection and comfort, but rarely protection. Police reports, CCTV footage, and emergency calls hint at truths too terrible to file. Bureaucracy delays the search, and no one comes when you scream in the woods.\nThe location is chosen for its sense of **isolation and tension**. It could be a dying town haunted by its own history, a city where something malevolent slips through the cracks, or a rural stretch where the dark never really lifts. Wherever it is, help is far, the nights are long, and people have started acting strangely.\nSociety appears stable, but anxiety simmers beneath the surface. Institutions exist — law enforcement, hospitals, universities — but they’re overworked, underfunded, and often ineffective. Local folklore, old news clippings, and whispered warnings speak of past horrors, while government cover-ups and online conspiracy forums suggest they never truly ended.\nThe horror here draws on **classic and modern influences**: haunted houses, cryptid sightings, ancient cults, and the creeping rot of something forgotten returning. Every shadow may hold a secret. Every stranger may wear a mask. Every truth may be worse than the lie that buried it.\nHistory bleeds into the present. Stories like the **Salem witch trials**, the **Amityville haunting**, or **urban legends gone viral** lend weight to what’s happening now. Locals speak of **the Black Hollow Church**, **the Ashfield Murders**, or **the woman who never stopped crying** — stories that the protagonist soon realizes were warnings, not tales.\nCompeting forces shape the hidden war beneath reality: secret government programs suppressing knowledge, cults seeking communion with unknowable forces, lone hunters scarred by past encounters, and something old and patient, just now beginning to wake.",
+  "names": {
+    "female": [
+      "Rachel",
+      "Claire",
+      "Morgan",
+      "Evelyn",
+      "Harper",
+      "Talia",
+      "Fiona",
+      "Naomi",
+      "Sierra",
+      "Ivy",
+      "Marissa",
+      "Quinn",
+      "Selene",
+      "Nora",
+      "Camille",
+      "Violet",
+      "Dana",
+      "Isobel",
+      "Blair",
+      "Ophelia",
+      "Hazel",
+      "Sloane",
+      "Lydia",
+      "Elise",
+      "Carmen",
+      "Delaney",
+      "Alice",
+      "June",
+      "Mira",
+      "Fallon",
+      "Daphne",
+      "Serena",
+      "Vanessa",
+      "Ivy-Rose",
+      "Celeste",
+      "Aurora"
+    ],
+    "male": [
+      "Joel",
+      "Adrian",
+      "Marcus",
+      "Julian",
+      "Silas",
+      "Elias",
+      "Victor",
+      "Nolan",
+      "Jasper",
+      "Ronan",
+      "Gabriel",
+      "Simon",
+      "Dorian",
+      "Malcolm",
+      "Theo",
+      "Xavier",
+      "Grant",
+      "Everett",
+      "Lucian",
+      "Holden",
+      "Felix",
+      "Raphael",
+      "Warren",
+      "Ezra",
+      "Isaac",
+      "Dean",
+      "Tobias",
+      "Calvin",
+      "Conrad",
+      "Rowan",
+      "Carter",
+      "Ellis",
+      "Jude",
+      "Bennett",
+      "Mason",
+      "Brooks"
+    ],
+    "neutral": [],
+    "surnames": [
+      "Holloway",
+      "Langley",
+      "Mercer",
+      "Blackwood",
+      "Radcliffe",
+      "Beckett",
+      "Ashford",
+      "Duvall",
+      "Wakefield",
+      "Huxley",
+      "Prescott",
+      "Carrington",
+      "Thorne",
+      "Delacroix",
+      "Moreau",
+      "Whitaker",
+      "Voss",
+      "Callahan",
+      "Winters",
+      "Sutherland",
+      "Carlisle",
+      "Lockwood",
+      "Grayson",
+      "Sterling",
+      "Finch",
+      "Whitlow",
+      "Creed",
+      "Langford",
+      "Halbrook",
+      "Marlowe",
+      "Hollowell",
+      "Crowley",
+      "Vale",
+      "Bishop",
+      "Hemsworth",
+      "Muldoon"
+    ],
+    "nicknames": [
+      "Echo",
+      "Hollow",
+      "Lantern",
+      "Whisper",
+      "Gravedust",
+      "Flicker",
+      "Nomad",
+      "Prophet",
+      "Nightjar",
+      "Static",
+      "Crossfade",
+      "Fadeout",
+      "Warden",
+      "Shade",
+      "Switch",
+      "Palehound",
+      "Glitch",
+      "Tinderbox",
+      "Ashfall",
+      "Ember",
+      "Deepcall",
+      "Threshold",
+      "Null",
+      "Wisp",
+      "Deadpan",
+      "Quarry",
+      "Dagger",
+      "Banshee",
+      "Stillborn",
+      "Reverb",
+      "Orbit",
+      "Cradle",
+      "Fogbite",
+      "Keystone",
+      "Circuit",
+      "Umbra"
+    ]
+  },
+  "rules": "Fear:\n\nFear is not a feeling — it’s a **Conflict**. When your character faces overwhelming terror, they don’t just react — they fight to stay in control.\n\n- When confronted by a terrifying situation — a creature, a location, an event — and your character is trying to resist panic, keep moving, or push through, **treat it as a Conflict**.\n- Roll as usual and apply the **Harm rules** — but instead of taking physical damage, **Fear reduces your Luck**.\n- Tags like *Composed Under Pressure* or *Panics in Silence* apply as they would in any other Conflict, granting **Advantage** or **Disadvantage**.\n- The key difference: **Luck lost to Fear cannot be recovered** through resting or normal healing scenes.\n- To recover Luck lost to Fear, your character must **retreat to a safe, emotionally grounded place** — somewhere that reminds them who they are. This can be a literal home, a symbolic space, or a moment of true safety with someone they trust.\n\nInsanity:\n\nWhen the veil lifts and the mind glimpses what lies beyond, the damage is deeper than fear — it is existential.\n\n- Any **direct exposure to the Supernatural** (ritual anomalies, cognitohazards, time fractures, unfiltered alien contact, or reality-warping phenomena) triggers a **Sanity check**.\n- Ask the Oracle: *\"Does my mind withstand the encounter?\"*\n- If the result is unfavorable, **apply the Harm rules**, but to **Sanity**, not Luck.\n- Unlike Fear, this is not a Conflict — there is no contest. This is the mind breaking under the weight of the incomprehensible.\n- **Sanity does not recover naturally**. It can only be restored through:\n- **Closure**: resolving what caused the fracture.\n- **Ritual grounding**: personal, cultural, or symbolic.\n- **Human connection**: someone believing you, helping you make sense of it.\n- If Sanity reaches **zero**, the character is no longer in control. Their fate is shaped by what broke them — fugue states, delusions, possession, catatonia, or worse.",
+  "locations": [
+    {
+      "name": "The Hollow Hotel",
+      "brief": "A once-opulent hotel, now sagging with time and secrets. Hallways stretch longer than they should. Lights flicker even when the power’s off. Some rooms are still occupied. None are checked in.",
+      "encounters": "Specter, Cultist, Concierge who remembers too much, Hidden guest with no ID, Bellhop who’s been here too long, Dripping suitcase that wasn’t there before"
+    },
+    {
+      "name": "The Grieving Woods",
+      "brief": "A forest where the wind whispers names you know. Footpaths vanish. Animal calls never sound quite right. Sometimes, the trees bleed sap that smells like rust.",
+      "encounters": "Werebeast, Shadow Fiend, Lost hiker who should be dead, Hermit with burned maps, Park ranger with the wrong eyes, Ritual site still warm"
+    },
+    {
+      "name": "Ashridge Manor",
+      "brief": "A mansion sealed by time and bad memory. Its wings are larger inside than out, and the mirrors don’t follow your movements. The cellar has doors no owner ever mentioned.",
+      "encounters": "Vampiric Noble, Specter, Cultist, Inheritor with gaps in her past, Caretaker who never aged, Portrait that changes when no one looks"
+    },
+    {
+      "name": "Gravelight Cemetery",
+      "brief": "A graveyard where names wear off faster than stone. The air always smells of turned earth, even in frost. Someone leaves fresh flowers on graves no one remembers.",
+      "encounters": "Specter, Cultist, Grave robber who buries instead of stealing, Mourner with empty eyes, Caretaker who speaks to the soil, Priest who lost his faith but not his rites"
+    },
+    {
+      "name": "The Deep Verge Facility",
+      "brief": "An isolated lab hidden behind blank coordinates. Every hallway looks the same. Some lead to different years. The server room hums like it’s thinking.",
+      "encounters": "Infected, Mad scientist, Janitor who knows too much, Technician with missing time, Security agent who doesn’t blink, Survivor kept alive by the machinery"
+    },
+    {
+      "name": "St. Arda’s Asylum (Condemned)",
+      "brief": "Once a towering institution, now a tangle of ruin and rust. Files remain, but the ink fades if you read them twice. Some padded cells have scratch marks on the *outside*.",
+      "encounters": "Specter, Cultist, Former nurse who still makes rounds, Patient who never left, Archivist with redacted memories, Phantom doctor calling old codes through broken speakers"
+    }
+  ],
+  "seeds": [
+    "Break the curse bound to an object rooted in the heart of the Grieving Woods.",
+    "Infiltrate a cult compound mid-ritual and burn their summoning circle.",
+    "Banish the Shadow Fiend before it finds a permanent host.",
+    "Escort researchers to patient zero’s chamber deep in the red zone.",
+    "Defend a church full of survivors as werewolves close in under the full moon.",
+    "Shut down a madman’s experiments in the reanimation ward.",
+    "Purge the demon hiding in an abandoned prison’s darkest wing.",
+    "Lay to rest the Specter before it claims the entire Gravelight Cemetery.",
+    "Trace the origin of the Infected before the outbreak spreads beyond containment.",
+    "Hunt down a rogue cryptid before it turns the city into a feeding ground.",
+    "Reveal what makes the traveling carnival draw only the dead.",
+    "Investigate disappearances in a town surrounded by no roads.",
+    "Track a serial killer with a taste for the uncanny.",
+    "Track a blood-drainer through the ash-stained corridors of Ashridge Manor.",
+    "Retrieve a cursed painting from a locked room no one remembers sealing.",
+    "Find the cure before a psychic plague devours the city’s mind.",
+    "Trace a mutagenic leak to its source before the water supply spreads it further.",
+    "Assist a paranormal crew investigating an asylum no one's entered in decades.",
+    "Uncover why patients are dying overnight in the abandoned hospital’s sealed wing.",
+    "Break a mind-control spell binding half the city to a shadow cult.",
+    "Explore a newly unearthed tomb sealed with seven sigils.",
+    "Expose human experiments buried in the files of Deep Verge Facility.",
+    "Retrieve a world-ending relic before its last guardian falls.",
+    "Protect a survivor camp stalked by something older than wolves.",
+    "Stop a cult ritual deep in the woods before the threshold opens for good.",
+    "Track and neutralize the werebeast hunting near the ranger station.",
+    "Rescue the captive before the cult completes its rites beneath the asylum.",
+    "Investigate a string of vanishings in a town that no longer appears on maps.",
+    "Board a ghost ship anchored just off the coast… and hear it breathe.",
+    "Unravel ghostly hauntings that plague the condemned halls of St. Arda’s Asylum.",
+    "Capture or contain a psychic tearing holes in local reality.",
+    "Put to rest the restless guests of the Hollow Hotel before one checks into you.",
+    "Recover a cursed heirloom from a collector’s last known location.",
+    "Disrupt a possession spell cast over the city’s sleeping population.",
+    "Seal a vengeful ghost before it crosses into the waking world.",
+    "Discover who — or what — is taking residents of the cliffside mansion."
+  ],
+  "concepts": [
+    {
+      "id": "jaded-parapsychologist",
+      "name": "Jaded Parapsychologist",
+      "brief": ""
+    },
+    {
+      "id": "isolated-field-medic",
+      "name": "Isolated Field Medic",
+      "brief": ""
+    },
+    {
+      "id": "guilt-ridden-exorcist",
+      "name": "Guilt-Ridden Exorcist",
+      "brief": ""
+    },
+    {
+      "id": "burned-out-cop",
+      "name": "Burned-Out Cop",
+      "brief": ""
+    },
+    {
+      "id": "trauma-scarred-witness",
+      "name": "Trauma-Scarred Witness",
+      "brief": ""
+    },
+    {
+      "id": "sleepless-journalist",
+      "name": "Sleepless Journalist",
+      "brief": ""
+    },
+    {
+      "id": "disavowed-agent",
+      "name": "Disavowed Agent",
+      "brief": ""
+    },
+    {
+      "id": "retired-cult-hunter",
+      "name": "Retired Cult Hunter",
+      "brief": ""
+    },
+    {
+      "id": "night-shift-coroner",
+      "name": "Night Shift Coroner",
+      "brief": ""
+    },
+    {
+      "id": "amateur-occultist",
+      "name": "Amateur Occultist",
+      "brief": ""
+    },
+    {
+      "id": "estranged-psychic",
+      "name": "Estranged Psychic",
+      "brief": ""
+    },
+    {
+      "id": "obsessive-archivist",
+      "name": "Obsessive Archivist",
+      "brief": ""
+    },
+    {
+      "id": "haunted-war-veteran",
+      "name": "Haunted War Veteran",
+      "brief": ""
+    },
+    {
+      "id": "rural-emt-with-a-secret",
+      "name": "Rural EMT with a Secret",
+      "brief": ""
+    },
+    {
+      "id": "grief-stricken-parent",
+      "name": "Grief-Stricken Parent",
+      "brief": ""
+    },
+    {
+      "id": "conspiracy-blogger",
+      "name": "Conspiracy Blogger",
+      "brief": ""
+    },
+    {
+      "id": "forgotten-survivor",
+      "name": "Forgotten Survivor",
+      "brief": ""
+    },
+    {
+      "id": "hollow-eyed-medium",
+      "name": "Hollow-Eyed Medium",
+      "brief": ""
+    },
+    {
+      "id": "local-sheriff-in-denial",
+      "name": "Local Sheriff in Denial",
+      "brief": ""
+    },
+    {
+      "id": "bleeding-edge-parapsych-tech",
+      "name": "Bleeding-Edge Parapsych Tech",
+      "brief": ""
+    },
+    {
+      "id": "fringe-paranormal-scholar",
+      "name": "Fringe Paranormal Scholar",
+      "brief": ""
+    },
+    {
+      "id": "backwoods-guide",
+      "name": "Backwoods Guide",
+      "brief": ""
+    },
+    {
+      "id": "disillusioned-social-worker",
+      "name": "Disillusioned Social Worker",
+      "brief": ""
+    },
+    {
+      "id": "quiet-kid-from-the-woods",
+      "name": "Quiet Kid from the Woods",
+      "brief": ""
+    },
+    {
+      "id": "washed-up-tv-host",
+      "name": "Washed-Up TV Host",
+      "brief": ""
+    },
+    {
+      "id": "burnt-out-paranormal-debunker",
+      "name": "Burnt-Out Paranormal Debunker",
+      "brief": ""
+    },
+    {
+      "id": "apocalyptic-prepper",
+      "name": "Apocalyptic Prepper",
+      "brief": ""
+    },
+    {
+      "id": "ex-patient-turned-healer",
+      "name": "Ex-Patient Turned Healer",
+      "brief": ""
+    },
+    {
+      "id": "volunteer-gravekeeper",
+      "name": "Volunteer Gravekeeper",
+      "brief": ""
+    },
+    {
+      "id": "descendant-of-a-cult",
+      "name": "Descendant of a Cult",
+      "brief": ""
+    },
+    {
+      "id": "faithless-preacher",
+      "name": "Faithless Preacher",
+      "brief": ""
+    },
+    {
+      "id": "hypnagogic-dream-researcher",
+      "name": "Hypnagogic Dream Researcher",
+      "brief": ""
+    },
+    {
+      "id": "fogtown-local",
+      "name": "Fogtown Local",
+      "brief": ""
+    },
+    {
+      "id": "psychic-hotline-operator",
+      "name": "Psychic Hotline Operator",
+      "brief": ""
+    },
+    {
+      "id": "missing-persons-investigator",
+      "name": "Missing Persons Investigator",
+      "brief": ""
+    },
+    {
+      "id": "chronic-trespasser",
+      "name": "Chronic Trespasser",
+      "brief": ""
+    }
+  ],
+  "skills": [
+    {
+      "id": "cold-reading",
+      "name": "Cold Reading",
+      "brief": ""
+    },
+    {
+      "id": "crime-scene-analysis",
+      "name": "Crime Scene Analysis",
+      "brief": ""
+    },
+    {
+      "id": "quick-reflexes",
+      "name": "Quick Reflexes",
+      "brief": ""
+    },
+    {
+      "id": "field-medicine",
+      "name": "Field Medicine",
+      "brief": ""
+    },
+    {
+      "id": "fear-suppression",
+      "name": "Fear Suppression",
+      "brief": ""
+    },
+    {
+      "id": "broken-mind-mapping",
+      "name": "Broken Mind Mapping",
+      "brief": ""
+    },
+    {
+      "id": "urban-tracking",
+      "name": "Urban Tracking",
+      "brief": ""
+    },
+    {
+      "id": "banishment-rites",
+      "name": "Banishment Rites",
+      "brief": ""
+    },
+    {
+      "id": "cryptid-lore",
+      "name": "Cryptid Lore",
+      "brief": ""
+    },
+    {
+      "id": "occult-symbolism",
+      "name": "Occult Symbolism",
+      "brief": ""
+    },
+    {
+      "id": "breath-control",
+      "name": "Breath Control",
+      "brief": ""
+    },
+    {
+      "id": "survive-alone",
+      "name": "Survive Alone",
+      "brief": ""
+    },
+    {
+      "id": "forensic-insight",
+      "name": "Forensic Insight",
+      "brief": ""
+    },
+    {
+      "id": "old-school-locksmith",
+      "name": "Old-School Locksmith",
+      "brief": ""
+    },
+    {
+      "id": "parkour",
+      "name": "Parkour",
+      "brief": ""
+    },
+    {
+      "id": "gaslight-detection",
+      "name": "Gaslight Detection",
+      "brief": ""
+    },
+    {
+      "id": "improvised-weapons",
+      "name": "Improvised Weapons",
+      "brief": ""
+    },
+    {
+      "id": "psychic-resistance",
+      "name": "Psychic Resistance",
+      "brief": ""
+    },
+    {
+      "id": "evp-interpretation",
+      "name": "EVP Interpretation",
+      "brief": ""
+    },
+    {
+      "id": "dream-recall",
+      "name": "Dream Recall",
+      "brief": ""
+    },
+    {
+      "id": "lie-detection",
+      "name": "Lie Detection",
+      "brief": ""
+    },
+    {
+      "id": "hexbreaking",
+      "name": "Hexbreaking",
+      "brief": ""
+    },
+    {
+      "id": "local-lore",
+      "name": "Local Lore",
+      "brief": ""
+    },
+    {
+      "id": "dimensional-awareness",
+      "name": "Dimensional Awareness",
+      "brief": ""
+    },
+    {
+      "id": "calm-under-pressure",
+      "name": "Calm Under Pressure",
+      "brief": ""
+    },
+    {
+      "id": "nightmare-dissection",
+      "name": "Nightmare Dissection",
+      "brief": ""
+    },
+    {
+      "id": "signal-scrambling",
+      "name": "Signal Scrambling",
+      "brief": ""
+    },
+    {
+      "id": "binding-circle-work",
+      "name": "Binding Circle Work",
+      "brief": ""
+    },
+    {
+      "id": "ritual-memory",
+      "name": "Ritual Memory",
+      "brief": ""
+    },
+    {
+      "id": "flash-glitch-navigation",
+      "name": "Flash-Glitch Navigation",
+      "brief": ""
+    },
+    {
+      "id": "old-network-contacts",
+      "name": "Old Network Contacts",
+      "brief": ""
+    },
+    {
+      "id": "deadpan-negotiation",
+      "name": "Deadpan Negotiation",
+      "brief": ""
+    },
+    {
+      "id": "fragmented-visions",
+      "name": "Fragmented Visions",
+      "brief": ""
+    },
+    {
+      "id": "analog-surveillance",
+      "name": "Analog Surveillance",
+      "brief": ""
+    },
+    {
+      "id": "trauma-counseling",
+      "name": "Trauma Counseling",
+      "brief": ""
+    },
+    {
+      "id": "tension-listening",
+      "name": "Tension Listening",
+      "brief": ""
+    }
+  ],
+  "frailties": [
+    {
+      "id": "panic-in-small-spaces",
+      "name": "Panic in Small Spaces",
+      "brief": ""
+    },
+    {
+      "id": "shadow-sensitivity",
+      "name": "Shadow Sensitivity",
+      "brief": ""
+    },
+    {
+      "id": "nocturnal-insomnia",
+      "name": "Nocturnal Insomnia",
+      "brief": ""
+    },
+    {
+      "id": "belief-in-everything",
+      "name": "Belief in Everything",
+      "brief": ""
+    },
+    {
+      "id": "can-t-stand-to-be-alone",
+      "name": "Can’t Stand to Be Alone",
+      "brief": ""
+    },
+    {
+      "id": "uncontrolled-empathy",
+      "name": "Uncontrolled Empathy",
+      "brief": ""
+    },
+    {
+      "id": "sleepwalking",
+      "name": "Sleepwalking",
+      "brief": ""
+    },
+    {
+      "id": "hallucination-prone",
+      "name": "Hallucination-Prone",
+      "brief": ""
+    },
+    {
+      "id": "trusts-the-wrong-people",
+      "name": "Trusts the Wrong People",
+      "brief": ""
+    },
+    {
+      "id": "flashbacks-to-a-mass-event",
+      "name": "Flashbacks to a Mass Event",
+      "brief": ""
+    },
+    {
+      "id": "fear-of-children",
+      "name": "Fear of Children",
+      "brief": ""
+    },
+    {
+      "id": "tactile-delusions",
+      "name": "Tactile Delusions",
+      "brief": ""
+    },
+    {
+      "id": "vertigo-on-uneven-ground",
+      "name": "Vertigo on Uneven Ground",
+      "brief": ""
+    },
+    {
+      "id": "bound-to-an-old-pact",
+      "name": "Bound to an Old Pact",
+      "brief": ""
+    },
+    {
+      "id": "known-to-local-authorities",
+      "name": "Known to Local Authorities",
+      "brief": ""
+    },
+    {
+      "id": "disassociates-under-stress",
+      "name": "Disassociates Under Stress",
+      "brief": ""
+    },
+    {
+      "id": "always-carries-a-relic",
+      "name": "Always Carries a Relic",
+      "brief": ""
+    },
+    {
+      "id": "high-functioning-denial",
+      "name": "High-Functioning Denial",
+      "brief": ""
+    },
+    {
+      "id": "drawn-to-ruins",
+      "name": "Drawn to Ruins",
+      "brief": ""
+    },
+    {
+      "id": "obsessive-note-taking",
+      "name": "Obsessive Note-Taking",
+      "brief": ""
+    },
+    {
+      "id": "cannot-let-go",
+      "name": "Cannot Let Go",
+      "brief": ""
+    },
+    {
+      "id": "hunted-by-a-dream-voice",
+      "name": "Hunted by a Dream Voice",
+      "brief": ""
+    },
+    {
+      "id": "sudden-rage-in-silence",
+      "name": "Sudden Rage in Silence",
+      "brief": ""
+    },
+    {
+      "id": "numb-to-human-pain",
+      "name": "Numb to Human Pain",
+      "brief": ""
+    },
+    {
+      "id": "hearing-the-dead",
+      "name": "Hearing the Dead",
+      "brief": ""
+    },
+    {
+      "id": "forgot-why-they-re-here",
+      "name": "Forgot Why They’re Here",
+      "brief": ""
+    },
+    {
+      "id": "inexplicable-nosebleeds",
+      "name": "Inexplicable Nosebleeds",
+      "brief": ""
+    },
+    {
+      "id": "digital-paranoia",
+      "name": "Digital Paranoia",
+      "brief": ""
+    },
+    {
+      "id": "visions-of-alternate-lives",
+      "name": "Visions of Alternate Lives",
+      "brief": ""
+    },
+    {
+      "id": "stalked-by-doppelganger",
+      "name": "Stalked by Doppelgänger",
+      "brief": ""
+    },
+    {
+      "id": "time-sense-disruption",
+      "name": "Time-Sense Disruption",
+      "brief": ""
+    },
+    {
+      "id": "too-calm-when-afraid",
+      "name": "Too Calm When Afraid",
+      "brief": ""
+    },
+    {
+      "id": "phobia-mirrors",
+      "name": "Phobia: Mirrors",
+      "brief": ""
+    },
+    {
+      "id": "audio-hallucinations",
+      "name": "Audio Hallucinations",
+      "brief": ""
+    },
+    {
+      "id": "avoids-all-technology",
+      "name": "Avoids All Technology",
+      "brief": ""
+    },
+    {
+      "id": "vague-pre-mortem-visions",
+      "name": "Vague Pre-Mortem Visions",
+      "brief": ""
+    }
+  ],
+  "gear": [
+    {
+      "id": "rusty-revolver",
+      "name": "Rusty Revolver",
+      "brief": ""
+    },
+    {
+      "id": "tattered-field-notes",
+      "name": "Tattered Field Notes",
+      "brief": ""
+    },
+    {
+      "id": "old-audio-cassette",
+      "name": "Old Audio Cassette",
+      "brief": ""
+    },
+    {
+      "id": "lead-lined-zippo",
+      "name": "Lead-Lined Zippo",
+      "brief": ""
+    },
+    {
+      "id": "iron-pendant",
+      "name": "Iron Pendant",
+      "brief": ""
+    },
+    {
+      "id": "bottle-of-lithium-pills",
+      "name": "Bottle of Lithium Pills",
+      "brief": ""
+    },
+    {
+      "id": "broken-compass",
+      "name": "Broken Compass",
+      "brief": ""
+    },
+    {
+      "id": "static-speckled-radio",
+      "name": "Static-Speckled Radio",
+      "brief": ""
+    },
+    {
+      "id": "analog-camera",
+      "name": "Analog Camera",
+      "brief": ""
+    },
+    {
+      "id": "silvered-flashlight",
+      "name": "Silvered Flashlight",
+      "brief": ""
+    },
+    {
+      "id": "obsidian-dagger",
+      "name": "Obsidian Dagger",
+      "brief": ""
+    },
+    {
+      "id": "plastic-wrapped-id-card",
+      "name": "Plastic-Wrapped ID Card",
+      "brief": ""
+    },
+    {
+      "id": "emf-reader",
+      "name": "EMF Reader",
+      "brief": ""
+    },
+    {
+      "id": "cracked-protective-amulet",
+      "name": "Cracked Protective Amulet",
+      "brief": ""
+    },
+    {
+      "id": "diy-spirit-trap",
+      "name": "DIY Spirit Trap",
+      "brief": ""
+    },
+    {
+      "id": "flask-of-anointed-water",
+      "name": "Flask of Anointed Water",
+      "brief": ""
+    },
+    {
+      "id": "fragmented-map",
+      "name": "Fragmented Map",
+      "brief": ""
+    },
+    {
+      "id": "police-issued-walkie",
+      "name": "Police-Issued Walkie",
+      "brief": ""
+    },
+    {
+      "id": "coil-of-red-string",
+      "name": "Coil of Red String",
+      "brief": ""
+    },
+    {
+      "id": "ritual-chalk-pouch",
+      "name": "Ritual Chalk Pouch",
+      "brief": ""
+    },
+    {
+      "id": "uv-lens-visor",
+      "name": "UV Lens Visor",
+      "brief": ""
+    },
+    {
+      "id": "folded-survival-blanket",
+      "name": "Folded Survival Blanket",
+      "brief": ""
+    },
+    {
+      "id": "miniature-book-of-psalms",
+      "name": "Miniature Book of Psalms",
+      "brief": ""
+    },
+    {
+      "id": "duct-taped-knife",
+      "name": "Duct-Taped Knife",
+      "brief": ""
+    },
+    {
+      "id": "vhs-of-a-lost-broadcast",
+      "name": "VHS of a Lost Broadcast",
+      "brief": ""
+    },
+    {
+      "id": "journal-with-missing-pages",
+      "name": "Journal with Missing Pages",
+      "brief": ""
+    },
+    {
+      "id": "whisper-sensitive-mic",
+      "name": "Whisper-Sensitive Mic",
+      "brief": ""
+    },
+    {
+      "id": "modified-stun-baton",
+      "name": "Modified Stun Baton",
+      "brief": ""
+    },
+    {
+      "id": "locked-steel-case",
+      "name": "Locked Steel Case",
+      "brief": ""
+    },
+    {
+      "id": "bag-of-charred-bones",
+      "name": "Bag of Charred Bones",
+      "brief": ""
+    },
+    {
+      "id": "expired-anti-rad-pills",
+      "name": "Expired Anti-Rad Pills",
+      "brief": ""
+    },
+    {
+      "id": "blood-stained-scarf",
+      "name": "Blood-Stained Scarf",
+      "brief": ""
+    },
+    {
+      "id": "cryptex-encoded-lighter",
+      "name": "Cryptex-Encoded Lighter",
+      "brief": ""
+    },
+    {
+      "id": "metal-cross-with-bite-marks",
+      "name": "Metal Cross with Bite Marks",
+      "brief": ""
+    },
+    {
+      "id": "chemical-lightsticks",
+      "name": "Chemical Lightsticks",
+      "brief": ""
+    },
+    {
+      "id": "recorder-with-ongoing-playback",
+      "name": "Recorder with Ongoing Playback",
+      "brief": ""
+    }
+  ],
+  "spends_luck": false,
+  "factions": [
+    {
+      "name": "Occult Incident Response Unit",
+      "concept": "Sanitizing Bureaucrats",
+      "skills": [
+        "Suppression",
+        "Surveillance"
+      ],
+      "frailties": [
+        "Internal Mistrust"
+      ],
+      "gear": [
+        "Burned Credentials",
+        "Disposable Phone"
+      ],
+      "goal": "Erase all evidence of supernatural activity",
+      "motive": "Order through secrecy",
+      "nemesis": "Whistleblowers and rogue agents"
+    },
+    {
+      "name": "The Bleached Veil",
+      "concept": "Esoteric Analysts",
+      "skills": [
+        "Signal Decoding",
+        "Ritual Science"
+      ],
+      "frailties": [
+        "Fringe Obsession"
+      ],
+      "gear": [
+        "EM Dowsing Kit",
+        "Neuro-Calcified Notes"
+      ],
+      "goal": "Translate the unexplainable",
+      "motive": "Salvation through understanding",
+      "nemesis": "Traditional researchers and suppressors"
+    },
+    {
+      "name": "The Binding Faith",
+      "concept": "Hidden Congregation",
+      "skills": [
+        "Indoctrination",
+        "Blood Rituals"
+      ],
+      "frailties": [
+        "Doctrinal Conflict"
+      ],
+      "gear": [
+        "Annotated Scripture",
+        "Bone Key"
+      ],
+      "goal": "Prepare the world for assimilation",
+      "motive": "Acceptance through submission",
+      "nemesis": "Hunters and defectors"
+    },
+    {
+      "name": "The Warden’s Lantern",
+      "concept": "Ancestral Watchers",
+      "skills": [
+        "Spirit Binding",
+        "Folk Rites"
+      ],
+      "frailties": [
+        "Stuck in the Past"
+      ],
+      "gear": [
+        "Lantern Sigil Coin",
+        "Brass Ward"
+      ],
+      "goal": "Keep ancient horrors contained",
+      "motive": "Duty beyond the grave",
+      "nemesis": "Modern agencies and skeptics"
+    },
+    {
+      "name": "The Lost Hand",
+      "concept": "Vanishing Survivors",
+      "skills": [
+        "Urban Camouflage",
+        "Secret Routes"
+      ],
+      "frailties": [
+        "Paranoia"
+      ],
+      "gear": [
+        "Whisper Stone",
+        "Binder of Obituaries"
+      ],
+      "goal": "Preserve hidden truths",
+      "motive": "Survival through memory",
+      "nemesis": "Cult recruiters and city sweeps"
+    },
+    {
+      "name": "The Chimera Syndicate",
+      "concept": "Corporate Predators",
+      "skills": [
+        "Acquisition",
+        "Human Engineering"
+      ],
+      "frailties": [
+        "Fragmented Cells"
+      ],
+      "gear": [
+        "Black Glove Credchip",
+        "Stabilized Occulite"
+      ],
+      "goal": "Monetize the paranormal",
+      "motive": "Power through possession",
+      "nemesis": "Rebels and idealists"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Dr. Lenora Voss",
+      "concept": "Calculating Biotheorist",
+      "skills": [
+        "Pathological Curiosity",
+        "Threshold Analysis"
+      ],
+      "frailties": [
+        "Detached Morality"
+      ],
+      "gear": [
+        "Sealed Notebook",
+        "Ritual-Singed Lab Coat"
+      ],
+      "goal": "To catalog and manipulate anomaly-host interactions",
+      "motive": "Legacy over lives",
+      "nemesis": "Former students who saw what she became"
+    },
+    {
+      "name": "Detective Wade Riker",
+      "concept": "Burned-Out Cop",
+      "skills": [
+        "Urban Intuition",
+        "Cold Read"
+      ],
+      "frailties": [
+        "Self-Medicating"
+      ],
+      "gear": [
+        "Rusted Revolver",
+        "Tattered Memo Pad"
+      ],
+      "goal": "To find the link between cold cases and “unexplainable patterns”",
+      "motive": "Redemption or ruin — whichever comes first",
+      "nemesis": "Internal Affairs, and something that knows his name"
+    },
+    {
+      "name": "Harlow Briggs",
+      "concept": "Hardened Survivor",
+      "skills": [
+        "Improvised Defense",
+        "Quiet Movement"
+      ],
+      "frailties": [
+        "Night Terrors"
+      ],
+      "gear": [
+        "Crowbar",
+        "Map Marked in Blood"
+      ],
+      "goal": "To warn others before the next thing wakes up",
+      "motive": "A promise made in a burning house",
+      "nemesis": "Cultists who remember her escape"
+    },
+    {
+      "name": "Sister Mireille",
+      "concept": "Smiling Heretic",
+      "skills": [
+        "Charisma",
+        "Sigil Craft"
+      ],
+      "frailties": [
+        "Blind Devotion"
+      ],
+      "gear": [
+        "Bone-Handled Knife",
+        "Prayerbook with Missing Pages"
+      ],
+      "goal": "To open the path to her “beautiful silence”",
+      "motive": "Salvation through surrender",
+      "nemesis": "Apostates who fled the final sermon"
+    },
+    {
+      "name": "Mayor Ellis Blackthorne",
+      "concept": "Compromised Official",
+      "skills": [
+        "Public Dismissal",
+        "Legal Evasion"
+      ],
+      "frailties": [
+        "Parasitic Dealings"
+      ],
+      "gear": [
+        "Encrypted Device",
+        "Monogrammed Flask"
+      ],
+      "goal": "To keep the anomaly contract going — quietly",
+      "motive": "Personal gain through denial",
+      "nemesis": "Journalists and insiders who got too close"
+    },
+    {
+      "name": "Milo \"Knuckle\" Carr",
+      "concept": "Unstable Enforcer",
+      "skills": [
+        "Brutal Strength",
+        "Fear Tactics"
+      ],
+      "frailties": [
+        "Uncontrolled Rage"
+      ],
+      "gear": [
+        "Bloodied Hammer",
+        "Surveillance Earbud"
+      ],
+      "goal": "To wipe out a “list” of those who crossed the wrong syndicate",
+      "motive": "Obedience and ego",
+      "nemesis": "An ex-target who fought back and vanished"
+    }
+  ],
+  "monsters": [
+    {
+      "name": "Hollow Man",
+      "concept": "Faceless Stalker",
+      "skills": [
+        "Silent Pursuit",
+        "Memory Distortion"
+      ],
+      "frailties": [
+        "Must be seen to be banished"
+      ],
+      "gear": [],
+      "goal": "To erase and replace the identities of others",
+      "motive": "Hunger for shape and self",
+      "nemesis": "Survivors who remember the faces he stole"
+    },
+    {
+      "name": "Bloodroot",
+      "concept": "Parasitic Flora",
+      "skills": [
+        "Body Invasion",
+        "Camouflage"
+      ],
+      "frailties": [
+        "Fire and salt"
+      ],
+      "gear": [],
+      "goal": "To seed itself in living hosts",
+      "motive": "Survival through propagation",
+      "nemesis": "Herbalists who still keep old warding lore"
+    },
+    {
+      "name": "The Murmuring",
+      "concept": "Whispering Presence",
+      "skills": [
+        "Psychic Overwhelm",
+        "Hallucination"
+      ],
+      "frailties": [
+        "Isolation and silence"
+      ],
+      "gear": [],
+      "goal": "To drive victims into self-destruction",
+      "motive": "It feeds on attention and belief",
+      "nemesis": "Mediums who refuse to listen"
+    },
+    {
+      "name": "Shamble Host",
+      "concept": "Corpse Colony",
+      "skills": [
+        "Regeneration",
+        "Swarm Logic"
+      ],
+      "frailties": [
+        "Disruption of hive core"
+      ],
+      "gear": [],
+      "goal": "To expand territory with new bodies",
+      "motive": "Collective preservation instinct",
+      "nemesis": "Fire crews who salt their burn zones"
+    },
+    {
+      "name": "The Folded",
+      "concept": "Temporal Aberration",
+      "skills": [
+        "Time Looping",
+        "Reality Slippage"
+      ],
+      "frailties": [
+        "Anchored time relics"
+      ],
+      "gear": [],
+      "goal": "To collapse linear time around its nest",
+      "motive": "Desperation to escape its own paradox",
+      "nemesis": "Watchers who mark their loops in ink and scars"
+    },
+    {
+      "name": "The Hunger",
+      "concept": "Invisible Devourer",
+      "skills": [
+        "Soundless Movement",
+        "Flesh Stripping"
+      ],
+      "frailties": [
+        "Cannot cross lines of ash"
+      ],
+      "gear": [],
+      "goal": "To feed",
+      "motive": "Pure consumption instinct",
+      "nemesis": "Ritualists who burn the old thresholds"
+    }
+  ],
+  "twist_subjects": null,
+  "twist_actions": null
+}

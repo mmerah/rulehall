@@ -1,0 +1,139 @@
+{
+  "name": "Starter tables",
+  "source": "This repository; twist columns adapted from https://lonersrd.zotiquestgames.com/core/loner-3e.html",
+  "license": "Twist table from the Loner 3e SRD, CC BY-SA 4.0 (c) Roberto Bisceglie / Zotiquest Games",
+  "concepts": [
+    {
+      "id": "wary-relic-hunter",
+      "name": "A Wary Relic-Hunter",
+      "brief": "Digs old ruins for pay and trusts nothing found inside them."
+    },
+    {
+      "id": "broken-inquisitor",
+      "name": "A Broken Inquisitor",
+      "brief": "Once hunted heresies for a faith that no longer answers."
+    },
+    {
+      "id": "runaway-cartographer",
+      "name": "A Runaway Cartographer",
+      "brief": "Fled a survey that found something no map should show."
+    },
+    {
+      "id": "hedge-surgeon",
+      "name": "A Hedge Surgeon",
+      "brief": "Patches wounds and worse for coin, no questions asked."
+    },
+    {
+      "id": "disgraced-duellist",
+      "name": "A Disgraced Duellist",
+      "brief": "Lost the duel that mattered, and lives with who saw it."
+    }
+  ],
+  "skills": [
+    {
+      "id": "reads-old-stonework",
+      "name": "Reads Old Stonework",
+      "brief": "Makes sense of inscriptions and stonework that everyone else reads as rubble."
+    },
+    {
+      "id": "quiet-hands",
+      "name": "Quiet Hands",
+      "brief": "Picks locks, pockets, and latches without a sound."
+    },
+    {
+      "id": "steady-under-fire",
+      "name": "Steady Under Fire",
+      "brief": "Keeps a clear head once things turn violent."
+    },
+    {
+      "id": "talks-their-way-in",
+      "name": "Talks Their Way In",
+      "brief": "Talks past guards, clerks, and doors that should stay shut."
+    },
+    {
+      "id": "knows-the-old-rites",
+      "name": "Knows the Old Rites",
+      "brief": "Recognizes an old rite or ritual for what it actually is."
+    },
+    {
+      "id": "never-loses-the-trail",
+      "name": "Never Loses the Trail",
+      "brief": "Follows a trail across ground that hides it from anyone else."
+    }
+  ],
+  "frailties": [
+    {
+      "id": "never-walks-away",
+      "name": "Never Walks Away",
+      "brief": "Cannot leave a fight, or a wrong, unfinished."
+    },
+    {
+      "id": "owes-a-bad-debt",
+      "name": "Owes a Bad Debt",
+      "brief": "Owes someone dangerous, and they will collect."
+    },
+    {
+      "id": "cannot-leave-a-question-alone",
+      "name": "Cannot Leave a Question Alone",
+      "brief": "Cannot let a loose thread go unpulled, whatever it costs."
+    },
+    {
+      "id": "known-to-the-wrong-people",
+      "name": "Known to the Wrong People",
+      "brief": "Recognized by people who are best left as strangers."
+    },
+    {
+      "id": "flinches-at-the-dark",
+      "name": "Flinches at the Dark",
+      "brief": "Freezes when the light goes and the dark closes in."
+    }
+  ],
+  "gear": [
+    {
+      "id": "pry-bar",
+      "name": "Pry Bar",
+      "brief": "Forces a door, a crate, or a stubborn slab of stone."
+    },
+    {
+      "id": "chalk-and-wire",
+      "name": "Chalk and Wire",
+      "brief": "Marks a trail and rigs a lock from chalk and a length of wire."
+    },
+    {
+      "id": "guttering-lantern",
+      "name": "Guttering Lantern",
+      "brief": "Throws light into places that would rather stay dark."
+    },
+    {
+      "id": "worn-duelling-blade",
+      "name": "Worn Duelling Blade",
+      "brief": "A blade worn smooth from a life spent drawing it."
+    },
+    {
+      "id": "physicians-roll",
+      "name": "Physician's Roll",
+      "brief": "Splints, stitches, and staves off the worst of a wound."
+    },
+    {
+      "id": "forged-seal-and-ink",
+      "name": "Forged Seal and Ink",
+      "brief": "Forges a seal and passes as someone with the right to be there."
+    }
+  ],
+  "twist_subjects": [
+    "A third party",
+    "The hero",
+    "An encounter",
+    "A physical event",
+    "An emotional event",
+    "An object"
+  ],
+  "twist_actions": [
+    "Appears",
+    "Alters the location",
+    "Helps the hero",
+    "Hinders the hero",
+    "Changes the goal",
+    "Ends the scene"
+  ]
+}

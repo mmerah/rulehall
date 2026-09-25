@@ -1,0 +1,35 @@
+{
+  "additionalProperties": false,
+  "description": "The prose the player reads, split into narration and dialogue.",
+  "properties": {
+    "lines": {
+      "description": "All narration and dialogue, in order.",
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "speaker_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null,
+            "description": "Exact id of the speaker. Null for narration."
+          },
+          "text": {
+            "description": "One passage of narration, or only what the speaker says.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "lines"
+  ],
+  "type": "object"
+}

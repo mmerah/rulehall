@@ -1,0 +1,57 @@
+[
+  {
+    "trace": "learned of The Flooded Cellar[cellar]",
+    "told": true,
+    "card": "",
+    "dice": []
+  },
+  {
+    "trace": "the player arrives at The Flooded Cellar[cellar]",
+    "told": true,
+    "card": "Arrived at The Flooded Cellar",
+    "dice": []
+  },
+  {
+    "trace": "Wade through the flooded cellar — skulker: 2d6 [6, 1]",
+    "told": false,
+    "card": "",
+    "dice": []
+  },
+  {
+    "trace": "Wade through the flooded cellar — Skulker, 9 vs DS 10 → failure",
+    "told": true,
+    "card": "Wade through the flooded cellar — Skulker, 9 vs DS 10 → failure",
+    "dice": [
+      {
+        "label": "2d6",
+        "faces": [
+          6,
+          6
+        ],
+        "rolled": [
+          6,
+          1
+        ],
+        "highlight": []
+      }
+    ]
+  },
+  {
+    "trace": "the player Kael[player] Health -1 → 9/10 (Wade through the flooded cellar)",
+    "told": true,
+    "card": "Health -1 → 9/10",
+    "dice": []
+  },
+  {
+    "trace": "learned of Cellar Lurker[lurker]",
+    "told": true,
+    "card": "Cellar Lurker discovered",
+    "dice": []
+  },
+  {
+    "trace": "the game master directs: the flooded dark has already noticed them, and it is close",
+    "told": true,
+    "card": "",
+    "dice": []
+  }
+]

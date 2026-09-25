@@ -1,0 +1,31 @@
+[
+  {
+    "trace": "Spot what moves in the tall grass — perception: d20 [2]",
+    "told": false,
+    "card": "",
+    "dice": []
+  },
+  {
+    "trace": "Spot what moves in the tall grass — Perception 4 vs DC 10 → failure",
+    "told": true,
+    "card": "Spot what moves in the tall grass — Perception 4 vs DC 10 → failure",
+    "dice": [
+      {
+        "label": "d20",
+        "faces": [
+          20
+        ],
+        "rolled": [
+          2
+        ],
+        "highlight": []
+      }
+    ]
+  },
+  {
+    "trace": "the game master directs: Rook has seen the new trainer, and he wants a battle",
+    "told": true,
+    "card": "",
+    "dice": []
+  }
+]

@@ -1,0 +1,79 @@
+{
+  "id": "kael",
+  "engine_id": "pokemon",
+  "sheet": {
+    "id": "player",
+    "name": "Kael",
+    "brief": "A quiet trainer from Tern Harbour who wants to see every island.",
+    "known": true,
+    "alive": true,
+    "place_id": "player",
+    "roster": [],
+    "badge": "",
+    "avatar_id": "ethan",
+    "sheet": {
+      "skills": {
+        "athletics": 1,
+        "stealth": 0,
+        "perception": 1,
+        "nature": 2,
+        "lore": 0,
+        "charm": 0
+      },
+      "money": 3000,
+      "bag": {
+        "poke-ball": 5,
+        "potion": 2
+      },
+      "badges": [],
+      "team": [
+        {
+          "mon_id": "charmander",
+          "species_id": "charmander",
+          "level": 5,
+          "exp": 125,
+          "nature": "Jolly",
+          "ability": "Blaze",
+          "gender": "M",
+          "ivs": [
+            31,
+            2,
+            22,
+            10,
+            4,
+            15
+          ],
+          "evs": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "friendship": 70,
+          "moves": [
+            {
+              "move_id": "growl",
+              "pp": 64
+            },
+            {
+              "move_id": "scratch",
+              "pp": 56
+            },
+            {
+              "move_id": "ember",
+              "pp": 40
+            }
+          ],
+          "hp": {
+            "current": 20,
+            "maximum": 20
+          },
+          "status": ""
+        }
+      ],
+      "box": []
+    }
+  }
+}

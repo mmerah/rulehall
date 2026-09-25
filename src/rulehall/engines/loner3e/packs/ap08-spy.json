@@ -1,0 +1,1293 @@
+{
+  "name": "AP08 Spy",
+  "source": "https://lonersrd.zotiquestgames.com/adventure_packs/AP08_spy.html",
+  "license": "Adventure Pack 08: Spy, Loner SRD site (CC BY-SA 4.0), (c) Roberto Bisceglie / Zotiquest Games",
+  "backdrop": "The world is a maze of codes, cover identities, and poisoned trust — a place where truth is currency and no one is ever who they seem to be.\nThe time is Cold War silence, wartime shadows, or the digital now — history’s thresholds where secrets shape nations and silence saves lives.\nThe setting shifts with the mission — smoke-filled embassies, snowbound borders, desert compounds, war-torn capitals, and private clubs that never appear on maps.\nHistory breathes beneath the surface — proxy wars, shifting alliances, revolutions in slow motion — all weaponized by those who work in whispers.\nEspionage agencies maneuver like predators in a shrinking cage — CIA, MI6, KGB, Mossad, or specters of fiction, each with their own scars, saints, and sins.\nTechnology follows the pulse of the era — hidden wires, microfilm, dead drops, burner networks, satellite pings, and black-market firmware running in borrowed skin.\nLoyalty is fluid, allegiance negotiable, and betrayal inevitable — every agent is a ghost in someone’s file, and the truth never stays clean for long.\nThis world has no neutral ground. Every move is a message, and every message is a risk.",
+  "names": {
+    "female": [
+      "Alina",
+      "Sofia",
+      "Kaori",
+      "Emilia",
+      "Yelena",
+      "Claire",
+      "Anika",
+      "Lucia",
+      "Hana",
+      "Ingrid",
+      "Nadine",
+      "Roya",
+      "Zara",
+      "Petra",
+      "Mira",
+      "Elise",
+      "Farah",
+      "Dasha",
+      "Leila",
+      "Sanaa",
+      "Irina",
+      "Helena",
+      "Aiko",
+      "Soraya",
+      "Mina",
+      "Ivana",
+      "Noor",
+      "Carmen",
+      "Katerina",
+      "Sylvie",
+      "Amira",
+      "Lina",
+      "Moira",
+      "Ayaka",
+      "Chiara",
+      "Galina"
+    ],
+    "male": [
+      "Viktor",
+      "Elias",
+      "Kenji",
+      "Luca",
+      "Malik",
+      "Andrei",
+      "Karim",
+      "Tomas",
+      "Hugo",
+      "Sergei",
+      "Amir",
+      "Claude",
+      "Mikhail",
+      "Rami",
+      "Julien",
+      "Nikolai",
+      "Jorge",
+      "Takeshi",
+      "Jakob",
+      "Farid",
+      "Arman",
+      "Roman",
+      "Dmitri",
+      "Theo",
+      "Anton",
+      "Omar",
+      "Pavel",
+      "Isamu",
+      "Ziad",
+      "Silas",
+      "Illya",
+      "Marco",
+      "Salem",
+      "Arthur",
+      "Emil",
+      "Yann"
+    ],
+    "neutral": [],
+    "surnames": [
+      "Novak",
+      "Ramires",
+      "Petrov",
+      "Saito",
+      "Haddad",
+      "Schulz",
+      "Volkov",
+      "Grimaldi",
+      "Morozov",
+      "Takahashi",
+      "Zakaria",
+      "Leblanc",
+      "Haddadi",
+      "Kimura",
+      "Castillo",
+      "Dragunov",
+      "Mihalovic",
+      "Fontaine",
+      "Aziz",
+      "Orlov",
+      "Yamamoto",
+      "Fernández",
+      "Sorokin",
+      "Kowalski",
+      "Choi",
+      "Khalil",
+      "Ivanova",
+      "Delaunay",
+      "Mahmoud",
+      "Weber",
+      "Müller",
+      "Sokolov",
+      "Darzi",
+      "Genovese",
+      "Yamazaki",
+      "Krüger"
+    ],
+    "nicknames": [
+      "Ghost",
+      "Viper",
+      "Echo",
+      "Phantom",
+      "Raven",
+      "Ember",
+      "Wraith",
+      "Oracle",
+      "Wolf",
+      "Nomad",
+      "Ash",
+      "Cipher",
+      "Helix",
+      "Quill",
+      "Prophet",
+      "Fox",
+      "Glitch",
+      "Vector",
+      "Whisper",
+      "Falcon",
+      "Sable",
+      "Tempest",
+      "Maze",
+      "Ironhand",
+      "Crossfade",
+      "Moth",
+      "Nomura",
+      "Bluejay",
+      "Carbon",
+      "Apex",
+      "Harrow",
+      "Lynx",
+      "Dagger",
+      "Scorch",
+      "Halcyon",
+      "Null"
+    ]
+  },
+  "rules": "Cover Identity:\n\nYour character begins each mission with an assigned cover. When performing an action that might expose your cover, roll the Oracle with **Risk**. If the Oracle response is negative or mixed, your cover begins to fray.\n\n* Track cover using **three states**: *Intact*, *Strained*, *Blown*.\n* Each time you act “out of cover,” or draw heat, consult the Oracle and adjust the state.\n* A *Blown* cover immediately triggers **extraction, pursuit, or capture** (Oracle decides which).\n\n> **Tip**\n> Describe how your action fits the cover — not just what you do, but **how you make it look normal**.\n\nInterrogation:\n\nIf captured, you enter an **interrogation sequence**. You must answer questions posed by your captors. For each question:\n\n* You may choose to **Lie**, **Evade**, or **Confess**.\n* Consult the Oracle after each attempt. On a failure, your captors learn something — real or fabricated, Oracle decides.\n* After three questions, roll to see if you’re **released**, **escape**, or remain **detained**.\n\n> **Note**\n> If you plant disinformation during interrogation, note it — it may alter future missions if the lie takes root.\n\nPolitical Tensions:\n\nEach mission alters the geopolitical climate. After a mission:\n\n* Roll the Oracle to determine whether your actions **stabilized**, **disrupted**, or **escalated** tensions.\n* Keep a simple **Tension Track**: *Stable → Shifting → Boiling Point*.\n* At *Boiling Point*, missions become more chaotic: assets disappear, contacts are unreliable, and extraction becomes harder.\n\n> **Tip**\n> Use factions or governments as recurring actors. When you cross one, track their suspicion.",
+  "locations": [
+    {
+      "name": "The Embassy",
+      "brief": "An official front for diplomacy, unofficially a nest of surveillance devices, veiled threats, and closed-door deals.",
+      "encounters": "Cultural Attaché, Agency Liaison, Surveillance Tech posing as Clerk"
+    },
+    {
+      "name": "The Bazaar",
+      "brief": "A volatile maze of whispered deals, cold stares, and vanishing stalls — ideal for covert exchanges and plausible deniability.",
+      "encounters": "Information Broker, Disgraced Agent in Hiding, Distraction Team posing as Vendors"
+    },
+    {
+      "name": "The Safehouse",
+      "brief": "Nondescript from the outside, the inside tells stories in scratches, gun oil, and half-sanitized medical kits — never truly safe.",
+      "encounters": "Paranoid Field Operative, Burned Asset, Silent Quartermaster"
+    },
+    {
+      "name": "The Executive Compound",
+      "brief": "A perimeter of decorum hides a core of control — policy is shaped here under velvet threats and soft power.",
+      "encounters": "Political Powerbroker, Private Intelligence Consultant, Hidden Microphone"
+    },
+    {
+      "name": "The Grey Sector",
+      "brief": "A district of abandoned buildings and flickering streetlamps, known to be both avoided and exploited by operatives of every stripe.",
+      "encounters": "Street-Level Informant, Double-Crosser, Surveillance Drone Skimming Rooftops"
+    },
+    {
+      "name": "The Black Lab",
+      "brief": "Beyond jurisdiction and ethics, this subterranean site runs tests no one admits exist — the lights hum with secrecy.",
+      "encounters": "Nervous Technician, Security AI in Test Mode, Something Not Fully Human"
+    }
+  ],
+  "seeds": [
+    "Infiltrate a diplomatic gala and extract a defector hiding in plain sight — before their cover collapses.",
+    "A forged memo sparks a scandal. Retrieve the original document before it reaches the press.",
+    "Your former handler resurfaces with a job and no explanation. Say yes, or risk losing your identity.",
+    "A data vault hidden in a shuttered bookstore may hold the truth behind a blacklisted operation.",
+    "Steal a prototype listening device from an ally’s embassy — then decide who gets it.",
+    "The safehouse is compromised. Burn the evidence, but someone inside may not be who they claim.",
+    "Surveillance footage shows you at a crime scene — but you were never there. Prove it.",
+    "A ghost agent transmits from a dead network. Trace the signal before it disappears again.",
+    "A staged hostage rescue masks a smuggling op. You're sent in — but to stop which part?",
+    "The mole you unmasked has vanished. Your contact insists they were never real.",
+    "A message hidden in a vintage broadcast suggests a war-era asset is still active — and watching you.",
+    "A poisoned official collapses mid-speech. You have 12 hours to trace the vector before you're blamed.",
+    "An encrypted case was dropped in the wrong dead drop. Retrieve it before rival handlers act.",
+    "You’re hired to tail a diplomat. They’re already tailing someone else — and so are you.",
+    "The target is a child born into a fabricated identity. Extract them, or erase the file.",
+    "A former asset demands protection — in exchange for blackmail material you didn’t know existed.",
+    "Your cover ID receives an official invitation to a secret summit. You weren’t supposed to be known.",
+    "A routine brush pass transfers a drive. It contains footage of your last unsanctioned kill.",
+    "Sabotage an arms deal between two factions — but don’t let either know it was you.",
+    "A deep-cover operative breaks silence. Their voice sounds like someone you trusted and buried.",
+    "A faction wants you to plant intel on a rival. Another pays you to intercept it. Both are watching.",
+    "The airport is locked down. One passenger has classified tech in their luggage. Guess who.",
+    "You’re offered immunity in exchange for a list of active agents — including your current identity.",
+    "A package arrives addressed to your alias. Inside: your real birth certificate and a listening device.",
+    "A foreign news outlet publishes details from a mission you haven’t completed yet. Find the leak.",
+    "Your mission: escort a scientist across hostile territory. They insist you're part of an experiment.",
+    "A key witness is being held in an asylum. They speak only in Cold War ciphers.",
+    "A minor bureaucrat is too well-informed. Dig into their past before they dig into yours.",
+    "A rogue satellite comes online. It has your old team's encrypted logs — and someone’s using them.",
+    "You’ve been framed for an assassination. The evidence is airtight — and planted by your own side.",
+    "An encrypted letter arrives weekly, signed by someone who died in a botched mission you led.",
+    "An underground courier service moves secrets for hire. Infiltrate it without being archived.",
+    "A defector’s memoirs contain details only you should know. Redact the book — or its author.",
+    "A facial recognition algorithm tags you in surveillance footage from six years ago — on the wrong side.",
+    "A ghost file resurfaces in the archive: classified under your real name. You never wrote it.",
+    "Someone is impersonating you across three countries. Trace them — or become them."
+  ],
+  "concepts": [
+    {
+      "id": "disavowed-operative",
+      "name": "Disavowed Operative",
+      "brief": ""
+    },
+    {
+      "id": "elegant-assassin",
+      "name": "Elegant Assassin",
+      "brief": ""
+    },
+    {
+      "id": "hacker-for-hire",
+      "name": "Hacker-for-Hire",
+      "brief": ""
+    },
+    {
+      "id": "burned-spy",
+      "name": "Burned Spy",
+      "brief": ""
+    },
+    {
+      "id": "undercover-analyst",
+      "name": "Undercover Analyst",
+      "brief": ""
+    },
+    {
+      "id": "rogue-handler",
+      "name": "Rogue Handler",
+      "brief": ""
+    },
+    {
+      "id": "sleeper-agent",
+      "name": "Sleeper Agent",
+      "brief": ""
+    },
+    {
+      "id": "cryptid-conspirator",
+      "name": "Cryptid Conspirator",
+      "brief": ""
+    },
+    {
+      "id": "techno-saboteur",
+      "name": "Techno-Saboteur",
+      "brief": ""
+    },
+    {
+      "id": "charming-infiltrator",
+      "name": "Charming Infiltrator",
+      "brief": ""
+    },
+    {
+      "id": "double-cross-expert",
+      "name": "Double-Cross Expert",
+      "brief": ""
+    },
+    {
+      "id": "cold-war-relic",
+      "name": "Cold-War Relic",
+      "brief": ""
+    },
+    {
+      "id": "mind-wiped-asset",
+      "name": "Mind-Wiped Asset",
+      "brief": ""
+    },
+    {
+      "id": "shadow-broker",
+      "name": "Shadow Broker",
+      "brief": ""
+    },
+    {
+      "id": "deep-mole",
+      "name": "Deep Mole",
+      "brief": ""
+    },
+    {
+      "id": "debonair-seductress",
+      "name": "Debonair Seductress",
+      "brief": ""
+    },
+    {
+      "id": "clean-up-specialist",
+      "name": "Clean-Up Specialist",
+      "brief": ""
+    },
+    {
+      "id": "field-surgeon",
+      "name": "Field Surgeon",
+      "brief": ""
+    },
+    {
+      "id": "diplomatic-chameleon",
+      "name": "Diplomatic Chameleon",
+      "brief": ""
+    },
+    {
+      "id": "interrogation-expert",
+      "name": "Interrogation Expert",
+      "brief": ""
+    },
+    {
+      "id": "mi6-turncoat",
+      "name": "MI6 Turncoat",
+      "brief": ""
+    },
+    {
+      "id": "cia-escapee",
+      "name": "CIA Escapee",
+      "brief": ""
+    },
+    {
+      "id": "corporate-fixer",
+      "name": "Corporate Fixer",
+      "brief": ""
+    },
+    {
+      "id": "disguised-courier",
+      "name": "Disguised Courier",
+      "brief": ""
+    },
+    {
+      "id": "black-bag-technician",
+      "name": "Black Bag Technician",
+      "brief": ""
+    },
+    {
+      "id": "radio-silence-ghost",
+      "name": "Radio Silence Ghost",
+      "brief": ""
+    },
+    {
+      "id": "surveillance-addict",
+      "name": "Surveillance Addict",
+      "brief": ""
+    },
+    {
+      "id": "glamorous-deceiver",
+      "name": "Glamorous Deceiver",
+      "brief": ""
+    },
+    {
+      "id": "anti-terror-analyst",
+      "name": "Anti-Terror Analyst",
+      "brief": ""
+    },
+    {
+      "id": "precision-cleaner",
+      "name": "Precision Cleaner",
+      "brief": ""
+    },
+    {
+      "id": "urban-stalker",
+      "name": "Urban Stalker",
+      "brief": ""
+    },
+    {
+      "id": "sleepless-interceptor",
+      "name": "Sleepless Interceptor",
+      "brief": ""
+    },
+    {
+      "id": "psychological-profiler",
+      "name": "Psychological Profiler",
+      "brief": ""
+    },
+    {
+      "id": "disgraced-patriot",
+      "name": "Disgraced Patriot",
+      "brief": ""
+    },
+    {
+      "id": "kgb-heir",
+      "name": "KGB Heir",
+      "brief": ""
+    },
+    {
+      "id": "high-stakes-negotiator",
+      "name": "High-Stakes Negotiator",
+      "brief": ""
+    }
+  ],
+  "skills": [
+    {
+      "id": "espionage",
+      "name": "Espionage",
+      "brief": ""
+    },
+    {
+      "id": "stealth",
+      "name": "Stealth",
+      "brief": ""
+    },
+    {
+      "id": "interrogation",
+      "name": "Interrogation",
+      "brief": ""
+    },
+    {
+      "id": "lockpicking",
+      "name": "Lockpicking",
+      "brief": ""
+    },
+    {
+      "id": "disguise",
+      "name": "Disguise",
+      "brief": ""
+    },
+    {
+      "id": "counterintelligence",
+      "name": "Counterintelligence",
+      "brief": ""
+    },
+    {
+      "id": "seduction",
+      "name": "Seduction",
+      "brief": ""
+    },
+    {
+      "id": "firearms",
+      "name": "Firearms",
+      "brief": ""
+    },
+    {
+      "id": "martial-arts",
+      "name": "Martial Arts",
+      "brief": ""
+    },
+    {
+      "id": "surveillance",
+      "name": "Surveillance",
+      "brief": ""
+    },
+    {
+      "id": "codebreaking",
+      "name": "Codebreaking",
+      "brief": ""
+    },
+    {
+      "id": "gadgeteering",
+      "name": "Gadgeteering",
+      "brief": ""
+    },
+    {
+      "id": "hacking",
+      "name": "Hacking",
+      "brief": ""
+    },
+    {
+      "id": "tail-shadowing",
+      "name": "Tail/Shadowing",
+      "brief": ""
+    },
+    {
+      "id": "infiltration",
+      "name": "Infiltration",
+      "brief": ""
+    },
+    {
+      "id": "combat-driving",
+      "name": "Combat Driving",
+      "brief": ""
+    },
+    {
+      "id": "explosives",
+      "name": "Explosives",
+      "brief": ""
+    },
+    {
+      "id": "escape-techniques",
+      "name": "Escape Techniques",
+      "brief": ""
+    },
+    {
+      "id": "persuasion",
+      "name": "Persuasion",
+      "brief": ""
+    },
+    {
+      "id": "language-mastery",
+      "name": "Language Mastery",
+      "brief": ""
+    },
+    {
+      "id": "distraction",
+      "name": "Distraction",
+      "brief": ""
+    },
+    {
+      "id": "social-engineering",
+      "name": "Social Engineering",
+      "brief": ""
+    },
+    {
+      "id": "drone-operation",
+      "name": "Drone Operation",
+      "brief": ""
+    },
+    {
+      "id": "medical-knowledge",
+      "name": "Medical Knowledge",
+      "brief": ""
+    },
+    {
+      "id": "forensics",
+      "name": "Forensics",
+      "brief": ""
+    },
+    {
+      "id": "data-extraction",
+      "name": "Data Extraction",
+      "brief": ""
+    },
+    {
+      "id": "voice-impersonation",
+      "name": "Voice Impersonation",
+      "brief": ""
+    },
+    {
+      "id": "bomb-defusal",
+      "name": "Bomb Defusal",
+      "brief": ""
+    },
+    {
+      "id": "trap-setting",
+      "name": "Trap Setting",
+      "brief": ""
+    },
+    {
+      "id": "toxin-handling",
+      "name": "Toxin Handling",
+      "brief": ""
+    },
+    {
+      "id": "bluffing",
+      "name": "Bluffing",
+      "brief": ""
+    },
+    {
+      "id": "parkour",
+      "name": "Parkour",
+      "brief": ""
+    },
+    {
+      "id": "cryptanalysis",
+      "name": "Cryptanalysis",
+      "brief": ""
+    },
+    {
+      "id": "strategic-planning",
+      "name": "Strategic Planning",
+      "brief": ""
+    },
+    {
+      "id": "quick-draw",
+      "name": "Quick Draw",
+      "brief": ""
+    },
+    {
+      "id": "improvised-tools",
+      "name": "Improvised Tools",
+      "brief": ""
+    }
+  ],
+  "frailties": [
+    {
+      "id": "identity-crisis",
+      "name": "Identity Crisis",
+      "brief": ""
+    },
+    {
+      "id": "burnout",
+      "name": "Burnout",
+      "brief": ""
+    },
+    {
+      "id": "paranoia",
+      "name": "Paranoia",
+      "brief": ""
+    },
+    {
+      "id": "guilt-complex",
+      "name": "Guilt Complex",
+      "brief": ""
+    },
+    {
+      "id": "trust-issues",
+      "name": "Trust Issues",
+      "brief": ""
+    },
+    {
+      "id": "amnesia",
+      "name": "Amnesia",
+      "brief": ""
+    },
+    {
+      "id": "addictive-behavior",
+      "name": "Addictive Behavior",
+      "brief": ""
+    },
+    {
+      "id": "ptsd",
+      "name": "PTSD",
+      "brief": ""
+    },
+    {
+      "id": "obsessive-habits",
+      "name": "Obsessive Habits",
+      "brief": ""
+    },
+    {
+      "id": "emotional-detachment",
+      "name": "Emotional Detachment",
+      "brief": ""
+    },
+    {
+      "id": "tremors",
+      "name": "Tremors",
+      "brief": ""
+    },
+    {
+      "id": "chronic-insomnia",
+      "name": "Chronic Insomnia",
+      "brief": ""
+    },
+    {
+      "id": "flashbacks",
+      "name": "Flashbacks",
+      "brief": ""
+    },
+    {
+      "id": "overconfidence",
+      "name": "Overconfidence",
+      "brief": ""
+    },
+    {
+      "id": "panic-under-fire",
+      "name": "Panic Under Fire",
+      "brief": ""
+    },
+    {
+      "id": "self-sabotage",
+      "name": "Self-Sabotage",
+      "brief": ""
+    },
+    {
+      "id": "secret-loyalty",
+      "name": "Secret Loyalty",
+      "brief": ""
+    },
+    {
+      "id": "haunted-by-the-past",
+      "name": "Haunted by the Past",
+      "brief": ""
+    },
+    {
+      "id": "moral-hesitation",
+      "name": "Moral Hesitation",
+      "brief": ""
+    },
+    {
+      "id": "manipulative-tendencies",
+      "name": "Manipulative Tendencies",
+      "brief": ""
+    },
+    {
+      "id": "split-allegiances",
+      "name": "Split Allegiances",
+      "brief": ""
+    },
+    {
+      "id": "nightmares",
+      "name": "Nightmares",
+      "brief": ""
+    },
+    {
+      "id": "code-dependency",
+      "name": "Code Dependency",
+      "brief": ""
+    },
+    {
+      "id": "reluctance-to-kill",
+      "name": "Reluctance to Kill",
+      "brief": ""
+    },
+    {
+      "id": "fame-from-a-botched-op",
+      "name": "Fame from a Botched Op",
+      "brief": ""
+    },
+    {
+      "id": "vengeful",
+      "name": "Vengeful",
+      "brief": ""
+    },
+    {
+      "id": "overtrusting",
+      "name": "Overtrusting",
+      "brief": ""
+    },
+    {
+      "id": "technophobia",
+      "name": "Technophobia",
+      "brief": ""
+    },
+    {
+      "id": "chronic-injury",
+      "name": "Chronic Injury",
+      "brief": ""
+    },
+    {
+      "id": "emotional-outbursts",
+      "name": "Emotional Outbursts",
+      "brief": ""
+    },
+    {
+      "id": "voices-in-the-ear",
+      "name": "Voices in the Ear",
+      "brief": ""
+    },
+    {
+      "id": "double-life-stress",
+      "name": "Double Life Stress",
+      "brief": ""
+    },
+    {
+      "id": "fear-of-exposure",
+      "name": "Fear of Exposure",
+      "brief": ""
+    },
+    {
+      "id": "gadget-malfunction-phobia",
+      "name": "Gadget Malfunction Phobia",
+      "brief": ""
+    },
+    {
+      "id": "cold-bloodedness",
+      "name": "Cold-Bloodedness",
+      "brief": ""
+    },
+    {
+      "id": "bureaucratic-trauma",
+      "name": "Bureaucratic Trauma",
+      "brief": ""
+    }
+  ],
+  "gear": [
+    {
+      "id": "silenced-pistol",
+      "name": "Silenced Pistol",
+      "brief": ""
+    },
+    {
+      "id": "bug-detector",
+      "name": "Bug Detector",
+      "brief": ""
+    },
+    {
+      "id": "forged-passport",
+      "name": "Forged Passport",
+      "brief": ""
+    },
+    {
+      "id": "lockpick-set",
+      "name": "Lockpick Set",
+      "brief": ""
+    },
+    {
+      "id": "micro-recorder",
+      "name": "Micro Recorder",
+      "brief": ""
+    },
+    {
+      "id": "burner-phone",
+      "name": "Burner Phone",
+      "brief": ""
+    },
+    {
+      "id": "concealed-blade",
+      "name": "Concealed Blade",
+      "brief": ""
+    },
+    {
+      "id": "grappling-gun",
+      "name": "Grappling Gun",
+      "brief": ""
+    },
+    {
+      "id": "tactical-glasses",
+      "name": "Tactical Glasses",
+      "brief": ""
+    },
+    {
+      "id": "encryption-tablet",
+      "name": "Encryption Tablet",
+      "brief": ""
+    },
+    {
+      "id": "gps-scrambler",
+      "name": "GPS Scrambler",
+      "brief": ""
+    },
+    {
+      "id": "flashbang-grenade",
+      "name": "Flashbang Grenade",
+      "brief": ""
+    },
+    {
+      "id": "tracker-darts",
+      "name": "Tracker Darts",
+      "brief": ""
+    },
+    {
+      "id": "eavesdropping-kit",
+      "name": "Eavesdropping Kit",
+      "brief": ""
+    },
+    {
+      "id": "disguise-kit",
+      "name": "Disguise Kit",
+      "brief": ""
+    },
+    {
+      "id": "antidote-injector",
+      "name": "Antidote Injector",
+      "brief": ""
+    },
+    {
+      "id": "gas-mask",
+      "name": "Gas Mask",
+      "brief": ""
+    },
+    {
+      "id": "surveillance-drone",
+      "name": "Surveillance Drone",
+      "brief": ""
+    },
+    {
+      "id": "poison-ring",
+      "name": "Poison Ring",
+      "brief": ""
+    },
+    {
+      "id": "hollow-watch",
+      "name": "Hollow Watch",
+      "brief": ""
+    },
+    {
+      "id": "signal-jammer",
+      "name": "Signal Jammer",
+      "brief": ""
+    },
+    {
+      "id": "emp-device",
+      "name": "EMP Device",
+      "brief": ""
+    },
+    {
+      "id": "wrist-taser",
+      "name": "Wrist Taser",
+      "brief": ""
+    },
+    {
+      "id": "tranquilizer-gun",
+      "name": "Tranquilizer Gun",
+      "brief": ""
+    },
+    {
+      "id": "rfid-spoofer",
+      "name": "RFID Spoofer",
+      "brief": ""
+    },
+    {
+      "id": "hidden-camera",
+      "name": "Hidden Camera",
+      "brief": ""
+    },
+    {
+      "id": "kevlar-vest",
+      "name": "Kevlar Vest",
+      "brief": ""
+    },
+    {
+      "id": "infrared-goggles",
+      "name": "Infrared Goggles",
+      "brief": ""
+    },
+    {
+      "id": "cyanide-tooth",
+      "name": "Cyanide Tooth",
+      "brief": ""
+    },
+    {
+      "id": "money-bricks",
+      "name": "Money Bricks",
+      "brief": ""
+    },
+    {
+      "id": "compact-smg",
+      "name": "Compact SMG",
+      "brief": ""
+    },
+    {
+      "id": "retinal-scanner",
+      "name": "Retinal Scanner",
+      "brief": ""
+    },
+    {
+      "id": "remote-explosives",
+      "name": "Remote Explosives",
+      "brief": ""
+    },
+    {
+      "id": "med-patch-kit",
+      "name": "Med Patch Kit",
+      "brief": ""
+    },
+    {
+      "id": "smoke-pellets",
+      "name": "Smoke Pellets",
+      "brief": ""
+    },
+    {
+      "id": "hacking-rig",
+      "name": "Hacking Rig",
+      "brief": ""
+    }
+  ],
+  "spends_luck": false,
+  "factions": [
+    {
+      "name": "The Directorate",
+      "concept": "Legacy intelligence agency fractured by internal purges.",
+      "skills": [
+        "Tradecraft",
+        "Psychological Manipulation"
+      ],
+      "frailties": [
+        "Wounded by internal distrust"
+      ],
+      "gear": [
+        "Old-school encrypted files",
+        "aging handlers"
+      ],
+      "goal": "Survive the shifting world order",
+      "motive": "Institutional survival above all",
+      "nemesis": "The Ascendant Bloc"
+    },
+    {
+      "name": "The Ascendant Bloc",
+      "concept": "Rising power harnessing digital control and social engineering.",
+      "skills": [
+        "Network infiltration",
+        "AI surveillance"
+      ],
+      "frailties": [
+        "Overconfidence in algorithms"
+      ],
+      "gear": [
+        "Black-market firmware",
+        "predictive intel grids"
+      ],
+      "goal": "Total information dominance",
+      "motive": "Stability through control",
+      "nemesis": "The Underground Echo"
+    },
+    {
+      "name": "The Underground Echo",
+      "concept": "Decentralized resistance of whistleblowers, ex-operatives, and digital fugitives.",
+      "skills": [
+        "Guerrilla coordination",
+        "Counter-propaganda"
+      ],
+      "frailties": [
+        "Fragmented trust networks"
+      ],
+      "gear": [
+        "Burner tech",
+        "peer-to-peer drops"
+      ],
+      "goal": "Expose systems of manipulation",
+      "motive": "Freedom through radical transparency",
+      "nemesis": "The Ascendant Bloc"
+    },
+    {
+      "name": "The Veiled Court",
+      "concept": "Elite, multinational cabal exerting influence through private finance and culture.",
+      "skills": [
+        "Influence peddling",
+        "Cryptic symbolism"
+      ],
+      "frailties": [
+        "Ritualized arrogance"
+      ],
+      "gear": [
+        "Private club networks",
+        "heirloom codes"
+      ],
+      "goal": "Shape history from behind the curtain",
+      "motive": "Legacy, continuity, dominion",
+      "nemesis": "The Directorate"
+    },
+    {
+      "name": "Kestrel Solutions",
+      "concept": "Private espionage contractor working both sides of any conflict.",
+      "skills": [
+        "Extraction",
+        "False Flag Operations"
+      ],
+      "frailties": [
+        "Loyalty to profit"
+      ],
+      "gear": [
+        "Adaptive gear suites",
+        "controlled leaks"
+      ],
+      "goal": "Sustain the war of secrets",
+      "motive": "Market domination of intelligence-for-hire",
+      "nemesis": "Anyone they can't bill"
+    },
+    {
+      "name": "The Covenant of Ash",
+      "concept": "Extremist zealots of erasure — erase history, destroy archives, dismantle systems.",
+      "skills": [
+        "Sabotage",
+        "Fanatic infiltration"
+      ],
+      "frailties": [
+        "Self-destructive impulse"
+      ],
+      "gear": [
+        "Black flame virus",
+        "memory purging tools"
+      ],
+      "goal": "Burn the old world’s knowledge",
+      "motive": "Cleansing through oblivion",
+      "nemesis": "The Echo and the Court alike"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Sophia Dubois",
+      "concept": "Rogue Diplomat",
+      "skills": [
+        "Social Subversion",
+        "Auction Rigging"
+      ],
+      "frailties": [
+        "Secretly Indebted"
+      ],
+      "gear": [
+        "Bugged Earring",
+        "Forged Manifests"
+      ],
+      "goal": "Erase Past",
+      "motive": "Survival",
+      "nemesis": "Burned Protégé"
+    },
+    {
+      "name": "Jack Zhang",
+      "concept": "Ghost Coder",
+      "skills": [
+        "Network Infiltration",
+        "Code Obfuscation"
+      ],
+      "frailties": [
+        "Fame-Seeking"
+      ],
+      "gear": [
+        "Keylogger Drone",
+        "Signal Repeater"
+      ],
+      "goal": "Leak the Vault",
+      "motive": "Recognition",
+      "nemesis": "Rogue AI"
+    },
+    {
+      "name": "Dmitri Volkov",
+      "concept": "Ex-GRU Broker",
+      "skills": [
+        "Logistics",
+        "Bluffing"
+      ],
+      "frailties": [
+        "Haunted Loyalty"
+      ],
+      "gear": [
+        "Sealed Crate",
+        "Encrypted List"
+      ],
+      "goal": "Honor a Debt",
+      "motive": "Redemption",
+      "nemesis": "GRU General"
+    },
+    {
+      "name": "Maria Gutierrez",
+      "concept": "Freelance Killer",
+      "skills": [
+        "Disappearance",
+        "Termination"
+      ],
+      "frailties": [
+        "Memory Gaps"
+      ],
+      "gear": [
+        "Kill Ledger",
+        "Retinal Scrambler"
+      ],
+      "goal": "Find Lost Year",
+      "motive": "Truth",
+      "nemesis": "Unknown Handler"
+    },
+    {
+      "name": "William Buchanan",
+      "concept": "Faded Legend",
+      "skills": [
+        "Disguise",
+        "Code-Switching"
+      ],
+      "frailties": [
+        "Obsolete Habits"
+      ],
+      "gear": [
+        "Fake Obituary",
+        "Lockbox Orders"
+      ],
+      "goal": "Finish Old Mission",
+      "motive": "Redemption",
+      "nemesis": "Young Operative"
+    },
+    {
+      "name": "Suki Kim",
+      "concept": "Masked Infiltrator",
+      "skills": [
+        "Mimicry",
+        "Bureaucracy"
+      ],
+      "frailties": [
+        "Emotional Residue"
+      ],
+      "gear": [
+        "Invisible Memoirs",
+        "Stolen Heirloom"
+      ],
+      "goal": "Discover Identity",
+      "motive": "Self-Recovery",
+      "nemesis": "Unknown Sibling"
+    }
+  ],
+  "monsters": [
+    {
+      "name": "Blackmail Rings",
+      "concept": "Covert Extortionists",
+      "skills": [
+        "Coercion",
+        "Intel Gathering"
+      ],
+      "frailties": [
+        "Power Drunk"
+      ],
+      "gear": [
+        "Hidden Mics",
+        "Compromising Footage"
+      ],
+      "goal": "Control through leverage",
+      "motive": "Greed, leverage",
+      "nemesis": "Whistleblowers, leaks"
+    },
+    {
+      "name": "Contract Killers",
+      "concept": "Hired Eliminators",
+      "skills": [
+        "Stealth",
+        "Execution"
+      ],
+      "frailties": [
+        "Tunnel Vision"
+      ],
+      "gear": [
+        "Toxins",
+        "Suppressed Arms"
+      ],
+      "goal": "Target neutralization",
+      "motive": "Money, revenge",
+      "nemesis": "Security teams, ghost targets"
+    },
+    {
+      "name": "Cyber Cells",
+      "concept": "Rogue Hackers",
+      "skills": [
+        "Breach & Spread",
+        "Obfuscation"
+      ],
+      "frailties": [
+        "Operate in echo chambers"
+      ],
+      "gear": [
+        "Mesh nodes",
+        "spoofing rigs"
+      ],
+      "goal": "Disrupt, expose, destabilize",
+      "motive": "Idealism, sabotage",
+      "nemesis": "Counterintel AI, kinetic raids"
+    },
+    {
+      "name": "Freelance Militants",
+      "concept": "Tactical Mercs",
+      "skills": [
+        "Small Unit Ops",
+        "Extraction"
+      ],
+      "frailties": [
+        "No loyalty"
+      ],
+      "gear": [
+        "Modular armor",
+        "flashbangs"
+      ],
+      "goal": "Execute contracts",
+      "motive": "Payment, chaos",
+      "nemesis": "Intelligence handlers, rival squads"
+    },
+    {
+      "name": "Cross-Border Runners",
+      "concept": "Logistics Ghosts",
+      "skills": [
+        "Smuggling",
+        "Terrain Mastery"
+      ],
+      "frailties": [
+        "Complacent"
+      ],
+      "gear": [
+        "Coded manifests",
+        "rebranded crates"
+      ],
+      "goal": "Move the untraceable",
+      "motive": "Survival, profit",
+      "nemesis": "Customs agents, bounty hunters"
+    },
+    {
+      "name": "Embedded Turncoats",
+      "concept": "Internal Saboteurs",
+      "skills": [
+        "Misdirection",
+        "Deep Cover"
+      ],
+      "frailties": [
+        "Gambling with trust"
+      ],
+      "gear": [
+        "Forged credentials",
+        "burner caches"
+      ],
+      "goal": "Subvert from within",
+      "motive": "Ideology, blackmail",
+      "nemesis": "Vetting units, loyalists"
+    }
+  ],
+  "twist_subjects": null,
+  "twist_actions": null
+}

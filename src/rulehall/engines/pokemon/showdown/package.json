@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "engines": {"node": ">=22"},
+  "dependencies": {"pokemon-showdown": "0.11.11"},
+  "scripts": {
+    "setup": "npm ci --omit=optional && node fetch-assets.js",
+    "export-dex": "node export-dex.js",
+    "export-packs": "node export-packs.js"
+  }
+}

@@ -1,0 +1,562 @@
+[
+  {
+    "name": "reveal",
+    "description": "Make a hidden entity here known to the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of something hidden here.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "kill",
+    "description": "A character here dies. If that character is the lead, the crew choose a new lead.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of who here died.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "leave_party",
+    "description": "Make a party member stop travelling with the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of the party member leaving.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "direct",
+    "description": "Call this last, once per turn. It ends the turn and gives notes to the narrator. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Use reveal first for hidden entities. Apply world changes through the other tools before calling direct.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "description": "Brief factual notes for the narrator to phrase. Answer each question in the player action. Include the result, its known reason, and details needed for the next choice. For a request or warning, give what the person wants and the reason they share. Use facts the player can know now. Identify claims and unknown reasons as such. Keep every outcome consistent with tool results.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "enter",
+    "description": "Bring a cast member into the scene.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of a cast member not already here.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "leave",
+    "description": "Send a cast member out of the scene.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of someone here.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "next_scene",
+    "description": "Call this with nothing set when the scene reaches a stopping point. Set `pursuit` instead when the player has left this place. Set `complication` instead to bring a new situation into this place.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "pursuit": {
+          "default": "",
+          "description": "Where the player is going, in their own words. Empty to offer the way on.",
+          "type": "string"
+        },
+        "complication": {
+          "default": "",
+          "description": "What arrives or turns here, and why. Empty otherwise.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "join_party",
+    "description": "Make a person here travel with the player. Set `terms` when the player hires them to work, also someone who already travels with the player: the worldsmith writes their sheet at the end of the turn, and nothing more happens this turn. Leave `terms` empty for someone who only comes along.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of who here joins or is hired.",
+          "type": "string"
+        },
+        "terms": {
+          "default": "",
+          "description": "Empty when they only come along. When the player hires them to work: what for and on what terms, as agreed.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "change_hindrances",
+    "description": "The actor gains hindrances, loses hindrances, or does both.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "gained": {
+          "default": [],
+          "description": "Hindrances the actor now carries. Name it in three or four words, never more than 32 characters.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "lost": {
+          "default": [],
+          "description": "Hindrances the actor no longer carries.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "actor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a hired party member here who acts. Null for the player."
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "gain_item",
+    "description": "The actor gains an item and pays for it.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "The item's name. Name it in three or four words, never more than 32 characters.",
+          "type": "string"
+        },
+        "bulky": {
+          "default": false,
+          "description": "True when the item takes much space to carry.",
+          "type": "boolean"
+        },
+        "breaks": {
+          "default": 1,
+          "description": "How many times the item breaks before it is destroyed.",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "cost": {
+          "default": 0,
+          "description": "Credits paid. Use 0 for a thing found or given.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "actor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a hired party member here who acts. Null for the player."
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "drop_item",
+    "description": "The actor loses an item permanently.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "description": "Exact id of an item the actor carries.",
+          "type": "string"
+        },
+        "actor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a hired party member here who acts. Null for the player."
+        }
+      },
+      "required": [
+        "item_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "repair_item",
+    "description": "The actor repairs a broken item.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "description": "Exact id of an item the actor carries, or a ship function.",
+          "type": "string"
+        },
+        "cost": {
+          "default": 0,
+          "description": "Credits spent on the repair.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "actor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a hired party member here who acts. Null for the player."
+        }
+      },
+      "required": [
+        "item_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "spend",
+    "description": "The actor pays credits for a thing that is not an item and not a repair.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "description": "Credits spent.",
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        "why": {
+          "description": "What the credits pay for, in a few words.",
+          "type": "string"
+        },
+        "actor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a hired party member here who acts. Null for the player."
+        }
+      },
+      "required": [
+        "amount",
+        "why"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "ship_upgrade",
+    "description": "The player upgrades one ship function.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "function_id": {
+          "description": "Exact id of a ship function. The player pays ₡10.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "function_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "lose_hold_item",
+    "description": "An item leaves the ship's hold while the crew is away: a raid, an impound or a theft. Call this once for each item.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "description": "Exact id of an item in THE HOLD.",
+          "type": "string"
+        },
+        "why": {
+          "description": "What takes it: a raid, an impound or a theft. Name it in three or four words, never more than 32 characters.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "why"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "defend",
+    "description": "A carried item or a ship function breaks. The hit becomes a hindrance.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "description": "Exact id of an item the actor carries, or a ship function.",
+          "type": "string"
+        },
+        "hindrance": {
+          "default": "",
+          "description": "What the harm becomes, as a hindrance. Empty for an item that breaks with no harm. Name it in three or four words, never more than 32 characters.",
+          "type": "string"
+        },
+        "actor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a hired party member here who acts. Null for the player."
+        }
+      },
+      "required": [
+        "item_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "roll",
+    "description": "Call this only to avoid a risk. The engine selects the dice, rolls the dice, and reads the result.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "what": {
+          "description": "The attempt, in a few words the player reads.",
+          "type": "string"
+        },
+        "risk": {
+          "description": "What the actor takes in full on a disaster. Name it before the roll. A roll with no risk is not a roll. Name it in three or four words, never more than 32 characters.",
+          "type": "string"
+        },
+        "deadly": {
+          "default": false,
+          "description": "True when `risk` is death. A disaster then kills the actor. The actor does not get `risk` as a hindrance. A setback then maims the actor.",
+          "type": "boolean"
+        },
+        "defend_with_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of an item of the actor, or of a ship function. That item or that function breaks and protects the actor. Null when nothing protects the actor."
+        },
+        "hindrance": {
+          "default": "",
+          "description": "What the hit leaves behind after the gear takes it, as a hindrance. Empty when the gear breaks with no harm. Name it in three or four words, never more than 32 characters.",
+          "type": "string"
+        },
+        "actor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a hired party member here who acts. Null for the player."
+        },
+        "skill": {
+          "default": "",
+          "description": "The skill to roll. Empty rolls the plain d6.",
+          "type": "string"
+        },
+        "helped": {
+          "default": "",
+          "description": "Why the conditions help. Empty when nothing helps.",
+          "type": "string"
+        },
+        "helped_by": {
+          "additionalProperties": false,
+          "properties": {
+            "risk": {
+              "default": "",
+              "description": "What the helper takes in full on a disaster. Name it before the roll. Empty when the help puts the helper in no danger. Name it in three or four words, never more than 32 characters.",
+              "type": "string"
+            },
+            "deadly": {
+              "default": false,
+              "description": "True when `risk` is death. A disaster then kills the helper. The helper does not get `risk` as a hindrance. A setback then maims the helper.",
+              "type": "boolean"
+            },
+            "defend_with_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null,
+              "description": "Exact id of an item of the helper, or of a ship function. That item or that function breaks and protects the helper. Null when nothing protects the helper."
+            },
+            "hindrance": {
+              "default": "",
+              "description": "What the hit leaves behind after the gear takes it, as a hindrance. Empty when the gear breaks with no harm. Name it in three or four words, never more than 32 characters.",
+              "type": "string"
+            },
+            "actor_id": {
+              "description": "Exact id of the hired member who helps.",
+              "type": "string"
+            },
+            "hindered": {
+              "default": "",
+              "description": "Why the helper is hindered. Empty when nothing hinders them.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "actor_id"
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "default": null,
+          "description": "The hired member who helps, adding one d6. Null when nobody helps."
+        },
+        "hindered": {
+          "default": "",
+          "description": "Why the actor is hindered. Empty when nothing hinders them.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "what",
+        "risk"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "ask_world",
+    "description": "Call this to ask about bad luck in the world when no character acts. The engine rolls one d6 and reads the die.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "description": "A closed question about the world when no character acts.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "job",
+    "description": "Call this with `find` to look for work, with `take` to record agreed work, and with `finish` to close the job. With `find` the engine rolls the d6 of the SRD. With `finish` the engine raises one skill for each operator, then pays each operator d6 credits.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "verb": {
+          "description": "`find` looks for work. `take` records agreed work. `finish` closes the job.",
+          "enum": [
+            "find",
+            "take",
+            "finish"
+          ],
+          "type": "string"
+        },
+        "where": {
+          "default": "",
+          "description": "Where the player looks for work, in a few words. Required with `find`.",
+          "type": "string"
+        },
+        "terms": {
+          "default": "",
+          "description": "Who wants the work, what the work is, and what the work pays. Required with `take`.",
+          "type": "string"
+        },
+        "raises": {
+          "default": [],
+          "description": "One per operator: the player and every living hired member. Required with `finish`.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "actor_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "default": null,
+                "description": "Exact id of a hired party member here who acts. Null for the player."
+              },
+              "skill": {
+                "description": "The skill that the job used for this operator. A skill that is not on their sheet is added at d8.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "skill"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "verb"
+      ],
+      "type": "object"
+    }
+  }
+]

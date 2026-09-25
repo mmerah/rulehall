@@ -1,0 +1,7 @@
+{
+  "enabledPlugins": {
+    "ai@pydantic-skills": true,
+    "pydantic@pydantic-skills": true,
+    "ponytail@ponytail": true
+  }
+}

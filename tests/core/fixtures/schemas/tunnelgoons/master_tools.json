@@ -1,0 +1,324 @@
+[
+  {
+    "name": "reveal",
+    "description": "Make a hidden entity here known to the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of something hidden here.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "kill",
+    "description": "Kill someone here.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of who here died.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "leave_party",
+    "description": "Make a party member stop travelling with the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of the party member leaving.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "direct",
+    "description": "Call this last, once per turn. It ends the turn and gives notes to the narrator. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Use reveal first for hidden entities. Apply world changes through the other tools before calling direct.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "description": "Brief factual notes for the narrator to phrase. Answer each question in the player action. Include the result, its known reason, and details needed for the next choice. For a request or warning, give what the person wants and the reason they share. Use facts the player can know now. Identify claims and unknown reasons as such. Keep every outcome consistent with tool results.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "move_item",
+    "description": "Move an item to a new holder.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "description": "Exact id of an item here or carried.",
+          "type": "string"
+        },
+        "to_id": {
+          "description": "Exact id of the player, an npc here, or this place.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "to_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "unlock_way",
+    "description": "Open a locked way out of this place.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "to_id": {
+          "description": "Exact id of the locked way's destination.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "to_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "move",
+    "description": "Move the player through an unlocked way out of this place.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "to_id": {
+          "description": "Exact id of the place to move to.",
+          "type": "string"
+        },
+        "with_ids": {
+          "default": [],
+          "description": "Exact ids of living npcs here who follow one time. Party members come without this field.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "to_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "meanwhile",
+    "description": "Time passes where the player is not. Move a dweller, move a loose item, and shut a way the player knows. Use any combination in one call. Call this only while ELSEWHERE is shown.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "dweller_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a dweller elsewhere who walks to a new place."
+        },
+        "dweller_to_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of the place the dweller walks to."
+        },
+        "item_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a loose item elsewhere that moves to a new place."
+        },
+        "item_to_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of the place the item moves to."
+        },
+        "shut_from_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of one end of the way that shuts."
+        },
+        "shut_to_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of the other end of the way that shuts."
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "join_party",
+    "description": "Make a person here travel with the player. Set `terms` when the player hires them to work, also someone who already travels with the player: the worldsmith writes their sheet at the end of the turn, and nothing more happens this turn. Leave `terms` empty for someone who only comes along.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of who here joins or is hired.",
+          "type": "string"
+        },
+        "terms": {
+          "default": "",
+          "description": "Empty when they only come along. When the player hires them to work: what for and on what terms, as agreed.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "rest",
+    "description": "The player and the party rest here for one night. Their Health goes to full.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    }
+  },
+  {
+    "name": "roll",
+    "description": "Call this for an uncertain action that has a real cost. The engine rolls 2d6, adds the ability and the items, and reads the total.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "what": {
+          "description": "The attempt, in a few words the player reads.",
+          "type": "string"
+        },
+        "ability": {
+          "description": "The ability that the action uses.",
+          "enum": [
+            "brute",
+            "skulker",
+            "erudite"
+          ],
+          "type": "string"
+        },
+        "item_ids": {
+          "default": [],
+          "description": "Exact ids of items the actor carries and that clearly help.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "difficulty": {
+          "maximum": 20,
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "default": null,
+          "description": "Difficulty Score: 8 easy, 10 moderate, 12 hard. Null when `target_id` is set."
+        },
+        "target_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of an npc here that the actor acts on, in a fight or in talk. The Health of that npc is the Difficulty Score."
+        },
+        "dangerous": {
+          "default": false,
+          "description": "True when a miss would hurt. Talk is not dangerous unless the story says so.",
+          "type": "boolean"
+        },
+        "actor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a hired party member here who acts. Null for the player."
+        }
+      },
+      "required": [
+        "what",
+        "ability"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "level_up",
+    "description": "Call this one time, when the whole adventure ends. The engine gives the choice to the player first, then to each living hired member in turn.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "ability": {
+          "enum": [
+            "brute",
+            "skulker",
+            "erudite"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "The ability to raise by 1. Null asks the player."
+        },
+        "boost": {
+          "enum": [
+            "health",
+            "inventory"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Health or Inventory: which one to raise by 1. Null asks the player."
+        }
+      },
+      "type": "object"
+    }
+  }
+]

@@ -1,0 +1,209 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=EB+Garamond:wght@500;600&family=JetBrains+Mono:wght@500&display=block" rel="stylesheet">
+<style>
+  :root { --a: #8b6cf0; --b: #e2779b; --ease: cubic-bezier(.65,0,.35,1); }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #07070c; }
+  body { font-family: Inter, system-ui, sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
+
+  /* Backdrop: two soft colour fields in the scene's accent, drifting slowly. */
+  #bg { position: absolute; inset: 0; overflow: hidden; }
+  #bg .blob { position: absolute; width: 1400px; height: 1400px; border-radius: 50%; filter: blur(140px);
+    opacity: .38; transition: background 1.6s ease; }
+  #bg .b1 { background: var(--a); left: -520px; top: -700px; animation: drift1 26s ease-in-out infinite alternate; }
+  #bg .b2 { background: var(--b); right: -620px; bottom: -820px; animation: drift2 30s ease-in-out infinite alternate; }
+  @keyframes drift1 { to { transform: translate(180px, 120px); } }
+  @keyframes drift2 { to { transform: translate(-160px, -90px); } }
+  #bg::after { content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,.055) 1px, transparent 1px); background-size: 28px 28px;
+    mask-image: radial-gradient(ellipse at center, #000 20%, transparent 75%); }
+
+  #world { position: absolute; inset: 0; transform-origin: 0 0; transition: transform 1.25s var(--ease); }
+  #window { position: absolute; left: 192px; top: 34px; width: 1536px; height: 904px; border-radius: 16px;
+    overflow: hidden; background: #111; transition: transform 1.1s var(--ease), opacity .9s ease;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.10), 0 30px 80px rgba(0,0,0,.55), 0 10px 30px rgba(0,0,0,.35); }
+  #window.away { transform: translateY(70px) scale(.94); opacity: 0; }
+  #chrome { height: 40px; display: flex; align-items: center; padding: 0 16px; gap: 8px;
+    background: linear-gradient(#24242c, #1b1b22); border-bottom: 1px solid rgba(255,255,255,.06); }
+  #chrome i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+  #url { position: absolute; left: 50%; transform: translateX(-50%); font: 500 13px Inter; color: rgba(255,255,255,.55);
+    background: rgba(255,255,255,.06); padding: 6px 60px; border-radius: 8px; }
+  #viewport { position: relative; width: 1536px; height: 864px; overflow: hidden; background: #111; }
+  #app { width: 1280px; height: 720px; border: 0; transform: scale(1.2); transform-origin: 0 0; display: block; }
+  #veil { position: absolute; inset: 0; background: #0d0d13; opacity: 0; pointer-events: none; transition: opacity .45s ease; }
+  #veil.on { opacity: 1; }
+
+  /* Captions: the step, then the claim, then the proof in a lighter voice. */
+  #cap { pointer-events: none; position: absolute; left: 50%; top: 958px; transform: translate(-50%, 18px); opacity: 0;
+    transition: opacity .45s ease, transform .6s cubic-bezier(.2,.8,.2,1);
+    display: flex; align-items: center; gap: 18px; white-space: nowrap;
+    padding: 12px 30px 12px 13px; border-radius: 999px; background: rgba(9,9,14,.62);
+    border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(16px) saturate(1.3);
+    box-shadow: 0 16px 44px rgba(0,0,0,.4); }
+  #cap.on { opacity: 1; transform: translate(-50%, 0); }
+  #cap .n { font: 800 15px/1 Inter; letter-spacing: .06em; padding: 10px 13px; border-radius: 999px; color: #14101c;
+    background: linear-gradient(135deg, #ffd89b, var(--b)); box-shadow: 0 6px 20px rgba(0,0,0,.35); }
+  #cap .t { font-size: 31px; font-weight: 700; letter-spacing: -.02em; }
+  #cap .s { font-size: 22px; font-weight: 400; color: rgba(255,255,255,.62); letter-spacing: -.01em; }
+
+  /* Cards: title at the start, call to action at the end. */
+  .card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; opacity: 0; pointer-events: none; transition: opacity .8s ease; }
+  .card.on { opacity: 1; }
+  .card > * { transform: translateY(26px); opacity: 0; transition: transform 1s cubic-bezier(.2,.8,.2,1), opacity .9s ease; }
+  .card.on > * { transform: none; opacity: 1; }
+  .card.on > *:nth-child(2) { transition-delay: .12s; } .card.on > *:nth-child(3) { transition-delay: .26s; }
+  .card.on > *:nth-child(4) { transition-delay: .42s; } .card.on > *:nth-child(5) { transition-delay: .58s; }
+  .logo { width: 108px; height: 108px; border-radius: 28px; display: grid; place-items: center; margin-bottom: 34px;
+    background: linear-gradient(145deg, #ffd89b, #e08a5a); box-shadow: 0 20px 60px rgba(224,138,90,.35), inset 0 1px 0 rgba(255,255,255,.5); }
+  .logo svg { width: 60px; height: 60px; }
+  h1 { font: 600 104px/1 'EB Garamond', serif; letter-spacing: -.02em;
+    background: linear-gradient(180deg, #fff 30%, #d9cbe9); -webkit-background-clip: text; color: transparent; }
+  .tag { margin-top: 22px; font-size: 32px; font-weight: 500; color: rgba(255,255,255,.72); letter-spacing: -.01em; }
+  .chips { margin-top: 40px; display: flex; gap: 14px; }
+  .chip { font: 600 17px Inter; letter-spacing: .08em; padding: 11px 20px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: rgba(255,255,255,.85); }
+  .cmd { margin-top: 44px; font: 500 30px 'JetBrains Mono', monospace; padding: 22px 36px; border-radius: 16px;
+    background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.14); color: #fff; }
+  .cmd b { color: #ffd89b; font-weight: 500; }
+  .points { margin-top: 38px; display: grid; grid-template-columns: repeat(3, 360px); gap: 18px; }
+  .point { text-align: left; padding: 22px 24px; border-radius: 18px; background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1); }
+  .point b { display: block; font-size: 21px; margin-bottom: 6px; }
+  .point span { font-size: 17px; color: rgba(255,255,255,.62); line-height: 1.4; }
+
+  #speed { pointer-events: none; position: absolute; right: 208px; top: 50px; z-index: 40; display: flex; align-items: center; gap: 8px;
+    font: 700 15px Inter; letter-spacing: .04em; color: #fff; padding: 9px 16px; border-radius: 999px;
+    background: rgba(10,10,16,.72); border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(10px);
+    opacity: 0; transform: translateY(-8px); transition: opacity .3s, transform .3s; }
+  #speed.on { opacity: 1; transform: none; }
+  #speed svg { width: 18px; height: 18px; }
+  #file { position: absolute; left: 0; top: 0; z-index: 48; width: 176px; pointer-events: none; opacity: 0;
+    transition: opacity .35s ease, scale .45s cubic-bezier(.2,.8,.2,1); transform-origin: 20% 10%; }
+  #file .page { height: 214px; border-radius: 10px; background: linear-gradient(#fff, #eef0f4); position: relative;
+    box-shadow: 0 22px 50px rgba(0,0,0,.5), 0 0 0 1px rgba(0,0,0,.08); padding: 18px 14px; overflow: hidden; }
+  #file .page::before { content: ""; position: absolute; right: 0; top: 0; width: 30px; height: 30px;
+    background: linear-gradient(225deg, #07070c 50%, #d7dae2 50%); }
+  #file .page i { display: block; height: 6px; border-radius: 3px; background: #d9dce4; margin: 9px 0; }
+  #file .badge { position: absolute; left: 14px; bottom: 16px; font: 800 18px Inter; color: #fff; background: #e5484d;
+    padding: 5px 9px; border-radius: 6px; letter-spacing: .04em; }
+  #file .name { margin-top: 12px; font: 700 18px Inter; color: #fff; text-align: center; line-height: 1.25;
+    text-shadow: 0 2px 8px rgba(0,0,0,.8); }
+  #cursor { position: absolute; left: 0; top: 0; width: 34px; height: 34px; z-index: 50; pointer-events: none;
+    transform: translate(-200px, -200px); filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); transition: opacity .3s; }
+  #ring { position: absolute; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; z-index: 49;
+    border: 3px solid rgba(255,255,255,.95); opacity: 0; pointer-events: none; }
+  #ring.go { animation: ring .6s cubic-bezier(.2,.7,.3,1); }
+  @keyframes ring { 0% { opacity: .95; transform: scale(.25); } 100% { opacity: 0; transform: scale(1.3); } }
+</style>
+</head>
+<body>
+<div id="bg"><div class="blob b1"></div><div class="blob b2"></div></div>
+<div id="world">
+  <div id="window" class="away">
+    <div id="chrome"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i>
+      <div id="url">localhost:8080</div></div>
+    <div id="viewport"><iframe id="app" name="app"></iframe><div id="veil"></div></div>
+  </div>
+</div>
+<div id="cap"></div>
+
+<div class="card" id="title">
+  <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#2a1608" stroke-width="1.9" stroke-linejoin="round">
+    <rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1.3" fill="#2a1608"/>
+    <circle cx="15.5" cy="15.5" r="1.3" fill="#2a1608"/><circle cx="12" cy="12" r="1.3" fill="#2a1608"/>
+    <circle cx="15.5" cy="8.5" r="1.3" fill="#2a1608"/><circle cx="8.5" cy="15.5" r="1.3" fill="#2a1608"/></svg></div>
+  <h1>Rulehall</h1>
+  <div class="tag">Solo tabletop role-playing. You write the hero. AI runs the table.</div>
+  <div class="chips"><span class="chip">GAME MASTER</span><span class="chip">NARRATOR</span><span class="chip">WORLDSMITH</span><span class="chip">REAL DICE, IN CODE</span></div>
+</div>
+
+<div class="card" id="end">
+  <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#2a1608" stroke-width="1.9" stroke-linejoin="round">
+    <rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1.3" fill="#2a1608"/>
+    <circle cx="15.5" cy="15.5" r="1.3" fill="#2a1608"/><circle cx="12" cy="12" r="1.3" fill="#2a1608"/>
+    <circle cx="15.5" cy="8.5" r="1.3" fill="#2a1608"/><circle cx="8.5" cy="15.5" r="1.3" fill="#2a1608"/></svg></div>
+  <h1>Your table is ready.</h1>
+  <div class="points">
+    <div class="point"><b>Your AI subscription</b><span>Plays through Claude or Codex, or any tool-calling model.</span></div>
+    <div class="point"><b>Rules in code</b><span>Code rolls, checks and saves. The AI proposes, the engine decides.</span></div>
+    <div class="point"><b>Your worlds</b><span>Write a scenario, a character or a whole pack in the app.</span></div>
+  </div>
+  <div class="cmd"><b>$</b> uv sync &amp;&amp; uv run rulehall</div>
+</div>
+
+<div id="speed"><svg viewBox="0 0 24 24" fill="#fff"><path d="M3 5l9 7-9 7zM12 5l9 7-9 7z"/></svg><span></span></div>
+<div id="file"><div class="page"><i style="width:70%"></i><i></i><i style="width:85%"></i><i style="width:60%"></i><span class="badge">PDF</span></div>
+  <div class="name">The Drowned<br>Lighthouse.pdf</div></div>
+<div id="ring"></div>
+<div id="cursor"><svg viewBox="0 0 26 26" width="34" height="34" style="transform-origin: 6.5px 3.3px; display: block"><path d="M5 2.5 L5 21 L9.6 16.6 L12.8 23.6 L16 22.2 L12.9 15.4 L19.3 15.4 Z"
+  fill="#111" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  let pos = {x: 1180, y: 700};
+  let carrying = false;
+  const put = () => {
+    $('cursor').style.transform = `translate(${pos.x - 6}px,${pos.y - 3}px)`;
+    if (carrying) $('file').style.transform = `translate(${pos.x - 40}px,${pos.y - 30}px) rotate(-6deg)`;
+  };
+  const ease = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+  let zoom = {s: 1, tx: 0, ty: 0};
+  window.demo = {
+    move(x, y, ms) {
+      return new Promise(res => {
+        const from = {...pos}, t0 = performance.now(), dx = x - from.x, dy = y - from.y;
+        const len = Math.hypot(dx, dy) || 1, bend = Math.min(70, len * .12);
+        const step = now => {
+          const k = Math.min(1, (now - t0) / ms), e = ease(k), arc = Math.sin(Math.PI * e) * bend;
+          pos = {x: from.x + dx * e - dy / len * arc, y: from.y + dy * e + dx / len * arc}; put();
+          k < 1 ? requestAnimationFrame(step) : res();
+        };
+        requestAnimationFrame(step);
+      });
+    },
+    click() {
+      const r = $('ring'); r.style.left = pos.x + 'px'; r.style.top = pos.y + 'px';
+      r.classList.remove('go'); void r.offsetWidth; r.classList.add('go');
+      // Pulse the arrow only; the wrapper's transform holds the position.
+      $('cursor').firstElementChild.animate([{transform: 'scale(1)'}, {transform: 'scale(.8)'}, {transform: 'scale(1)'}], {duration: 260});
+    },
+    carry(on) {
+      const f = $('file');
+      if (on) { carrying = true; f.style.scale = 1; put(); f.style.opacity = 1; }
+      else { carrying = false; f.style.scale = .55; f.style.opacity = 0; }
+    },
+    place(x, y) { pos = {x, y}; put(); },
+    cursor(on) { $('cursor').style.opacity = on ? 1 : 0; },
+    caption(n, t, s) {
+      const c = $('cap');
+      const show = () => { c.innerHTML = (n ? `<span class="n">${n}</span>` : '') + `<span class="t">${t}</span>` + (s ? `<span class="s">${s}</span>` : ''); c.classList.add('on'); };
+      if (!t) { c.classList.remove('on'); return; }
+      if (c.classList.contains('on')) { c.classList.remove('on'); setTimeout(show, 420); } else show();
+    },
+    theme(a, b) { document.documentElement.style.setProperty('--a', a); document.documentElement.style.setProperty('--b', b); },
+    card(id, on) { $(id).classList.toggle('on', on); },
+    window(on) { $('window').classList.toggle('away', !on); },
+    veil(on) { $('veil').classList.toggle('on', on); },
+    speed(f, label) { $('speed').classList.toggle('on', f > 1); if (f > 1) $('speed').querySelector('span').textContent = label || `${f}× SPEED`; },
+    url(u) { $('url').textContent = u; },
+    // Zoom the world so stage point (x, y) lands at the frame centre, clamped to the frame.
+    zoom(s, x, y) {
+      let tx = 960 - x * s, ty = 540 - y * s;
+      tx = Math.min(0, Math.max(1920 - 1920 * s, tx)); ty = Math.min(0, Math.max(1080 - 1080 * s, ty));
+      if (s === 1) { tx = 0; ty = 0; }
+      zoom = {s, tx, ty};
+      $('world').style.transform = `translate(${tx}px,${ty}px) scale(${s})`;
+      return zoom;
+    },
+    // Where a point of the unzoomed world shows on screen now.
+    project(x, y) { return [x * zoom.s + zoom.tx, y * zoom.s + zoom.ty]; },
+  };
+  put();
+</script>
+</body>
+</html>

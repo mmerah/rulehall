@@ -1,0 +1,1294 @@
+{
+  "name": "AP04 Crime",
+  "source": "https://lonersrd.zotiquestgames.com/adventure_packs/AP04_crime.html",
+  "license": "Adventure Pack 04: Crime, Loner SRD site (CC BY-SA 4.0), (c) Roberto Bisceglie / Zotiquest Games",
+  "backdrop": "The world is stitched together by secrets, favors, and encrypted silence — a place where cameras blink like insects and every kindness is a transaction waiting to turn.\nThe time is now, or something close to it — a present blurred by screens and sleeplessness, where systems grow too big to fight and too hollow to trust.\nThe setting is a **fractured cityscape**, watched by drones and ruled by contracts, where syndicates sign NDAs and disappearances are logged with timestamps and polite denials.\nPower flows through backdoors and burner phones, and trust is the rarest currency — offered slow, spent fast, and never without collateral.\nCrime is layered and intimate — a fusion of hustle, hunger, and network latency. Nothing is clean, just practiced, rehearsed, and monetized.\nIdentities are worn like masks, discarded when burned — killers deliver groceries, whistleblowers vanish in firewalls, and loyalty lasts until the next download.\nLaw enforcement is brittle and blurred — bought, borrowed, or just too exhausted to matter. Some serve syndicates, some serve ideals, most serve the clock.\nThis world doesn’t want justice. It wants leverage — and your story begins when someone pulls the wrong string.",
+  "names": {
+    "female": [
+      "Ava",
+      "Nia",
+      "Carmen",
+      "Elise",
+      "Riley",
+      "Dana",
+      "Margo",
+      "Leila",
+      "Harper",
+      "Noemi",
+      "Sky",
+      "Bianca",
+      "Simone",
+      "Ivy",
+      "Jules",
+      "Tasha",
+      "Mira",
+      "Cassidy",
+      "Rowan",
+      "Alina",
+      "Zoey",
+      "Sienna",
+      "Quinn",
+      "Freya",
+      "Nyla",
+      "Cora",
+      "Hazel",
+      "Vera",
+      "Lennox",
+      "Fallon",
+      "Juno",
+      "Keira",
+      "Sasha",
+      "Delaney",
+      "Lola",
+      "Maren"
+    ],
+    "male": [
+      "Jace",
+      "Malik",
+      "Theo",
+      "Luca",
+      "Dean",
+      "Carter",
+      "Elias",
+      "Nolan",
+      "Ramon",
+      "Kieran",
+      "Zane",
+      "Colby",
+      "Miles",
+      "Devon",
+      "Julian",
+      "Knox",
+      "Dante",
+      "Ezra",
+      "Rhys",
+      "Logan",
+      "Mason",
+      "Omar",
+      "Wade",
+      "Gideon",
+      "Cruz",
+      "Jaxon",
+      "Leo",
+      "Silas",
+      "Andre",
+      "Victor",
+      "West",
+      "Cairo",
+      "Dorian",
+      "Kai",
+      "Marcus",
+      "Bennett"
+    ],
+    "neutral": [],
+    "surnames": [
+      "Mercer",
+      "Callahan",
+      "Vega",
+      "Ruiz",
+      "Monroe",
+      "Tate",
+      "Maddox",
+      "Holloway",
+      "Santana",
+      "Bishop",
+      "Quinn",
+      "Navarro",
+      "Rhodes",
+      "Durant",
+      "Moretti",
+      "Figueroa",
+      "Lowell",
+      "Castillo",
+      "Crane",
+      "Voss",
+      "Keller",
+      "Espinoza",
+      "Leclair",
+      "Rivas",
+      "Rosenthal",
+      "Blackwood",
+      "Delgado",
+      "Faulkner",
+      "Kane",
+      "Serrano",
+      "Ashford",
+      "Drummond",
+      "Reyes",
+      "Thorne",
+      "Calder",
+      "Marchand"
+    ],
+    "nicknames": [
+      "Ghost",
+      "Redline",
+      "Nine",
+      "Vex",
+      "Trigger",
+      "Saint",
+      "Wires",
+      "Blink",
+      "Moth",
+      "Burner",
+      "Noose",
+      "Chrome",
+      "Prophet",
+      "Stitch",
+      "Zero",
+      "Bishop",
+      "Scorch",
+      "Wraith",
+      "Vice",
+      "Knuckles",
+      "Cross",
+      "Static",
+      "Gutter",
+      "Ivory",
+      "Cueball",
+      "Latchkey",
+      "Echo",
+      "Bender",
+      "Lucky",
+      "Silo",
+      "Nails",
+      "Sphinx",
+      "Jackdaw",
+      "Dash",
+      "Slick",
+      "Reaper"
+    ]
+  },
+  "rules": "Heat:\n\nEvery action leaves a trace — a camera missed, a name overheard, a pattern noticed. Heat is the invisible pressure building around the protagonist as their operations draw the attention of law enforcement, rival crews, or someone worse. You can’t avoid heat forever — only manage it.\n\nWhen your actions could raise suspicion, **ask a closed question**. Interpret the outcome as follows:\n\n1. **No, and...**: Your moves light up alarms across departments. Cops are on your trail, and someone else just got your name.\n2. **No**: You’ve been made — police eyes are narrowing in.\n3. **No, but...**: You dodge the badge, but another crew clocks your hustle.\n4. **Yes, but...**: You stay off the radar, but the measures you took raised other eyebrows.\n5. **Yes**: You keep it clean — no tails, no whispers.\n6. **Yes, and...**: Not only do you stay invisible, but your finesse earns quiet respect from both sides of the line.\n\nInfluence:\n\nNo one survives alone. Whether you're dealing with a fixer, a lieutenant, or a dirty city council rep, **relationships are currency**. Influence determines who has your back, who feeds you intel, and who turns a blind eye when it counts.\n\nBuilding Relationships:\n\nWhen trying to establish trust or ties with a new faction or contact, **ask a closed question**:\n\n1. **No, and...**: It backfires — they now see you as a threat or nuisance.\n2. **No**: No trust, no traction. The door stays closed.\n3. **No, but...**: You’re shut out — but catch a glimpse of how they operate.\n4. **Yes, but...**: You make a connection, but it’s fragile — they’ll want more.\n5. **Yes**: You earn trust. The line is open.\n6. **Yes, and...**: They not only welcome you in, but toss you a favor to prove it.\n\nMaintaining Relationships:\n\nEven solid ties erode without care. When trying to keep a relationship stable:\n\n1. **No, and...**: Trust collapses — they turn hostile or walk away.\n2. **No**: You’re ghosted. Nothing changes, and that silence grows.\n3. **No, but...**: Still distant, but you learn something from the static.\n4. **Yes, but...**: The bond holds, but it takes sweat — or sacrifice.\n5. **Yes**: Things stay good. Business as usual.\n6. **Yes, and...**: You reinforce the bond and get something unexpected in return.\n\nGaining Information:\n\nWhen tapping contacts for intel:\n\n1. **No, and...**: No answers, and now they’re spooked — or pissed.\n2. **No**: No usable info. You hit a wall.\n3. **No, but...**: You walk away empty, but spot a thread worth pulling.\n4. **Yes, but...**: You get intel — partial, outdated, or incomplete.\n5. **Yes**: You get exactly what you need.\n6. **Yes, and...**: The info is solid — and they offer backup, access, or protection.\n\nInterrogation:\n\nGetting someone to talk — or break — isn’t just about pressure. It’s about reading them, cornering them, or saying exactly what they feared you’d say. When extracting information from a suspect, source, or ally under stress:\n\n1. **No, and...**: They shut down, dig in, and maybe call for help.\n2. **No**: Stonewall. They give you nothing.\n3. **No, but...**: You don’t get what you wanted — but you get a sliver of something else.\n4. **Yes, but...**: They talk — but it costs them, and they might resent it.\n5. **Yes**: They talk. You get what you came for.\n6. **Yes, and...**: They open up fully — and tell you something you didn’t even know to ask.",
+  "locations": [
+    {
+      "name": "The Lockup Level",
+      "brief": "A hidden detention zone buried beneath a civic complex, used for unofficial interrogations and deniable detentions.",
+      "encounters": "Off-duty cops making private deals, disappeared detainees, ghost records, informants under duress"
+    },
+    {
+      "name": "Crossline Pier",
+      "brief": "A collapsed and condemned dock outside the customs grid, favored by smugglers, divers, and those moving untagged cargo.",
+      "encounters": "Freelance fixers, armed lookouts, contraband handlers, desperate witnesses"
+    },
+    {
+      "name": "Apartment 7G",
+      "brief": "A supposedly empty unit in a quiet mid-rise; inside: tracking gear, old case files, and traces of someone living off-grid.",
+      "encounters": "Surveillance tech, hidden caches, paranoid squatters, encrypted audio diaries"
+    },
+    {
+      "name": "The Refinery Flats",
+      "brief": "An informal zone in a former industrial area — now part refuge, part staging ground for dissidents, runners, and burned contacts.",
+      "encounters": "Community medics, armed locals, whistleblowers in hiding, scavenger crews"
+    },
+    {
+      "name": "The Horizon Lobby",
+      "brief": "A spotless corporate atrium open 24/7, with no guards — just silent drones and a concierge AI. Everything here is recorded.",
+      "encounters": "Corporate operatives, private security contractors, tech liaisons, data leakers on the move"
+    },
+    {
+      "name": "The 3rd Rail",
+      "brief": "An abandoned subway tunnel used for off-grid transit, backroom meetings, and the occasional body dump.",
+      "encounters": "Tunnel guides, exile militias, rogue couriers, engineers who never left"
+    }
+  ],
+  "seeds": [
+    "Witness a gangland execution and decide whether to vanish, intervene, or sell what you saw.",
+    "Infiltrate a high-security prison to extract a burnt informant before the guards catch on.",
+    "Sabotage a rival crew’s supply chain before their enforcers trace it back to you.",
+    "Protect a high-profile investor during a volatile arms negotiation with unknown players.",
+    "Track a serial killer who leaves old case files at every crime scene.",
+    "Steal a hard drive from a corrupt official before their bodyguards or blackmailers do.",
+    "Clear your name after waking up next to a corpse and a gun you don’t remember owning.",
+    "Steal a prototype device from a corporate lab rigged with traps and loyalty scanners.",
+    "Breach a rival gang’s underground vault to plant a tracker — and maybe take something else.",
+    "Recover a stolen painting for a collector who definitely didn’t acquire it legally.",
+    "Escort a high-value witness across city blocks controlled by rival factions.",
+    "Disrupt a black-market arms deal without getting photographed, traced, or killed.",
+    "Intercept a rogue operative carrying intel that could unravel a whole syndicate.",
+    "Get a terrified witness to court without losing them to fear, bribes, or bullets.",
+    "Sneak into a sealed federal site and extract the only copy of a buried dossier.",
+    "Retrieve a cursed relic from a lockdown vault before the buyer changes their mind.",
+    "Recover a package stolen mid-transfer before your employer assumes you ran with it.",
+    "Find the trail of a crooked cop — or erase the evidence before someone else does.",
+    "Survive a bank heist from the inside when the job goes wrong and the exits seal.",
+    "Track a bomb courier across the metro before the device reaches its target.",
+    "Extract an ally from a gang safehouse without alerting the entire block.",
+    "Lure out the assassin hunting you — and decide whether to run, talk, or kill.",
+    "Recapture a violent escapee whose contacts go higher than yours.",
+    "Recover a missing weapons shipment before someone sells it back to your client.",
+    "Protect a philanthropist during a gala with too many cameras — and too many enemies.",
+    "Wake up bloody, hunted, and wiped — with 15 minutes to remember what happened.",
+    "Rescue a hostage who’s worth more dead than alive.",
+    "Steal a sealed crate from a gang warehouse before they realize what’s really inside.",
+    "Rescue a teammate being used as leverage — or take their place.",
+    "Break into a rival syndicate’s HQ and walk out with proof of their next move.",
+    "Escort a whistleblower out of the city while both factions hunt you.",
+    "Help a bleeding stranger on your doorstep — or ignore the call that drags you into something big.",
+    "Hit the docks before the port shipment goes dark — and everyone turns on each other.",
+    "Uncover who ordered the judge’s murder before the investigation gets buried.",
+    "Discover you’ve been exposed as a mole mid-operation — and now everyone’s watching.",
+    "Extract a deep-cover asset from enemy hands before they break — or flip."
+  ],
+  "concepts": [
+    {
+      "id": "burned-undercover",
+      "name": "Burned Undercover",
+      "brief": ""
+    },
+    {
+      "id": "street-level-fixer",
+      "name": "Street-Level Fixer",
+      "brief": ""
+    },
+    {
+      "id": "idealist-turned-enforcer",
+      "name": "Idealist Turned Enforcer",
+      "brief": ""
+    },
+    {
+      "id": "disgraced-detective",
+      "name": "Disgraced Detective",
+      "brief": ""
+    },
+    {
+      "id": "blackmail-victim",
+      "name": "Blackmail Victim",
+      "brief": ""
+    },
+    {
+      "id": "reluctant-killer",
+      "name": "Reluctant Killer",
+      "brief": ""
+    },
+    {
+      "id": "corrupt-politico",
+      "name": "Corrupt Politico",
+      "brief": ""
+    },
+    {
+      "id": "ex-gang-counselor",
+      "name": "Ex-Gang Counselor",
+      "brief": ""
+    },
+    {
+      "id": "ghost-in-the-system",
+      "name": "Ghost in the System",
+      "brief": ""
+    },
+    {
+      "id": "dirty-evidence-handler",
+      "name": "Dirty Evidence Handler",
+      "brief": ""
+    },
+    {
+      "id": "community-protector",
+      "name": "Community Protector",
+      "brief": ""
+    },
+    {
+      "id": "outsourced-interrogator",
+      "name": "Outsourced Interrogator",
+      "brief": ""
+    },
+    {
+      "id": "veteran-safehouse-keeper",
+      "name": "Veteran Safehouse Keeper",
+      "brief": ""
+    },
+    {
+      "id": "info-broker-on-parole",
+      "name": "Info Broker on Parole",
+      "brief": ""
+    },
+    {
+      "id": "sleeper-asset",
+      "name": "Sleeper Asset",
+      "brief": ""
+    },
+    {
+      "id": "compulsive-arsonist",
+      "name": "Compulsive Arsonist",
+      "brief": ""
+    },
+    {
+      "id": "smiling-debt-collector",
+      "name": "Smiling Debt Collector",
+      "brief": ""
+    },
+    {
+      "id": "former-informant",
+      "name": "Former Informant",
+      "brief": ""
+    },
+    {
+      "id": "loyal-to-the-wrong-person",
+      "name": "Loyal to the Wrong Person",
+      "brief": ""
+    },
+    {
+      "id": "inside-man-at-risk",
+      "name": "Inside Man at Risk",
+      "brief": ""
+    },
+    {
+      "id": "family-tied-dealer",
+      "name": "Family-Tied Dealer",
+      "brief": ""
+    },
+    {
+      "id": "off-the-books-surgeon",
+      "name": "Off-the-Books Surgeon",
+      "brief": ""
+    },
+    {
+      "id": "cage-fighter-for-hire",
+      "name": "Cage Fighter for Hire",
+      "brief": ""
+    },
+    {
+      "id": "operative-with-a-code",
+      "name": "Operative with a Code",
+      "brief": ""
+    },
+    {
+      "id": "reformed-but-hunted",
+      "name": "Reformed but Hunted",
+      "brief": ""
+    },
+    {
+      "id": "bagman-with-a-secret",
+      "name": "Bagman with a Secret",
+      "brief": ""
+    },
+    {
+      "id": "cop-killer-in-hiding",
+      "name": "Cop-Killer in Hiding",
+      "brief": ""
+    },
+    {
+      "id": "vigilante-hacker",
+      "name": "Vigilante Hacker",
+      "brief": ""
+    },
+    {
+      "id": "driver-with-a-dead-past",
+      "name": "Driver with a Dead Past",
+      "brief": ""
+    },
+    {
+      "id": "fixer-for-the-wealthy",
+      "name": "Fixer for the Wealthy",
+      "brief": ""
+    },
+    {
+      "id": "ex-syndicate-heir",
+      "name": "Ex-Syndicate Heir",
+      "brief": ""
+    },
+    {
+      "id": "witness-on-the-run",
+      "name": "Witness on the Run",
+      "brief": ""
+    },
+    {
+      "id": "masked-avenger",
+      "name": "Masked Avenger",
+      "brief": ""
+    },
+    {
+      "id": "broker-of-dirty-secrets",
+      "name": "Broker of Dirty Secrets",
+      "brief": ""
+    },
+    {
+      "id": "pawn-in-a-larger-game",
+      "name": "Pawn in a Larger Game",
+      "brief": ""
+    },
+    {
+      "id": "fugitive-from-a-ghost-town",
+      "name": "Fugitive from a Ghost Town",
+      "brief": ""
+    }
+  ],
+  "skills": [
+    {
+      "id": "shadowing",
+      "name": "Shadowing",
+      "brief": ""
+    },
+    {
+      "id": "close-quarters-combat",
+      "name": "Close-Quarters Combat",
+      "brief": ""
+    },
+    {
+      "id": "cold-reading",
+      "name": "Cold Reading",
+      "brief": ""
+    },
+    {
+      "id": "safe-cracking",
+      "name": "Safe Cracking",
+      "brief": ""
+    },
+    {
+      "id": "getaway-driving",
+      "name": "Getaway Driving",
+      "brief": ""
+    },
+    {
+      "id": "lie-detection",
+      "name": "Lie Detection",
+      "brief": ""
+    },
+    {
+      "id": "jury-rigging",
+      "name": "Jury Rigging",
+      "brief": ""
+    },
+    {
+      "id": "firearm-handling",
+      "name": "Firearm Handling",
+      "brief": ""
+    },
+    {
+      "id": "emotional-manipulation",
+      "name": "Emotional Manipulation",
+      "brief": ""
+    },
+    {
+      "id": "surveillance-craft",
+      "name": "Surveillance Craft",
+      "brief": ""
+    },
+    {
+      "id": "digital-intrusion",
+      "name": "Digital Intrusion",
+      "brief": ""
+    },
+    {
+      "id": "pressure-tactics",
+      "name": "Pressure Tactics",
+      "brief": ""
+    },
+    {
+      "id": "forensic-intuition",
+      "name": "Forensic Intuition",
+      "brief": ""
+    },
+    {
+      "id": "lock-bypass",
+      "name": "Lock Bypass",
+      "brief": ""
+    },
+    {
+      "id": "rapid-assessment",
+      "name": "Rapid Assessment",
+      "brief": ""
+    },
+    {
+      "id": "weapon-improvisation",
+      "name": "Weapon Improvisation",
+      "brief": ""
+    },
+    {
+      "id": "concealment-techniques",
+      "name": "Concealment Techniques",
+      "brief": ""
+    },
+    {
+      "id": "reading-a-crime-scene",
+      "name": "Reading a Crime Scene",
+      "brief": ""
+    },
+    {
+      "id": "smooth-talking",
+      "name": "Smooth Talking",
+      "brief": ""
+    },
+    {
+      "id": "fear-induction",
+      "name": "Fear Induction",
+      "brief": ""
+    },
+    {
+      "id": "cover-identity-creation",
+      "name": "Cover Identity Creation",
+      "brief": ""
+    },
+    {
+      "id": "code-switching",
+      "name": "Code-Switching",
+      "brief": ""
+    },
+    {
+      "id": "access-spoofing",
+      "name": "Access Spoofing",
+      "brief": ""
+    },
+    {
+      "id": "navigation-of-urban-terrain",
+      "name": "Navigation of Urban Terrain",
+      "brief": ""
+    },
+    {
+      "id": "explosive-setup",
+      "name": "Explosive Setup",
+      "brief": ""
+    },
+    {
+      "id": "trauma-response",
+      "name": "Trauma Response",
+      "brief": ""
+    },
+    {
+      "id": "infiltration-planning",
+      "name": "Infiltration Planning",
+      "brief": ""
+    },
+    {
+      "id": "threat-analysis",
+      "name": "Threat Analysis",
+      "brief": ""
+    },
+    {
+      "id": "blackmail-logistics",
+      "name": "Blackmail Logistics",
+      "brief": ""
+    },
+    {
+      "id": "wiretap-installation",
+      "name": "Wiretap Installation",
+      "brief": ""
+    },
+    {
+      "id": "trail-cleanup",
+      "name": "Trail Cleanup",
+      "brief": ""
+    },
+    {
+      "id": "evasion-techniques",
+      "name": "Evasion Techniques",
+      "brief": ""
+    },
+    {
+      "id": "interrogation-expertise",
+      "name": "Interrogation Expertise",
+      "brief": ""
+    },
+    {
+      "id": "pickpocket-reflexes",
+      "name": "Pickpocket Reflexes",
+      "brief": ""
+    },
+    {
+      "id": "intuition-for-weak-spots",
+      "name": "Intuition for Weak Spots",
+      "brief": ""
+    },
+    {
+      "id": "disguise-under-pressure",
+      "name": "Disguise Under Pressure",
+      "brief": ""
+    }
+  ],
+  "frailties": [
+    {
+      "id": "haunted-by-a-past-case",
+      "name": "Haunted by a Past Case",
+      "brief": ""
+    },
+    {
+      "id": "addicted-to-risk",
+      "name": "Addicted to Risk",
+      "brief": ""
+    },
+    {
+      "id": "uncontrollable-flashbacks",
+      "name": "Uncontrollable Flashbacks",
+      "brief": ""
+    },
+    {
+      "id": "bound-by-a-personal-oath",
+      "name": "Bound by a Personal Oath",
+      "brief": ""
+    },
+    {
+      "id": "estranged-from-loved-ones",
+      "name": "Estranged from Loved Ones",
+      "brief": ""
+    },
+    {
+      "id": "in-too-deep-with-the-wrong-people",
+      "name": "In Too Deep with the Wrong People",
+      "brief": ""
+    },
+    {
+      "id": "trusts-the-wrong-people",
+      "name": "Trusts the Wrong People",
+      "brief": ""
+    },
+    {
+      "id": "unwilling-to-kill",
+      "name": "Unwilling to Kill",
+      "brief": ""
+    },
+    {
+      "id": "known-to-the-authorities",
+      "name": "Known to the Authorities",
+      "brief": ""
+    },
+    {
+      "id": "secretly-being-blackmailed",
+      "name": "Secretly Being Blackmailed",
+      "brief": ""
+    },
+    {
+      "id": "lives-under-a-stolen-identity",
+      "name": "Lives Under a Stolen Identity",
+      "brief": ""
+    },
+    {
+      "id": "prone-to-self-destruction",
+      "name": "Prone to Self-Destruction",
+      "brief": ""
+    },
+    {
+      "id": "afflicted-by-nightmares",
+      "name": "Afflicted by Nightmares",
+      "brief": ""
+    },
+    {
+      "id": "misjudges-intentions",
+      "name": "Misjudges Intentions",
+      "brief": ""
+    },
+    {
+      "id": "susceptible-to-intimidation",
+      "name": "Susceptible to Intimidation",
+      "brief": ""
+    },
+    {
+      "id": "trapped-by-debt",
+      "name": "Trapped by Debt",
+      "brief": ""
+    },
+    {
+      "id": "still-loyal-to-a-dead-partner",
+      "name": "Still Loyal to a Dead Partner",
+      "brief": ""
+    },
+    {
+      "id": "obsessed-with-one-last-job",
+      "name": "Obsessed with One Last Job",
+      "brief": ""
+    },
+    {
+      "id": "seeks-redemption-at-any-cost",
+      "name": "Seeks Redemption at Any Cost",
+      "brief": ""
+    },
+    {
+      "id": "flash-temper",
+      "name": "Flash Temper",
+      "brief": ""
+    },
+    {
+      "id": "reacts-poorly-to-authority",
+      "name": "Reacts Poorly to Authority",
+      "brief": ""
+    },
+    {
+      "id": "emotionally-numb",
+      "name": "Emotionally Numb",
+      "brief": ""
+    },
+    {
+      "id": "carries-a-traitor-s-guilt",
+      "name": "Carries a Traitor's Guilt",
+      "brief": ""
+    },
+    {
+      "id": "fear-of-being-watched",
+      "name": "Fear of Being Watched",
+      "brief": ""
+    },
+    {
+      "id": "keeps-a-dangerous-secret",
+      "name": "Keeps a Dangerous Secret",
+      "brief": ""
+    },
+    {
+      "id": "reckless-protector",
+      "name": "Reckless Protector",
+      "brief": ""
+    },
+    {
+      "id": "constantly-dissociates",
+      "name": "Constantly Dissociates",
+      "brief": ""
+    },
+    {
+      "id": "identity-crisis",
+      "name": "Identity Crisis",
+      "brief": ""
+    },
+    {
+      "id": "afraid-of-the-truth",
+      "name": "Afraid of the Truth",
+      "brief": ""
+    },
+    {
+      "id": "obsessive-need-for-control",
+      "name": "Obsessive Need for Control",
+      "brief": ""
+    },
+    {
+      "id": "can-t-leave-the-game-behind",
+      "name": "Can't Leave the Game Behind",
+      "brief": ""
+    },
+    {
+      "id": "compromised-morality",
+      "name": "Compromised Morality",
+      "brief": ""
+    },
+    {
+      "id": "history-of-violence",
+      "name": "History of Violence",
+      "brief": ""
+    },
+    {
+      "id": "emotionally-attached-to-a-target",
+      "name": "Emotionally Attached to a Target",
+      "brief": ""
+    },
+    {
+      "id": "triggers-under-pressure",
+      "name": "Triggers Under Pressure",
+      "brief": ""
+    },
+    {
+      "id": "internal-voices-not-always-wrong",
+      "name": "Internal Voices (Not Always Wrong)",
+      "brief": ""
+    }
+  ],
+  "gear": [
+    {
+      "id": "burn-phone",
+      "name": "Burn Phone",
+      "brief": ""
+    },
+    {
+      "id": "compact-handgun",
+      "name": "Compact Handgun",
+      "brief": ""
+    },
+    {
+      "id": "cloned-keycard",
+      "name": "Cloned Keycard",
+      "brief": ""
+    },
+    {
+      "id": "hidden-compartment-jacket",
+      "name": "Hidden Compartment Jacket",
+      "brief": ""
+    },
+    {
+      "id": "audio-scrambler",
+      "name": "Audio Scrambler",
+      "brief": ""
+    },
+    {
+      "id": "unregistered-vehicle",
+      "name": "Unregistered Vehicle",
+      "brief": ""
+    },
+    {
+      "id": "forged-credentials",
+      "name": "Forged Credentials",
+      "brief": ""
+    },
+    {
+      "id": "remote-camera-drone",
+      "name": "Remote Camera Drone",
+      "brief": ""
+    },
+    {
+      "id": "trauma-kit",
+      "name": "Trauma Kit",
+      "brief": ""
+    },
+    {
+      "id": "emp-slap-patch",
+      "name": "EMP Slap Patch",
+      "brief": ""
+    },
+    {
+      "id": "burner-laptop",
+      "name": "Burner Laptop",
+      "brief": ""
+    },
+    {
+      "id": "clean-cash-bundle",
+      "name": "Clean Cash Bundle",
+      "brief": ""
+    },
+    {
+      "id": "concealed-recorder",
+      "name": "Concealed Recorder",
+      "brief": ""
+    },
+    {
+      "id": "tinted-surveillance-shades",
+      "name": "Tinted Surveillance Shades",
+      "brief": ""
+    },
+    {
+      "id": "lock-override-tool",
+      "name": "Lock Override Tool",
+      "brief": ""
+    },
+    {
+      "id": "signal-jammer",
+      "name": "Signal Jammer",
+      "brief": ""
+    },
+    {
+      "id": "digital-dead-drop",
+      "name": "Digital Dead Drop",
+      "brief": ""
+    },
+    {
+      "id": "fingerprint-copy-film",
+      "name": "Fingerprint Copy Film",
+      "brief": ""
+    },
+    {
+      "id": "kevlar-lined-trenchcoat",
+      "name": "Kevlar-Lined Trenchcoat",
+      "brief": ""
+    },
+    {
+      "id": "injection-gun-sleep-agent",
+      "name": "Injection Gun (Sleep Agent)",
+      "brief": ""
+    },
+    {
+      "id": "field-toolkit-crack-fix",
+      "name": "Field Toolkit (Crack & Fix)",
+      "brief": ""
+    },
+    {
+      "id": "black-market-comms-scanner",
+      "name": "Black Market Comms Scanner",
+      "brief": ""
+    },
+    {
+      "id": "disposable-microphones",
+      "name": "Disposable Microphones",
+      "brief": ""
+    },
+    {
+      "id": "evidence-planting-kit",
+      "name": "“Evidence” Planting Kit",
+      "brief": ""
+    },
+    {
+      "id": "custom-bug-detector",
+      "name": "Custom Bug Detector",
+      "brief": ""
+    },
+    {
+      "id": "prototype-listening-earpiece",
+      "name": "Prototype Listening Earpiece",
+      "brief": ""
+    },
+    {
+      "id": "taser-glove",
+      "name": "Taser Glove",
+      "brief": ""
+    },
+    {
+      "id": "throwaway-pistol",
+      "name": "Throwaway Pistol",
+      "brief": ""
+    },
+    {
+      "id": "cold-storage-wallet",
+      "name": "Cold Storage Wallet",
+      "brief": ""
+    },
+    {
+      "id": "tamper-proof-briefcase",
+      "name": "Tamper-Proof Briefcase",
+      "brief": ""
+    },
+    {
+      "id": "quick-swap-id-pack",
+      "name": "Quick-Swap ID Pack",
+      "brief": ""
+    },
+    {
+      "id": "silenced-snub-revolver",
+      "name": "Silenced Snub Revolver",
+      "brief": ""
+    },
+    {
+      "id": "tracker-dust-vials",
+      "name": "Tracker Dust Vials",
+      "brief": ""
+    },
+    {
+      "id": "break-in-case-picks-cutter-wedge",
+      "name": "Break-In Case (Picks, Cutter, Wedge)",
+      "brief": ""
+    },
+    {
+      "id": "contact-encrypted-notebook",
+      "name": "Contact-Encrypted Notebook",
+      "brief": ""
+    },
+    {
+      "id": "sharp-object-of-sentimental-value",
+      "name": "Sharp Object of Sentimental Value",
+      "brief": ""
+    }
+  ],
+  "spends_luck": false,
+  "factions": [
+    {
+      "name": "1. The Syndicate",
+      "concept": "Logistics Front Disguised as Enterprise",
+      "skills": [
+        "Smuggling Routes",
+        "Silent Leverage"
+      ],
+      "frailties": [
+        "Overextended Operations"
+      ],
+      "gear": [
+        "Burner Contracts",
+        "Warehouse Keys"
+      ],
+      "goal": "Keep the system running quietly and profitably",
+      "motive": "Control the invisible infrastructure of crime",
+      "nemesis": "Disruptors who introduce chaos or visibility"
+    },
+    {
+      "name": "2. The Internal Affairs Bureau",
+      "concept": "Fractured Oversight Agency",
+      "skills": [
+        "Surveillance Audits",
+        "Pattern Recognition"
+      ],
+      "frailties": [
+        "Internal Sabotage"
+      ],
+      "gear": [
+        "Compromised Reports",
+        "Bodycam Archives"
+      ],
+      "goal": "Root out corruption — selectively",
+      "motive": "Restore (or reframe) legitimacy from within",
+      "nemesis": "Their own department’s rank-and-file loyalty web"
+    },
+    {
+      "name": "3. The Patchwork",
+      "concept": "Decentralized Street Alliance",
+      "skills": [
+        "Flash Mobilization",
+        "Urban Camouflage"
+      ],
+      "frailties": [
+        "No Central Leadership"
+      ],
+      "gear": [
+        "Signal Apps",
+        "Painted Masks"
+      ],
+      "goal": "Claim unpoliced space and shape it",
+      "motive": "Territory, autonomy, and symbolic victories",
+      "nemesis": "Developers, media, and old-school gangs alike"
+    },
+    {
+      "name": "4. The Development Commission",
+      "concept": "Legal Front for Strategic Displacement",
+      "skills": [
+        "Rezoning Pressure",
+        "Legal Obfuscation"
+      ],
+      "frailties": [
+        "Public Scrutiny"
+      ],
+      "gear": [
+        "Sealed Bids",
+        "Donor Lists"
+      ],
+      "goal": "Convert contested neighborhoods into controlled assets",
+      "motive": "Capital expansion under civic branding",
+      "nemesis": "Embedded communities and local saboteurs"
+    },
+    {
+      "name": "5. The Signal",
+      "concept": "Weaponized Media Ecosystem",
+      "skills": [
+        "Narrative Control",
+        "Info Doxxing"
+      ],
+      "frailties": [
+        "Internal Agenda Clashes"
+      ],
+      "gear": [
+        "Anonymous Sources",
+        "Target Profiles"
+      ],
+      "goal": "Dominate the public perception battlefield",
+      "motive": "Influence outcomes by shaping the story",
+      "nemesis": "Leaks, live feeds, and uncontrollable witnesses"
+    },
+    {
+      "name": "6. The Wreckage",
+      "concept": "Legacy Crime Family on the Decline",
+      "skills": [
+        "Old School Intimidation",
+        "Clean-Up Crews"
+      ],
+      "frailties": [
+        "Outdated Tactics"
+      ],
+      "gear": [
+        "Rolodex",
+        "Rusty Shotgun"
+      ],
+      "goal": "Reclaim lost territory and respect",
+      "motive": "Pride, memory, survival",
+      "nemesis": "The Syndicate, who buried them in the first place"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Detective Mara Vélez",
+      "concept": "Compromised Homicide Detective",
+      "skills": [
+        "Pressure Interviews",
+        "Pattern Reading"
+      ],
+      "frailties": [
+        "Deeply Entangled"
+      ],
+      "gear": [
+        "Old Badge",
+        "Private Burner"
+      ],
+      "goal": "To solve a cold case that implicates her own unit",
+      "motive": "Guilt, and a debt she can’t pay off",
+      "nemesis": "Internal Affairs and whoever scrubbed the original files"
+    },
+    {
+      "name": "Frank “Vice” Bellamy",
+      "concept": "Nightclub Operator & Info Broker",
+      "skills": [
+        "Liquor Licenses",
+        "Silent Surveillance"
+      ],
+      "frailties": [
+        "Thinks Everyone Talks Eventually"
+      ],
+      "gear": [
+        "Panic Button Under the Bar",
+        "Memory Wall"
+      ],
+      "goal": "Stay valuable to every side without picking one",
+      "motive": "Survival via manipulation",
+      "nemesis": "His own muscle, who wants to go independent"
+    },
+    {
+      "name": "Lily Knox",
+      "concept": "Burned Informant with Nowhere to Run",
+      "skills": [
+        "Eavesdropping",
+        "Route Mapping"
+      ],
+      "frailties": [
+        "Running on Fear and Speed"
+      ],
+      "gear": [
+        "Prepaid Minutes",
+        "Backup SIMs"
+      ],
+      "goal": "To disappear without anyone knowing she did",
+      "motive": "Her kid is living under someone else’s name",
+      "nemesis": "A fixer she ghosted — and who never forgets"
+    },
+    {
+      "name": "Nicholas \"Cage\" Tran",
+      "concept": "Precision Smuggler with Ties to Old Crews",
+      "skills": [
+        "Entry Logistics",
+        "Custom Forgery"
+      ],
+      "frailties": [
+        "Can’t Say No to Old Friends"
+      ],
+      "gear": [
+        "Shipping Manifests",
+        "False Papers with Real Signatures"
+      ],
+      "goal": "Pull off one final exit job that clears three names",
+      "motive": "He owes more than money",
+      "nemesis": "A former client who got burned and blames him personally"
+    },
+    {
+      "name": "Daisy Quell",
+      "concept": "Black-Hat Activist with a God Complex",
+      "skills": [
+        "Network Exploits",
+        "Psychological Profiling"
+      ],
+      "frailties": [
+        "Needs an Audience"
+      ],
+      "gear": [
+        "Encrypted Tablet",
+        "Preloaded News Drops"
+      ],
+      "goal": "To make a very public example of a very powerful person",
+      "motive": "Validation wrapped in ideology",
+      "nemesis": "The Signal, whose media ops she’s about to expose"
+    },
+    {
+      "name": "Max Harrow",
+      "concept": "Ghost Broker of Untraceable Weapons",
+      "skills": [
+        "Custom Loadouts",
+        "Whisper Networks"
+      ],
+      "frailties": [
+        "Reckless with People",
+        "Never with Product"
+      ],
+      "gear": [
+        "Designer Gloves",
+        "Case of Burner Vouchers"
+      ],
+      "goal": "To disappear into a private island built on blood deals",
+      "motive": "To finally have something that can’t be taken",
+      "nemesis": "A clean-suit contractor who got sloppy and lived"
+    }
+  ],
+  "monsters": [
+    {
+      "name": "Corrupt Officer",
+      "concept": "Compromised Law Enforcement",
+      "skills": [
+        "Interrogation",
+        "Procedural Navigation"
+      ],
+      "frailties": [
+        "Blackmail Vulnerability"
+      ],
+      "gear": [
+        "Service Weapon",
+        "Confidential Access Codes"
+      ],
+      "goal": "Protect their racket without losing their badge",
+      "motive": "Stay in control of both sides of the law",
+      "nemesis": "Anyone who exposes them to daylight"
+    },
+    {
+      "name": "Street-Level Boss",
+      "concept": "Local Power Broker",
+      "skills": [
+        "Fear Management",
+        "Network Loyalty"
+      ],
+      "frailties": [
+        "Known and Traceable"
+      ],
+      "gear": [
+        "Burner Collection",
+        "Custom-Made Jacket"
+      ],
+      "goal": "Lock down territory through respect and fear",
+      "motive": "Prove they’re untouchable — again",
+      "nemesis": "Rival crews and restless lieutenants"
+    },
+    {
+      "name": "Contract Operative",
+      "concept": "Freelance Enforcer",
+      "skills": [
+        "Covert Entry",
+        "Close Quarters Combat"
+      ],
+      "frailties": [
+        "Hunted by Past Clients"
+      ],
+      "gear": [
+        "Silenced Sidearm",
+        "Shifting Alias"
+      ],
+      "goal": "Complete the job without leaving a shadow",
+      "motive": "Reputation keeps the work coming",
+      "nemesis": "Any job that feels personal"
+    },
+    {
+      "name": "Courier Mule",
+      "concept": "High-Risk, Disposable Asset",
+      "skills": [
+        "Urban Navigation",
+        "Concealment"
+      ],
+      "frailties": [
+        "Desperate and Disposable"
+      ],
+      "gear": [
+        "Hidden Compartment Bag",
+        "One-Way Phone"
+      ],
+      "goal": "Deliver without asking questions",
+      "motive": "Money, pressure, or protection",
+      "nemesis": "The package — whatever it really is"
+    },
+    {
+      "name": "Precision Thief",
+      "concept": "Technical Break-In Specialist",
+      "skills": [
+        "Alarm Disabling",
+        "Escape Routes"
+      ],
+      "frailties": [
+        "One Last Score Mentality"
+      ],
+      "gear": [
+        "Lockpick Kit",
+        "Heat Sensor Mask"
+      ],
+      "goal": "Get in, get out, stay gone",
+      "motive": "Cash, challenge, or both",
+      "nemesis": "Motion detectors, backstabbers, and overconfidence"
+    },
+    {
+      "name": "White-Collar Predator",
+      "concept": "Invisible Manipulator",
+      "skills": [
+        "Paper Trails",
+        "System Exploits"
+      ],
+      "frailties": [
+        "Believes They're Safe"
+      ],
+      "gear": [
+        "Secure Terminal Access",
+        "Plausible Deniability"
+      ],
+      "goal": "Drain the system without ever being noticed",
+      "motive": "Greed reframed as “efficiency”",
+      "nemesis": "Data leaks, subpoenas, and whistleblowers"
+    }
+  ],
+  "twist_subjects": null,
+  "twist_actions": null
+}

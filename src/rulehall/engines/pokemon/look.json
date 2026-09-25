@@ -1,0 +1,16 @@
+{
+  "palette": {
+    "game-bg": "#1a1d2b",
+    "game-surface": "#23283a",
+    "game-surface-raised": "#2d3450",
+    "game-text": "#f2f4fa",
+    "game-muted": "#b7bfd6",
+    "game-border": "#3c4566",
+    "game-accent": "#ffcb05",
+    "game-wash": "rgba(255, 203, 5, .08)",
+    "game-radius": "14px",
+    "game-die-body": "#e3350d",
+    "game-die-ink": "#ffffff",
+    "game-die-glow": "#ffcb05"
+  }
+}

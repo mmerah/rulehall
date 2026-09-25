@@ -1,0 +1,312 @@
+[
+  {
+    "name": "reveal",
+    "description": "Make a hidden entity here known to the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of something hidden here.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "kill",
+    "description": "Kill someone here.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of who here died.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "leave_party",
+    "description": "Make a party member stop travelling with the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of the party member leaving.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "direct",
+    "description": "Call this last, once per turn. It ends the turn and gives notes to the narrator. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Use reveal first for hidden entities. Apply world changes through the other tools before calling direct.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "description": "Brief factual notes for the narrator to phrase. Answer each question in the player action. Include the result, its known reason, and details needed for the next choice. For a request or warning, give what the person wants and the reason they share. Use facts the player can know now. Identify claims and unknown reasons as such. Keep every outcome consistent with tool results.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "enter",
+    "description": "Bring a cast member into the scene.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of a cast member not already here.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "leave",
+    "description": "Send a cast member out of the scene.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of someone here.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "next_scene",
+    "description": "Call this with nothing set when the scene reaches a stopping point. Set `pursuit` instead when the player has left this place. Set `complication` instead to bring a new situation into this place.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "pursuit": {
+          "default": "",
+          "description": "Where the player is going, in their own words. Empty to offer the way on.",
+          "type": "string"
+        },
+        "complication": {
+          "default": "",
+          "description": "What arrives or turns here, and why. Empty otherwise.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "join_party",
+    "description": "Make a person here travel with the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of who is joining.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "change_tags",
+    "description": "A character here gains tags, loses tags, or does both.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "description": "Exact id of the player, or of a character here.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "`gear` for a thing taken or lost. `condition` for a lasting mark such as `Poisoned`.",
+          "enum": [
+            "skill",
+            "frailty",
+            "gear",
+            "condition"
+          ],
+          "type": "string"
+        },
+        "gained": {
+          "default": [],
+          "description": "Tags gained, in title case, such as `Rusty Key`. Name it in three or four words, never more than 32 characters.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "lost": {
+          "default": [],
+          "description": "Exact tags lost, removed, or used up.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "actor_id",
+        "kind"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "drive",
+    "description": "Change the goal, the motive or the nemesis of a living character.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "description": "Exact id of the player or a living character here.",
+          "type": "string"
+        },
+        "goal": {
+          "default": "",
+          "description": "What the character now wants, in one line. Empty keeps the current goal.",
+          "type": "string"
+        },
+        "motive": {
+          "default": "",
+          "description": "Why the character wants it, in one line. Empty keeps the current motive.",
+          "type": "string"
+        },
+        "nemesis": {
+          "default": "",
+          "description": "Who or what is against the character. Empty keeps the current nemesis.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "actor_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "restore_luck",
+    "description": "Fill the luck of a character. Any defeat of that character ends.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "description": "Exact id of the player or a character here.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "actor_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "roll",
+    "description": "Call this for one closed question about the story. The engine rolls Chance against Risk and reads the answer. In a conflict, the engine also moves luck.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "what": {
+          "description": "The attempt, in a few words the player reads.",
+          "type": "string"
+        },
+        "actor_id": {
+          "description": "Exact id of the character here who acts.",
+          "type": "string"
+        },
+        "question": {
+          "description": "A closed question. Yes means the actor gets what they want. Only you read this question.",
+          "type": "string"
+        },
+        "position": {
+          "default": "neutral",
+          "description": "Which side the tags and the situation help.",
+          "enum": [
+            "advantage",
+            "neutral",
+            "disadvantage"
+          ],
+          "type": "string"
+        },
+        "edge": {
+          "default": "",
+          "description": "The tag or the condition that sets the position. The player reads this text. Empty for neutral.",
+          "type": "string"
+        },
+        "target_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of the character here who loses luck. Use this field for a contest of luck exchanges. Null for one decisive question, or for one key action, even against a character who resists."
+        }
+      },
+      "required": [
+        "what",
+        "actor_id",
+        "question"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "spend_luck",
+    "description": "A character here spends luck. The SPECIAL RULES of the selected pack gives the cost, for example a spell.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "description": "Exact id of the player or a living character here.",
+          "type": "string"
+        },
+        "amount": {
+          "description": "The luck to spend. SPECIAL RULES prints the cost.",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "why": {
+          "description": "What the luck buys, in one line. The player reads this text.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "actor_id",
+        "amount",
+        "why"
+      ],
+      "type": "object"
+    }
+  }
+]

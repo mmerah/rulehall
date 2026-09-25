@@ -1,0 +1,570 @@
+[
+  {
+    "name": "reveal",
+    "description": "Make a hidden entity here known to the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of something hidden here.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "kill",
+    "description": "Kill someone here.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of who here died.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "leave_party",
+    "description": "Make a party member stop travelling with the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of the party member leaving.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "direct",
+    "description": "Call this last, once per turn. It ends the turn and gives notes to the narrator. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Use reveal first for hidden entities. Apply world changes through the other tools before calling direct.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "description": "Brief factual notes for the narrator to phrase. Answer each question in the player action. Include the result, its known reason, and details needed for the next choice. For a request or warning, give what the person wants and the reason they share. Use facts the player can know now. Identify claims and unknown reasons as such. Keep every outcome consistent with tool results.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "move_item",
+    "description": "Move an item to a new holder.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "description": "Exact id of an item here or carried.",
+          "type": "string"
+        },
+        "to_id": {
+          "description": "Exact id of the player, an npc here, or this place.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "to_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "unlock_way",
+    "description": "Open a locked way out of this place.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "to_id": {
+          "description": "Exact id of the locked way's destination.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "to_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "move",
+    "description": "Move the player through an unlocked way out of this place.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "to_id": {
+          "description": "Exact id of the place to move to.",
+          "type": "string"
+        },
+        "with_ids": {
+          "default": [],
+          "description": "Exact ids of living npcs here who follow one time. Party members come without this field.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "to_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "meanwhile",
+    "description": "Time passes where the player is not. Move a dweller, move a loose item, and shut a way the player knows. Use any combination in one call. Call this only while ELSEWHERE is shown.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "dweller_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a dweller elsewhere who walks to a new place."
+        },
+        "dweller_to_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of the place the dweller walks to."
+        },
+        "item_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a loose item elsewhere that moves to a new place."
+        },
+        "item_to_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of the place the item moves to."
+        },
+        "shut_from_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of one end of the way that shuts."
+        },
+        "shut_to_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of the other end of the way that shuts."
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "join_party",
+    "description": "Make a person here travel with the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of who is joining.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "check",
+    "description": "Call this when the player tries something hard outside a battle. The engine rolls d20, adds twice the skill rank and 2 for a helping Pokemon, and compares the total with the difficulty. You decide what a failure costs.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "what": {
+          "description": "The attempt, in a few words the player reads.",
+          "type": "string"
+        },
+        "skill": {
+          "description": "The skill the player uses.",
+          "enum": [
+            "athletics",
+            "stealth",
+            "perception",
+            "nature",
+            "lore",
+            "charm"
+          ],
+          "type": "string"
+        },
+        "difficulty": {
+          "description": "easy is DC 10, hard is DC 15, very-hard is DC 20.",
+          "enum": [
+            "easy",
+            "hard",
+            "very-hard"
+          ],
+          "type": "string"
+        },
+        "helper_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a team Pokemon that helps. It must not be fainted. Null when none helps."
+        },
+        "reason": {
+          "default": "",
+          "description": "How the helper helps, such as 'Geodude breaks the rock'. The player reads it. Empty with no helper.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "what",
+        "skill",
+        "difficulty"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "heal_team",
+    "description": "Heal the whole team and the box: HP, PP and status. Call this at a Pokemon Center.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    }
+  },
+  {
+    "name": "buy",
+    "description": "The player buys items and pays the price.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "description": "Exact id of the item. A TM is tm-<move id>, such as tm-thunderbolt.",
+          "anyOf": [
+            {
+              "enum": [
+                "poke-ball",
+                "great-ball",
+                "ultra-ball",
+                "potion",
+                "super-potion",
+                "full-heal",
+                "revive",
+                "rare-candy",
+                "oran-berry",
+                "sitrus-berry",
+                "cheri-berry",
+                "chesto-berry",
+                "pecha-berry",
+                "rawst-berry",
+                "aspear-berry",
+                "lum-berry",
+                "leftovers",
+                "everstone",
+                "silk-scarf",
+                "charcoal",
+                "mystic-water",
+                "miracle-seed",
+                "magnet",
+                "never-melt-ice",
+                "black-belt",
+                "poison-barb",
+                "soft-sand",
+                "sharp-beak",
+                "twisted-spoon",
+                "silver-powder",
+                "hard-stone",
+                "spell-tag",
+                "dragon-fang",
+                "black-glasses",
+                "metal-coat",
+                "fairy-feather",
+                "fire-stone",
+                "water-stone",
+                "thunder-stone",
+                "leaf-stone",
+                "moon-stone",
+                "linking-cord",
+                "sun-stone",
+                "shiny-stone",
+                "dusk-stone",
+                "dawn-stone",
+                "ice-stone",
+                "black-augurite",
+                "tart-apple",
+                "sweet-apple",
+                "cracked-pot",
+                "auspicious-armor",
+                "malicious-armor",
+                "kings-rock",
+                "dragon-scale",
+                "up-grade",
+                "dubious-disc",
+                "protector",
+                "electirizer",
+                "magmarizer",
+                "reaper-cloth",
+                "prism-scale",
+                "deep-sea-tooth",
+                "deep-sea-scale",
+                "sachet",
+                "whipped-dream",
+                "oval-stone",
+                "razor-claw",
+                "razor-fang"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "count": {
+          "default": 1,
+          "description": "How many.",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "item_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "gain_item",
+    "description": "The player finds or gets items for free.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "description": "Exact id of the item. A TM is tm-<move id>, such as tm-thunderbolt.",
+          "anyOf": [
+            {
+              "enum": [
+                "poke-ball",
+                "great-ball",
+                "ultra-ball",
+                "potion",
+                "super-potion",
+                "full-heal",
+                "revive",
+                "rare-candy",
+                "oran-berry",
+                "sitrus-berry",
+                "cheri-berry",
+                "chesto-berry",
+                "pecha-berry",
+                "rawst-berry",
+                "aspear-berry",
+                "lum-berry",
+                "leftovers",
+                "everstone",
+                "silk-scarf",
+                "charcoal",
+                "mystic-water",
+                "miracle-seed",
+                "magnet",
+                "never-melt-ice",
+                "black-belt",
+                "poison-barb",
+                "soft-sand",
+                "sharp-beak",
+                "twisted-spoon",
+                "silver-powder",
+                "hard-stone",
+                "spell-tag",
+                "dragon-fang",
+                "black-glasses",
+                "metal-coat",
+                "fairy-feather",
+                "fire-stone",
+                "water-stone",
+                "thunder-stone",
+                "leaf-stone",
+                "moon-stone",
+                "linking-cord",
+                "sun-stone",
+                "shiny-stone",
+                "dusk-stone",
+                "dawn-stone",
+                "ice-stone",
+                "black-augurite",
+                "tart-apple",
+                "sweet-apple",
+                "cracked-pot",
+                "auspicious-armor",
+                "malicious-armor",
+                "kings-rock",
+                "dragon-scale",
+                "up-grade",
+                "dubious-disc",
+                "protector",
+                "electirizer",
+                "magmarizer",
+                "reaper-cloth",
+                "prism-scale",
+                "deep-sea-tooth",
+                "deep-sea-scale",
+                "sachet",
+                "whipped-dream",
+                "oval-stone",
+                "razor-claw",
+                "razor-fang"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "count": {
+          "default": 1,
+          "description": "How many.",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "item_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "gain_money",
+    "description": "The player gets money, such as a reward.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "description": "How much money, in Pokedollars.",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "amount"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "use_item",
+    "description": "The player uses a potion, a super potion, a full heal, a revive, a Rare Candy, a stone, another evolution item or a Linking Cord on a team Pokemon, outside a battle.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "description": "Exact id of the item.",
+          "type": "string"
+        },
+        "mon_id": {
+          "description": "Exact id of the team Pokemon it is used on.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "mon_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "swap_mon",
+    "description": "Swap a team Pokemon with one in the box. The player can do this anywhere from the Team page.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "team_mon_id": {
+          "description": "Exact id of the team Pokemon that goes to the box.",
+          "type": "string"
+        },
+        "box_mon_id": {
+          "description": "Exact id of the box Pokemon that joins the team.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "team_mon_id",
+        "box_mon_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "start_battle",
+    "description": "Call this when a trainer here and the player agree to battle. The battle screen plays the fight, and the engine applies the result. Call it last: it ends your turn. A trainer battles once per visit. A gym leader never battles again once beaten.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "trainer_id": {
+          "description": "Exact id of the trainer here who battles the player.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "trainer_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "start_wild_battle",
+    "description": "Call this when the player meets a wild Pokemon at this place, such as in tall grass. Set `species_id` to one from WILD HERE, or leave it null to roll on the table. Call it last: it ends your turn.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "species_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "A species id from WILD HERE. Null lets the engine roll on the table."
+        }
+      },
+      "type": "object"
+    }
+  }
+]

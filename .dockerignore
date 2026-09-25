@@ -1,0 +1,14 @@
+.git
+.venv
+.env
+**/node_modules
+**/__pycache__
+.*_cache
+vendor
+saves
+packs
+user
+qa
+tests
+docs
+evals/results

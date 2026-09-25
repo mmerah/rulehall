@@ -1,0 +1,1293 @@
+{
+  "name": "AP07 Action",
+  "source": "https://lonersrd.zotiquestgames.com/adventure_packs/AP07_action_adventure.html",
+  "license": "Adventure Pack 07: Action, Loner SRD site (CC BY-SA 4.0), (c) Roberto Bisceglie / Zotiquest Games",
+  "backdrop": "From overgrown jungle temples to glowing rooftops in midnight metropolises, the world is a carousel of danger and wonder. Every place hides a secret — a clue, a curse, or a man with a silenced gun.\nTime flexes but never rests. The jazz-fueled 1930s, the shadowy tension of the Cold War, the chaotic now — every era is ripe for action, intrigue, and impossible choices.\nThe world is always in motion: storm-lashed islands, dust-choked bazaars, sunken tombs beneath crowded cities, snowbound monasteries — each locale a ticking bomb of forgotten stories.\nHistory never sleeps. Ancient dynasties, lost cults, whispered prophecies, and banned documents smolder beneath the surface, waiting to resurface in fire or fraud.\nCultures collide and tangle — scholars, criminals, wanderers, soldiers — chasing truth, gold, vengeance, or something stranger, always on unfamiliar soil.\nTechnology is the drumbeat of the chase. Sometimes it’s radios and revolvers; other times, drones and digital vaults. The gear changes, but the tension is timeless.\nBorders mean nothing to ambition. Behind every checkpoint lies a dying empire, a buried war, a boardroom coup, or a quiet coup in progress.\nIn the end, it’s always about the pursuit — the artifact, the person, the revelation — and the price you're willing to pay to reach it.",
+  "names": {
+    "female": [
+      "Elena",
+      "Samira",
+      "Ingrid",
+      "Carmen",
+      "Amara",
+      "Odessa",
+      "Lucia",
+      "Nadia",
+      "Quinn",
+      "Talia",
+      "Maeve",
+      "Mireille",
+      "Leila",
+      "Astrid",
+      "Noor",
+      "Kiara",
+      "Yelena",
+      "Sylvie",
+      "Rania",
+      "Esme",
+      "Harper",
+      "Farah",
+      "Imani",
+      "Sabine",
+      "Vanya",
+      "Bianca",
+      "Nyla",
+      "Yasmin",
+      "Anika",
+      "Solène",
+      "Freya",
+      "Zahra",
+      "Selene",
+      "Hana",
+      "Oriana",
+      "Petra"
+    ],
+    "male": [
+      "Elias",
+      "Rafi",
+      "Leon",
+      "Dario",
+      "Viktor",
+      "Amir",
+      "Julian",
+      "Ashraf",
+      "Owen",
+      "Niko",
+      "Hamza",
+      "Emil",
+      "Mateo",
+      "Soren",
+      "Tariq",
+      "Luca",
+      "Zane",
+      "Kasim",
+      "Anton",
+      "Malik",
+      "Joel",
+      "Rami",
+      "Theo",
+      "Idris",
+      "Stefan",
+      "Eitan",
+      "Kian",
+      "Andrej",
+      "Hugo",
+      "Cyrus",
+      "Marcel",
+      "Youssef",
+      "Arjun",
+      "Bashir",
+      "Karim",
+      "Elias"
+    ],
+    "neutral": [],
+    "surnames": [
+      "Navarro",
+      "Haddad",
+      "Volkova",
+      "Sinclair",
+      "Kazemi",
+      "Duarte",
+      "Moreau",
+      "al-Masri",
+      "Ten Boom",
+      "Jafari",
+      "Tagore",
+      "Varga",
+      "Delgado",
+      "Beck",
+      "Kojima",
+      "Fontaine",
+      "Karamazov",
+      "Aziz",
+      "Laurent",
+      "Bouchard",
+      "Andersson",
+      "Bakshi",
+      "Rahal",
+      "Corbin",
+      "Petrov",
+      "Fadel",
+      "Rojas",
+      "Sato",
+      "Alawi",
+      "Reznik",
+      "D'Souza",
+      "Tanaka",
+      "Salcedo",
+      "Arslanian",
+      "Zamora",
+      "Basile"
+    ],
+    "nicknames": [
+      "Ghost",
+      "Ace",
+      "Viper",
+      "Rook",
+      "Jackal",
+      "Ember",
+      "Cipher",
+      "Wraith",
+      "Echo",
+      "Dagger",
+      "Fox",
+      "Nova",
+      "Fang",
+      "Raven",
+      "Shade",
+      "Flint",
+      "Cobra",
+      "Quill",
+      "Stray",
+      "Blaze",
+      "Hex",
+      "Reaper",
+      "Hawk",
+      "Spook",
+      "Atlas",
+      "Whisper",
+      "Scorch",
+      "Pike",
+      "Zero",
+      "Jet",
+      "Glint",
+      "Moth",
+      "Brim",
+      "Slick",
+      "Nomad",
+      "Bolt"
+    ]
+  },
+  "rules": "Action Points:\n\nEach character begins an adventure with **3 Action Points (AP)**. These do **not refresh** and cannot normally be regained. AP represent the character’s inner reserve of **focus, resolve, and tactical brilliance** — the kind of instinct that flips the scene from disaster to legend.\n\nSpending AP:\n\nAt any moment, you may spend **1 Action Point** to:\n\n* **Gain Advantage**: You roll with edge, no matter what tags or odds say.\n* **Cancel a Failure**: Turn a failed roll into a *success with a cost*.\n* **Avoid a Consequence**: Dodge harm, exposure, or narrative fallout.\n* **Do the Impossible**: Pull off something daring, cinematic, and untagged — sliding under a trapdoor, mid-air grappling hook, bluffing your way past a kill team. You succeed *with style*.\n\n> \\[TIP]\n> Action Points are best spent when the scene demands momentum, not logic. Ask yourself: *Would this make a great moment?* If yes, spend.\n\nPush Yourself (Regain 1 AP):\n\nOnce per adventure, you may **Push Yourself** to regain 1 Action Point — but it comes at a cost. Choose one:\n\n* **Take a Serious Consequence** — injury, exposure, lost trust, or something broken.\n* **Burn a Tag** — a piece of gear or a trait is marked unusable for the rest of the adventure.\n* **Escalate the Situation** — make the scene worse: reinforcements arrive, the room floods, the item is a decoy, etc.\n\n> \\[CAUTION]\n> This isn’t a reset button — it’s a red flag to the fiction. Push when the moment feels *big*, and be ready for the fallout.",
+  "locations": [
+    {
+      "name": "Starlight Transit Hub",
+      "brief": "A decaying sky-train station straddling three closed borders, used by exiles, smugglers, and broken spies. Surveillance is rumored to be operated by a defunct agency — or something stranger.",
+      "encounters": "Border agents, Disguised fugitives, Data couriers, Black market maps, Hidden rooms."
+    },
+    {
+      "name": "The Drowned Embassy",
+      "brief": "An underwater ruin off the coast, once a sealed Cold War diplomatic site, now claimed by silt and whispers. Pressure-locked vaults and flooded archives hide truths no nation ever admitted.",
+      "encounters": "Vault drones, Salvage teams, Leaking documents, Pressure-traps, Bone-silent corridors."
+    },
+    {
+      "name": "Calle Obscura",
+      "brief": "A shadowy alley network in a forgotten quarter of the city, known for vanishing those who know too much. Stories say if you walk it right, the alleys change — and sometimes offer deals.",
+      "encounters": "Informants, Double agents, Memory merchants, Traps, Wrong doors."
+    },
+    {
+      "name": "Blacksite Theta-6",
+      "brief": "A jungle-shrouded concrete installation erased from maps in 1984 — but still warm, still guarded. Its generators run on something not found in science books.",
+      "encounters": "Rogue technicians, Burned files, Reality drift, Locked-down labs, False alarms."
+    },
+    {
+      "name": "The Mirror Monastery",
+      "brief": "A mountaintop retreat untouched by satellites, filled with fractured timelines and unreadable rituals. Its monks speak every language — including a few from the future.",
+      "encounters": "Silent novices, Repeating events, Blinking icons, Forgotten visitors, Shattered mirrors."
+    },
+    {
+      "name": "Volcano Platform K-9",
+      "brief": "A defunct mining rig turned helicopter outpost, built on the lip of an unstable volcano. Part radio relay, part arms depot, part trap for whoever gets curious.",
+      "encounters": "Storm pilots, Smuggled crates, Seismic tremors, Countdown timers, Betrayals in progress."
+    }
+  ],
+  "seeds": [
+    "A stolen artifact resurfaces at an auction in Marrakesh. Three bidders carry weapons, one carries a curse.",
+    "A cargo plane crashes near a jungle outpost. The black box was removed before the authorities arrived.",
+    "A diplomat’s briefcase goes missing during a summit. Inside: a map, a key, and a death list.",
+    "Your contact in Istanbul is late. His last message: “Don’t trust the mirror.”",
+    "A sealed Cold War vault opens for the first time. The contents were meant to never be found.",
+    "An informant vanishes from a safehouse. Her notebook appears two weeks later — in a museum display.",
+    "A masked figure steals a relic from a private train car. The train hasn’t stopped in over 40 hours.",
+    "Your mentor is accused of grave robbing. The tomb in question wasn’t built yet.",
+    "A scientist’s defection unravels when her escort turns up dead — and she turns up again in two places.",
+    "A resistance leader requests extraction — from a city wiped off the map twenty years ago.",
+    "A luxury cruise goes dark mid-ocean. The last transmission: “The stars are wrong.”",
+    "Your safe deposit box has been emptied. The thief left behind your old ID and a countdown.",
+    "A museum exhibit burns in Berlin. All artifacts but one were destroyed — and it's following you.",
+    "A vault under the Vatican unseals during renovations. Inside: Soviet film reels, a dagger, and blood.",
+    "A tech CEO disappears before a major keynote. His prototype device is broadcasting from deep underground.",
+    "An old friend invites you to their wedding — at an abandoned excavation site.",
+    "A flooded temple rises during a drought. Four expeditions enter; only one returns. They won't speak.",
+    "You inherit a lockbox from a missing relative. Inside is a revolver, three passports, and a cassette tape.",
+    "A war criminal fakes their death — then resurfaces as a cult leader in the Andes.",
+    "A hotel fire reveals a hidden floor with no access points. Every room contains the same photo.",
+    "An encrypted radio signal plays a forgotten anthem. It hasn’t broadcast since the embassy bombing in ’78.",
+    "An illegal auction lists a live lot: the man who stole your identity.",
+    "An underground fight ring offers a huge prize. The catch: the winner gets recruited by someone worse.",
+    "A smuggler offers to trade an ancient relic for protection — but only if you meet them inside a quarantined zone.",
+    "Your contact in Morocco offers information in exchange for a favor: bury a locked case in the desert.",
+    "A militia group captures a photographer who snapped something inhuman in their territory.",
+    "A billionaire funds a jungle excavation and disappears. The only clue: a bloodstained telegram.",
+    "You’re asked to retrieve a downed spy drone. It landed inside a military exclusion zone — 50 years ago.",
+    "A warzone refugee speaks a dead language — and describes events from before the city existed.",
+    "An expedition lost in Siberia is found alive and unaged — but one of them is not who they were.",
+    "A data broker in Panama claims to have a list of future events. Everyone wants it. Including you.",
+    "Your handler gives you a package to deliver — and then shoots themselves. The package breathes.",
+    "You’re hired to guard a transport crate. No one tells you where it’s going — only who’s following.",
+    "A private island used for classified testing sends a distress call. The project was terminated. Supposedly.",
+    "A fortune teller gives you an old coin. Three agencies try to kill you within the hour.",
+    "A dig team in Sudan vanishes mid-call. When you arrive, the camp is gone — but the signal remains active."
+  ],
+  "concepts": [
+    {
+      "id": "disgraced-archaeologist",
+      "name": "Disgraced Archaeologist",
+      "brief": ""
+    },
+    {
+      "id": "jet-age-smuggler",
+      "name": "Jet-Age Smuggler",
+      "brief": ""
+    },
+    {
+      "id": "retired-assassin",
+      "name": "Retired Assassin",
+      "brief": ""
+    },
+    {
+      "id": "undercover-anthropologist",
+      "name": "Undercover Anthropologist",
+      "brief": ""
+    },
+    {
+      "id": "burned-hacker",
+      "name": "Burned Hacker",
+      "brief": ""
+    },
+    {
+      "id": "washed-up-diplomat",
+      "name": "Washed-Up Diplomat",
+      "brief": ""
+    },
+    {
+      "id": "war-correspondent",
+      "name": "War Correspondent",
+      "brief": ""
+    },
+    {
+      "id": "master-impersonator",
+      "name": "Master Impersonator",
+      "brief": ""
+    },
+    {
+      "id": "urban-treasure-runner",
+      "name": "Urban Treasure Runner",
+      "brief": ""
+    },
+    {
+      "id": "cold-war-sleeper",
+      "name": "Cold War Sleeper",
+      "brief": ""
+    },
+    {
+      "id": "jungle-survivor",
+      "name": "Jungle Survivor",
+      "brief": ""
+    },
+    {
+      "id": "crypto-fixer",
+      "name": "Crypto Fixer",
+      "brief": ""
+    },
+    {
+      "id": "whistleblower-in-hiding",
+      "name": "Whistleblower in Hiding",
+      "brief": ""
+    },
+    {
+      "id": "cursed-relic-hunter",
+      "name": "Cursed Relic Hunter",
+      "brief": ""
+    },
+    {
+      "id": "rogue-interrogator",
+      "name": "Rogue Interrogator",
+      "brief": ""
+    },
+    {
+      "id": "blacklisted-psychic",
+      "name": "Blacklisted Psychic",
+      "brief": ""
+    },
+    {
+      "id": "burner-pilot",
+      "name": "Burner Pilot",
+      "brief": ""
+    },
+    {
+      "id": "compromised-statesman",
+      "name": "Compromised Statesman",
+      "brief": ""
+    },
+    {
+      "id": "cult-escapee",
+      "name": "Cult Escapee",
+      "brief": ""
+    },
+    {
+      "id": "forensic-occultist",
+      "name": "Forensic Occultist",
+      "brief": ""
+    },
+    {
+      "id": "time-lost-mercenary",
+      "name": "Time-Lost Mercenary",
+      "brief": ""
+    },
+    {
+      "id": "crisis-negotiator",
+      "name": "Crisis Negotiator",
+      "brief": ""
+    },
+    {
+      "id": "propaganda-artist",
+      "name": "Propaganda Artist",
+      "brief": ""
+    },
+    {
+      "id": "unlicensed-therapist",
+      "name": "Unlicensed Therapist",
+      "brief": ""
+    },
+    {
+      "id": "clone-on-the-run",
+      "name": "Clone on the Run",
+      "brief": ""
+    },
+    {
+      "id": "deep-sea-salvager",
+      "name": "Deep-Sea Salvager",
+      "brief": ""
+    },
+    {
+      "id": "freelance-exorcist",
+      "name": "Freelance Exorcist",
+      "brief": ""
+    },
+    {
+      "id": "deserter-from-a-secret-war",
+      "name": "Deserter from a Secret War",
+      "brief": ""
+    },
+    {
+      "id": "meme-warfare-specialist",
+      "name": "Meme Warfare Specialist",
+      "brief": ""
+    },
+    {
+      "id": "shadow-archivist",
+      "name": "Shadow Archivist",
+      "brief": ""
+    },
+    {
+      "id": "erased-field-agent",
+      "name": "Erased Field Agent",
+      "brief": ""
+    },
+    {
+      "id": "reformed-cult-recruiter",
+      "name": "Reformed Cult Recruiter",
+      "brief": ""
+    },
+    {
+      "id": "unpaid-tomb-raider",
+      "name": "Unpaid Tomb Raider",
+      "brief": ""
+    },
+    {
+      "id": "disinformation-operative",
+      "name": "Disinformation Operative",
+      "brief": ""
+    },
+    {
+      "id": "artifact-courier",
+      "name": "Artifact Courier",
+      "brief": ""
+    },
+    {
+      "id": "endangered-diplomatic-asset",
+      "name": "Endangered Diplomatic Asset",
+      "brief": ""
+    }
+  ],
+  "skills": [
+    {
+      "id": "acrobatics",
+      "name": "Acrobatics",
+      "brief": ""
+    },
+    {
+      "id": "ancient-languages",
+      "name": "Ancient Languages",
+      "brief": ""
+    },
+    {
+      "id": "brute-strength",
+      "name": "Brute Strength",
+      "brief": ""
+    },
+    {
+      "id": "bluff-bravado",
+      "name": "Bluff & Bravado",
+      "brief": ""
+    },
+    {
+      "id": "climbing",
+      "name": "Climbing",
+      "brief": ""
+    },
+    {
+      "id": "close-combat",
+      "name": "Close Combat",
+      "brief": ""
+    },
+    {
+      "id": "improvised-cooking",
+      "name": "Improvised Cooking",
+      "brief": ""
+    },
+    {
+      "id": "deception",
+      "name": "Deception",
+      "brief": ""
+    },
+    {
+      "id": "device-hacking",
+      "name": "Device Hacking",
+      "brief": ""
+    },
+    {
+      "id": "horse-riding",
+      "name": "Horse Riding",
+      "brief": ""
+    },
+    {
+      "id": "field-medicine",
+      "name": "Field Medicine",
+      "brief": ""
+    },
+    {
+      "id": "firearms",
+      "name": "Firearms",
+      "brief": ""
+    },
+    {
+      "id": "forgery",
+      "name": "Forgery",
+      "brief": ""
+    },
+    {
+      "id": "high-stakes-gambling",
+      "name": "High-Stakes Gambling",
+      "brief": ""
+    },
+    {
+      "id": "navigation",
+      "name": "Navigation",
+      "brief": ""
+    },
+    {
+      "id": "forbidden-lore",
+      "name": "Forbidden Lore",
+      "brief": ""
+    },
+    {
+      "id": "tracking",
+      "name": "Tracking",
+      "brief": ""
+    },
+    {
+      "id": "intimidation",
+      "name": "Intimidation",
+      "brief": ""
+    },
+    {
+      "id": "art-appraisal",
+      "name": "Art Appraisal",
+      "brief": ""
+    },
+    {
+      "id": "multilingualism",
+      "name": "Multilingualism",
+      "brief": ""
+    },
+    {
+      "id": "mechanical-repair",
+      "name": "Mechanical Repair",
+      "brief": ""
+    },
+    {
+      "id": "command-presence",
+      "name": "Command Presence",
+      "brief": ""
+    },
+    {
+      "id": "lockpicking",
+      "name": "Lockpicking",
+      "brief": ""
+    },
+    {
+      "id": "orienteering",
+      "name": "Orienteering",
+      "brief": ""
+    },
+    {
+      "id": "persuasion",
+      "name": "Persuasion",
+      "brief": ""
+    },
+    {
+      "id": "investigative-photography",
+      "name": "Investigative Photography",
+      "brief": ""
+    },
+    {
+      "id": "piloting-air-sea",
+      "name": "Piloting (Air & Sea)",
+      "brief": ""
+    },
+    {
+      "id": "pursuit-tactics",
+      "name": "Pursuit Tactics",
+      "brief": ""
+    },
+    {
+      "id": "trap-disarming",
+      "name": "Trap Disarming",
+      "brief": ""
+    },
+    {
+      "id": "wilderness-survival",
+      "name": "Wilderness Survival",
+      "brief": ""
+    },
+    {
+      "id": "swimming",
+      "name": "Swimming",
+      "brief": ""
+    },
+    {
+      "id": "tactical-planning",
+      "name": "Tactical Planning",
+      "brief": ""
+    },
+    {
+      "id": "surveillance-tech",
+      "name": "Surveillance Tech",
+      "brief": ""
+    },
+    {
+      "id": "relic-identification",
+      "name": "Relic Identification",
+      "brief": ""
+    },
+    {
+      "id": "martial-arts",
+      "name": "Martial Arts",
+      "brief": ""
+    },
+    {
+      "id": "weapon-proficiency",
+      "name": "Weapon Proficiency",
+      "brief": ""
+    }
+  ],
+  "frailties": [
+    {
+      "id": "fear-of-heights",
+      "name": "Fear of heights",
+      "brief": ""
+    },
+    {
+      "id": "impulsive-under-pressure",
+      "name": "Impulsive under pressure",
+      "brief": ""
+    },
+    {
+      "id": "claustrophobic",
+      "name": "Claustrophobic",
+      "brief": ""
+    },
+    {
+      "id": "paranoid-and-distrustful",
+      "name": "Paranoid and distrustful",
+      "brief": ""
+    },
+    {
+      "id": "chronic-fatigue",
+      "name": "Chronic fatigue",
+      "brief": ""
+    },
+    {
+      "id": "thrill-seeking",
+      "name": "Thrill-seeking",
+      "brief": ""
+    },
+    {
+      "id": "fear-of-deep-water",
+      "name": "Fear of deep water",
+      "brief": ""
+    },
+    {
+      "id": "arrogance",
+      "name": "Arrogance",
+      "brief": ""
+    },
+    {
+      "id": "emotionally-withdrawn",
+      "name": "Emotionally withdrawn",
+      "brief": ""
+    },
+    {
+      "id": "poor-sense-of-direction",
+      "name": "Poor sense of direction",
+      "brief": ""
+    },
+    {
+      "id": "addictive-personality",
+      "name": "Addictive personality",
+      "brief": ""
+    },
+    {
+      "id": "fear-of-spiders",
+      "name": "Fear of spiders",
+      "brief": ""
+    },
+    {
+      "id": "haunted-by-the-past",
+      "name": "Haunted by the past",
+      "brief": ""
+    },
+    {
+      "id": "lacks-combat-instincts",
+      "name": "Lacks combat instincts",
+      "brief": ""
+    },
+    {
+      "id": "deteriorating-eyesight",
+      "name": "Deteriorating eyesight",
+      "brief": ""
+    },
+    {
+      "id": "dangerously-naive",
+      "name": "Dangerously naïve",
+      "brief": ""
+    },
+    {
+      "id": "vulnerable-to-heat",
+      "name": "Vulnerable to heat",
+      "brief": ""
+    },
+    {
+      "id": "overconfident",
+      "name": "Overconfident",
+      "brief": ""
+    },
+    {
+      "id": "fear-of-snakes",
+      "name": "Fear of snakes",
+      "brief": ""
+    },
+    {
+      "id": "rash-and-impatient",
+      "name": "Rash and impatient",
+      "brief": ""
+    },
+    {
+      "id": "socially-awkward",
+      "name": "Socially awkward",
+      "brief": ""
+    },
+    {
+      "id": "severe-allergies",
+      "name": "Severe allergies",
+      "brief": ""
+    },
+    {
+      "id": "fear-of-the-dark",
+      "name": "Fear of the dark",
+      "brief": ""
+    },
+    {
+      "id": "low-endurance",
+      "name": "Low endurance",
+      "brief": ""
+    },
+    {
+      "id": "overprotective",
+      "name": "Overprotective",
+      "brief": ""
+    },
+    {
+      "id": "fear-of-insects",
+      "name": "Fear of insects",
+      "brief": ""
+    },
+    {
+      "id": "easily-distracted",
+      "name": "Easily distracted",
+      "brief": ""
+    },
+    {
+      "id": "technophobic",
+      "name": "Technophobic",
+      "brief": ""
+    },
+    {
+      "id": "too-trusting",
+      "name": "Too trusting",
+      "brief": ""
+    },
+    {
+      "id": "fear-of-animals",
+      "name": "Fear of animals",
+      "brief": ""
+    },
+    {
+      "id": "sensitive-to-cold",
+      "name": "Sensitive to cold",
+      "brief": ""
+    },
+    {
+      "id": "compulsive-risk-taker",
+      "name": "Compulsive risk-taker",
+      "brief": ""
+    },
+    {
+      "id": "hates-enclosed-spaces",
+      "name": "Hates enclosed spaces",
+      "brief": ""
+    },
+    {
+      "id": "jumpy-at-loud-noises",
+      "name": "Jumpy at loud noises",
+      "brief": ""
+    },
+    {
+      "id": "partial-hearing-loss",
+      "name": "Partial hearing loss",
+      "brief": ""
+    },
+    {
+      "id": "guilt-ridden",
+      "name": "Guilt-ridden",
+      "brief": ""
+    }
+  ],
+  "gear": [
+    {
+      "id": "folded-combat-knife",
+      "name": "Folded Combat Knife",
+      "brief": ""
+    },
+    {
+      "id": "dual-pistols",
+      "name": "Dual Pistols",
+      "brief": ""
+    },
+    {
+      "id": "grappling-rope-hook",
+      "name": "Grappling Rope & Hook",
+      "brief": ""
+    },
+    {
+      "id": "coiled-bullwhip",
+      "name": "Coiled Bullwhip",
+      "brief": ""
+    },
+    {
+      "id": "compact-binoculars",
+      "name": "Compact Binoculars",
+      "brief": ""
+    },
+    {
+      "id": "modular-first-aid-kit",
+      "name": "Modular First Aid Kit",
+      "brief": ""
+    },
+    {
+      "id": "jungle-machete",
+      "name": "Jungle Machete",
+      "brief": ""
+    },
+    {
+      "id": "sawed-off-shotgun",
+      "name": "Sawed-off Shotgun",
+      "brief": ""
+    },
+    {
+      "id": "synthetics-rope-spool",
+      "name": "Synthetics Rope Spool",
+      "brief": ""
+    },
+    {
+      "id": "uv-flashlight",
+      "name": "UV Flashlight",
+      "brief": ""
+    },
+    {
+      "id": "brass-compass",
+      "name": "Brass Compass",
+      "brief": ""
+    },
+    {
+      "id": "firestarter-pouch",
+      "name": "Firestarter Pouch",
+      "brief": ""
+    },
+    {
+      "id": "silenced-handgun",
+      "name": "Silenced Handgun",
+      "brief": ""
+    },
+    {
+      "id": "scoped-hunting-rifle",
+      "name": "Scoped Hunting Rifle",
+      "brief": ""
+    },
+    {
+      "id": "carbon-climbing-harness",
+      "name": "Carbon Climbing Harness",
+      "brief": ""
+    },
+    {
+      "id": "long-range-radio",
+      "name": "Long-Range Radio",
+      "brief": ""
+    },
+    {
+      "id": "emergency-trauma-kit",
+      "name": "Emergency Trauma Kit",
+      "brief": ""
+    },
+    {
+      "id": "extra-ammo-magazines",
+      "name": "Extra Ammo Magazines",
+      "brief": ""
+    },
+    {
+      "id": "hidden-dagger",
+      "name": "Hidden Dagger",
+      "brief": ""
+    },
+    {
+      "id": "tactical-smg",
+      "name": "Tactical SMG",
+      "brief": ""
+    },
+    {
+      "id": "parachute-rig",
+      "name": "Parachute Rig",
+      "brief": ""
+    },
+    {
+      "id": "lockpick-set",
+      "name": "Lockpick Set",
+      "brief": ""
+    },
+    {
+      "id": "weathered-field-map",
+      "name": "Weathered Field Map",
+      "brief": ""
+    },
+    {
+      "id": "water-purification-kit",
+      "name": "Water Purification Kit",
+      "brief": ""
+    },
+    {
+      "id": "throwing-hatchet",
+      "name": "Throwing Hatchet",
+      "brief": ""
+    },
+    {
+      "id": "fragmentation-grenades",
+      "name": "Fragmentation Grenades",
+      "brief": ""
+    },
+    {
+      "id": "experimental-jetpack",
+      "name": "Experimental Jetpack",
+      "brief": ""
+    },
+    {
+      "id": "signal-flare-gun",
+      "name": "Signal Flare Gun",
+      "brief": ""
+    },
+    {
+      "id": "infrared-monocle",
+      "name": "Infrared Monocle",
+      "brief": ""
+    },
+    {
+      "id": "survival-rations",
+      "name": "Survival Rations",
+      "brief": ""
+    },
+    {
+      "id": "engraved-tomahawk",
+      "name": "Engraved Tomahawk",
+      "brief": ""
+    },
+    {
+      "id": "compact-flamethrower",
+      "name": "Compact Flamethrower",
+      "brief": ""
+    },
+    {
+      "id": "ultralight-glider-frame",
+      "name": "Ultralight Glider Frame",
+      "brief": ""
+    },
+    {
+      "id": "pneumatic-grapple-gun",
+      "name": "Pneumatic Grapple Gun",
+      "brief": ""
+    },
+    {
+      "id": "all-terrain-survival-kit",
+      "name": "All-Terrain Survival Kit",
+      "brief": ""
+    },
+    {
+      "id": "rotary-borer-drill",
+      "name": "Rotary Borer Drill",
+      "brief": ""
+    }
+  ],
+  "spends_luck": false,
+  "factions": [
+    {
+      "name": "The Looking Glass Division",
+      "concept": "Government-aligned myth operatives",
+      "skills": [
+        "Cryptology",
+        "Disguise"
+      ],
+      "frailties": [
+        "Compartmentalized loyalties"
+      ],
+      "gear": [
+        "Burn phone",
+        "mirrored badge"
+      ],
+      "goal": "Suppress and control anomalous history",
+      "motive": "National security via narrative manipulation",
+      "nemesis": "The Pale Chorus"
+    },
+    {
+      "name": "The Pale Chorus",
+      "concept": "Post-religious doomsday cult",
+      "skills": [
+        "Ritual Lore",
+        "Poisoncraft"
+      ],
+      "frailties": [
+        "Hallucinatory belief system"
+      ],
+      "gear": [
+        "Bone pendant",
+        "whisper mask"
+      ],
+      "goal": "To usher a mythic convergence of timelines",
+      "motive": "Transcend the human condition through collapse",
+      "nemesis": "The Looking Glass Division"
+    },
+    {
+      "name": "The Eighth Meridian",
+      "concept": "Rogue archaeotech syndicate",
+      "skills": [
+        "Technology",
+        "Demolition"
+      ],
+      "frailties": [
+        "Prone to infighting"
+      ],
+      "gear": [
+        "Magnetic vault cutter",
+        "neural shunt"
+      ],
+      "goal": "Extract and weaponize forbidden artifacts",
+      "motive": "Post-national dominion through tech-ritual fusion",
+      "nemesis": "The Vigilant Order"
+    },
+    {
+      "name": "The Vigilant Order",
+      "concept": "Secretive preservationist brotherhood",
+      "skills": [
+        "Ancient Languages",
+        "Counter-intel"
+      ],
+      "frailties": [
+        "Overprotectiveness"
+      ],
+      "gear": [
+        "Archivist ring",
+        "sealed reliquary"
+      ],
+      "goal": "Seal or neutralize disruptive artifacts",
+      "motive": "To maintain balance between eras",
+      "nemesis": "The Eighth Meridian"
+    },
+    {
+      "name": "Calder’s Ghosts",
+      "concept": "Freelance retrieval ops with Cold War roots",
+      "skills": [
+        "Stealth",
+        "Urban Survival"
+      ],
+      "frailties": [
+        "Burned identities"
+      ],
+      "gear": [
+        "Modified briefcase",
+        "old radio codes"
+      ],
+      "goal": "Complete jobs, clean exits, no trace",
+      "motive": "Debt, revenge, buried agendas",
+      "nemesis": "Whoever pays less this time"
+    },
+    {
+      "name": "The Inkblood Market",
+      "concept": "Cross-border myth traffickers",
+      "skills": [
+        "Forgery",
+        "Persuasion"
+      ],
+      "frailties": [
+        "Addicted to rare knowledge"
+      ],
+      "gear": [
+        "Black ledger",
+        "scent-coded contracts"
+      ],
+      "goal": "Profit from unstable truths",
+      "motive": "Information is the only true currency",
+      "nemesis": "Whoever dares authenticate them"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Dr. Halima Qadir",
+      "concept": "Defector Archivist",
+      "skills": [
+        "Cryptohistory",
+        "Field Triage"
+      ],
+      "frailties": [
+        "Trusts the wrong people"
+      ],
+      "gear": [
+        "Smuggled ledger",
+        "coded field notes"
+      ],
+      "goal": "Leak the truth about a buried regime",
+      "motive": "Redemption through knowledge",
+      "nemesis": "The Vigilant Order"
+    },
+    {
+      "name": "Commander Barlow Vex",
+      "concept": "Blacksite Commander",
+      "skills": [
+        "Military Logistics",
+        "Intimidation"
+      ],
+      "frailties": [
+        "Addicted to control"
+      ],
+      "gear": [
+        "Prototype comms rig",
+        "encrypted orders"
+      ],
+      "goal": "Contain the anomaly under the capital",
+      "motive": "Career, legacy, fear",
+      "nemesis": "The Pale Chorus"
+    },
+    {
+      "name": "Sister Constance of the Vault",
+      "concept": "Occult Librarian in Exile",
+      "skills": [
+        "Esoteric Theology",
+        "Memory Reconstruction"
+      ],
+      "frailties": [
+        "Speaks only in riddles"
+      ],
+      "gear": [
+        "Collapsing prayer fan",
+        "toxin-proof vial"
+      ],
+      "goal": "Recover the Seventh Gospel",
+      "motive": "Faith in recursion",
+      "nemesis": "Calder’s Ghosts"
+    },
+    {
+      "name": "Lucien Marek",
+      "concept": "Disgraced Diplomatic Courier",
+      "skills": [
+        "High-Stakes Negotiation",
+        "Disguise"
+      ],
+      "frailties": [
+        "Blackmailed by multiple states"
+      ],
+      "gear": [
+        "Shifting passport",
+        "audio recorder"
+      ],
+      "goal": "Escape with one final secret intact",
+      "motive": "Survival, then revenge",
+      "nemesis": "Looking Glass Division"
+    },
+    {
+      "name": "Rafi Danvers",
+      "concept": "Underworld Arms Curator",
+      "skills": [
+        "Demolitions",
+        "Smuggling Logistics"
+      ],
+      "frailties": [
+        "Can’t say no to a doomed deal"
+      ],
+      "gear": [
+        "Custom toolkit",
+        "polylingual detonator"
+      ],
+      "goal": "Equip the rebels before the summit hits",
+      "motive": "Profit and past loyalties",
+      "nemesis": "Eighth Meridian"
+    },
+    {
+      "name": "Delphine Sujata",
+      "concept": "Myths-for-Hire Investigator",
+      "skills": [
+        "Lie Detection",
+        "Trap Navigation"
+      ],
+      "frailties": [
+        "Haunted by false memories"
+      ],
+      "gear": [
+        "Stylus-dagger",
+        "worn cassette recorder"
+      ],
+      "goal": "Find the original recording of a vanishing god",
+      "motive": "Obsession and erasure",
+      "nemesis": "Inkblood Market"
+    }
+  ],
+  "monsters": [
+    {
+      "name": "Delta-K Jackal",
+      "concept": "Engineered Tracking Beast",
+      "skills": [
+        "Thermal scent lock",
+        "pack coordination"
+      ],
+      "frailties": [
+        "Disoriented by loud noise"
+      ],
+      "gear": [
+        "Fiber-spliced fangs",
+        "shock-dampened paws"
+      ],
+      "goal": "Hunt a designated target",
+      "motive": "Conditioned loyalty",
+      "nemesis": "Handlers who’ve lost control"
+    },
+    {
+      "name": "Ridgeback Croc",
+      "concept": "Hyper-territorial River Predator",
+      "skills": [
+        "Camouflage",
+        "death-roll takedown"
+      ],
+      "frailties": [
+        "Slow on dry terrain"
+      ],
+      "gear": [
+        "Bone-crushing jaws",
+        "armored ridges"
+      ],
+      "goal": "Eliminate intruders",
+      "motive": "Territory instinct",
+      "nemesis": "Trappers, desperate locals"
+    },
+    {
+      "name": "The Marrowman",
+      "concept": "Disavowed Black-Ops Asset",
+      "skills": [
+        "Silent entry",
+        "off-grid survival"
+      ],
+      "frailties": [
+        "Memory collapse under stress"
+      ],
+      "gear": [
+        "Tactical bone knife",
+        "false ID cache"
+      ],
+      "goal": "Complete the contract",
+      "motive": "Unknown, possibly implanted",
+      "nemesis": "Rogue agencies"
+    },
+    {
+      "name": "Dune Syndicate Operative",
+      "concept": "Desert Smuggler & Fixer",
+      "skills": [
+        "Disguise",
+        "ambush"
+      ],
+      "frailties": [
+        "Hunted by former allies"
+      ],
+      "gear": [
+        "Scarf mask",
+        "silenced revolver"
+      ],
+      "goal": "Acquire artifact for client",
+      "motive": "Profit, protection, paranoia",
+      "nemesis": "Customs agents, rivals"
+    },
+    {
+      "name": "Vault-Eye Drone",
+      "concept": "Autonomous Survey Sentinel",
+      "skills": [
+        "Motion detection",
+        "non-lethal zaps"
+      ],
+      "frailties": [
+        "Vulnerable to EMP or water"
+      ],
+      "gear": [
+        "Steel shell",
+        "audio scanner array"
+      ],
+      "goal": "Monitor perimeter, sound alarm",
+      "motive": "Failsafe loop, old program still running",
+      "nemesis": "Tinkerers, saboteurs"
+    },
+    {
+      "name": "The Weeper",
+      "concept": "Time-lost Anomaly",
+      "skills": [
+        "Withering aura",
+        "prophetic whispers"
+      ],
+      "frailties": [
+        "Bound to a forgotten calendar"
+      ],
+      "gear": [
+        "Stone mask",
+        "rusted medallion"
+      ],
+      "goal": "Warn, mislead, or punish",
+      "motive": "Unknown — possibly fractured memory",
+      "nemesis": "Silence, salt, sunrise"
+    }
+  ],
+  "twist_subjects": null,
+  "twist_actions": null
+}

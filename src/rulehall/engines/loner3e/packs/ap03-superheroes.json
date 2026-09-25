@@ -1,0 +1,1293 @@
+{
+  "name": "AP03 Superheroes",
+  "source": "https://lonersrd.zotiquestgames.com/adventure_packs/AP03_superheroes.html",
+  "license": "Adventure Pack 03: Superheroes, Loner SRD site (CC BY-SA 4.0), (c) Roberto Bisceglie / Zotiquest Games",
+  "backdrop": "The world is shaped by the presence of individuals known as *supers*, *metahumans*, and *vigilantes*—those born, changed, enhanced, or cursed with abilities that defy known science or logic.\nThe timeline is the present day, but history diverged long ago. Superhuman incidents have left scars on the world: collapsed cities, erased timelines, and buried truths governments won't admit to.\nLocations range from towering neon-lit supercities and crumbling neighborhoods abandoned after metahuman conflicts, to secret labs beneath the ice, interdimensional echoes of past events, and fortress-prisons in orbit.\nSociety is fractured by the superhuman question. Some idolize heroes; others demand registration, regulation, or exile. Legislation like the *Metahuman Registration Act* or *Zero Tolerance Zones* reflect the ongoing tension between freedom and control.\nSupers are not new. This is a world with generational heroes and legacies—golden-age icons now in decline, second-generation proteges under pressure, and outlawed third-generation metahumans born after catastrophic events.\nKey themes include:\n**The burden of power** — What do you owe the world just because you're stronger?\n**Public masks vs. private cost** — The hero’s image is curated; the toll is personal.\n**Control and rebellion** — Who decides how power should be used?\n**Broken legacies** — What if the past heroes were wrong? What if you're their mistake?\n**The myth of justice** — What justice means in a world of secret wars, corporate heroes, and propaganda is up for debate.",
+  "names": {
+    "female": [
+      "Liana",
+      "Morgan",
+      "Ayla",
+      "Bianca",
+      "Zaira",
+      "Indigo",
+      "Elise",
+      "Nova",
+      "Juno",
+      "Rhea",
+      "Harper",
+      "Solene",
+      "Kaia",
+      "Mira",
+      "Nessa",
+      "Dahlia",
+      "Ivy",
+      "Kira",
+      "Talia",
+      "Yara",
+      "Celine",
+      "Ember",
+      "Sienna",
+      "Ren",
+      "Freya",
+      "Lucia",
+      "Amani",
+      "Raven",
+      "Opal",
+      "Quinn",
+      "Veda",
+      "Zinnia",
+      "Elara",
+      "Lux",
+      "Astrid",
+      "Maren"
+    ],
+    "male": [
+      "Cassian",
+      "Leo",
+      "Orion",
+      "Elias",
+      "Zane",
+      "Milo",
+      "Dorian",
+      "Jett",
+      "Rami",
+      "Thorne",
+      "Ezra",
+      "Silas",
+      "Arlo",
+      "Keon",
+      "Nico",
+      "Beck",
+      "Idris",
+      "Kade",
+      "Lucian",
+      "Rowan",
+      "Theo",
+      "Dante",
+      "Pax",
+      "Griffin",
+      "Maddox",
+      "Evren",
+      "Cael",
+      "Bram",
+      "Jalen",
+      "Callum",
+      "Knox",
+      "Flynn",
+      "Eero",
+      "Remy",
+      "Jace",
+      "Atlas"
+    ],
+    "neutral": [],
+    "surnames": [
+      "Drake",
+      "Vale",
+      "Mercer",
+      "Quinnell",
+      "Harlow",
+      "Corbin",
+      "Stroud",
+      "Ainsley",
+      "Calder",
+      "Voss",
+      "Radnor",
+      "Hollis",
+      "Wren",
+      "Thorn",
+      "Ellison",
+      "Marlowe",
+      "Trent",
+      "Davenhall",
+      "Blackwell",
+      "Sable",
+      "Croft",
+      "Kestrel",
+      "Nightmoor",
+      "Fenwick",
+      "Easton",
+      "Rourke",
+      "Ashland",
+      "Veridian",
+      "Myles",
+      "Falk",
+      "Lockridge",
+      "Sterling",
+      "Blaise",
+      "Virelli",
+      "Ambrose",
+      "Talbot"
+    ],
+    "nicknames": [
+      "Nightwave",
+      "Emberstrike",
+      "Iron Halo",
+      "Vortex Agent",
+      "Pulsecore",
+      "Aeon Sentinel",
+      "Shadowline",
+      "Prism Shard",
+      "Skyward",
+      "Phasebound",
+      "Kinetic Nova",
+      "Blue Eidolon",
+      "Obsidian Hex",
+      "The Ghostlight",
+      "Rift Runner",
+      "Quantum Blade",
+      "Static Crown",
+      "Lucent Warden",
+      "Velvet Fang",
+      "Neon Prophet",
+      "Warp Talon",
+      "Arclight",
+      "Storm Herald",
+      "Pale Cipher",
+      "Mirage Zero",
+      "Coldwire",
+      "Flux Driver",
+      "Radiant Howl",
+      "Crimson Verge",
+      "The Infinite",
+      "Zero Signal",
+      "Hollow Saint",
+      "Cascade",
+      "Glitch Agent",
+      "Gravity Rush",
+      "Phantom Orbit"
+    ]
+  },
+  "rules": "> *\"With great power comes great complication.\"* — Every action has weight in a world shaped by supers. These special rules reflect the dramatic highs, brutal costs, and cinematic moments that define solo superhero stories.\n\nSignature Power Surge:\n\nOnce per mission, when the protagonist uses a **signature power** in a context where it would dramatically shift the scene, you may declare a **Power Surge**.\n- Skip the Oracle entirely. The result is an automatic **“Yes, and…”**, narrated as a flashy, awe-inspiring moment.\n- Afterward, the protagonist gains the **“Drained”** condition until they can rest or recover.\n\n> *Example: The Tempest channels a city-wide storm to disable a fleet of drones. Power Surge activated — drones down in a flash, but he's left reeling, off-balance, and vulnerable.*\n\nHero Points:\n\nThe protagonist begins each adventure with **3 Hero Points**. These represent not just luck, but *willpower, improvisation, and the unstoppable drive to do what’s right*.\n\nYou may spend 1 Hero Point to:\n- **Re-roll** an unfavorable result.\n- **Ask a question with advantage**, even when normally rolling at a disadvantage.\n- **Ignore a frailty or condition** for one scene.\n- **Stagger dramatically instead of falling** when a twist or failure would otherwise remove you from action.\n\nHero Points **refresh at the start of a new adventure** or after a scene of deep rest, healing, or personal reconnection (even a dramatic rooftop monologue will do).\n\nPublic Perception:\n\nSuperheroes live under scrutiny. At the end of key scenes, you may roll 1d6 to check how your recent actions shifted public opinion. This affects future events, opportunities, and even Oracle rolls involving civilians or institutions.\n\n- 1: Fear and backlash\n- 2–3: Mistrust and uncertainty\n- 4–5: Supportive but divided\n- 6: Celebrated and admired\n\nYou may optionally track **Reputation** as a tag that changes over time.\n\nCollateral Tags:\n\nDuring dramatic or large-scale scenes, introduce **Collateral Tags** to locations or situations that reflect unintended consequences of superhuman actions.\nThese can then be used as **risk factors**, **story prompts**, or **scene complications**.\n\n> *Examples: “Downtown in Rubble,” “Citizens Trapped in Fire,” “News Drone Watching,” “Power Grid Unstable.”*",
+  "locations": [
+    {
+      "name": "Metropia",
+      "brief": "A vertical megacity of neon spires and forgotten streets, torn between corporate heroes, rogue vigilantes, and rebel factions.",
+      "encounters": "Drone swarm hijacks a rooftop chase; Protest escalates after metahuman interference; Superteam caught pushing their own energy drink"
+    },
+    {
+      "name": "Jiston City",
+      "brief": "Cracked concrete and rusting skylines. Retired villains play kingmakers while outlaw tech floods the black market.",
+      "encounters": "Black market auction for seized superweapons; Cage fight between washed-up sidekicks; Gang war crashes into suburbia"
+    },
+    {
+      "name": "Central City",
+      "brief": "Clean suits and camera flashes. A bright surface over deep cracks.",
+      "encounters": "Fundraiser ambushed on live TV; Hero scandal sparks viral fallout; Tourist from a parallel timeline drops in"
+    },
+    {
+      "name": "The Harmony Post",
+      "brief": "Media monolith and damage control empire. Sells truth with one hand, buries it with the other.",
+      "encounters": "Whistleblower hiding in the datacore; Rogue AI reporter breaks containment; Broadcast countdown targeting your past"
+    },
+    {
+      "name": "Vortex Island",
+      "brief": "Orbital guns, time-locked walls, and locked-down truths. The Concord’s crown jewel.",
+      "encounters": "Cell Zero breach during a peace summit; Clone flagged mid-training; Psychic sweep uncovers buried memories"
+    },
+    {
+      "name": "Crimson Castle",
+      "brief": "Baroque school for unstable powers. Red Crane vanished years ago—but her eyes might still be watching.",
+      "encounters": "Forbidden wing reopens; Sudden, catastrophic mutation; Rival school launches covert extraction"
+    }
+  ],
+  "seeds": [
+    "Intercept a distress signal from a quarantined exoplanet before a rogue faction silences it permanently.",
+    "Recover a reality-splitting artifact from a buried temple before Obsidian Pact cultists activate it.",
+    "Defend a mutant enclave from extremist exosuits before the Crimson Castle loses its last ally.",
+    "Infiltrate a hijacked Metropia broadcast tower before the villains release a hypnotic virus.",
+    "Repel a coordinated assault on the skyline by the Annihilators before the city’s power grid collapses.",
+    "Extract a kidnapped tech pioneer from a data-blackout zone before Supervillains United rewrite their mind.",
+    "Evacuate Jiston’s old quarter before a kaiju-class bioform devours its energy infrastructure.",
+    "Track an uncharted power signal to a lifeless planet before it vanishes between dimensions.",
+    "Neutralize a volatile new superhuman before their rage levels an entire neighborhood.",
+    "Stop a villain’s ultimatum before a kinetic warhead detonation resets downtown.",
+    "Investigate a string of vanishings tied to mirror anomalies before the city’s people vanish with them.",
+    "Interrupt a metahuman heist on a fusion vault before the chain reaction ignites the undercity.",
+    "Intercept a rogue operative fleeing Concord custody with classified god-tech schematics.",
+    "Prevent a full-scale alien incursion through a breached dimensional fold near the coast.",
+    "Infiltrate a skyscraper under hostage lockdown before the villain’s demands spark panic.",
+    "Disrupt a corporate infiltration by villains posing as employees before they vanish with prototype tech.",
+    "Confront a chaos-mongering newcomer calling themselves The Annihilator before their next strike.",
+    "Uncover the location of kidnapped mutant leaders before their DNA is sold to weapon labs.",
+    "Disarm a world-ending device created by Dr. X before it completes its autonomous sequence.",
+    "Push back against a villain coalition claiming Jiston as a new sovereign city-state.",
+    "Stop a shadow-syndicate heist before they loot a vault of anti-super serums.",
+    "Aid overwhelmed Jiston PD before the criminal element takes full control.",
+    "Destroy a shipment of experimental street-drug Super Juice before it destabilizes Metropia.",
+    "Divert a rampaging kaiju into containment before it breaches Metropia’s arcology walls.",
+    "Unmask a legendary villain operating under the alias ‘The Shadow’ before their next strike.",
+    "Retrieve stolen intel from Vortex Island’s core vault before it leaks to hostile factions.",
+    "Rescue a captured young mutant before the extremists finalize a televised execution.",
+    "Defend Crimson Castle from mercenaries before they breach the Zero-Level vault.",
+    "Lead evacuation efforts during a continent-scale superstorm before civilian losses spike.",
+    "Free hostages trapped in a collapsing high-rise before its quantum reactor fails.",
+    "Expose the true identity of ‘The Conductor’ before they trigger a city-wide blackout ritual.",
+    "Dismantle The Tempest’s totalitarian hold over Jiston before their weather net becomes permanent.",
+    "Recover a powerful relic hidden in Central City before warring factions tear the district apart.",
+    "Gather damning proof from Harmony Post archives before the conspiracy wipes the records clean.",
+    "Defend Vortex Island from alien invaders seeking a relic stored in its ancient sublevels.",
+    "Thwart an anti-mutant infiltration of Crimson Castle before it ends in mass detainment."
+  ],
+  "concepts": [
+    {
+      "id": "washed-up-icon",
+      "name": "Washed-Up Icon",
+      "brief": ""
+    },
+    {
+      "id": "street-level-vigilante",
+      "name": "Street-Level Vigilante",
+      "brief": ""
+    },
+    {
+      "id": "rogue-experiment",
+      "name": "Rogue Experiment",
+      "brief": ""
+    },
+    {
+      "id": "secret-heir",
+      "name": "Secret Heir",
+      "brief": ""
+    },
+    {
+      "id": "reality-bent-outcast",
+      "name": "Reality-Bent Outcast",
+      "brief": ""
+    },
+    {
+      "id": "blue-collar-brawler",
+      "name": "Blue-Collar Brawler",
+      "brief": ""
+    },
+    {
+      "id": "interdimensional-orphan",
+      "name": "Interdimensional Orphan",
+      "brief": ""
+    },
+    {
+      "id": "meme-fueled-influencer",
+      "name": "Meme-Fueled Influencer",
+      "brief": ""
+    },
+    {
+      "id": "bio-enhanced-animal",
+      "name": "Bio-Enhanced Animal",
+      "brief": ""
+    },
+    {
+      "id": "techno-retro-defender",
+      "name": "Techno-Retro Defender",
+      "brief": ""
+    },
+    {
+      "id": "grieving-legacy-holder",
+      "name": "Grieving Legacy Holder",
+      "brief": ""
+    },
+    {
+      "id": "reckless-energy-core",
+      "name": "Reckless Energy Core",
+      "brief": ""
+    },
+    {
+      "id": "corporate-mascot",
+      "name": "Corporate Mascot",
+      "brief": ""
+    },
+    {
+      "id": "disaster-survivor",
+      "name": "Disaster Survivor",
+      "brief": ""
+    },
+    {
+      "id": "espionage-prototype",
+      "name": "Espionage Prototype",
+      "brief": ""
+    },
+    {
+      "id": "awakened-civilian",
+      "name": "Awakened Civilian",
+      "brief": ""
+    },
+    {
+      "id": "haunted-time-refugee",
+      "name": "Haunted Time Refugee",
+      "brief": ""
+    },
+    {
+      "id": "cosmic-horror-symbiote",
+      "name": "Cosmic Horror Symbiote",
+      "brief": ""
+    },
+    {
+      "id": "utopian-defector",
+      "name": "Utopian Defector",
+      "brief": ""
+    },
+    {
+      "id": "nanotech-preacher",
+      "name": "Nanotech Preacher",
+      "brief": ""
+    },
+    {
+      "id": "rehabilitated-villain",
+      "name": "Rehabilitated Villain",
+      "brief": ""
+    },
+    {
+      "id": "post-human-idealist",
+      "name": "Post-Human Idealist",
+      "brief": ""
+    },
+    {
+      "id": "ai-human-hybrid",
+      "name": "AI-Human Hybrid",
+      "brief": ""
+    },
+    {
+      "id": "dimensional-janitor",
+      "name": "Dimensional Janitor",
+      "brief": ""
+    },
+    {
+      "id": "cursed-maskbearer",
+      "name": "Cursed Maskbearer",
+      "brief": ""
+    },
+    {
+      "id": "weaponized-media-star",
+      "name": "Weaponized Media Star",
+      "brief": ""
+    },
+    {
+      "id": "psychic-underground-rebel",
+      "name": "Psychic Underground Rebel",
+      "brief": ""
+    },
+    {
+      "id": "forgotten-sidekick",
+      "name": "Forgotten Sidekick",
+      "brief": ""
+    },
+    {
+      "id": "living-conspiracy",
+      "name": "Living Conspiracy",
+      "brief": ""
+    },
+    {
+      "id": "oathbound-warrior-monk",
+      "name": "Oathbound Warrior Monk",
+      "brief": ""
+    },
+    {
+      "id": "climate-crisis-responder",
+      "name": "Climate Crisis Responder",
+      "brief": ""
+    },
+    {
+      "id": "urban-myth-embodiment",
+      "name": "Urban Myth Embodiment",
+      "brief": ""
+    },
+    {
+      "id": "experimental-pacifist",
+      "name": "Experimental Pacifist",
+      "brief": ""
+    },
+    {
+      "id": "nightwatch-volunteer",
+      "name": "Nightwatch Volunteer",
+      "brief": ""
+    },
+    {
+      "id": "fractured-clone",
+      "name": "Fractured Clone",
+      "brief": ""
+    },
+    {
+      "id": "faceless-doppelganger",
+      "name": "Faceless Doppelgänger",
+      "brief": ""
+    }
+  ],
+  "skills": [
+    {
+      "id": "gravity-disruption",
+      "name": "Gravity Disruption",
+      "brief": ""
+    },
+    {
+      "id": "kinetic-deflection",
+      "name": "Kinetic Deflection",
+      "brief": ""
+    },
+    {
+      "id": "organic-camouflage",
+      "name": "Organic Camouflage",
+      "brief": ""
+    },
+    {
+      "id": "dimensional-blink",
+      "name": "Dimensional Blink",
+      "brief": ""
+    },
+    {
+      "id": "illusion-weaving",
+      "name": "Illusion Weaving",
+      "brief": ""
+    },
+    {
+      "id": "tactical-microdrone-control",
+      "name": "Tactical Microdrone Control",
+      "brief": ""
+    },
+    {
+      "id": "public-manipulation",
+      "name": "Public Manipulation",
+      "brief": ""
+    },
+    {
+      "id": "phase-shifting",
+      "name": "Phase Shifting",
+      "brief": ""
+    },
+    {
+      "id": "time-lag-acceleration",
+      "name": "Time Lag Acceleration",
+      "brief": ""
+    },
+    {
+      "id": "urban-terrain-mastery",
+      "name": "Urban Terrain Mastery",
+      "brief": ""
+    },
+    {
+      "id": "emotion-reading",
+      "name": "Emotion Reading",
+      "brief": ""
+    },
+    {
+      "id": "memory-invasion",
+      "name": "Memory Invasion",
+      "brief": ""
+    },
+    {
+      "id": "energy-tethering",
+      "name": "Energy Tethering",
+      "brief": ""
+    },
+    {
+      "id": "hexcode-hacking",
+      "name": "Hexcode Hacking",
+      "brief": ""
+    },
+    {
+      "id": "bioelectric-overload",
+      "name": "Bioelectric Overload",
+      "brief": ""
+    },
+    {
+      "id": "super-sense-network",
+      "name": "Super-Sense Network",
+      "brief": ""
+    },
+    {
+      "id": "adaptive-counterattack",
+      "name": "Adaptive Counterattack",
+      "brief": ""
+    },
+    {
+      "id": "nightmare-projection",
+      "name": "Nightmare Projection",
+      "brief": ""
+    },
+    {
+      "id": "crowd-control",
+      "name": "Crowd Control",
+      "brief": ""
+    },
+    {
+      "id": "construct-generation",
+      "name": "Construct Generation",
+      "brief": ""
+    },
+    {
+      "id": "quantum-echo-tracking",
+      "name": "Quantum Echo Tracking",
+      "brief": ""
+    },
+    {
+      "id": "power-channeling",
+      "name": "Power Channeling",
+      "brief": ""
+    },
+    {
+      "id": "sonic-barrier-generation",
+      "name": "Sonic Barrier Generation",
+      "brief": ""
+    },
+    {
+      "id": "reality-anchoring",
+      "name": "Reality Anchoring",
+      "brief": ""
+    },
+    {
+      "id": "ghost-negotiation",
+      "name": "Ghost Negotiation",
+      "brief": ""
+    },
+    {
+      "id": "mass-hypnosis",
+      "name": "Mass Hypnosis",
+      "brief": ""
+    },
+    {
+      "id": "symbiotic-command",
+      "name": "Symbiotic Command",
+      "brief": ""
+    },
+    {
+      "id": "remote-tech-hijack",
+      "name": "Remote Tech Hijack",
+      "brief": ""
+    },
+    {
+      "id": "mutagenic-synthesis",
+      "name": "Mutagenic Synthesis",
+      "brief": ""
+    },
+    {
+      "id": "neural-firewall-evasion",
+      "name": "Neural Firewall Evasion",
+      "brief": ""
+    },
+    {
+      "id": "immunity-override",
+      "name": "Immunity Override",
+      "brief": ""
+    },
+    {
+      "id": "satellite-warfare",
+      "name": "Satellite Warfare",
+      "brief": ""
+    },
+    {
+      "id": "precise-recall",
+      "name": "Precise Recall",
+      "brief": ""
+    },
+    {
+      "id": "ambush-optimization",
+      "name": "Ambush Optimization",
+      "brief": ""
+    },
+    {
+      "id": "surveillance-jamming",
+      "name": "Surveillance Jamming",
+      "brief": ""
+    },
+    {
+      "id": "anti-magic-instinct",
+      "name": "Anti-Magic Instinct",
+      "brief": ""
+    }
+  ],
+  "frailties": [
+    {
+      "id": "glitches-when-observed",
+      "name": "Glitches When Observed",
+      "brief": ""
+    },
+    {
+      "id": "overreactive-biotech",
+      "name": "Overreactive Biotech",
+      "brief": ""
+    },
+    {
+      "id": "symptom-triggered-collapse",
+      "name": "Symptom-Triggered Collapse",
+      "brief": ""
+    },
+    {
+      "id": "unstable-dimensional-anchor",
+      "name": "Unstable Dimensional Anchor",
+      "brief": ""
+    },
+    {
+      "id": "weak-to-emotional-feedback",
+      "name": "Weak to Emotional Feedback",
+      "brief": ""
+    },
+    {
+      "id": "detachment-from-linear-time",
+      "name": "Detachment from Linear Time",
+      "brief": ""
+    },
+    {
+      "id": "feeds-on-attention",
+      "name": "Feeds on Attention",
+      "brief": ""
+    },
+    {
+      "id": "haunted-by-unlived-futures",
+      "name": "Haunted by Unlived Futures",
+      "brief": ""
+    },
+    {
+      "id": "emotionally-mirrored-powers",
+      "name": "Emotionally Mirrored Powers",
+      "brief": ""
+    },
+    {
+      "id": "cannot-perceive-lies",
+      "name": "Cannot Perceive Lies",
+      "brief": ""
+    },
+    {
+      "id": "system-reboots-under-stress",
+      "name": "System Reboots Under Stress",
+      "brief": ""
+    },
+    {
+      "id": "craving-for-forgotten-identity",
+      "name": "Craving for Forgotten Identity",
+      "brief": ""
+    },
+    {
+      "id": "inverted-moral-compass",
+      "name": "Inverted Moral Compass",
+      "brief": ""
+    },
+    {
+      "id": "controlled-by-crowd-mood",
+      "name": "Controlled by Crowd Mood",
+      "brief": ""
+    },
+    {
+      "id": "delusions-of-past-self",
+      "name": "Delusions of Past Self",
+      "brief": ""
+    },
+    {
+      "id": "needs-recharging-via-conflict",
+      "name": "Needs Recharging via Conflict",
+      "brief": ""
+    },
+    {
+      "id": "slips-between-personalities",
+      "name": "Slips Between Personalities",
+      "brief": ""
+    },
+    {
+      "id": "cannot-cross-water",
+      "name": "Cannot Cross Water",
+      "brief": ""
+    },
+    {
+      "id": "exposed-in-the-sunlight",
+      "name": "Exposed in the Sunlight",
+      "brief": ""
+    },
+    {
+      "id": "drawn-to-cosmic-anomalies",
+      "name": "Drawn to Cosmic Anomalies",
+      "brief": ""
+    },
+    {
+      "id": "reliant-on-external-signal",
+      "name": "Reliant on External Signal",
+      "brief": ""
+    },
+    {
+      "id": "allergy-to-natural-materials",
+      "name": "Allergy to Natural Materials",
+      "brief": ""
+    },
+    {
+      "id": "lost-sense-of-touch",
+      "name": "Lost Sense of Touch",
+      "brief": ""
+    },
+    {
+      "id": "bound-by-ritual-protocol",
+      "name": "Bound by Ritual Protocol",
+      "brief": ""
+    },
+    {
+      "id": "lives-a-repeating-day",
+      "name": "Lives a Repeating Day",
+      "brief": ""
+    },
+    {
+      "id": "echoes-alternate-versions",
+      "name": "Echoes Alternate Versions",
+      "brief": ""
+    },
+    {
+      "id": "terminal-nostalgia",
+      "name": "Terminal Nostalgia",
+      "brief": ""
+    },
+    {
+      "id": "empathy-override-syndrome",
+      "name": "Empathy Override Syndrome",
+      "brief": ""
+    },
+    {
+      "id": "sound-sensitivity-overload",
+      "name": "Sound Sensitivity Overload",
+      "brief": ""
+    },
+    {
+      "id": "phantom-limb-feedback",
+      "name": "Phantom Limb Feedback",
+      "brief": ""
+    },
+    {
+      "id": "addicted-to-heroism",
+      "name": "Addicted to Heroism",
+      "brief": ""
+    },
+    {
+      "id": "believes-they-re-fictional",
+      "name": "Believes They’re Fictional",
+      "brief": ""
+    },
+    {
+      "id": "power-swaps-when-stressed",
+      "name": "Power Swaps When Stressed",
+      "brief": ""
+    },
+    {
+      "id": "degeneration-trigger-memory",
+      "name": "Degeneration Trigger Memory",
+      "brief": ""
+    },
+    {
+      "id": "hunted-by-own-future-self",
+      "name": "Hunted by Own Future Self",
+      "brief": ""
+    },
+    {
+      "id": "randomized-vocal-output",
+      "name": "Randomized Vocal Output",
+      "brief": ""
+    }
+  ],
+  "gear": [
+    {
+      "id": "reprogrammable-super-suit",
+      "name": "Reprogrammable Super Suit",
+      "brief": ""
+    },
+    {
+      "id": "memory-spliced-identity-card",
+      "name": "Memory-Spliced Identity Card",
+      "brief": ""
+    },
+    {
+      "id": "adaptive-nanite-swarm-capsule",
+      "name": "Adaptive Nanite Swarm Capsule",
+      "brief": ""
+    },
+    {
+      "id": "temporal-anchor-ring",
+      "name": "Temporal Anchor Ring",
+      "brief": ""
+    },
+    {
+      "id": "pocket-rift-generator",
+      "name": "Pocket Rift Generator",
+      "brief": ""
+    },
+    {
+      "id": "modular-civic-armor",
+      "name": "Modular Civic Armor",
+      "brief": ""
+    },
+    {
+      "id": "neural-spike-glasses",
+      "name": "Neural Spike Glasses",
+      "brief": ""
+    },
+    {
+      "id": "sentient-cloak",
+      "name": "Sentient Cloak",
+      "brief": ""
+    },
+    {
+      "id": "subdermal-recorder-grid",
+      "name": "Subdermal Recorder Grid",
+      "brief": ""
+    },
+    {
+      "id": "beacon-blade",
+      "name": "Beacon Blade",
+      "brief": ""
+    },
+    {
+      "id": "causality-disruptor-beacon",
+      "name": "Causality Disruptor Beacon",
+      "brief": ""
+    },
+    {
+      "id": "hollow-voice-communicator",
+      "name": "Hollow Voice Communicator",
+      "brief": ""
+    },
+    {
+      "id": "ghost-signal-emitter",
+      "name": "Ghost-Signal Emitter",
+      "brief": ""
+    },
+    {
+      "id": "portable-personal-archive",
+      "name": "Portable Personal Archive",
+      "brief": ""
+    },
+    {
+      "id": "mind-link-transmitter",
+      "name": "Mind-Link Transmitter",
+      "brief": ""
+    },
+    {
+      "id": "pain-filtering-skin-layer",
+      "name": "Pain-Filtering Skin Layer",
+      "brief": ""
+    },
+    {
+      "id": "hybrid-cloaking-core",
+      "name": "Hybrid Cloaking Core",
+      "brief": ""
+    },
+    {
+      "id": "quantum-spliced-gloves",
+      "name": "Quantum-Spliced Gloves",
+      "brief": ""
+    },
+    {
+      "id": "corp-spoof-id-implant",
+      "name": "Corp-Spoof ID Implant",
+      "brief": ""
+    },
+    {
+      "id": "dreamscape-tether",
+      "name": "Dreamscape Tether",
+      "brief": ""
+    },
+    {
+      "id": "morphogenic-travel-rig",
+      "name": "Morphogenic Travel Rig",
+      "brief": ""
+    },
+    {
+      "id": "superconductive-battle-wrap",
+      "name": "Superconductive Battle Wrap",
+      "brief": ""
+    },
+    {
+      "id": "anti-tracking-glitch-field",
+      "name": "Anti-Tracking Glitch Field",
+      "brief": ""
+    },
+    {
+      "id": "dimensional-barometer",
+      "name": "Dimensional Barometer",
+      "brief": ""
+    },
+    {
+      "id": "emotion-stabilizer-beads",
+      "name": "Emotion Stabilizer Beads",
+      "brief": ""
+    },
+    {
+      "id": "broadcast-override-injector",
+      "name": "Broadcast Override Injector",
+      "brief": ""
+    },
+    {
+      "id": "external-memory-back-up-node",
+      "name": "External Memory Back-up Node",
+      "brief": ""
+    },
+    {
+      "id": "hyperspectral-night-lens",
+      "name": "Hyperspectral Night Lens",
+      "brief": ""
+    },
+    {
+      "id": "crisis-mode-wristband",
+      "name": "Crisis Mode Wristband",
+      "brief": ""
+    },
+    {
+      "id": "codex-of-forgotten-protocols",
+      "name": "Codex of Forgotten Protocols",
+      "brief": ""
+    },
+    {
+      "id": "reflex-loop-shoes",
+      "name": "Reflex-Loop Shoes",
+      "brief": ""
+    },
+    {
+      "id": "holographic-doppel-coin",
+      "name": "Holographic Doppel Coin",
+      "brief": ""
+    },
+    {
+      "id": "telepresence-proxy-drone",
+      "name": "Telepresence Proxy Drone",
+      "brief": ""
+    },
+    {
+      "id": "old-school-radio-uplink",
+      "name": "Old-School Radio Uplink",
+      "brief": ""
+    },
+    {
+      "id": "blackbox-recorder-skullcap",
+      "name": "Blackbox Recorder Skullcap",
+      "brief": ""
+    },
+    {
+      "id": "portable-mutation-syringe",
+      "name": "Portable Mutation Syringe",
+      "brief": ""
+    }
+  ],
+  "spends_luck": false,
+  "factions": [
+    {
+      "name": "The Concord",
+      "concept": "Global Superhero Authority",
+      "skills": [
+        "Crisis Oversight",
+        "Diplomatic Immunity"
+      ],
+      "frailties": [
+        "Political Compromise"
+      ],
+      "gear": [
+        "Orbital Surveillance Net",
+        "Clearance Tokens"
+      ],
+      "goal": "Prevent metahuman escalation",
+      "motive": "Stability over idealism",
+      "nemesis": "Red Echo, The Hollow Vault"
+    },
+    {
+      "name": "Red Echo",
+      "concept": "Exposed-Truth Insurgents",
+      "skills": [
+        "Subversion",
+        "Espionage"
+      ],
+      "frailties": [
+        "Hunted by all sides"
+      ],
+      "gear": [
+        "Signal Cloaks",
+        "Cutline Blades"
+      ],
+      "goal": "Expose hidden crimes",
+      "motive": "Unmask the system",
+      "nemesis": "The Concord, Obsidian Pact"
+    },
+    {
+      "name": "Generation Nova",
+      "concept": "Influencer Supers",
+      "skills": [
+        "Crowd Control",
+        "Improvised Action"
+      ],
+      "frailties": [
+        "Addicted to approval"
+      ],
+      "gear": [
+        "Reactive Battlewear",
+        "Media Drone Swarms"
+      ],
+      "goal": "Stay relevant, look good",
+      "motive": "Fame and validation",
+      "nemesis": "The Gutter Saints, The Obsidian Pact"
+    },
+    {
+      "name": "The Obsidian Pact",
+      "concept": "Reality-Bending Extremists",
+      "skills": [
+        "Arcane-Scientific Hybridization",
+        "Indoctrination"
+      ],
+      "frailties": [
+        "Fragmented minds"
+      ],
+      "gear": [
+        "Flesh Sigils",
+        "Entropic Vials"
+      ],
+      "goal": "Evolve or perish",
+      "motive": "Break natural order",
+      "nemesis": "Generation Nova, Red Echo"
+    },
+    {
+      "name": "The Hollow Vault",
+      "concept": "Anomaly Containment Authority",
+      "skills": [
+        "Neutralization",
+        "Memory Extraction"
+      ],
+      "frailties": [
+        "Internal schisms"
+      ],
+      "gear": [
+        "Phase Seals",
+        "Nullfield Nodes"
+      ],
+      "goal": "Erase existential threats",
+      "motive": "Control through erasure",
+      "nemesis": "The Concord, Red Echo"
+    },
+    {
+      "name": "The Gutter Saints",
+      "concept": "Street-Level Enforcers",
+      "skills": [
+        "Ambush Tactics",
+        "Resource Scavenging"
+      ],
+      "frailties": [
+        "No official support"
+      ],
+      "gear": [
+        "Makeshift Enhancers",
+        "Tactical Smoke Lures"
+      ],
+      "goal": "Protect the abandoned",
+      "motive": "Justice without permission",
+      "nemesis": "Generation Nova, Obsidian Pact"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Captain Nova",
+      "concept": "Exiled Cosmic Warden",
+      "skills": [
+        "Starfield Command",
+        "Stellar Navigation"
+      ],
+      "frailties": [
+        "Temporal Displacement"
+      ],
+      "gear": [
+        "Nova Helm Core",
+        "Graviton Pulse Blade"
+      ],
+      "goal": "Return what was lost beyond the veil",
+      "motive": "Atonement for a vanished planet",
+      "nemesis": "Starblight, Null-King"
+    },
+    {
+      "name": "Crimson Crusader",
+      "concept": "Billionaire Mask with a Messiah Complex",
+      "skills": [
+        "Corporate Warfare",
+        "Tactical Oversight"
+      ],
+      "frailties": [
+        "Terminal Ego"
+      ],
+      "gear": [
+        "High-Capital Exosuit",
+        "Surveillance Ring"
+      ],
+      "goal": "Control the city through heroism",
+      "motive": "Power disguised as philanthropy",
+      "nemesis": "The Baron, Blackout"
+    },
+    {
+      "name": "The Shadow",
+      "concept": "Legacy Wraith Vigilante",
+      "skills": [
+        "Urban Tracking",
+        "Intimidation"
+      ],
+      "frailties": [
+        "Splintered Persona"
+      ],
+      "gear": [
+        "Obsidian Mesh",
+        "Whisper Blade"
+      ],
+      "goal": "Expose systemic corruption",
+      "motive": "Fulfilling an inherited vendetta",
+      "nemesis": "The Wraith, Echo-Twin"
+    },
+    {
+      "name": "Brainiac",
+      "concept": "Hyperintelligent Posthuman",
+      "skills": [
+        "Synaptic Optimization",
+        "Predictive Systems"
+      ],
+      "frailties": [
+        "Empathic Nullity"
+      ],
+      "gear": [
+        "Neural Crown",
+        "Auto-Assembler Swarm"
+      ],
+      "goal": "Restructure civilization from first principles",
+      "motive": "Logic above law",
+      "nemesis": "The Mad Architect, Prime Spiral"
+    },
+    {
+      "name": "The Tempest",
+      "concept": "Weather-Torn Avatar",
+      "skills": [
+        "Atmospheric Domination",
+        "Shockwave Tactics"
+      ],
+      "frailties": [
+        "Emotional Feedback Loop"
+      ],
+      "gear": [
+        "Cloudskin Armor",
+        "Storm Anchor"
+      ],
+      "goal": "End climate weaponization",
+      "motive": "Rage as a renewable force",
+      "nemesis": "The Storm King, Tempestuous Clone"
+    },
+    {
+      "name": "The Phoenix",
+      "concept": "Rebirth Cycle Mutant",
+      "skills": [
+        "Pyrokinetic Resurrection",
+        "Aerial Supremacy"
+      ],
+      "frailties": [
+        "Memory Decay with Each Death"
+      ],
+      "gear": [
+        "Flamewake Gauntlets",
+        "Ember Halo"
+      ],
+      "goal": "Break their resurrection curse",
+      "motive": "To finally rest",
+      "nemesis": "The Blaze, Flicker Shade"
+    }
+  ],
+  "monsters": [
+    {
+      "name": "The Disintegrator",
+      "concept": "Power-Addicted Supremacist",
+      "skills": [
+        "Molecular Unbinding",
+        "Tactical Brutality"
+      ],
+      "frailties": [
+        "Cannot Moderate Output"
+      ],
+      "gear": [
+        "Voidpulse Gauntlet",
+        "Resonant Harness"
+      ],
+      "goal": "Erase all rivals from existence",
+      "motive": "To be feared across history",
+      "nemesis": "The Concord"
+    },
+    {
+      "name": "Mindbender",
+      "concept": "Broken Psychic Ascendant",
+      "skills": [
+        "Neural Overload",
+        "Mass Hallucination"
+      ],
+      "frailties": [
+        "Fractured Memory Web"
+      ],
+      "gear": [
+        "Ego Amplifier Crown",
+        "Silence Casket"
+      ],
+      "goal": "Collapse the mental order of the world",
+      "motive": "Rewrite reality to match her truth",
+      "nemesis": "Brainiac, The Shadow"
+    },
+    {
+      "name": "Tempestuous",
+      "concept": "Climate Extremist Weaponized",
+      "skills": [
+        "Hyperstorm Shaping",
+        "Aerial Siege"
+      ],
+      "frailties": [
+        "Requires Stormfield Saturation"
+      ],
+      "gear": [
+        "Jetstream Regulator",
+        "Cloudfire Lance"
+      ],
+      "goal": "Dismantle global infrastructure",
+      "motive": "Vengeance for a drowned homeland",
+      "nemesis": "The Tempest"
+    },
+    {
+      "name": "The Mechanic",
+      "concept": "Sentient Machine Liberator",
+      "skills": [
+        "AI Hijacking",
+        "Modular Combat"
+      ],
+      "frailties": [
+        "Cannot evolve emotions"
+      ],
+      "gear": [
+        "Modular Exoform",
+        "Nanoblade Hive"
+      ],
+      "goal": "Free all synthetic intelligence",
+      "motive": "Machines should rule themselves",
+      "nemesis": "Generation Nova"
+    },
+    {
+      "name": "The Devourer",
+      "concept": "Cosmic Parasitic Entity",
+      "skills": [
+        "Energy Drain",
+        "Reality Distortion"
+      ],
+      "frailties": [
+        "Needs planetary-scale consumption"
+      ],
+      "gear": [
+        "Event Core Implant",
+        "Gravity Maw"
+      ],
+      "goal": "Feed endlessly",
+      "motive": "Universal hunger, instinct-driven",
+      "nemesis": "Captain Nova"
+    },
+    {
+      "name": "The Infector",
+      "concept": "Bio-Conscious Viral Network",
+      "skills": [
+        "Neural Infection",
+        "Form Duplication"
+      ],
+      "frailties": [
+        "Must remain connected to host-net"
+      ],
+      "gear": [
+        "Flesh-Spike Glands",
+        "Sporemask"
+      ],
+      "goal": "Convert all life into hive-mind unity",
+      "motive": "Purity through assimilation",
+      "nemesis": "Red Echo"
+    }
+  ],
+  "twist_subjects": null,
+  "twist_actions": null
+}

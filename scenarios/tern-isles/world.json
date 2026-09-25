@@ -1,0 +1,198 @@
+{
+  "meta": {
+    "title": "The Tern Isles",
+    "premise": "A new trainer leaves Tern Harbour with a first Pokemon, to earn the badges of the isles.",
+    "backdrop": "Small green islands lie in a warm sea, and ferries join them. People live, work and battle beside Pokemon. Every island has a Pokemon Center, a shop and a gym.",
+    "scope": "Play runs island by island, and no ending is written for it."
+  },
+  "engine_id": "pokemon",
+  "pack_id": "srd",
+  "source": "",
+  "opening": {
+    "places": {
+      "harbour-road": {
+        "id": "harbour-road",
+        "name": "The Harbour Road",
+        "brief": "A grassy road above the ferry dock",
+        "known": true,
+        "description": "Tall grass grows beside a road that runs above the ferry dock."
+      },
+      "tern-harbour": {
+        "id": "tern-harbour",
+        "name": "Tern Harbour",
+        "brief": "The harbour town",
+        "known": true,
+        "description": "A small town gathers around a ferry dock and a shop."
+      },
+      "pokemon-center": {
+        "id": "pokemon-center",
+        "name": "The Pokemon Center",
+        "brief": "The healing house by the dock",
+        "known": false,
+        "description": "A calm building where Nurse Wren heals every Pokemon for free."
+      },
+      "tern-gym": {
+        "id": "tern-gym",
+        "name": "Tern Gym",
+        "brief": "The harbour gym",
+        "known": true,
+        "description": "A stone gym that opens its door at the evening tide."
+      },
+      "gull-cove": {
+        "id": "gull-cove",
+        "name": "Gull Cove",
+        "brief": "A rocky cove past the tree line",
+        "known": false,
+        "description": "A rocky cove where the waves break on dark stones."
+      }
+    },
+    "ways": {
+      "harbour-road": [
+        {
+          "to_id": "tern-harbour",
+          "known": true
+        },
+        {
+          "to_id": "gull-cove",
+          "known": false,
+          "locked": true
+        }
+      ],
+      "tern-harbour": [
+        {
+          "to_id": "harbour-road",
+          "known": true
+        },
+        {
+          "to_id": "pokemon-center",
+          "known": false
+        },
+        {
+          "to_id": "tern-gym",
+          "known": true,
+          "locked": true
+        }
+      ],
+      "pokemon-center": [
+        {
+          "to_id": "tern-harbour",
+          "known": false
+        }
+      ],
+      "tern-gym": [
+        {
+          "to_id": "tern-harbour",
+          "known": true,
+          "locked": true
+        }
+      ],
+      "gull-cove": [
+        {
+          "to_id": "harbour-road",
+          "known": false,
+          "locked": true
+        }
+      ]
+    },
+    "npcs": {
+      "mira": {
+        "id": "mira",
+        "name": "Professor Mira",
+        "brief": "The professor who gave the player a first Pokemon.",
+        "known": true,
+        "place_id": "harbour-road",
+        "avatar_id": "scientistf"
+      },
+      "rook": {
+        "id": "rook",
+        "name": "Rook",
+        "brief": "A camper who battles every new trainer on this road.",
+        "known": true,
+        "place_id": "harbour-road",
+        "roster": [
+          {
+            "species_id": "pidgey",
+            "level": 4
+          },
+          {
+            "species_id": "rattata",
+            "level": 3
+          }
+        ],
+        "avatar_id": "camper"
+      },
+      "wren": {
+        "id": "wren",
+        "name": "Nurse Wren",
+        "brief": "The nurse of the Pokemon Center.",
+        "known": true,
+        "place_id": "pokemon-center",
+        "avatar_id": "nurse"
+      },
+      "ines": {
+        "id": "ines",
+        "name": "Captain Ines",
+        "brief": "The gym leader of Tern Gym.",
+        "known": false,
+        "place_id": "tern-gym",
+        "roster": [
+          {
+            "species_id": "staryu",
+            "level": 12
+          },
+          {
+            "species_id": "horsea",
+            "level": 11
+          }
+        ],
+        "badge": "Tide Badge",
+        "avatar_id": "acetrainerf"
+      }
+    },
+    "items": {},
+    "arc": "Captain Ines waits at the harbour gym, and Rook wants to beat the player first.",
+    "wild": {
+      "harbour-road": [
+        {
+          "species_id": "pidgey",
+          "lowest": 2,
+          "highest": 4,
+          "weight": 3
+        },
+        {
+          "species_id": "rattata",
+          "lowest": 2,
+          "highest": 4,
+          "weight": 3
+        },
+        {
+          "species_id": "caterpie",
+          "lowest": 3,
+          "highest": 5,
+          "weight": 2
+        }
+      ],
+      "gull-cove": [
+        {
+          "species_id": "krabby",
+          "lowest": 8,
+          "highest": 12,
+          "weight": 3
+        },
+        {
+          "species_id": "tentacool",
+          "lowest": 8,
+          "highest": 12,
+          "weight": 3
+        },
+        {
+          "species_id": "shellder",
+          "lowest": 9,
+          "highest": 12,
+          "weight": 2
+        }
+      ]
+    },
+    "start_id": "harbour-road"
+  }
+}

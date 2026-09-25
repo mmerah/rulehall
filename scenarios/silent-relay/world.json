@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "title": "The Silent Relay",
+    "premise": "Repair contracts on the convoy line, three jumps out from the nearest yard.",
+    "backdrop": "Hard science fiction, worn and practical. Ships are old, parts are scarce and every jump costs fuel. No magic. Crews trust their tools and each other, and nobody else.",
+    "scope": "Play runs job by job, and no ending is written for it. A job that closes leaves the next one behind it, or a debt, or an enemy."
+  },
+  "engine_id": "twentyfourxx",
+  "pack_id": "srd",
+  "source": "# The Silent Relay\n\nRelay station QV-9 sits on the convoy line three jumps out from the nearest yard, its beacon the only thing keeping ships from translating in blind.\n\n> Six days dark and still drawing power. Something on that station chose the silence.\n\nThe docking ring holds atmosphere and gravity; whatever cut the beacon left the rest of QV-9 running.\n\np. 1\n",
+  "opening": {
+    "place_id": "docking-ring",
+    "location": "QV-9 relay station",
+    "title": "The Docking Ring",
+    "situation": "QV-9's docking ring hums with full power, yet every comm panel down the corridor sits dark and silent. Vessa Rune waits at the airlock with her override key already drawn, and Harl Odum's salvage skiff sits clamped to the outer berth, its hatch cycling open before anyone has hailed it.",
+    "present": [
+      "vessa-rune",
+      "harl-odum"
+    ],
+    "cast": {
+      "vessa-rune": {
+        "id": "vessa-rune",
+        "name": "Vessa Rune",
+        "brief": "QV-9's keeper for eleven years, she knows every corridor by feel and won't say why she hasn't left the docking ring in six days; her override codes can lock anyone out of the whole station.",
+        "alive": true
+      },
+      "harl-odum": {
+        "id": "harl-odum",
+        "name": "Harl Odum",
+        "brief": "A salvage pilot who claims he only just made port, though his skiff has sat cold at the outer berth since before the relay went dark; his cutting torch opens more than hull plate.",
+        "alive": true
+      },
+      "warden-six": {
+        "id": "warden-six",
+        "name": "Warden Six",
+        "brief": "QV-9's maintenance android, still carrying out a shutdown order it was never told to stand down from; its manipulator arms can crush a suit seal without meaning to kill.",
+        "alive": true
+      }
+    },
+    "arc": "",
+    "job": "Bring relay station QV-9's beacon back online before the next convoy jumps in blind. Learning why it went dark closes the work too.",
+    "ship_here": true
+  }
+}

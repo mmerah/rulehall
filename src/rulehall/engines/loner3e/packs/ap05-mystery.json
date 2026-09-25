@@ -1,0 +1,1306 @@
+{
+  "name": "AP05 Mystery",
+  "source": "https://lonersrd.zotiquestgames.com/adventure_packs/AP05_mystery.html",
+  "license": "Adventure Pack 05: Mystery, Loner SRD site (CC BY-SA 4.0), (c) Roberto Bisceglie / Zotiquest Games",
+  "backdrop": "The world is cloaked in fog, soot, and silence — a realm of gaslight and deception, where every step echoes with secrets and nothing wears its true face.\nThe time is a brittle hinge between ages, where horse-drawn carriages give way to steam and steel, and the rules of old no longer hold fast.\nThe setting is **Victorian London**, a city of crumbling grandeur and restless ambition, where empire casts long shadows and crime blooms beneath the cobblestones.\nSociety teeters on the edge — class divides blur, science challenges faith, and the line between progress and peril grows thin with every new invention.\nDetectives walk this uncertain world like half-mythic figures — thinkers, hunters, liars — cutting through illusion with intuition and blood.\nMystery is everywhere: in the locked room, the vanished heir, the laughing corpse, the trembling maid. Nothing arrives without a cost, and every clue is a coin spent in doubt.\nStories draw from Doyle, Poe, and the ink-stained chronicles of a world trying to explain itself before it falls apart.\nThemes spiral through guilt, corruption, obsession, and truth — not just in the crimes solved, but in the ones we choose to ignore.",
+  "names": {
+    "female": [
+      "Eleanor",
+      "Agatha",
+      "Josephine",
+      "Clarissa",
+      "Edith",
+      "Maud",
+      "Beatrice",
+      "Florence",
+      "Millicent",
+      "Lydia",
+      "Winifred",
+      "Sybil",
+      "Margaret",
+      "Constance",
+      "Gwendolyn",
+      "Eliza",
+      "Amelia",
+      "Celeste",
+      "Isadora",
+      "Georgina",
+      "Rosalind",
+      "Harriet",
+      "Imogen",
+      "Violet",
+      "Ivy",
+      "Estelle",
+      "Octavia",
+      "Matilda",
+      "Dorothea",
+      "Helena",
+      "Blanche",
+      "Lucinda",
+      "Penelope",
+      "Theodora",
+      "Prudence",
+      "Nora"
+    ],
+    "male": [
+      "Alistair",
+      "Benedict",
+      "Edwin",
+      "Reginald",
+      "Percival",
+      "Leonard",
+      "Jasper",
+      "Archibald",
+      "Charles",
+      "Gilbert",
+      "Horace",
+      "Lionel",
+      "Arthur",
+      "Desmond",
+      "Francis",
+      "Walter",
+      "Bertram",
+      "Emory",
+      "Thomas",
+      "Silas",
+      "Ernest",
+      "Godfrey",
+      "Ambrose",
+      "Quentin",
+      "Rupert",
+      "Malcolm",
+      "Harrison",
+      "Cedric",
+      "Basil",
+      "Eustace",
+      "Alfred",
+      "Oswald",
+      "Randolph",
+      "Victor",
+      "Seymour",
+      "Theodore"
+    ],
+    "neutral": [],
+    "surnames": [
+      "Wainwright",
+      "Blackwood",
+      "Hargrove",
+      "Dunsany",
+      "Featherstone",
+      "St. James",
+      "Fairchild",
+      "Ashcombe",
+      "Penhaligon",
+      "Bellamy",
+      "Trelawney",
+      "Nightmoor",
+      "Mortimer",
+      "Vexley",
+      "Thorne",
+      "Redgrave",
+      "Holloway",
+      "Windham",
+      "Baskerville",
+      "Alderton",
+      "Fleetwood",
+      "Merriweather",
+      "Ravenshaw",
+      "Chillingham",
+      "Cavendish",
+      "Winthrope",
+      "Greymarch",
+      "Lockridge",
+      "Davenant",
+      "Ellison",
+      "Havisham",
+      "Godwin",
+      "Kettering",
+      "Mallory",
+      "Blackstone",
+      "Westcliff"
+    ],
+    "nicknames": [
+      "\"The Bloodhound\"",
+      "\"The Owl of Belgravia\"",
+      "\"The Fog-Walker\"",
+      "\"Madam Whisper\"",
+      "\"The Saint of Spitalfields\"",
+      "\"The Ink-Stained Ghost\"",
+      "\"The Needle\"",
+      "\"The Clockwork Mind\"",
+      "\"The Butcher’s Shadow\"",
+      "\"The One Who Knows\"",
+      "\"The Gentleman Jackal\"",
+      "\"The Mourning Mirror\"",
+      "\"The Eye at the Keyhole\"",
+      "\"The Gloveless Hand\"",
+      "\"The Pale Widow\"",
+      "\"The Gutter Oracle\"",
+      "\"The Hound with No Leash\"",
+      "\"The Last Confessor\"",
+      "\"Miss Glass\"",
+      "\"The Archivist\"",
+      "\"The Noose Negotiator\"",
+      "\"The Unsmiling One\"",
+      "\"Whispers-in-Court\"",
+      "\"The Harrowed Heir\"",
+      "\"The Widowmaker\"",
+      "\"The Lamplighter\"",
+      "\"The Dustwalker\"",
+      "\"The Tithe Collector\"",
+      "\"The Moth of Whitehall\"",
+      "\"The Gentleman in Grey\"",
+      "\"The Seamstress of Secrets\"",
+      "\"The Fallow Hound\"",
+      "\"The Murmured Name\"",
+      "\"The Knife Between Pages\"",
+      "\"The Unnamed Witness\"",
+      "\"The Polite Interrogator\""
+    ]
+  },
+  "rules": "Clues:\nEvery mystery leaves traces in its wake. To peel back the layers of deceit and reach the truth, your character must gather fragments of information — whispered gossip, half-burned notes, overlooked fingerprints — and assemble them into something coherent.\n\nWhen attempting to uncover a clue, ask a closed question and interpret the result as follows:\n\n- **\"No, and...\"**: The trail is cold. Nothing surfaces — not even a red herring.\n- **\"No\"**: Something surfaces, but it’s little more than background noise — a detail of no real consequence.\n- **\"No, but...\"**: You find something... but it deceives. A clue that points in the wrong direction.\n- **\"Yes, but...\"**: You find a real clue — but it’s incomplete, distorted, or buried in noise. Further legwork is required.\n- **\"Yes\"**: A clear and useful piece of information emerges. A thread that can be followed.\n- **\"Yes, and...\"**: The investigation leaps forward. A cache of insight, a breakthrough — something that rewrites the board.\n\nInterrogation:\nPeople lie. They withhold. They break under pressure or hide behind smiles. When questioning a suspect or witness, every word must be weighed, every glance watched. Interrogation is a duel — not of blades, but of patience, perception, and precision.\n\nWhen questioning someone, ask a closed question and consult the result:\n\n- **\"No, and...\"**: The suspect shuts down completely. The door slams shut.\n- **\"No\"**: They offer scraps — vague, unrelated, useless.\n- **\"No, but...\"**: They lead you astray, deliberately or not. A lie wrapped in truth.\n- **\"Yes, but...\"**: The truth emerges — but slowly, and through resistance. You’ll need to work harder to make sense of it.\n- **\"Yes\"**: They talk. The details make sense. Something valuable comes through.\n- **\"Yes, and...\"**: They spill more than intended — one thread, then another. Suddenly, the whole picture begins to shift.\n\nAlibis:\nEveryone has a story. Whether it holds up under scrutiny is another matter. Some will offer details too perfect. Others will be vague in the places that matter most. It's your job to test those stories — to verify alibis, or to unpick the lies woven into them.\n\nWhen checking an alibi, ask a closed question and interpret the outcome:\n\n- **\"No, and...\"**: The alibi crumbles before you can confirm a single detail. Nothing adds up.\n- **\"No\"**: The story can’t be verified, but it doesn’t appear to matter — yet.\n- **\"No, but...\"**: You fail to confirm the alibi, but stumble onto something misleading — a false trail.\n- **\"Yes, but...\"**: The alibi checks out... mostly. But something in the way it fits is too neat, or raises other questions.\n- **\"Yes\"**: The alibi holds. It’s solid, plausible, and backed by fact.\n- **\"Yes, and...\"**: The alibi not only checks out, it sheds light on something else — a hidden motive, a second suspect, an unexpected connection.\n\nEvidence:\nBlood stains. Scratched floorboards. Fibers clinging to a cuff. The world leaves traces — even when a killer tries to erase them. Your task is to find those traces, read them, and understand what they mean.\n\nWhen collecting or analyzing physical evidence, ask a closed question and apply the result:\n\n- **\"No, and...\"**: You find nothing. Worse, you may have disturbed the scene.\n- **\"No\"**: You uncover something — but it’s mundane, or unrelated.\n- **\"No, but...\"**: You uncover something that appears meaningful… but points you the wrong way.\n- **\"Yes, but...\"**: You find something solid, but it’s partial — unclear, damaged, or out of context.\n- **\"Yes\"**: The evidence is clear, usable, and directly advances the case.\n- **\"Yes, and...\"**: Not only is the evidence decisive — it reveals connections, accelerates conclusions, or opens entirely new leads.",
+  "locations": [
+    {
+      "name": "The Guttering Lamp",
+      "brief": "A half-abandoned public house at the edge of the fog district, where oil smoke clings to the ceiling and regulars drink without eye contact.",
+      "encounters": "Rumor-hoarding bartender, washed-up inspector, figure who always sits near the door"
+    },
+    {
+      "name": "The Verlaine Theatre",
+      "brief": "An aging but once-illustrious playhouse known for its velvet drapes, whispered scandals, and a chandelier that once fell mid-performance.",
+      "encounters": "Forgotten understudy, patron who never applauds, masked stagehand with a locked dressing room"
+    },
+    {
+      "name": "The Violet Parlour",
+      "brief": "A discreet salon for the influential and disreputable alike; officially a tea room, unofficially a place to arrange disappearances or favors.",
+      "encounters": "Retired spy turned hostess, gossip broker, veiled patron with a coded fan"
+    },
+    {
+      "name": "The Brassworks Asylum",
+      "brief": "A grim, fortified hospital for the mentally unwell — or those made inconvenient. The gates creak even when shut.",
+      "encounters": "Rambling patient with perfect recall, overworked night doctor, missing records clerk"
+    },
+    {
+      "name": "Marwick College of Unnatural Philosophy",
+      "brief": "A forgotten annex of the city’s university, where outdated disciplines are still practiced and lectures are sometimes interrupted by static.",
+      "encounters": "Sleep-deprived archivist, lecturer on cursed numbers, assistant with a locked satchel"
+    },
+    {
+      "name": "The Argent Hotel",
+      "brief": "A silver-domed establishment of faded glory, where chandeliers flicker despite rewiring, and guests often check out without packing.",
+      "encounters": "Concierge who forgets nothing, heiress in mourning, bellboy with too many keys"
+    }
+  ],
+  "seeds": [
+    "Infiltrate a gentlemen’s club to unearth the truth behind a member’s sudden, scandalous death.",
+    "Recover a stolen heirloom before it’s auctioned under a false name at a secret collector’s gathering.",
+    "Catch a masked burglar whose thefts match a series of unsolved cold cases — down to the minute.",
+    "Investigate a girl’s disappearance from a finishing school with locked dorms and a curiously silent staff.",
+    "Uncover the source of blackmail targeting a socialite with ties to a forgotten asylum fire.",
+    "Trace a rash of arsons to a common link — and stop the next blaze before it consumes Parliament Row.",
+    "Retrieve a missing painting rumored to contain the confession of its murdered artist.",
+    "Gather evidence against a police officer who has erased more than just reports.",
+    "Identify the source of anonymous threats sent to a shipping magnate with wartime secrets.",
+    "Hunt a serial killer whose victims all wore the same perfume — discontinued for decades.",
+    "Disarm a blackmailer who claims to possess letters that could bring down half the Privy Council.",
+    "Find a vanished heiress last seen boarding a train that never arrived.",
+    "Expose the ghost thief plundering society balls — whose identity shifts with every witness.",
+    "Guard a philanthropist during a masked charity gala — and discover who wants them dead by midnight.",
+    "Stop a string of ritualistic murders echoing an occult trial from a century ago.",
+    "Trap a con artist seducing and defrauding London’s elite one engagement at a time.",
+    "Investigate a missing artifact tied to a deadly curse no museum dares display.",
+    "Protect a judge who sentenced a killer now presumed dead — until new killings follow the same pattern.",
+    "Retrieve a shipment of falsified medical supplies before they enter a city-wide distribution chain.",
+    "Track down stolen research notes before a theoretical invention becomes a practical weapon.",
+    "Follow a string of counterfeit inheritances to the printing press that shouldn't exist.",
+    "Unmask a thief whose diamond heists follow the arc of an unpublished novel.",
+    "Protect a politician receiving threats written in mirror script — and dated a week into the future.",
+    "Retrieve a patent prototype stolen from a dead inventor’s lab by someone who shouldn't know it exists.",
+    "Catch a gallery curator staging their own thefts to fund a secret collection of forgeries.",
+    "Solve the murder of a socialite found dead in a locked suite with a shattered looking glass.",
+    "Stop a cat burglar targeting the homes of recently deceased collectors.",
+    "Investigate disappearances in the city’s poorest quarter tied to a “ghost tax” collected by strangers in uniform.",
+    "Trace the death of a parkland wanderer whose final words match a previous victim’s journal.",
+    "Retrieve a stolen painting rumored to shift nightly — and show its thief in real time.",
+    "Uncover the truth behind a noble’s death at a secluded estate where no one remembers the night clearly.",
+    "Recover a stolen formula before it can be replicated — or silenced — by its competitor.",
+    "Investigate disappearances at a university where students claim the library’s basement changes shape.",
+    "Break into a noble mansion to retrieve an object someone inside is willing to kill to keep hidden.",
+    "Discover who killed a gang lord inside a locked prison cell — and why no one seems surprised.",
+    "Identify the woman found in the harbor with no name, no records — and your contact’s address sewn into her hem."
+  ],
+  "concepts": [
+    {
+      "id": "veteran-constable",
+      "name": "Veteran Constable",
+      "brief": ""
+    },
+    {
+      "id": "reclusive-forensics-expert",
+      "name": "Reclusive Forensics Expert",
+      "brief": ""
+    },
+    {
+      "id": "hard-boiled-inspector",
+      "name": "Hard-Boiled Inspector",
+      "brief": ""
+    },
+    {
+      "id": "haunted-private-investigator",
+      "name": "Haunted Private Investigator",
+      "brief": ""
+    },
+    {
+      "id": "brilliant-deductionist",
+      "name": "Brilliant Deductionist",
+      "brief": ""
+    },
+    {
+      "id": "disgraced-police-surgeon",
+      "name": "Disgraced Police Surgeon",
+      "brief": ""
+    },
+    {
+      "id": "former-thief-turned-spy",
+      "name": "Former Thief-Turned Spy",
+      "brief": ""
+    },
+    {
+      "id": "scholarly-occult-consultant",
+      "name": "Scholarly Occult Consultant",
+      "brief": ""
+    },
+    {
+      "id": "bohemian-puzzle-solver",
+      "name": "Bohemian Puzzle-Solver",
+      "brief": ""
+    },
+    {
+      "id": "stoic-crime-scene-reconstructor",
+      "name": "Stoic Crime Scene Reconstructor",
+      "brief": ""
+    },
+    {
+      "id": "quick-witted-debunker",
+      "name": "Quick-Witted Debunker",
+      "brief": ""
+    },
+    {
+      "id": "morally-ambiguous-barrister",
+      "name": "Morally Ambiguous Barrister",
+      "brief": ""
+    },
+    {
+      "id": "gaslight-street-informant",
+      "name": "Gaslight Street Informant",
+      "brief": ""
+    },
+    {
+      "id": "rogue-antiquarian",
+      "name": "Rogue Antiquarian",
+      "brief": ""
+    },
+    {
+      "id": "driven-coroner",
+      "name": "Driven Coroner",
+      "brief": ""
+    },
+    {
+      "id": "cold-blooded-interrogator",
+      "name": "Cold-Blooded Interrogator",
+      "brief": ""
+    },
+    {
+      "id": "chain-smoking-hypnotist",
+      "name": "Chain-Smoking Hypnotist",
+      "brief": ""
+    },
+    {
+      "id": "blind-archivist-with-perfect-recall",
+      "name": "Blind Archivist with Perfect Recall",
+      "brief": ""
+    },
+    {
+      "id": "gentlewoman-detective",
+      "name": "Gentlewoman Detective",
+      "brief": ""
+    },
+    {
+      "id": "faithful-hound-of-the-yard",
+      "name": "Faithful Hound of the Yard",
+      "brief": ""
+    },
+    {
+      "id": "cursed-medium-in-denial",
+      "name": "Cursed Medium in Denial",
+      "brief": ""
+    },
+    {
+      "id": "methodical-evidence-seeker",
+      "name": "Methodical Evidence Seeker",
+      "brief": ""
+    },
+    {
+      "id": "soft-spoken-codebreaker",
+      "name": "Soft-Spoken Codebreaker",
+      "brief": ""
+    },
+    {
+      "id": "war-torn-field-investigator",
+      "name": "War-Torn Field Investigator",
+      "brief": ""
+    },
+    {
+      "id": "cynical-medical-examiner",
+      "name": "Cynical Medical Examiner",
+      "brief": ""
+    },
+    {
+      "id": "clockwork-gadgeteer",
+      "name": "Clockwork Gadgeteer",
+      "brief": ""
+    },
+    {
+      "id": "cryptic-memoirist",
+      "name": "Cryptic Memoirist",
+      "brief": ""
+    },
+    {
+      "id": "trauma-fixated-crime-writer",
+      "name": "Trauma-Fixated Crime Writer",
+      "brief": ""
+    },
+    {
+      "id": "polyglot-espionage-analyst",
+      "name": "Polyglot Espionage Analyst",
+      "brief": ""
+    },
+    {
+      "id": "former-cultist-seeking-redemption",
+      "name": "Former Cultist Seeking Redemption",
+      "brief": ""
+    },
+    {
+      "id": "amoral-collector-of-secrets",
+      "name": "Amoral Collector of Secrets",
+      "brief": ""
+    },
+    {
+      "id": "dapper-master-of-disguise",
+      "name": "Dapper Master of Disguise",
+      "brief": ""
+    },
+    {
+      "id": "retired-duelist-turned-sleuth",
+      "name": "Retired Duelist Turned Sleuth",
+      "brief": ""
+    },
+    {
+      "id": "widowed-paranormal-debunker",
+      "name": "Widowed Paranormal Debunker",
+      "brief": ""
+    },
+    {
+      "id": "journalist-with-a-grudge",
+      "name": "Journalist with a Grudge",
+      "brief": ""
+    },
+    {
+      "id": "unlicensed-enquiry-agent",
+      "name": "Unlicensed Enquiry Agent",
+      "brief": ""
+    }
+  ],
+  "skills": [
+    {
+      "id": "reading-subtle-expressions",
+      "name": "Reading subtle expressions",
+      "brief": ""
+    },
+    {
+      "id": "analyzing-dried-bloodstains",
+      "name": "Analyzing dried bloodstains",
+      "brief": ""
+    },
+    {
+      "id": "following-unreliable-witnesses",
+      "name": "Following unreliable witnesses",
+      "brief": ""
+    },
+    {
+      "id": "improvised-disguise-crafting",
+      "name": "Improvised disguise crafting",
+      "brief": ""
+    },
+    {
+      "id": "piecing-together-torn-documents",
+      "name": "Piecing together torn documents",
+      "brief": ""
+    },
+    {
+      "id": "identifying-obscure-poisons",
+      "name": "Identifying obscure poisons",
+      "brief": ""
+    },
+    {
+      "id": "recognizing-forged-accents",
+      "name": "Recognizing forged accents",
+      "brief": ""
+    },
+    {
+      "id": "cataloguing-occult-paraphernalia",
+      "name": "Cataloguing occult paraphernalia",
+      "brief": ""
+    },
+    {
+      "id": "spotting-anomalies-in-handwriting",
+      "name": "Spotting anomalies in handwriting",
+      "brief": ""
+    },
+    {
+      "id": "interrogating-reluctant-servants",
+      "name": "Interrogating reluctant servants",
+      "brief": ""
+    },
+    {
+      "id": "tailing-someone-in-a-crowd",
+      "name": "Tailing someone in a crowd",
+      "brief": ""
+    },
+    {
+      "id": "drawing-crime-scenes-by-memory",
+      "name": "Drawing crime scenes by memory",
+      "brief": ""
+    },
+    {
+      "id": "cross-referencing-case-law",
+      "name": "Cross-referencing case law",
+      "brief": ""
+    },
+    {
+      "id": "whispering-into-the-right-ears",
+      "name": "Whispering into the right ears",
+      "brief": ""
+    },
+    {
+      "id": "blending-into-any-social-stratum",
+      "name": "Blending into any social stratum",
+      "brief": ""
+    },
+    {
+      "id": "understanding-criminal-slang",
+      "name": "Understanding criminal slang",
+      "brief": ""
+    },
+    {
+      "id": "sketching-suspect-portraits",
+      "name": "Sketching suspect portraits",
+      "brief": ""
+    },
+    {
+      "id": "extracting-confessions-with-charm",
+      "name": "Extracting confessions with charm",
+      "brief": ""
+    },
+    {
+      "id": "identifying-rare-pipe-tobaccos",
+      "name": "Identifying rare pipe tobaccos",
+      "brief": ""
+    },
+    {
+      "id": "operating-clandestine-cameras",
+      "name": "Operating clandestine cameras",
+      "brief": ""
+    },
+    {
+      "id": "predicting-human-behavior-under-stress",
+      "name": "Predicting human behavior under stress",
+      "brief": ""
+    },
+    {
+      "id": "decoding-cryptic-notes",
+      "name": "Decoding cryptic notes",
+      "brief": ""
+    },
+    {
+      "id": "detecting-manipulated-crime-scenes",
+      "name": "Detecting manipulated crime scenes",
+      "brief": ""
+    },
+    {
+      "id": "reconstructing-burnt-pages",
+      "name": "Reconstructing burnt pages",
+      "brief": ""
+    },
+    {
+      "id": "silent-entry-via-outdated-locks",
+      "name": "Silent entry via outdated locks",
+      "brief": ""
+    },
+    {
+      "id": "field-autopsy-without-formal-lab",
+      "name": "Field autopsy without formal lab",
+      "brief": ""
+    },
+    {
+      "id": "knowing-where-to-bribe",
+      "name": "Knowing where to bribe",
+      "brief": ""
+    },
+    {
+      "id": "reading-lips-from-afar",
+      "name": "Reading lips from afar",
+      "brief": ""
+    },
+    {
+      "id": "trapping-a-lie-mid-sentence",
+      "name": "Trapping a lie mid-sentence",
+      "brief": ""
+    },
+    {
+      "id": "concealing-weapons-or-tools",
+      "name": "Concealing weapons or tools",
+      "brief": ""
+    },
+    {
+      "id": "discerning-hidden-compartments",
+      "name": "Discerning hidden compartments",
+      "brief": ""
+    },
+    {
+      "id": "sensing-when-you-re-being-followed",
+      "name": "Sensing when you're being followed",
+      "brief": ""
+    },
+    {
+      "id": "filing-under-aliases",
+      "name": "Filing under aliases",
+      "brief": ""
+    },
+    {
+      "id": "tracking-movement-through-footprints",
+      "name": "Tracking movement through footprints",
+      "brief": ""
+    },
+    {
+      "id": "noticing-what-s-not-present",
+      "name": "Noticing what’s *not* present",
+      "brief": ""
+    },
+    {
+      "id": "throwing-off-a-tail",
+      "name": "Throwing off a tail",
+      "brief": ""
+    }
+  ],
+  "frailties": [
+    {
+      "id": "dread-of-closed-doors",
+      "name": "Dread of closed doors",
+      "brief": ""
+    },
+    {
+      "id": "afflicted-by-ghostly-whispers",
+      "name": "Afflicted by ghostly whispers",
+      "brief": ""
+    },
+    {
+      "id": "cannot-sleep-without-laudanum",
+      "name": "Cannot sleep without laudanum",
+      "brief": ""
+    },
+    {
+      "id": "tormented-by-a-single-unsolved-case",
+      "name": "Tormented by a single unsolved case",
+      "brief": ""
+    },
+    {
+      "id": "suffers-visions-during-storms",
+      "name": "Suffers visions during storms",
+      "brief": ""
+    },
+    {
+      "id": "keeps-secrets-even-from-themselves",
+      "name": "Keeps secrets even from themselves",
+      "brief": ""
+    },
+    {
+      "id": "bleeding-heart-for-the-poor",
+      "name": "Bleeding heart for the poor",
+      "brief": ""
+    },
+    {
+      "id": "visibly-trembles-under-pressure",
+      "name": "Visibly trembles under pressure",
+      "brief": ""
+    },
+    {
+      "id": "has-an-enemy-in-the-force",
+      "name": "Has an enemy in the force",
+      "brief": ""
+    },
+    {
+      "id": "believes-they-re-always-watched",
+      "name": "Believes they're always watched",
+      "brief": ""
+    },
+    {
+      "id": "obsessed-with-unsent-letters",
+      "name": "Obsessed with unsent letters",
+      "brief": ""
+    },
+    {
+      "id": "distrusts-all-forms-of-authority",
+      "name": "Distrusts all forms of authority",
+      "brief": ""
+    },
+    {
+      "id": "lost-faith-in-justice",
+      "name": "Lost faith in justice",
+      "brief": ""
+    },
+    {
+      "id": "touch-averse",
+      "name": "Touch-averse",
+      "brief": ""
+    },
+    {
+      "id": "claustrophobia-from-a-past-trauma",
+      "name": "Claustrophobia from a past trauma",
+      "brief": ""
+    },
+    {
+      "id": "prone-to-brutal-interrogations",
+      "name": "Prone to brutal interrogations",
+      "brief": ""
+    },
+    {
+      "id": "ill-tempered-under-scrutiny",
+      "name": "Ill-tempered under scrutiny",
+      "brief": ""
+    },
+    {
+      "id": "feels-nothing-around-corpses",
+      "name": "Feels nothing around corpses",
+      "brief": ""
+    },
+    {
+      "id": "cannot-lie-effectively",
+      "name": "Cannot lie effectively",
+      "brief": ""
+    },
+    {
+      "id": "sees-patterns-where-there-are-none",
+      "name": "Sees patterns where there are none",
+      "brief": ""
+    },
+    {
+      "id": "overwhelmed-by-certain-smells",
+      "name": "Overwhelmed by certain smells",
+      "brief": ""
+    },
+    {
+      "id": "past-published-lie-haunts-them",
+      "name": "Past published lie haunts them",
+      "brief": ""
+    },
+    {
+      "id": "relives-past-crimes-in-dreams",
+      "name": "Relives past crimes in dreams",
+      "brief": ""
+    },
+    {
+      "id": "confuses-past-and-present-events",
+      "name": "Confuses past and present events",
+      "brief": ""
+    },
+    {
+      "id": "too-eager-to-believe-in-guilt",
+      "name": "Too eager to believe in guilt",
+      "brief": ""
+    },
+    {
+      "id": "allergic-to-truth-serum",
+      "name": "Allergic to truth serum",
+      "brief": ""
+    },
+    {
+      "id": "fails-to-ask-the-obvious",
+      "name": "Fails to ask the obvious",
+      "brief": ""
+    },
+    {
+      "id": "breaks-down-at-children-s-voices",
+      "name": "Breaks down at children's voices",
+      "brief": ""
+    },
+    {
+      "id": "despises-paperwork",
+      "name": "Despises paperwork",
+      "brief": ""
+    },
+    {
+      "id": "feels-guilt-for-a-wrongful-arrest",
+      "name": "Feels guilt for a wrongful arrest",
+      "brief": ""
+    },
+    {
+      "id": "memories-altered-by-hypnosis",
+      "name": "Memories altered by hypnosis",
+      "brief": ""
+    },
+    {
+      "id": "compulsively-records-everything",
+      "name": "Compulsively records everything",
+      "brief": ""
+    },
+    {
+      "id": "can-t-refuse-a-challenge",
+      "name": "Can’t refuse a challenge",
+      "brief": ""
+    },
+    {
+      "id": "hears-footsteps-no-one-else-does",
+      "name": "Hears footsteps no one else does",
+      "brief": ""
+    },
+    {
+      "id": "terrified-of-being-wrong",
+      "name": "Terrified of being wrong",
+      "brief": ""
+    },
+    {
+      "id": "carries-a-deadly-secret",
+      "name": "Carries a deadly secret",
+      "brief": ""
+    }
+  ],
+  "gear": [
+    {
+      "id": "collapsible-spyglass",
+      "name": "Collapsible spyglass",
+      "brief": ""
+    },
+    {
+      "id": "brass-capped-walking-cane-hollow",
+      "name": "Brass-capped walking cane (hollow)",
+      "brief": ""
+    },
+    {
+      "id": "ink-stained-letter-from-a-corpse",
+      "name": "Ink-stained letter from a corpse",
+      "brief": ""
+    },
+    {
+      "id": "mechanical-monocle-with-filter-lens",
+      "name": "Mechanical monocle with filter lens",
+      "brief": ""
+    },
+    {
+      "id": "tin-of-opium-laced-cigarettes",
+      "name": "Tin of opium-laced cigarettes",
+      "brief": ""
+    },
+    {
+      "id": "fingerbone-lucky-charm",
+      "name": "Fingerbone lucky charm",
+      "brief": ""
+    },
+    {
+      "id": "clockwork-evidence-drawer",
+      "name": "Clockwork evidence drawer",
+      "brief": ""
+    },
+    {
+      "id": "tattered-map-of-london-s-tunnels",
+      "name": "Tattered map of London’s tunnels",
+      "brief": ""
+    },
+    {
+      "id": "handbound-ledger-of-unsolved-crimes",
+      "name": "Handbound ledger of unsolved crimes",
+      "brief": ""
+    },
+    {
+      "id": "custom-revolver-registered-to-no-one",
+      "name": "Custom revolver (registered to no one)",
+      "brief": ""
+    },
+    {
+      "id": "casebook-passed-down-by-mentor",
+      "name": "Casebook passed down by mentor",
+      "brief": ""
+    },
+    {
+      "id": "thin-bladed-surgical-knife",
+      "name": "Thin-bladed surgical knife",
+      "brief": ""
+    },
+    {
+      "id": "switchable-identity-papers",
+      "name": "Switchable identity papers",
+      "brief": ""
+    },
+    {
+      "id": "silk-lined-poison-detection-kit",
+      "name": "Silk-lined poison detection kit",
+      "brief": ""
+    },
+    {
+      "id": "pocketwatch-set-to-wrong-time",
+      "name": "Pocketwatch set to wrong time",
+      "brief": ""
+    },
+    {
+      "id": "hollow-ring-with-sleeping-agent",
+      "name": "Hollow ring with sleeping agent",
+      "brief": ""
+    },
+    {
+      "id": "silver-cufflinks-engraved-with-symbols",
+      "name": "Silver cufflinks engraved with symbols",
+      "brief": ""
+    },
+    {
+      "id": "miniature-phonograph-recorder",
+      "name": "Miniature phonograph recorder",
+      "brief": ""
+    },
+    {
+      "id": "letter-opener-concealing-blade",
+      "name": "Letter-opener concealing blade",
+      "brief": ""
+    },
+    {
+      "id": "wax-sealed-vial-of-morphine",
+      "name": "Wax-sealed vial of morphine",
+      "brief": ""
+    },
+    {
+      "id": "detective-s-coat-with-hidden-pockets",
+      "name": "Detective’s coat with hidden pockets",
+      "brief": ""
+    },
+    {
+      "id": "ink-that-only-appears-in-moonlight",
+      "name": "Ink that only appears in moonlight",
+      "brief": ""
+    },
+    {
+      "id": "calling-card-with-hidden-cipher",
+      "name": "Calling card with hidden cipher",
+      "brief": ""
+    },
+    {
+      "id": "compact-field-chemistry-set",
+      "name": "Compact field chemistry set",
+      "brief": ""
+    },
+    {
+      "id": "collapsible-periscope",
+      "name": "Collapsible periscope",
+      "brief": ""
+    },
+    {
+      "id": "chalk-for-corpse-marking",
+      "name": "Chalk for corpse marking",
+      "brief": ""
+    },
+    {
+      "id": "personal-set-of-rare-keys",
+      "name": "Personal set of rare keys",
+      "brief": ""
+    },
+    {
+      "id": "cigarette-case-with-secret-compartment",
+      "name": "Cigarette case with secret compartment",
+      "brief": ""
+    },
+    {
+      "id": "tarnished-badge-of-a-defunct-precinct",
+      "name": "Tarnished badge of a defunct precinct",
+      "brief": ""
+    },
+    {
+      "id": "candle-stub-that-never-melts",
+      "name": "Candle stub that never melts",
+      "brief": ""
+    },
+    {
+      "id": "perfumed-gloves-scent-traceable",
+      "name": "Perfumed gloves (scent-traceable)",
+      "brief": ""
+    },
+    {
+      "id": "pocketbook-of-obscure-dialects",
+      "name": "Pocketbook of obscure dialects",
+      "brief": ""
+    },
+    {
+      "id": "newspaper-clippings-of-a-suspect",
+      "name": "Newspaper clippings of a suspect",
+      "brief": ""
+    },
+    {
+      "id": "eyeglass-etched-with-forensic-calibration",
+      "name": "Eyeglass etched with forensic calibration",
+      "brief": ""
+    },
+    {
+      "id": "bloodstained-handkerchief-kept-for-luck",
+      "name": "Bloodstained handkerchief kept \"for luck\"",
+      "brief": ""
+    },
+    {
+      "id": "cryptography-machine-prototype",
+      "name": "Cryptography machine prototype",
+      "brief": ""
+    }
+  ],
+  "spends_luck": false,
+  "factions": [
+    {
+      "name": "The Black Ledger",
+      "concept": "Invisible cabal of financiers",
+      "skills": [
+        "Obfuscation",
+        "Financial Leverage",
+        "Strategic Assassination"
+      ],
+      "frailties": [
+        "Paranoia and buried feuds"
+      ],
+      "gear": [
+        "Burnt ledgers",
+        "private cipher keys",
+        "death certificates filed before the fact"
+      ],
+      "goal": "To ensure certain truths never surface — and others become inevitable",
+      "motive": "Power is perception; history belongs to those who fund it",
+      "nemesis": "Rogue investigators and unpredictable whistleblowers"
+    },
+    {
+      "name": "The Silent Service",
+      "concept": "Discreet branch of royal intelligence",
+      "skills": [
+        "Surveillance",
+        "Psychological Disarmament",
+        "Memory Engineering"
+      ],
+      "frailties": [
+        "Forbidden from exposure — their greatest strength is also a leash"
+      ],
+      "gear": [
+        "Redacted dossiers",
+        "night-coded signals",
+        "memory erasure tools"
+      ],
+      "goal": "To control what the public believes by controlling what remains discoverable",
+      "motive": "Stability trumps truth — always",
+      "nemesis": "The Ink & Ash Society and any detective who refuses to stand down"
+    },
+    {
+      "name": "The Ink & Ash Society",
+      "concept": "Underground coalition of investigative journalists",
+      "skills": [
+        "Information Recovery",
+        "Leak Coordination",
+        "Moral Outrage"
+      ],
+      "frailties": [
+        "No central command; easy prey for co-option"
+      ],
+      "gear": [
+        "Hidden presses",
+        "blackmail letters",
+        "stolen obituaries"
+      ],
+      "goal": "To bring buried truth to light — no matter the cost",
+      "motive": "They believe knowledge *must* be shared, even if it kills them",
+      "nemesis": "The Black Ledger, who write the truths people believe"
+    },
+    {
+      "name": "The Church of Saint Elvan",
+      "concept": "Fractured spiritualist order",
+      "skills": [
+        "Induced Revelation",
+        "Dream Mapping",
+        "Spiritual Pressure"
+      ],
+      "frailties": [
+        "Riddled with charlatans and rival interpretations"
+      ],
+      "gear": [
+        "Soot-marked reliquaries",
+        "mourning veils",
+        "voice-transmitting planchettes"
+      ],
+      "goal": "To prove that truth transcends the material — and can be summoned",
+      "motive": "Consolation, redemption, and something more cryptic",
+      "nemesis": "Rationalist societies and former members who saw too much"
+    },
+    {
+      "name": "The Ashgrove Club",
+      "concept": "Gentleman’s Salon",
+      "skills": [
+        "Slander Engineering",
+        "Controlled Disclosure",
+        "Black-Tie Espionage"
+      ],
+      "frailties": [
+        "Coddled by their privilege; underestimate the desperate"
+      ],
+      "gear": [
+        "Personal dossiers",
+        "bribed witnesses",
+        "wine-stained scandal ledgers"
+      ],
+      "goal": "To steer public memory and narrative by controlling secrets at the source",
+      "motive": "Legacy, inheritance, and the quiet terror of public shame",
+      "nemesis": "The Ink & Ash Society, and anyone who won’t play by the rules"
+    },
+    {
+      "name": "The Rookery Pact",
+      "concept": "Network of street-crawlers",
+      "skills": [
+        "Urban Intuition",
+        "Unofficial Surveillance",
+        "Lost Item Retrieval"
+      ],
+      "frailties": [
+        "Divided loyalties and unspoken vendettas"
+      ],
+      "gear": [
+        "Bone dice",
+        "message knots",
+        "nightglass pendants"
+      ],
+      "goal": "To protect their own and barter truths the world forgot",
+      "motive": "Some secrets belong to the streets — and no one else",
+      "nemesis": "The Silent Service, who erase what the Pact remembers"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Captain Augustus Blackwood",
+      "concept": "Disgraced Inspector",
+      "skills": [
+        "Tenacious Observation",
+        "Tactical Recall"
+      ],
+      "frailties": [
+        "Fights his ghosts with gin"
+      ],
+      "gear": [
+        "Tarnished badge",
+        "silver-etched hip flask"
+      ],
+      "goal": "Redemption — or at least relevance",
+      "motive": "He was framed for a cover-up he tried to expose. Now he seeks the truth that cost him everything.",
+      "nemesis": "Commissioner Hale, who made the evidence vanish"
+    },
+    {
+      "name": "Miss Prudence Fairfax",
+      "concept": "Social Columnist Turned Scandal Hunter",
+      "skills": [
+        "Elegant Persuasion",
+        "Pattern Recognition"
+      ],
+      "frailties": [
+        "Craves recognition above caution"
+      ],
+      "gear": [
+        "Pocket mirror laced with powder",
+        "initials-only notebook"
+      ],
+      "goal": "To write the one story no one dares print",
+      "motive": "She believes a single name connects three deaths — and she’s willing to destroy reputations to prove it",
+      "nemesis": "Lord Wyndham, her former sponsor and current target"
+    },
+    {
+      "name": "Dr. Theodore Marlowe",
+      "concept": "Obsessive Pathologist with Theories Unproven",
+      "skills": [
+        "Forensic Mapping",
+        "Anatomical Insight"
+      ],
+      "frailties": [
+        "Trusts no one",
+        "not even his own assistants"
+      ],
+      "gear": [
+        "Stained autopsy gloves",
+        "unlabeled phials"
+      ],
+      "goal": "To publish irrefutable proof of a serial poisoner among the elite",
+      "motive": "A patient he couldn't save left behind a letter... and it haunts him",
+      "nemesis": "Dean Ellison of the Royal Medical Society, who calls him \"unfit\""
+    },
+    {
+      "name": "Ivy Addams",
+      "concept": "Ghost of the Rookeries",
+      "skills": [
+        "Vanishing",
+        "Listening Where She Shouldn’t"
+      ],
+      "frailties": [
+        "Perpetually in someone’s debt"
+      ],
+      "gear": [
+        "Broken locket",
+        "velvet dice weighted just so"
+      ],
+      "goal": "To disappear for good — but not before settling one last score",
+      "motive": "She knows the man who framed her is about to do it again",
+      "nemesis": "Detective Ormsey, who calls her “informant” but means “bait”"
+    },
+    {
+      "name": "Mr. Jeremy Bentley",
+      "concept": "Patron of the Arts, Collector of People",
+      "skills": [
+        "Wealth-Based Access",
+        "Masked Charm"
+      ],
+      "frailties": [
+        "His ego outpaces his caution"
+      ],
+      "gear": [
+        "Engraved opium case",
+        "charity gala invitations"
+      ],
+      "goal": "To become indispensable to every circle that matters",
+      "motive": "The higher he rises, the further he can bury his family’s crimes",
+      "nemesis": "Cousin Gregory, the one person he can’t buy"
+    },
+    {
+      "name": "Miss Margaret Sterling",
+      "concept": "Orator, Strategist, Agitator",
+      "skills": [
+        "Mobilization",
+        "Rhetoric"
+      ],
+      "frailties": [
+        "Trusts her gut — always"
+      ],
+      "gear": [
+        "Steel-rimmed spectacles",
+        "ink-smudged pamphlets"
+      ],
+      "goal": "To bring systemic rot into daylight — one name at a time",
+      "motive": "Her sister died in an asylum that shouldn’t have existed",
+      "nemesis": "Sir Alder Brackley, parliamentarian and silent shareholder"
+    }
+  ],
+  "monsters": [
+    {
+      "name": "The Confidence Man",
+      "concept": "Charming Opportunist",
+      "skills": [
+        "Persuasive Misdirection",
+        "Impersonation"
+      ],
+      "frailties": [
+        "Overconfidence in their own legend"
+      ],
+      "gear": [
+        "Assumed identity",
+        "counterfeit references"
+      ],
+      "goal": "To extract wealth, trust, or secrets from the gullible",
+      "motive": "Greed masked as charisma",
+      "nemesis": "The one mark who saw through it once before"
+    },
+    {
+      "name": "The Smuggler",
+      "concept": "Gentleman (or Lady) of the Shadows",
+      "skills": [
+        "Urban Navigation",
+        "Under-the-Table Deals"
+      ],
+      "frailties": [
+        "Haunted by a deal gone wrong"
+      ],
+      "gear": [
+        "Hollowed luggage",
+        "coded route maps"
+      ],
+      "goal": "To keep the goods — and themselves — unseen",
+      "motive": "Profit... and maybe protection for someone else",
+      "nemesis": "A customs agent with a personal score to settle"
+    },
+    {
+      "name": "The Second-Story Artist",
+      "concept": "Elegant Thief",
+      "skills": [
+        "Lockbypassing",
+        "Unseen Entry"
+      ],
+      "frailties": [
+        "Drawn to notoriety like a moth to flame"
+      ],
+      "gear": [
+        "Coil of rope",
+        "monogrammed lockpicks"
+      ],
+      "goal": "To claim what they believe should never have been guarded",
+      "motive": "Money, pride — or inheritance by other means",
+      "nemesis": "The retired detective who caught them once... and let them go"
+    },
+    {
+      "name": "The Forger",
+      "concept": "Master of the Almost-Real",
+      "skills": [
+        "Signature Imitation",
+        "Document Craft"
+      ],
+      "frailties": [
+        "Believes no one is truly original"
+      ],
+      "gear": [
+        "Aged parchment",
+        "stolen stamps"
+      ],
+      "goal": "To seed the world with their handiwork",
+      "motive": "The thrill of deception disguised as craft",
+      "nemesis": "A curator who knows their style too well"
+    },
+    {
+      "name": "The Blackmailer",
+      "concept": "Archivist of Sin",
+      "skills": [
+        "Pattern Discovery",
+        "Strategic Release"
+      ],
+      "frailties": [
+        "Keeps one secret too many"
+      ],
+      "gear": [
+        "Dossiers",
+        "wax-sealed envelopes"
+      ],
+      "goal": "To control through fear, not force",
+      "motive": "A need for power that no position could offer",
+      "nemesis": "Someone whose past they got wrong — fatally"
+    },
+    {
+      "name": "The Counterfeiter",
+      "concept": "Artisan of the Fake",
+      "skills": [
+        "Precision Replication",
+        "Ink Chemistry"
+      ],
+      "frailties": [
+        "Can’t resist critiquing originals"
+      ],
+      "gear": [
+        "Press plates",
+        "faded master copy"
+      ],
+      "goal": "To flood the market with falsehoods",
+      "motive": "To prove they could always do it better",
+      "nemesis": "A banker with a ruined reputation and a long memory"
+    }
+  ],
+  "twist_subjects": null,
+  "twist_actions": null
+}

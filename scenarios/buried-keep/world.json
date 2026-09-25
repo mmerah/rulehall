@@ -1,0 +1,155 @@
+{
+  "meta": {
+    "title": "The Buried Keep",
+    "premise": "A garrison keep collapsed into its own tunnels two winters back, and something down there still moves through the dark.",
+    "backdrop": "Old-school dungeon fantasy, dark and dangerous. Torches, iron and rope. Magic exists, but it is strange and costly.",
+    "scope": "One descent into the keep. The dark below has an end, and reaching it or turning back is the adventure's; a way out that opens onto more of the world is the worldsmith's to write."
+  },
+  "engine_id": "tunnelgoons",
+  "pack_id": "srd",
+  "source": "",
+  "opening": {
+    "places": {
+      "entrance": {
+        "id": "entrance",
+        "name": "The Collapsed Archway",
+        "brief": "Where the tunnels begin",
+        "known": true,
+        "description": "A collapsed archway lets grey light down into the tunnels below."
+      },
+      "corridor": {
+        "id": "corridor",
+        "name": "The Root Corridor",
+        "brief": "A narrow way in",
+        "known": true,
+        "description": "A narrow corridor, roots pushing through the earthen walls."
+      },
+      "storeroom": {
+        "id": "storeroom",
+        "name": "The Old Storeroom",
+        "brief": "Rotten crates and shelves",
+        "known": true,
+        "description": "Shelves of rotten crates line a low stone room."
+      },
+      "cellar": {
+        "id": "cellar",
+        "name": "The Flooded Cellar",
+        "brief": "A drowned room",
+        "known": false,
+        "description": "A flooded cellar, water black in the lantern light."
+      },
+      "sealed-cell": {
+        "id": "sealed-cell",
+        "name": "The Sealed Cell",
+        "brief": "An iron-bound door",
+        "known": false,
+        "description": "A cramped cell, its door bound in rusted iron."
+      }
+    },
+    "ways": {
+      "entrance": [
+        {
+          "to_id": "corridor",
+          "known": true
+        },
+        {
+          "to_id": "cellar",
+          "known": false
+        }
+      ],
+      "corridor": [
+        {
+          "to_id": "entrance",
+          "known": true
+        },
+        {
+          "to_id": "storeroom",
+          "known": true
+        },
+        {
+          "to_id": "cellar",
+          "known": false
+        }
+      ],
+      "storeroom": [
+        {
+          "to_id": "corridor",
+          "known": true
+        },
+        {
+          "to_id": "sealed-cell",
+          "known": false,
+          "locked": true
+        }
+      ],
+      "cellar": [
+        {
+          "to_id": "entrance",
+          "known": false
+        },
+        {
+          "to_id": "corridor",
+          "known": false
+        }
+      ],
+      "sealed-cell": [
+        {
+          "to_id": "storeroom",
+          "known": false
+        }
+      ]
+    },
+    "npcs": {
+      "grix": {
+        "id": "grix",
+        "name": "Grix",
+        "brief": "A jumpy scavenger who got this far and no further.",
+        "known": true,
+        "place_id": "entrance",
+        "hp": {
+          "current": 6,
+          "maximum": 6
+        }
+      },
+      "crawler": {
+        "id": "crawler",
+        "name": "Root Crawler",
+        "brief": "A many-legged thing tangled in the corridor roots.",
+        "known": true,
+        "place_id": "corridor",
+        "hp": {
+          "current": 6,
+          "maximum": 6
+        }
+      },
+      "lurker": {
+        "id": "lurker",
+        "name": "Cellar Lurker",
+        "brief": "Something pale that surfaces only when the water stills.",
+        "known": false,
+        "place_id": "cellar",
+        "hp": {
+          "current": 5,
+          "maximum": 5
+        }
+      }
+    },
+    "items": {
+      "tarnished-flask": {
+        "id": "tarnished-flask",
+        "name": "Tarnished Flask",
+        "brief": "Sealed with wax, sloshing faintly.",
+        "known": false,
+        "holder_id": "sealed-cell"
+      },
+      "rope-coil": {
+        "id": "rope-coil",
+        "name": "Coil of Rope",
+        "brief": "Rope, dry and strong.",
+        "known": true,
+        "holder_id": "storeroom"
+      }
+    },
+    "start_id": "entrance"
+  }
+}

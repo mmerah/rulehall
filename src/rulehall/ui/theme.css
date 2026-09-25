@@ -1,0 +1,793 @@
+body {
+  --game-ease: cubic-bezier(.22, .8, .24, 1);
+  --game-spring: cubic-bezier(.34, 1.4, .64, 1);
+  --game-fast: 150ms;
+  --game-medium: 260ms;
+  --game-slow: 460ms;
+  --game-accent-strong: color-mix(in srgb, var(--game-accent) 78%, white);
+  --game-accent-deep: color-mix(in srgb, var(--game-accent) 70%, var(--game-bg));
+  --game-accent-soft: color-mix(in srgb, var(--game-accent) 14%, transparent);
+  --game-accent-glow: color-mix(in srgb, var(--game-accent) 38%, transparent);
+  --game-border-soft: color-mix(in srgb, var(--game-border) 65%, transparent);
+  --game-glass: color-mix(in srgb, var(--game-surface) 78%, transparent);
+  --game-highlight: inset 0 1px 0 rgb(255 255 255 / .05);
+  --game-shadow-sm: 0 1px 2px rgb(0 0 0 / .25), 0 1px 1px rgb(0 0 0 / .15);
+  --game-shadow-md: 0 10px 28px -10px rgb(0 0 0 / .6), 0 2px 6px rgb(0 0 0 / .2);
+  --game-shadow-lg: 0 28px 60px -18px rgb(0 0 0 / .75), 0 6px 16px rgb(0 0 0 / .25);
+}
+.q-page {
+  background:
+    radial-gradient(60rem 36rem at 12% -8%, var(--game-accent-soft), transparent 70%),
+    radial-gradient(48rem 30rem at 100% 110%, var(--game-wash), transparent 70%),
+    var(--game-bg);
+}
+body, body.body--dark {
+  background: var(--game-bg);
+  color: var(--game-text);
+  font-family: var(--game-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: var(--game-accent-glow); color: var(--game-text) }
+.q-page-container { height: var(--game-vh, 100dvh); box-sizing: border-box; display: flex; flex-direction: column }
+.q-page { flex: 1 1 0; min-height: 0 !important; display: flex; flex-direction: column }
+.nicegui-content { flex: 1 1 0; min-height: 0; animation: game-page-in var(--game-slow) var(--game-ease) backwards }
+@keyframes game-page-in {
+  from { opacity: 0; transform: translateY(8px) }
+}
+
+/* Unlayered nicegui.css sets `.nicegui-row, .nicegui-column { gap: var(--nicegui-default-gap) }`
+   (1rem), and an unlayered rule beats a layered one whatever the specificity: hence `!important`. */
+.game-gap-0 { gap: 0 !important }
+.game-gap-3xs { gap: .15rem !important }
+.game-gap-2xs { gap: .2rem !important }
+.game-gap-xs { gap: .25rem !important }
+.game-gap-sm { gap: .3rem !important }
+.game-gap-md { gap: .4rem !important }
+.game-gap-lg { gap: .5rem !important }
+.game-gap-xl { gap: .75rem !important }
+.game-gap-2xl { gap: 1rem !important }
+.game-gap-3xl { gap: 1.25rem !important }
+.game-foot {
+  flex: none; gap: .5rem;
+  max-height: 50dvh; overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: linear-gradient(to bottom, transparent, var(--game-surface) 1.25rem);
+}
+.game-panel {
+  background: color-mix(in srgb, var(--game-surface) 92%, transparent);
+  border: 1px solid var(--game-border-soft);
+  border-radius: var(--game-radius);
+  box-shadow: var(--game-shadow-md), var(--game-highlight);
+  overflow: hidden;
+}
+.game-main { margin: var(--game-inset) }
+/* The page's 420px drawer would hang off a phone's left edge, clipping the panel. */
+.q-drawer { max-width: 100% }
+.game-drawer { background: var(--game-bg); border: 0; padding: 0; align-items: stretch }
+/* Beside the centre panel the two share one gutter; narrower, the drawer overlays instead. */
+.game-drawer-panel {
+  margin: var(--game-inset) var(--game-inset) var(--game-inset) 0;
+  height: calc(100% - 2 * var(--game-inset));
+}
+.game-drawer .q-tab-panels { background: transparent }
+/* One padding, on the scroll content: Quasar's tab panel and NiceGUI's scroll default would
+   each add their own. */
+.game-drawer .q-tab-panel { padding: 0 }
+.game-drawer .q-scrollarea__content { padding: var(--game-inset) }
+.game-drawer-head { padding: .6rem .6rem .2rem }
+.q-drawer__backdrop { backdrop-filter: blur(3px) }
+
+.q-header {
+  background: var(--game-glass);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  border-bottom: 1px solid var(--game-border-soft);
+  box-shadow: 0 10px 30px -18px rgb(0 0 0 / .8);
+  padding: .5rem 1rem;
+  min-height: 3.75rem;
+  gap: .75rem;
+}
+.q-header .game-title { font-size: 1.35rem; font-weight: 600 }
+.game-brand {
+  flex: none; display: grid; place-items: center;
+  width: 2.25rem; height: 2.25rem;
+  border-radius: calc(var(--game-radius) * .75);
+  color: var(--game-bg);
+  background: linear-gradient(140deg, var(--game-accent-strong), var(--game-accent) 55%, var(--game-accent-deep));
+  box-shadow: 0 6px 18px -6px var(--game-accent-glow), var(--game-highlight);
+}
+.game-brand .q-icon { font-size: 1.35rem }
+.q-header .q-badge { font-size: .68rem }
+
+.q-tabs { color: var(--game-muted) }
+.q-tab { color: var(--game-muted); text-transform: none; letter-spacing: .02em; border-radius: calc(var(--game-radius) * .6) }
+.q-tab__label { font-weight: 600 }
+.q-tab--active { color: var(--game-accent) }
+.q-tab__indicator { background: var(--game-accent); height: 2px; border-radius: 2px }
+/* Quasar's hover helper paints currentColor, the muted grey; a tab hovers in the accent. */
+.q-tab .q-focus-helper { background: var(--game-accent) }
+.game-segmented {
+  padding: .25rem;
+  border-radius: calc(var(--game-radius) * .8);
+  background: color-mix(in srgb, var(--game-bg) 55%, transparent);
+  border: 1px solid var(--game-border-soft);
+}
+.game-segmented .q-tab { min-height: 2.25rem; transition: color var(--game-fast), background-color var(--game-medium) var(--game-ease) }
+.game-segmented .q-tab--active { background: var(--game-surface-raised); box-shadow: var(--game-shadow-sm), var(--game-highlight) }
+.game-segmented .q-tab__indicator { display: none }
+
+.game-rail {
+  flex: none; width: 5.5rem;
+  padding-top: var(--game-inset);
+}
+/* Compound, so a rail button outranks the flat rule that makes every other one recede. */
+.q-btn.game-rail-btn {
+  width: 4.25rem; height: 4.25rem;
+  border-radius: calc(var(--game-radius) * .9) !important;
+  color: var(--game-muted) !important;
+}
+.game-rail-btn .q-btn__content { flex-direction: column; gap: .2rem; font-size: .7rem; letter-spacing: .03em }
+.game-rail-btn .q-icon { font-size: 1.5rem; transition: transform var(--game-medium) var(--game-spring) }
+.q-btn.game-rail-btn:hover { color: var(--game-text) !important; background: var(--game-wash) }
+.q-btn.game-rail-btn:hover .q-icon { transform: translateY(-2px) }
+.q-btn.game-rail-on {
+  color: var(--game-accent) !important;
+  background: var(--game-accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--game-accent) 45%, transparent);
+}
+
+.text-h4, .text-h5, .text-h6, .game-title {
+  font-family: var(--game-heading);
+  letter-spacing: -.015em;
+}
+.game-title { color: var(--game-text) }
+.game-hero-title {
+  font-size: clamp(2.1rem, 5vw, 3.1rem); line-height: 1.05; font-weight: 600;
+  background: linear-gradient(100deg, var(--game-text) 30%, var(--game-accent-strong));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.game-lead { color: var(--game-muted); max-width: 42rem; line-height: 1.55 }
+.game-eyebrow {
+  color: var(--game-accent);
+  font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; font-weight: 700;
+}
+.game-intro .game-eyebrow {
+  align-self: flex-start;
+  padding: .3rem .7rem; border-radius: 999px;
+  background: var(--game-accent-soft);
+  border: 1px solid color-mix(in srgb, var(--game-accent) 30%, transparent);
+}
+.game-section-head { display: flex; align-items: center; gap: .5rem; width: 100% }
+.game-section-head:after { content: ''; flex: 1; height: 1px; background: var(--game-border-soft) }
+.game-count {
+  font-size: .72rem; font-weight: 700; color: var(--game-muted);
+  padding: .05rem .5rem; border-radius: 999px; background: var(--game-wash);
+  border: 1px solid var(--game-border-soft);
+}
+
+.game-card {
+  color: var(--game-text);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--game-surface-raised) 92%, white 2%), var(--game-surface-raised));
+  border: 1px solid var(--game-border-soft);
+  border-radius: var(--game-radius);
+  padding: 1.1rem 1.25rem;
+  box-shadow: var(--game-shadow-sm), var(--game-highlight);
+}
+.game-launch {
+  padding: 1.5rem;
+  border-color: color-mix(in srgb, var(--game-accent) 35%, var(--game-border));
+  background:
+    radial-gradient(40rem 16rem at 0 0, var(--game-accent-soft), transparent 70%),
+    var(--game-surface-raised);
+  box-shadow: var(--game-shadow-md), var(--game-highlight);
+}
+/* An expansion brings its own padding, so the card around it only lends surface and edge. */
+.q-expansion-item.game-card, .q-tab-panels.game-card { padding: 0; overflow: hidden }
+.q-expansion-item.game-card .q-item { min-height: 2.75rem; border-radius: 0 }
+.q-expansion-item__toggle-icon { color: var(--game-muted); transition: transform var(--game-medium) var(--game-ease) }
+.q-menu {
+  color: var(--game-text);
+  background: color-mix(in srgb, var(--game-surface-raised) 94%, transparent);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--game-border-soft);
+  border-radius: calc(var(--game-radius) * .8);
+  box-shadow: var(--game-shadow-lg);
+  padding: .3rem;
+}
+.q-menu .q-item { border-radius: calc(var(--game-radius) * .55); min-height: 2.5rem }
+.q-menu .q-item--active { color: var(--game-accent) }
+.q-menu .q-item__label { overflow-wrap: anywhere }
+.q-separator { background: var(--game-border-soft) }
+.q-tooltip {
+  background: var(--game-text); color: var(--game-bg);
+  font-size: .75rem; font-weight: 600;
+  border-radius: .5rem; padding: .35rem .6rem;
+  box-shadow: var(--game-shadow-md);
+}
+.q-dialog__backdrop { backdrop-filter: blur(6px); background: rgb(0 0 0 / .5) }
+.q-dialog .game-card { box-shadow: var(--game-shadow-lg), var(--game-highlight); max-width: 30rem }
+.game-confirm { padding: 1.4rem 1.5rem 1.1rem }
+.game-confirm-icon {
+  flex: none; font-size: 1.4rem;
+  width: 2.5rem; height: 2.5rem; border-radius: 50%;
+  display: grid; place-items: center;
+  color: var(--game-danger);
+  background: color-mix(in srgb, var(--game-danger) 14%, transparent);
+}
+.game-confirm-text { line-height: 1.5; padding-top: .45rem }
+.q-notification {
+  border-radius: calc(var(--game-radius) * .8);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--game-shadow-lg);
+  font-weight: 500;
+}
+
+.game-stat {
+  display: flex; width: 100%; justify-content: space-between; align-items: baseline;
+  gap: 1rem; padding: .6rem 0;
+}
+.game-stat + .game-stat { border-top: 1px solid var(--game-border-soft) }
+.game-stat-label { color: var(--game-muted); font-size: .82rem; font-weight: 500 }
+.game-stat-value { font-size: .9rem; font-weight: 500; text-align: right; font-variant-numeric: tabular-nums }
+.game-stat-long { flex-direction: column; align-items: stretch; gap: .2rem }
+.game-stat-long .game-stat-value { text-align: left }
+
+.game-entity { display: flex; width: 100%; align-items: center; gap: .8rem; padding: .45rem 0 }
+.game-entity-name { font-size: 1.05rem; font-weight: 600 }
+.game-entity-sub { color: var(--game-muted); font-size: .8rem; line-height: 1.4 }
+.game-entity-dead .game-avatar, .game-entity-dead .game-sprite-frame { filter: grayscale(1); opacity: .55 }
+.game-entity-dead .game-entity-name, .game-entity-dead .game-entity-sub { color: var(--game-muted) }
+.game-entity-badge { font-size: .6rem; padding: .15em .5em }
+.game-portrait .q-avatar {
+  font-size: 64px !important;  /* beats the inline `size` */
+  box-shadow: 0 0 0 2px var(--game-surface-raised), 0 0 0 4px var(--game-accent), 0 10px 24px -8px var(--game-accent-glow);
+}
+.game-card-icon { color: var(--game-accent); font-size: 1.25rem }
+.game-decision {
+  border-color: color-mix(in srgb, var(--game-accent) 45%, transparent);
+  background: linear-gradient(115deg, var(--game-accent-soft), transparent 55%), var(--game-surface-raised);
+  box-shadow: var(--game-shadow-md), var(--game-highlight);
+}
+.game-decision.game-enter { animation: game-enter var(--game-medium) var(--game-ease) both, game-glow 1.6s var(--game-ease) .2s 1 }
+@keyframes game-glow {
+  40% { box-shadow: 0 0 0 6px var(--game-accent-soft), 0 0 32px -4px var(--game-accent-glow), var(--game-shadow-md) }
+}
+.game-banner { padding: .6rem .75rem .6rem .8rem }
+.game-banner .game-card-icon {
+  flex: none; display: grid; place-items: center;
+  width: 2.25rem; height: 2.25rem; border-radius: 50%;
+  font-size: 1.2rem; background: var(--game-accent-soft);
+}
+.game-banner-label {
+  color: var(--game-accent); font-size: .68rem; font-weight: 700; line-height: 1.2;
+  letter-spacing: .12em; text-transform: uppercase;
+}
+.game-banner-body { font-size: .9rem; line-height: 1.45; overflow-wrap: anywhere }
+.game-banner-body:empty, .game-banner-actions:empty { display: none }
+.game-banner .game-choices, .game-banner .game-hint { padding-left: calc(2.25rem + .75rem) }
+
+.q-btn {
+  border-radius: calc(var(--game-radius) * .7);
+  font-weight: 600;
+  letter-spacing: .01em;
+  transition:
+    transform var(--game-fast) var(--game-ease),
+    background-color var(--game-fast) var(--game-ease),
+    box-shadow var(--game-medium) var(--game-ease),
+    color var(--game-fast) var(--game-ease);
+}
+.q-btn--round { border-radius: 50% }
+.q-btn--rectangle, .q-btn--standard { min-height: 2.6rem; padding-inline: 1.1rem }
+.q-btn:not(.disabled):active { transform: scale(.96) }
+.q-btn .on-left { margin-right: .5rem }
+.q-btn .on-right { margin-left: .5rem }
+/* One hierarchy: the gold fill leads a context, an outline follows it, a flat button recedes.
+   Gold is a light fill: its words are the page's own dark, never Quasar's white. */
+.q-btn.bg-primary {
+  background: linear-gradient(180deg, var(--game-accent-strong), var(--game-accent)) !important;
+  color: var(--game-bg) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .35), 0 8px 20px -8px var(--game-accent-glow), var(--game-shadow-sm);
+}
+.q-btn.bg-primary:not(.disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .35), 0 14px 28px -10px var(--game-accent-glow), var(--game-shadow-sm);
+}
+.q-btn.bg-primary .q-icon { transition: transform var(--game-medium) var(--game-spring) }
+.q-btn.bg-primary:hover .q-icon { transform: translateX(2px) scale(1.08) }
+.q-btn.bg-negative { color: #1b0f0f !important; box-shadow: 0 8px 20px -10px var(--game-danger) }
+/* Quasar forces an outline button transparent with `!important`, so the wash must shout too. */
+.q-btn--outline { background: var(--game-wash) !important }
+.q-btn--outline:before { border-color: var(--game-border) }
+.q-btn--outline:not(.disabled):hover { background: var(--game-accent-soft) !important }
+.q-btn--outline:hover:before { border-color: var(--game-accent) }
+/* Quasar paints a flat button with `text-primary`, which is `!important`: to recede, so is this. */
+.q-btn--flat { color: var(--game-muted) !important }
+.q-btn--flat:hover { color: var(--game-text) !important }
+.q-btn--flat.q-btn--round:hover { background: var(--game-wash) }
+.q-btn--flat .q-focus-helper { display: none }
+.game-nav .q-btn__content { font-size: .88rem }
+/* A choice is a place to land, not a label: room to read it and a lift under the pointer. */
+.game-choice {
+  min-height: 2.5rem;
+  padding: .45rem .9rem;
+  text-align: left;
+}
+.game-choice .q-btn__content { justify-content: flex-start }
+.game-choice:not(.disabled):hover { transform: translateY(-2px); box-shadow: 0 12px 24px -12px var(--game-accent-glow) }
+/* The way on is the one outline the page offers unasked, so it wears the accent edge already. */
+.game-way-on { min-height: 2.75rem }
+.game-way-on .q-btn__content { flex-wrap: nowrap; white-space: nowrap }
+.game-way-on:before { border-color: var(--game-accent) }
+.game-way-on .q-icon { transition: transform var(--game-medium) var(--game-spring) }
+.game-way-on:hover .q-icon { transform: translateX(3px) }
+.q-btn:focus-visible, .q-field:focus-within .q-field__control {
+  outline: 2px solid var(--game-accent);
+  outline-offset: 3px;
+}
+.q-btn.disabled { opacity: .45 !important }
+.q-badge {
+  --q-primary: var(--game-accent);
+  border-radius: 999px;
+  padding: .3em .7em;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+.q-badge--outline { background: var(--game-accent-soft); border-color: color-mix(in srgb, currentColor 45%, transparent) }
+
+.q-field__control {
+  background: color-mix(in srgb, var(--game-bg) 40%, transparent);
+  border-radius: calc(var(--game-radius) * .7);
+  transition: box-shadow var(--game-medium) var(--game-ease), background-color var(--game-fast);
+}
+.q-field--outlined .q-field__control:before { border-color: var(--game-border-soft); transition: border-color var(--game-fast) }
+.q-field--outlined .q-field__control:hover:before { border-color: var(--game-muted) }
+.q-field--outlined.q-field--focused .q-field__control { box-shadow: 0 0 0 4px var(--game-accent-soft) }
+.q-field--outlined.q-field--focused .q-field__control:after { border-color: var(--game-accent); border-width: 1px }
+.q-field:focus-within .q-field__control { outline: none }
+.q-field__native, .q-field__input { color: var(--game-text) }
+.q-field__label, .q-field__marginal, .q-field__bottom { color: var(--game-muted) }
+.q-field__native::placeholder { color: var(--game-muted); opacity: .7 }
+.q-field--focused .q-field__label { color: var(--game-accent) }
+.q-toggle__inner--truthy .q-toggle__thumb:after { background: var(--game-accent) }
+.q-uploader {
+  background: color-mix(in srgb, var(--game-bg) 40%, transparent);
+  border: 1px dashed var(--game-border);
+  border-radius: var(--game-radius);
+  box-shadow: none;
+  transition: border-color var(--game-fast);
+}
+.q-uploader:hover { border-color: var(--game-accent) }
+.q-uploader__header { background: transparent; color: var(--game-text) }
+
+.game-tiles {
+  display: grid; width: 100%; gap: .75rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+.q-btn.game-tile {
+  padding: 1rem 1.1rem; min-height: 5rem;
+  background: var(--game-surface-raised) !important;
+  border-radius: var(--game-radius);
+  box-shadow: var(--game-shadow-sm), var(--game-highlight);
+  color: var(--game-text) !important;
+}
+.q-btn.game-tile:before { border-color: var(--game-border-soft) }
+.game-tile .q-btn__content { flex-wrap: nowrap; justify-content: flex-start; text-align: left; gap: .9rem; width: 100% }
+.q-btn.game-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 36px -18px var(--game-accent-glow), var(--game-shadow-md);
+}
+.q-btn.game-tile:hover:before { border-color: color-mix(in srgb, var(--game-accent) 60%, transparent) }
+.game-tile-icon, .game-entry-icon {
+  flex: none; display: grid; place-items: center;
+  width: 2.75rem; height: 2.75rem; font-size: 1.45rem;
+  border-radius: calc(var(--game-radius) * .7);
+  color: var(--game-accent);
+  background: var(--game-accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--game-accent) 25%, transparent);
+  transition: transform var(--game-medium) var(--game-spring);
+}
+.game-tile:hover .game-tile-icon { transform: rotate(-6deg) scale(1.08) }
+.game-tile-title { font-size: 1rem; font-weight: 600; line-height: 1.3 }
+.game-tile-caption { font-size: .8rem; font-weight: 400; color: var(--game-muted); line-height: 1.35 }
+.game-tile-arrow { margin-left: auto; color: var(--game-muted); transition: transform var(--game-medium) var(--game-spring), color var(--game-fast) }
+.game-tile:hover .game-tile-arrow { transform: translateX(3px); color: var(--game-accent) }
+
+.game-entry { transition: transform var(--game-medium) var(--game-ease), box-shadow var(--game-medium) var(--game-ease), border-color var(--game-fast) }
+.game-entry:hover { transform: translateY(-2px); border-color: var(--game-border); box-shadow: var(--game-shadow-md), var(--game-highlight) }
+.game-entry-title { font-size: 1.25rem; font-weight: 600; line-height: 1.2 }
+.game-entry-sub { color: var(--game-muted); font-size: .85rem }
+.game-empty {
+  width: 100%; padding: 2rem 1rem; text-align: center;
+  color: var(--game-muted);
+  border: 1px dashed var(--game-border-soft);
+  border-radius: var(--game-radius);
+}
+.game-empty .q-icon { font-size: 2rem; opacity: .7; margin-bottom: .35rem }
+.game-actions {
+  margin-top: .5rem; padding-top: 1rem;
+  border-top: 1px solid var(--game-border-soft);
+}
+.game-hint { color: var(--game-muted); font-size: .78rem }
+.game-sprites { display: grid; grid-template-columns: repeat(auto-fill, 5.5rem); gap: .5rem }
+.game-sprite { border: 2px solid var(--game-border); border-radius: var(--game-radius) }
+.game-sprite img { width: 80px; height: 80px; image-rendering: pixelated }
+.game-sprite-on { border-color: var(--game-accent) }
+
+/* One measure down the page: the scene title, every bubble and the composer share a left edge. */
+.game-measure, .game-transcript { max-width: var(--game-measure); margin-inline: auto }
+.game-scene {
+  --game-scene-height: clamp(7rem, 17vh, 10.5rem);
+  position: relative; overflow: hidden; flex: none;
+  align-self: stretch; margin: var(--game-inset);
+  border: 1px solid var(--game-border-soft);
+  border-radius: calc(var(--game-radius) * .85);
+  background:
+    radial-gradient(30rem 12rem at 0 0, var(--game-accent-soft), transparent 70%),
+    var(--game-surface-raised);
+  box-shadow: var(--game-shadow-sm), var(--game-highlight);
+}
+.game-scene:has(.game-scene-art) { height: var(--game-scene-height) }
+/* The frame again, blurred past reading, so the letterboxed art sits on its own colour. */
+.game-scene-wash {
+  position: absolute; inset: 0; height: 100%; width: 100%;
+  filter: blur(28px) saturate(1.3); transform: scale(1.15); opacity: .55;
+}
+.game-scene:has(.game-scene-wash):after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, var(--game-bg) 22%, #000a 62%, transparent);
+}
+.game-scene-body { position: relative; z-index: 1; height: 100% }
+/* Its own 16:9 box, so a column too narrow for the full band shortens the art, never crops it. */
+.game-scene-art {
+  flex: none; align-self: center;
+  width: min(55%, calc(var(--game-scene-height) * 16 / 9)); aspect-ratio: 16 / 9;
+  /* Bled to the edges and dissolved on the left: the whole 16:9 frame, cropped nowhere. */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 24%);
+  mask-image: linear-gradient(to right, transparent, #000 24%);
+}
+/* The gutter the centred transcript leaves, less the inset this card holds, so the title
+   starts where the bubbles do. */
+.game-scene-text {
+  flex: 1 1 auto; min-width: 0;
+  height: 100%; overflow-y: auto;
+  padding: .75rem 1rem;
+  padding-left: calc(
+    max(0px, (100% + 2 * var(--game-inset) - var(--game-measure)) / 2) + 1rem - var(--game-inset)
+  );
+}
+.game-scene-title { font-size: 1.65rem; font-weight: 700; line-height: 1.1; text-shadow: 0 2px 18px rgb(0 0 0 / .5) }
+.game-scene-situation { font-size: .84rem !important; line-height: 1.45; max-width: 38rem }
+.game-scene .game-eyebrow { font-size: .62rem }
+.game-scene-chevron {
+  position: absolute; right: .6rem; top: 50%; margin-top: -.75rem; z-index: 2;
+  color: var(--game-accent); font-size: 1.5rem; transition: transform var(--game-medium) var(--game-ease);
+}
+.game-scene-open .game-scene-chevron { top: .6rem; margin-top: 0; transform: rotate(180deg) }
+
+/* No side padding: an avatar starts on the measure's edge, where the scene title starts. */
+.game-transcript { --game-chat-avatar: 2.1rem }
+.game-transcript .q-scrollarea__content { gap: .85rem !important; padding-bottom: 1.25rem }
+.game-message { padding-inline: 0; margin: 0 }
+/* The avatar sits at the top, beside the name, not under the last line. */
+.game-message .q-message-container { align-items: flex-start }
+.game-message .game-avatar {
+  font-size: var(--game-chat-avatar) !important;  /* beats the inline `size` */
+  margin-right: .65rem;
+}
+.game-message-more { padding-left: calc(var(--game-chat-avatar) + .65rem) }
+.game-message .q-message-name {
+  color: var(--game-muted); font-size: .78rem; font-weight: 700; letter-spacing: .02em;
+  margin-bottom: .25rem;
+}
+.game-message .q-message-text {
+  background: var(--game-surface-raised);
+  border: 1px solid var(--game-border-soft);
+  border-radius: var(--game-radius);
+  padding: .6rem .95rem;
+  min-height: 0 !important;  /* Quasar's 48px would pad a one-line bubble */
+  box-shadow: var(--game-shadow-sm), var(--game-highlight);
+}
+.game-message .q-message-text:before { display: none }
+/* The corner nearest the speaker is tight. */
+.game-message .q-message-text--received { border-top-left-radius: .3rem }
+.game-message .q-message-text--sent { border-bottom-right-radius: .3rem }
+.game-message .q-message-text-content { color: var(--game-text); line-height: 1.6; font-size: .95rem }
+/* Narration and NPC lines share the book serif. */
+.game-message.q-message-received .q-message-text-content {
+  font-family: var(--game-heading);
+  font-size: 1.08rem;
+}
+.game-message .q-message-text--sent {
+  background: linear-gradient(135deg, var(--game-accent-strong), var(--game-accent));
+  border-color: transparent;
+  box-shadow: 0 10px 24px -14px var(--game-accent-glow), var(--game-shadow-sm);
+}
+.game-message .q-message-text--sent .q-message-text-content { color: var(--game-bg); font-weight: 500 }
+.game-avatar {
+  border: 1px solid var(--game-border-soft);
+  background: var(--game-surface-raised);
+  box-shadow: var(--game-shadow-sm);
+}
+.game-avatar-dm {
+  color: var(--game-bg); border-color: transparent;
+  background: linear-gradient(140deg, var(--game-accent-strong), var(--game-accent-deep));
+}
+.game-cause {
+  display: flex; align-items: center; gap: .75rem; width: 100%;
+  color: var(--game-muted); font-size: .78rem; font-style: italic; letter-spacing: .02em; white-space: nowrap;
+}
+.game-cause:before, .game-cause:after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--game-border)) }
+.game-cause:after { background: linear-gradient(to left, transparent, var(--game-border)) }
+.game-paused { color: var(--game-muted); font-size: .78rem; font-style: italic; padding-left: calc(var(--game-chat-avatar) + .65rem) }
+/* The working step reads as the bubble it will become: the same frame, still being written. */
+.game-working {
+  position: relative; overflow: hidden;
+  max-width: 44rem;
+  background: var(--game-surface-raised);
+  border: 1px solid var(--game-border-soft);
+  border-radius: var(--game-radius);
+  border-top-left-radius: .3rem;
+  padding: .8rem 1.1rem;
+  box-shadow: var(--game-shadow-md), var(--game-highlight);
+}
+.game-working:before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(100deg, transparent 20%, var(--game-accent-soft) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: game-shimmer 2.2s var(--game-ease) infinite;
+}
+.game-working:after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--game-accent), transparent);
+  background-size: 50% 100%; background-repeat: no-repeat;
+  animation: game-progress 1.6s ease-in-out infinite;
+}
+@keyframes game-shimmer {
+  to { transform: translateX(100%) }
+}
+@keyframes game-progress {
+  from { background-position: -100% 0 }
+  to { background-position: 200% 0 }
+}
+.game-dots { display: flex; align-items: center; gap: .25rem }
+.game-dots span {
+  width: .42rem; height: .42rem; border-radius: 50%;
+  background: var(--game-accent);
+  animation: game-dots 1.2s ease-in-out infinite both;
+}
+.game-dots span:nth-child(2) { animation-delay: .15s }
+.game-dots span:nth-child(3) { animation-delay: .3s }
+@keyframes game-dots {
+  0%, 60%, 100% { opacity: .3; transform: translateY(0) }
+  30% { opacity: 1; transform: translateY(-3px) }
+}
+
+.game-fact {
+  position: relative;
+  padding-left: 1.4rem;
+  transition: border-color var(--game-fast), box-shadow var(--game-medium) var(--game-ease), transform var(--game-medium) var(--game-ease);
+}
+.game-fact:before {
+  content: ''; position: absolute; left: 0; top: .9rem; bottom: .9rem; width: 3px;
+  border-radius: 0 3px 3px 0; background: var(--game-accent);
+}
+.game-fact:hover { border-color: var(--game-border); box-shadow: var(--game-shadow-md), var(--game-highlight) }
+.game-fact-head { font-size: .9rem; font-weight: 700; line-height: 1.35 }
+.game-fact-icon { color: var(--game-accent); font-size: 1.15rem }
+.game-activity {
+  align-self: center; border-radius: 999px; padding-inline: 1rem;
+  box-shadow: 0 12px 28px -10px var(--game-accent-glow), var(--game-shadow-md);
+}
+.game-activity .q-icon { animation: game-nudge 1.4s var(--game-ease) infinite }
+@keyframes game-nudge {
+  50% { transform: translateY(3px) }
+}
+
+.game-enter { animation: game-enter var(--game-medium) var(--game-ease) both }
+@keyframes game-enter {
+  from { opacity: 0; transform: translateY(10px) scale(.985) }
+}
+
+.q-scrollarea__thumb { background: var(--game-border); opacity: .5; border-radius: 999px }
+.q-scrollarea__thumb--v { width: 6px }
+.q-scrollarea__thumb:hover { background: var(--game-accent); opacity: .9 }
+
+.game-die {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--game-die-body) 88%, white), var(--game-die-body));
+  color: var(--game-die-ink);
+  border: 1px solid var(--game-border);
+  border-radius: calc(var(--game-radius) * .6);
+  min-width: 2.5rem;
+  padding: .25rem .45rem;
+  align-items: center;
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / .18), 0 6px 14px -6px rgb(0 0 0 / .6);
+  --game-die-line: 1.725rem;
+}
+.game-die-face { font-size: .6rem; font-weight: 700; text-transform: uppercase; opacity: .75 }
+.game-die-window { height: var(--game-die-line); overflow: hidden }
+.game-die-value {
+  font-size: 1.2rem; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums;
+  line-height: var(--game-die-line); white-space: pre;
+}
+.game-die-kept {
+  border-color: var(--game-die-glow);
+  box-shadow: 0 0 0 2px var(--game-die-glow), 0 0 18px -2px var(--game-die-glow), inset 0 -2px 0 rgb(0 0 0 / .18);
+}
+.game-die-live { animation: game-die-tumble 900ms cubic-bezier(.2, .8, .3, 1) both }
+.game-die-live.game-die-kept { animation: game-die-tumble 900ms cubic-bezier(.2, .8, .3, 1) both, game-die-pulse 1.2s var(--game-ease) 2.4s 1 }
+.game-die-live .game-die-value {
+  animation: game-die-spin 2.2s ease-out .5s backwards;
+  user-select: none;
+}
+@keyframes game-die-tumble {
+  from { opacity: 0; transform: perspective(240px) rotateX(-220deg) rotateY(160deg) scale(.5) }
+  60% { opacity: 1; transform: perspective(240px) rotateX(20deg) rotateY(-15deg) scale(1.08) }
+  to { transform: none }
+}
+@keyframes game-die-spin {
+  from { transform: translateY(calc(var(--game-die-line) - 100%)) }
+}
+@keyframes game-die-pulse {
+  40% { transform: scale(1.12) }
+}
+
+.game-composer {
+  background: var(--game-surface-raised);
+  border: 1px solid var(--game-border-soft);
+  border-radius: calc(var(--game-radius) * 1.4);
+  box-shadow: var(--game-shadow-md), var(--game-highlight);
+  padding: .35rem .35rem .35rem .75rem !important;
+  transition: border-color var(--game-fast), box-shadow var(--game-medium) var(--game-ease);
+}
+.game-composer:focus-within {
+  border-color: color-mix(in srgb, var(--game-accent) 70%, transparent);
+  box-shadow: 0 0 0 4px var(--game-accent-soft), var(--game-shadow-md);
+}
+.game-composer .q-field__control { background: transparent; box-shadow: none !important }
+.game-composer .q-field:focus-within .q-field__control { outline: none }
+/* Hovered too: the flat tier's hover rule would paint the glyph accent on the accent fill. */
+.q-btn.game-send, .q-btn.game-send:hover {
+  background: linear-gradient(140deg, var(--game-accent-strong), var(--game-accent)); color: var(--game-bg) !important;
+  box-shadow: 0 8px 18px -8px var(--game-accent-glow), inset 0 1px 0 rgb(255 255 255 / .3);
+  width: 2.75rem; min-width: 2.75rem; height: 2.75rem; min-height: 2.75rem;
+}
+.q-btn.game-send:not(.disabled):hover { transform: translateY(-1px) scale(1.05) }
+.q-btn.game-send.disabled { background: var(--game-border); box-shadow: none }
+.game-over { color: var(--game-danger) }
+.game-foot-body { padding: .5rem .75rem .75rem }
+.game-banner-text { flex: 1 1 auto; min-width: 0 }
+
+@media (max-width: 1023.98px) {
+  .game-rail { display: none }
+  .game-drawer-panel { margin-left: var(--game-inset) }
+}
+@media (max-width: 599.98px) {
+  .q-header { gap: .25rem; padding: .25rem .4rem; min-height: 3.25rem }
+  .q-header .game-title { font-size: 1.1rem }
+  .q-header .q-btn--round {
+    width: 2.75rem; min-width: 2.75rem; height: 2.75rem; min-height: 2.75rem;
+  }
+  .game-brand { width: 2rem; height: 2rem }
+  .game-nav { width: 2.75rem; min-width: 2.75rem; padding: 0 !important; border-radius: 50% }
+  .game-entry-icon { display: none }
+  .game-launch { padding: 1.1rem }
+  .game-entry-row:has(.game-entry-actions .bg-primary) { flex-wrap: wrap !important }
+  .game-entry-actions:has(.bg-primary) { width: 100%; justify-content: flex-end }
+  .game-entry-actions .bg-primary { flex: 1 }
+  /* A phone has no room for the inset frames: every panel runs edge to edge. */
+  .game-main, .game-drawer-panel, .game-scene {
+    margin: 0; border-left: 0; border-right: 0; border-radius: 0; box-shadow: none;
+  }
+  .game-main, .game-scene { border-top: 0 }
+  .game-drawer-panel { height: 100% }
+  .game-scene { cursor: pointer }
+  /* Open: no room beside the text, so the frame goes full width on top and fades into the words. */
+  .game-scene:has(.game-scene-art) { height: auto }
+  .game-scene-body { flex-direction: column-reverse }
+  .game-scene-art {
+    /* Capped for a short or landscape phone, where a full-width 16:9 would fill the screen. */
+    width: 100%; height: auto; aspect-ratio: 16 / 9; max-height: 30dvh;
+    -webkit-mask-image: linear-gradient(to bottom, #000 68%, transparent);
+    mask-image: linear-gradient(to bottom, #000 68%, transparent);
+  }
+  .game-scene-text { height: auto; padding: .2rem .9rem .9rem }
+  .game-scene-title { font-size: 1.25rem }
+  /* Closed: a strip, the art a dim band cropped behind the title, the situation put away. */
+  .game-scene:not(.game-scene-open) { height: 3rem }
+  .game-scene:not(.game-scene-open) .game-eyebrow { display: none }
+  .game-scene:not(.game-scene-open) .game-scene-art {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; aspect-ratio: auto; opacity: .55;
+    -webkit-mask-image: linear-gradient(to top, transparent 15%, #000 70%);
+    mask-image: linear-gradient(to top, transparent 15%, #000 70%);
+  }
+  /* `fit=contain` is an inline style Quasar writes on the frame, so the band has to shout. */
+  .game-scene:not(.game-scene-open) .game-scene-art .q-img__image { object-fit: cover !important }
+  .game-scene:not(.game-scene-open) .game-scene-text {
+    position: relative; z-index: 1;
+    height: 100%; justify-content: center; padding: 0 2.75rem 0 .9rem;
+  }
+  .game-scene:not(.game-scene-open) .game-scene-situation { display: none }
+  .game-transcript { --game-chat-avatar: 1.75rem }
+  .game-message .q-message-text { padding: .5rem .75rem }
+  .game-message.q-message-received .q-message-text-content { font-size: 1.02rem }
+  .game-banner { padding: .55rem .6rem .55rem .8rem }
+  .game-banner .game-card-icon { display: none }
+  .game-banner-body { font-size: .85rem }
+  .game-banner .game-choices, .game-banner .game-hint { padding-left: 0 }
+  .game-composer .q-field__control { min-height: 2.75rem !important }
+  .game-foot-body { padding: .35rem .5rem .5rem }
+}
+/* iOS zooms into any focused field under 16px and never zooms back out. Quasar's is 14px. */
+@media (pointer: coarse) {
+  .q-field { font-size: 16px }
+}
+@media (hover: none) {
+  .q-btn.game-tile:hover, .game-entry:hover, .game-choice:hover, .q-btn.bg-primary:hover { transform: none }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-die-live, .game-die-live .game-die-value, .game-enter, .nicegui-content,
+  .game-decision.game-enter, .game-activity .q-icon, .game-working:before, .game-working:after { animation: none }
+  .game-dots span { animation: none; opacity: .7 }
+  .q-btn, .q-btn .q-icon, .game-scene-chevron, .game-choice, .game-fact, .game-entry, .game-tile-icon, .game-tile-arrow { transition: none }
+  .q-btn:hover, .q-btn:active, .game-entry:hover, .game-choice:hover { transform: none !important }
+}
+
+/* Tags, meters and sheet sprites: view fields any engine may fill. */
+.game-tags { display: flex; flex-wrap: wrap; gap: .3rem; margin: .3rem 0 .1rem }
+.game-tag {
+  display: inline-flex; align-items: center;
+  padding: .1em .55em; border-radius: 999px;
+  font-size: .66rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; line-height: 1.6;
+  color: var(--game-muted); background: var(--game-wash); border: 1px solid var(--game-border-soft);
+}
+.game-tag-coloured {
+  color: #fff; background: var(--game-tag); border-color: transparent;
+  text-shadow: 0 1px 1px rgb(0 0 0 / .35);
+}
+.game-tag-light { color: #1b1b1f; text-shadow: none }
+.game-meters { display: grid; grid-template-columns: repeat(2, 1fr); gap: .15rem .8rem; width: 100%; margin: .3rem 0 .35rem }
+.game-meter { display: grid; grid-template-columns: 2.75rem 1fr auto; align-items: center; gap: .35rem; font-size: .68rem }
+.game-meter:first-child { grid-column: 1 / -1; font-size: .78rem; margin-bottom: .15rem }
+.game-meter-label { color: var(--game-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap }
+.game-meter-track {
+  height: .4rem; border-radius: 999px; overflow: hidden;
+  background: color-mix(in srgb, var(--game-bg) 70%, transparent);
+  box-shadow: inset 0 0 0 1px var(--game-border-soft);
+}
+.game-meter:first-child .game-meter-track { height: .6rem }
+.game-meter-fill { height: 100%; border-radius: inherit; background: var(--game-meter); transition: width var(--game-medium) var(--game-ease) }
+.game-meter-value { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 1.4rem; text-align: right }
+.game-pixelated img { image-rendering: pixelated }
+.game-sprite-frame { flex: none; background-repeat: no-repeat; image-rendering: pixelated; zoom: 2; align-self: flex-start }
+.game-entity:has(.game-meters) { align-items: flex-start; padding-block: .6rem }
+.game-entity-body { flex: 1 1 auto; min-width: 0 }
+.game-stat-head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap }
+.game-stat-head .game-tags { margin: 0 }
+.game-opens { position: relative; padding-right: 1.75rem; cursor: pointer; border-radius: calc(var(--game-radius) * .5); transition: background-color var(--game-fast) var(--game-ease) }
+.game-opens:hover { background: var(--game-wash) }
+.game-opens:focus-visible { outline: 2px solid var(--game-accent); outline-offset: 3px }
+.game-opens-cue { position: absolute; right: .25rem; top: 50%; transform: translateY(-50%); color: var(--game-muted); font-size: 1.1rem }
+.game-row-dialog { width: 30rem; max-width: 100%; padding: 1rem 1.25rem 1.25rem }
+.game-row-dialog > .game-section-head { margin-top: .6rem }
+.game-row-dialog .game-choices { padding-top: .2rem }
+.game-row-dialog .game-choice .q-btn__content { text-align: left }
+.game-entity + .game-entity:has(.game-meters) { border-top: 1px solid var(--game-border-soft) }
+
+/* The battle: one measure for the stage and the choices, room around them. */
+.game-battle { padding: 1.25rem 1.5rem 1.5rem; align-items: center }
+/* The cards' wrapper is `display: contents`: its children are the battle's items. */
+.game-battle-cards { display: contents }
+.game-battle > *, .game-battle-cards > * { width: 100%; max-width: 36rem }
+.game-battle .game-eyebrow { font-size: .62rem; margin-top: .25rem }
+.game-battle-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: .5rem }
+.game-battle .game-choice { min-height: 2.75rem; padding: .45rem .8rem }
+.game-choice-head > :first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis }
+.q-btn--outline.game-choice-tinted { background: color-mix(in srgb, var(--game-tag) 16%, var(--game-wash)) !important }
+.game-choice-tinted:before { border-color: color-mix(in srgb, var(--game-tag) 55%, var(--game-border)) }
+.game-choice .game-tags { margin: 0 0 0 auto; flex: none }

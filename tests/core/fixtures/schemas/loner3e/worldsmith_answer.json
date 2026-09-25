@@ -1,0 +1,144 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "place_id": {
+      "description": "Slug naming the place. Reuse it when the player returns here.",
+      "type": "string"
+    },
+    "location": {
+      "default": "",
+      "description": "The wider location of the scene: a station, a ship, a town or a wild region, not a room or a spot in it. Many scenes share one location. Leave it empty when the scene is in the location of THE SCENE NOW. Write a name only when the player arrives in a different location. Use the same name again when the player returns to a location.",
+      "type": "string"
+    },
+    "title": {
+      "description": "The scene's title, read by the player. Name nothing hidden.",
+      "type": "string"
+    },
+    "situation": {
+      "description": "The place as it stands: what the player sees, hears and smells here, and what the place offers or blocks. Describe the place. Never narrate an action, and never tell what the player does. Hold nothing hidden here.",
+      "type": "string"
+    },
+    "present": {
+      "default": [],
+      "description": "Ids of who and what is in the scene now.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "hidden": {
+      "default": [],
+      "description": "Ids of what is hidden here.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "cast": {
+      "description": "New people and things, each filed under its own id. The player reads a brief and a sheet after they meet that entry. Name nothing still hidden in either one.",
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "additionalProperties": false,
+          "description": "A character is a person, an object, a vehicle or a curse.",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "type": "string"
+            },
+            "known": {
+              "default": false,
+              "type": "boolean"
+            },
+            "alive": {
+              "default": true,
+              "type": "boolean"
+            },
+            "concept": {
+              "default": "",
+              "type": "string"
+            },
+            "tags": {
+              "additionalProperties": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "propertyNames": {
+                "enum": [
+                  "skill",
+                  "frailty",
+                  "gear",
+                  "condition"
+                ],
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "goal": {
+              "default": "",
+              "type": "string"
+            },
+            "motive": {
+              "default": "",
+              "type": "string"
+            },
+            "nemesis": {
+              "default": "",
+              "type": "string"
+            },
+            "luck": {
+              "additionalProperties": false,
+              "properties": {
+                "current": {
+                  "type": "integer"
+                },
+                "maximum": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "current",
+                "maximum"
+              ],
+              "type": "object"
+            },
+            "defeated": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "brief"
+          ],
+          "type": "object"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "arc": {
+      "default": "",
+      "description": "The long game that spans the scenes: pressures, motives, secrets, and what can come later. Never what is true in this scene now. The player never reads it. Put here what ties one hidden thing to another.",
+      "type": "string"
+    },
+    "recap": {
+      "description": "One paragraph on the scene the player leaves: what the player did, paid and learned. The narrator reads it. Name nothing hidden.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "place_id",
+    "title",
+    "situation",
+    "recap"
+  ],
+  "type": "object"
+}

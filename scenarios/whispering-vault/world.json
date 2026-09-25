@@ -1,0 +1,103 @@
+{
+  "meta": {
+    "title": "The Whispering Vault",
+    "premise": "The abbey of Saint Corvin was abandoned in a single night. The vault beneath it is still sealed, and the abbot's study is the only room still lit.",
+    "backdrop": "Low fantasy, grim and quiet. Magic is rare, and people fear it. Stone, candle smoke and cold. The church holds the towns, and its silence holds secrets.",
+    "scope": "One night in the abbey, from the study to the vault and out again. Reaching what is sealed below, or learning why it was sealed, brings the scenario toward an ending; what is carried out can follow into other stories."
+  },
+  "engine_id": "loner3e",
+  "pack_id": "srd",
+  "source": "",
+  "opening": {
+    "place_id": "abbots-study",
+    "location": "The abbey of Saint Corvin",
+    "title": "The Abbot's Study",
+    "situation": "The only lit room left in the abbey: ledgers stacked to the beams, candle stubs gone cold, and Mara still cataloguing books nobody will read. A flagstone under the desk sits a finger proud of its neighbours.",
+    "present": [
+      "mara"
+    ],
+    "hidden": [
+      "vault-map"
+    ],
+    "cast": {
+      "mara": {
+        "id": "mara",
+        "name": "Mara",
+        "brief": "The abbey's last scribe, cautious and tired, still cataloguing books nobody will read.",
+        "concept": "A Cautious Scribe",
+        "tags": {
+          "skill": [
+            "Reads a Faded Hand",
+            "Knows the Catalogue"
+          ],
+          "frailty": [
+            "Slow to Trust"
+          ],
+          "gear": [
+            "Ledger and Ink"
+          ]
+        },
+        "goal": "Finish the catalogue before anyone strips the abbey",
+        "motive": "It is the last thing the abbot asked of her"
+      },
+      "vault-map": {
+        "id": "vault-map",
+        "name": "the vault map",
+        "brief": "A creased chart of the undercroft, marking a stair the abbey's own plans deny. Drawn in an old hand; the undercroft it maps is larger than the abbey standing over it."
+      },
+      "tomas": {
+        "id": "tomas",
+        "name": "Brother Tomas",
+        "brief": "A deaf old porter who sweeps the cloister and knows almost nothing about the vault.",
+        "concept": "A Deaf Old Porter",
+        "tags": {
+          "skill": [
+            "Knows Every Door"
+          ],
+          "frailty": [
+            "Hears Almost Nothing"
+          ],
+          "gear": [
+            "Twig Broom"
+          ]
+        }
+      },
+      "elena": {
+        "id": "elena",
+        "name": "Elena",
+        "brief": "The vault's former archivist; she alone remembers the sealing rite, and she names a price before she gives it up. She catalogued the vault ledgers beside Mara for two winters, until the night she went below alone and never came back up. The rite is in her head and nowhere else.",
+        "concept": "A Ruined Archivist",
+        "tags": {
+          "skill": [
+            "Knows the Old Rites",
+            "Names Her Price"
+          ],
+          "frailty": [
+            "Flinches at the Dark"
+          ],
+          "gear": [
+            "Hooded Lantern"
+          ]
+        },
+        "goal": "Be paid for the sealing rite",
+        "motive": "Two winters below earned her that much"
+      },
+      "cloister-rat": {
+        "id": "cloister-rat",
+        "name": "a bloated rat",
+        "brief": "It has grown fat on the dead garden and does not run from a lantern.",
+        "concept": "A Bloated Cloister Rat",
+        "tags": {
+          "skill": [
+            "Slips Into the Walls",
+            "Bites and Holds On"
+          ],
+          "frailty": [
+            "Does Not Run"
+          ]
+        }
+      }
+    },
+    "arc": ""
+  }
+}

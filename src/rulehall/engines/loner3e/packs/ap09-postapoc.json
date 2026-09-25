@@ -1,0 +1,1305 @@
+{
+  "name": "AP09 Post-Apocalyptic",
+  "source": "https://lonersrd.zotiquestgames.com/adventure_packs/AP09_postapoc.html",
+  "license": "Adventure Pack 09: Post-Apocalyptic, Loner SRD site (CC BY-SA 4.0), (c) Roberto Bisceglie / Zotiquest Games",
+  "backdrop": "The world died fifty years ago when the Eden Protocol failed — a biotech energy system meant to end scarcity instead ruptured, flooding the atmosphere with mutagenic particles and radiation no suit could stop.\nThe setting is North America’s heartland — the old Midwest — now a scarred landscape of ash-choked forests, bone-dry riverbeds, and ruins half-swallowed by creeping vines that glow at night.\nCities lie cracked and hollow, their cores too toxic to enter without shielding. Rural zones fare little better — twisted by fallout storms, plagued by beasts that once were cattle, wolves, or people.\nSurvivors cling to the margins — makeshift settlements in old silos, cave networks rigged with solar foil, rail depots turned into barter forts. Nothing is safe, but some places are quieter than others.\nSociety is shattered into fragments — scavenger bands, trade clans, poison cults, and survivalist militias — each clinging to power by hoarding fuel, clean water, or working tech from before the collapse.\nTrade is blood and risk — vaccines for bullets, batteries for meat, clean water for everything. Currency is whatever keeps you breathing one more day.\nTechnology is half-magic and half-dead — patched drones, solar rigs, hand-pumped railcars, and relics scavenged from zones no sane person enters twice.\nRadiation is not just poison — it breeds new ecologies, new instincts, new terrors. The land mutates, and those who walk it too long often change with it.",
+  "names": {
+    "female": [
+      "Mags",
+      "Rella",
+      "Juniper",
+      "Ada",
+      "Caia",
+      "Nix",
+      "Sela",
+      "Brynn",
+      "Vega",
+      "Petra",
+      "Ashra",
+      "Miri",
+      "Fallon",
+      "Rue",
+      "Danya",
+      "Talin",
+      "Ona",
+      "Briar",
+      "Zadie",
+      "Lark",
+      "Edda",
+      "Moren",
+      "Hala",
+      "Kez",
+      "Syl",
+      "Echo",
+      "Tamsin",
+      "Arla",
+      "Cyra",
+      "Fern",
+      "Nyla",
+      "Jex",
+      "Thorne",
+      "Imra",
+      "Pax",
+      "Ilsey"
+    ],
+    "male": [
+      "Rigg",
+      "Thorne",
+      "Cass",
+      "Bram",
+      "Lex",
+      "Jaro",
+      "Flint",
+      "Corven",
+      "Dax",
+      "Halden",
+      "Vorn",
+      "Elric",
+      "Silas",
+      "Boone",
+      "Jett",
+      "Maddox",
+      "Ren",
+      "Colm",
+      "Asher",
+      "Talor",
+      "Brin",
+      "Vex",
+      "Orin",
+      "Merrik",
+      "Zev",
+      "Nilo",
+      "Garrick",
+      "Kade",
+      "Drex",
+      "Harlan",
+      "Roen",
+      "Sayer",
+      "Quinn",
+      "Moss",
+      "Fen",
+      "Lio"
+    ],
+    "neutral": [],
+    "surnames": [
+      "Ashvale",
+      "Burnside",
+      "Varnell",
+      "Crossley",
+      "Hollowick",
+      "Trask",
+      "Bramble",
+      "Thornell",
+      "Creed",
+      "Gallows",
+      "Mirelow",
+      "Falco",
+      "Shard",
+      "Quade",
+      "Tiller",
+      "Draven",
+      "Laskin",
+      "Vale",
+      "Roach",
+      "Wexler",
+      "Kern",
+      "Fallow",
+      "Brinley",
+      "Rask",
+      "Soot",
+      "Harker",
+      "Fenwick",
+      "Omeral",
+      "Crane",
+      "Hush",
+      "Slade",
+      "Vexley",
+      "Grinn",
+      "Cask",
+      "Ember",
+      "Dorran"
+    ],
+    "nicknames": [
+      "Cinder",
+      "Knuckle",
+      "Scorch",
+      "Dusty",
+      "Nails",
+      "Flinch",
+      "Spark",
+      "Ghost",
+      "Biter",
+      "Crook",
+      "Stitch",
+      "Glare",
+      "Echo",
+      "Vex",
+      "Dagger",
+      "Crank",
+      "Pit",
+      "Rattle",
+      "Jinx",
+      "Thump",
+      "Snare",
+      "Wick",
+      "Blight",
+      "Scab",
+      "Stray",
+      "Fang",
+      "Sly",
+      "Wretch",
+      "Brick",
+      "Grit",
+      "Moth",
+      "Hex",
+      "Grub",
+      "Snipe",
+      "Wasp",
+      "Shrike"
+    ]
+  },
+  "rules": "The Eden Fallout:\n\nRadiation isn’t just background noise — it’s the air you breathe, the dust on your skin, and the voice in your blood. Any time your Protagonist lingers in a red zone, digs into old biotech ruins, or crosses a fallout storm, **ask the Oracle**: *Does the exposure leave a mark?*\n\n* A **Yes** means you gain a temporary or permanent **Mutation Tag**.\n* A **No, but…** may mean sickness, weakness, or hallucinations.\n* Treatments are rare and unreliable. When you attempt to treat radiation symptoms, **ask the Oracle** if the method is effective — most “cures” are pre-Collapse myths or poison in a vial.\n\n> **NOTE**\n> *Mutation Tags* should reflect the unnatural evolution of life in the wasteland.\n> Examples: `Bioluminescent Veins`, `Bone Bark Armor`, `Photosynthetic Skin`, `Echo Sense`.\n\nSurvival at the Brink:\n\nResources are not tracked — they’re **story drivers**. You have what you need *until the world says you don’t*. Whenever your character uses up food, water, fuel, or ammo in a risky context, **ask the Oracle**: *Do you still have enough?*\n\n* If the answer is **No**, narrate what went wrong — spoiled rations, burst canisters, power drains — and improvise a new plan.\n* Certain Tags (like `Scavenger Instinct` or `Jury-Rigged Solar Still`) may give you Advantage.\n\n> **EXAMPLE**\n> You fire your last flare into the night, hoping to blind the oncoming beast.\n> Ask the Oracle: *Do I have more flares?*\n> *No* — and the pack is already circling.\n\nFaction Instability:\n\nNo one rules the Wastes — but many try. When you interact with a faction (militias, trade caravans, cults, etc.), **ask the Oracle**: *How do they respond?*\n\n* Consider your Tags and theirs. If you're branded by a rival clan, expect hostility.\n* Roll again if the faction is internally split or operating under stress — betrayal and negotiation often go hand in hand.\n\n> **NOTE**\n> *Faction Tags* are optional but useful.\n> Examples: `Water Tithers`, `Bullet Gospel Evangelists`, `Sunfoil Syndicate`, `Cracked Dome Alliance`.\n\n> **EXAMPLE**\n> You meet a trader with a Sunfoil armband and offer them half your ammo for clean water.\n> Ask the Oracle: *Do they agree?*\n> *Yes, and —* they warn you of a nearby fallout storm for free.",
+  "locations": [
+    {
+      "name": "Vault Theta-7",
+      "brief": "A fractured biotech military facility buried beneath a collapsed hill range. Still echoes with malfunctioning security drones and containment anomalies.",
+      "encounters": "Defense remnants, relic hunters, mutagen leaks"
+    },
+    {
+      "name": "Glowfen Market",
+      "brief": "A geothermal spring-turned-trading post, surrounded by glowing vine-lattices. Its warmth draws both barter caravans and parasitic fauna.",
+      "encounters": "Traders, resource cults, water rustlers"
+    },
+    {
+      "name": "Thornepost Bastion",
+      "brief": "A repurposed rail hub, now a scrap-metal fortress bristling with solar arrays. Controlled by a militia faction obsessed with purity and control.",
+      "encounters": "Patrols, inquisitors, smugglers in disguise"
+    },
+    {
+      "name": "The Pale Expanse",
+      "brief": "A dead, sun-bleached stretch of fallout desert crusted with bone-pale ash. Tech warps in the dust storms; time seems to skip or stall.",
+      "encounters": "Wanderers, ghost cults, terra-warped predators"
+    },
+    {
+      "name": "Underdrift Warren",
+      "brief": "A labyrinth of silos, drains, and vault-burrows repurposed into a thriving black market. Lit by fungal glow and solar foil, it's a haven for the desperate and the clever.",
+      "encounters": "Info brokers, rogue biotechs, hive-gangs"
+    },
+    {
+      "name": "The Crimson Verge",
+      "brief": "A twisted forest of red-barked trees, mutated roots, and phosphorescent undergrowth. The air pulses faintly; things *grow* even when unwatched.",
+      "encounters": "Spore-beasts, gene-scientists, Verdancy pilgrims"
+    }
+  ],
+  "seeds": [
+    "Infiltrate a relic vault guarded by spore-bonded monks who believe the tech is divine.",
+    "Track a missing scavenger whose last transmission ended with the sound of chanting and fire.",
+    "A radiant child with photosynthetic skin escapes the Verdancy. They want protection — or power.",
+    "A dormant terraformer reactivates. Now the air turns sweet — and wrong. Something is coming.",
+    "Sabotage a water tithe caravan before it reaches the Cracked Dome — or escort it, for a price.",
+    "A geomagnetic storm opens a sealed crypt beneath the Pale Expanse. No one remembers building it.",
+    "Recover a vault-core chip buried beneath a war zone. One side wants peace — the other, extinction.",
+    "Your own name appears on a kill-order scroll sent from Underdrift Warren. Who paid for it, and why?",
+    "The Glowfen Market is sealed after a sickness spreads — the infected bloom with glowing vines.",
+    "A fissure beneath Thornepost exhales heat and humming voices. The militia denies it’s a threat.",
+    "Verdancy pilgrims seek help retrieving a fungal relic growing from a bunker ceiling. It weeps light.",
+    "Bramblecarvers are swarming tech rigs near Vault Theta-7. A bounty goes to the one who clears them out.",
+    "Escort a solar-patched caravan through the Crimson Verge — if the trees let you leave.",
+    "A swarm of tinker-rats has stolen a voice-recorder from the Sunfoil Syndicate. It may expose them.",
+    "A glowback coyote pack is growing too intelligent. The Gutterkin want one captured — alive.",
+    "Scouts vanish near a signal tower. It's still broadcasting — from within a collapsed ruin.",
+    "Salvagers request aid retrieving a sealed Eden device. The last crew returned mutated beyond speech.",
+    "A false prophet of the Radiant Front preaches in your name. His followers carry your sigil.",
+    "The Pale Expanse shifts — an entire outpost has disappeared beneath bone-white dunes.",
+    "The Rust Saints request an escort to sanctify a newly uncovered AI shrine — with molten oil.",
+    "A settlement's water turns thick and gold. The people claim it's a blessing. The Verdancy disagrees.",
+    "A dream repeats: the Underdrift flooded, fungal lights drowning the corridors. You wake coughing spores.",
+    "The Enclave sends a peace envoy. Half arrive. The others? Their suits were empty on arrival.",
+    "A Bramblecarver nest pulses beneath a trade route. Traders vanish. Their gear resurfaces — rearranged.",
+    "A spore-storm rolls in. You have six hours to evacuate a town before the storm births a forest.",
+    "Someone found a working drone in Vault Theta-7. It recognizes your voice. And calls you Commander.",
+    "The Radiant Front wants a living mutant delivered to Glowfen — but won’t say why it must stay breathing.",
+    "A burnt map marks a forbidden silo. The silo hums louder each night, and pulses with heat.",
+    "A hunter went missing in the Crimson Verge. His pet came back alone, with human teeth in its belly.",
+    "The Gutterkin auction a memory-crystal tied to the Eden Protocol’s collapse. Everyone wants it.",
+    "A heatwave twists metal and minds near a sunken crawler. Entering may unlock your past — or erase it.",
+    "A ghost town rewakes each dusk. Lights flicker on. Radios play static hymns. You’ve heard one before.",
+    "Vault Theta-7 emits a new code. Translated, it reads: \"I am not alone. Neither are you.\"",
+    "An oasis dries overnight. Those who drank from it now dream in binary — and bleed rust.",
+    "The Enclave lost a convoy carrying a sentient weapon. It's learning — and testing new hosts.",
+    "A tunnel beneath Underdrift breathes. It never used to. You’re told the tunnel wants to speak."
+  ],
+  "concepts": [
+    {
+      "id": "ash-eater-prophet",
+      "name": "Ash-Eater Prophet",
+      "brief": ""
+    },
+    {
+      "id": "bonepicker-scavenger",
+      "name": "Bonepicker Scavenger",
+      "brief": ""
+    },
+    {
+      "id": "wasteland-sniper",
+      "name": "Wasteland Sniper",
+      "brief": ""
+    },
+    {
+      "id": "glow-touched-mystic",
+      "name": "Glow-Touched Mystic",
+      "brief": ""
+    },
+    {
+      "id": "railcar-nomad",
+      "name": "Railcar Nomad",
+      "brief": ""
+    },
+    {
+      "id": "chain-gang-escapee",
+      "name": "Chain-Gang Escapee",
+      "brief": ""
+    },
+    {
+      "id": "radiation-forager",
+      "name": "Radiation Forager",
+      "brief": ""
+    },
+    {
+      "id": "solar-tech-salvager",
+      "name": "Solar Tech Salvager",
+      "brief": ""
+    },
+    {
+      "id": "dustborn-raider",
+      "name": "Dustborn Raider",
+      "brief": ""
+    },
+    {
+      "id": "iron-voiced-preacher",
+      "name": "Iron-Voiced Preacher",
+      "brief": ""
+    },
+    {
+      "id": "plague-mask-alchemist",
+      "name": "Plague Mask Alchemist",
+      "brief": ""
+    },
+    {
+      "id": "hollow-eyed-sentinel",
+      "name": "Hollow-Eyed Sentinel",
+      "brief": ""
+    },
+    {
+      "id": "scrap-surgeon",
+      "name": "Scrap Surgeon",
+      "brief": ""
+    },
+    {
+      "id": "stormrider-outcast",
+      "name": "Stormrider Outcast",
+      "brief": ""
+    },
+    {
+      "id": "scar-marked-gladiator",
+      "name": "Scar-Marked Gladiator",
+      "brief": ""
+    },
+    {
+      "id": "doom-whisperer",
+      "name": "Doom Whisperer",
+      "brief": ""
+    },
+    {
+      "id": "tunnelborne-smuggler",
+      "name": "Tunnelborne Smuggler",
+      "brief": ""
+    },
+    {
+      "id": "rotborn-cultist",
+      "name": "Rotborn Cultist",
+      "brief": ""
+    },
+    {
+      "id": "gearwitch-mechanic",
+      "name": "Gearwitch Mechanic",
+      "brief": ""
+    },
+    {
+      "id": "crater-faced-tracker",
+      "name": "Crater-Faced Tracker",
+      "brief": ""
+    },
+    {
+      "id": "tox-runner",
+      "name": "Tox-Runner",
+      "brief": ""
+    },
+    {
+      "id": "junkyard-warlord",
+      "name": "Junkyard Warlord",
+      "brief": ""
+    },
+    {
+      "id": "blight-reaper",
+      "name": "Blight-Reaper",
+      "brief": ""
+    },
+    {
+      "id": "revenant-drifter",
+      "name": "Revenant Drifter",
+      "brief": ""
+    },
+    {
+      "id": "mushroom-druid",
+      "name": "Mushroom Druid",
+      "brief": ""
+    },
+    {
+      "id": "blood-bonded-mercenary",
+      "name": "Blood-Bonded Mercenary",
+      "brief": ""
+    },
+    {
+      "id": "acid-burnt-bard",
+      "name": "Acid-Burnt Bard",
+      "brief": ""
+    },
+    {
+      "id": "ghost-of-the-highway",
+      "name": "Ghost of the Highway",
+      "brief": ""
+    },
+    {
+      "id": "sand-skulled-scrounger",
+      "name": "Sand-Skulled Scrounger",
+      "brief": ""
+    },
+    {
+      "id": "cracked-circuit-cyborg",
+      "name": "Cracked-Circuit Cyborg",
+      "brief": ""
+    },
+    {
+      "id": "memory-lost-hermit",
+      "name": "Memory-Lost Hermit",
+      "brief": ""
+    },
+    {
+      "id": "skyglass-collector",
+      "name": "Skyglass Collector",
+      "brief": ""
+    },
+    {
+      "id": "beastspeaker-vagabond",
+      "name": "Beastspeaker Vagabond",
+      "brief": ""
+    },
+    {
+      "id": "feral-hive-witch",
+      "name": "Feral Hive-Witch",
+      "brief": ""
+    },
+    {
+      "id": "pipe-town-trader",
+      "name": "Pipe-Town Trader",
+      "brief": ""
+    },
+    {
+      "id": "vaultborn-exile",
+      "name": "Vaultborn Exile",
+      "brief": ""
+    }
+  ],
+  "skills": [
+    {
+      "id": "scavenging",
+      "name": "Scavenging",
+      "brief": ""
+    },
+    {
+      "id": "survival-instinct",
+      "name": "Survival Instinct",
+      "brief": ""
+    },
+    {
+      "id": "marksmanship",
+      "name": "Marksmanship",
+      "brief": ""
+    },
+    {
+      "id": "tracking",
+      "name": "Tracking",
+      "brief": ""
+    },
+    {
+      "id": "radiation-sense",
+      "name": "Radiation Sense",
+      "brief": ""
+    },
+    {
+      "id": "melee-brutality",
+      "name": "Melee Brutality",
+      "brief": ""
+    },
+    {
+      "id": "tech-jury-rigging",
+      "name": "Tech Jury-Rigging",
+      "brief": ""
+    },
+    {
+      "id": "herbal-alchemy",
+      "name": "Herbal Alchemy",
+      "brief": ""
+    },
+    {
+      "id": "beast-communication",
+      "name": "Beast Communication",
+      "brief": ""
+    },
+    {
+      "id": "shadowing",
+      "name": "Shadowing",
+      "brief": ""
+    },
+    {
+      "id": "toxin-brewing",
+      "name": "Toxin Brewing",
+      "brief": ""
+    },
+    {
+      "id": "urban-navigation",
+      "name": "Urban Navigation",
+      "brief": ""
+    },
+    {
+      "id": "foraging",
+      "name": "Foraging",
+      "brief": ""
+    },
+    {
+      "id": "improvised-traps",
+      "name": "Improvised Traps",
+      "brief": ""
+    },
+    {
+      "id": "firearms-handling",
+      "name": "Firearms Handling",
+      "brief": ""
+    },
+    {
+      "id": "first-aid",
+      "name": "First Aid",
+      "brief": ""
+    },
+    {
+      "id": "cryptic-lore",
+      "name": "Cryptic Lore",
+      "brief": ""
+    },
+    {
+      "id": "explosive-handling",
+      "name": "Explosive Handling",
+      "brief": ""
+    },
+    {
+      "id": "night-vision",
+      "name": "Night Vision",
+      "brief": ""
+    },
+    {
+      "id": "lockpicking",
+      "name": "Lockpicking",
+      "brief": ""
+    },
+    {
+      "id": "mutant-handling",
+      "name": "Mutant Handling",
+      "brief": ""
+    },
+    {
+      "id": "trap-disarming",
+      "name": "Trap Disarming",
+      "brief": ""
+    },
+    {
+      "id": "bartering",
+      "name": "Bartering",
+      "brief": ""
+    },
+    {
+      "id": "stealth-movement",
+      "name": "Stealth Movement",
+      "brief": ""
+    },
+    {
+      "id": "salvage-appraisal",
+      "name": "Salvage Appraisal",
+      "brief": ""
+    },
+    {
+      "id": "mutagen-resistance",
+      "name": "Mutagen Resistance",
+      "brief": ""
+    },
+    {
+      "id": "psyche-manipulation",
+      "name": "Psyche Manipulation",
+      "brief": ""
+    },
+    {
+      "id": "cooking-from-scraps",
+      "name": "Cooking from Scraps",
+      "brief": ""
+    },
+    {
+      "id": "hacking-old-systems",
+      "name": "Hacking Old Systems",
+      "brief": ""
+    },
+    {
+      "id": "riding-mount-or-rig",
+      "name": "Riding (Mount or Rig)",
+      "brief": ""
+    },
+    {
+      "id": "metalcraft",
+      "name": "Metalcraft",
+      "brief": ""
+    },
+    {
+      "id": "ambush-tactics",
+      "name": "Ambush Tactics",
+      "brief": ""
+    },
+    {
+      "id": "intimidation",
+      "name": "Intimidation",
+      "brief": ""
+    },
+    {
+      "id": "language-of-the-olds",
+      "name": "Language of the Olds",
+      "brief": ""
+    },
+    {
+      "id": "shelter-building",
+      "name": "Shelter Building",
+      "brief": ""
+    },
+    {
+      "id": "ritual-channeling",
+      "name": "Ritual Channeling",
+      "brief": ""
+    }
+  ],
+  "frailties": [
+    {
+      "id": "radiation-scars",
+      "name": "Radiation Scars",
+      "brief": ""
+    },
+    {
+      "id": "tainted-blood",
+      "name": "Tainted Blood",
+      "brief": ""
+    },
+    {
+      "id": "mutation-addiction",
+      "name": "Mutation Addiction",
+      "brief": ""
+    },
+    {
+      "id": "paranoia",
+      "name": "Paranoia",
+      "brief": ""
+    },
+    {
+      "id": "flashbacks-to-the-fall",
+      "name": "Flashbacks to the Fall",
+      "brief": ""
+    },
+    {
+      "id": "self-destructive-urges",
+      "name": "Self-Destructive Urges",
+      "brief": ""
+    },
+    {
+      "id": "cracked-psyche",
+      "name": "Cracked Psyche",
+      "brief": ""
+    },
+    {
+      "id": "flesh-rot",
+      "name": "Flesh Rot",
+      "brief": ""
+    },
+    {
+      "id": "claustrophobia",
+      "name": "Claustrophobia",
+      "brief": ""
+    },
+    {
+      "id": "addiction-spore-dust",
+      "name": "Addiction (Spore Dust)",
+      "brief": ""
+    },
+    {
+      "id": "night-terrors",
+      "name": "Night Terrors",
+      "brief": ""
+    },
+    {
+      "id": "obsessive-scavenger",
+      "name": "Obsessive Scavenger",
+      "brief": ""
+    },
+    {
+      "id": "haunted-by-voices",
+      "name": "Haunted by Voices",
+      "brief": ""
+    },
+    {
+      "id": "illness-chronic-cough",
+      "name": "Illness (Chronic Cough)",
+      "brief": ""
+    },
+    {
+      "id": "insatiable-hunger",
+      "name": "Insatiable Hunger",
+      "brief": ""
+    },
+    {
+      "id": "tech-dependency",
+      "name": "Tech Dependency",
+      "brief": ""
+    },
+    {
+      "id": "chemical-sensitivity",
+      "name": "Chemical Sensitivity",
+      "brief": ""
+    },
+    {
+      "id": "rage-blackouts",
+      "name": "Rage Blackouts",
+      "brief": ""
+    },
+    {
+      "id": "burned-nerve-endings",
+      "name": "Burned Nerve Endings",
+      "brief": ""
+    },
+    {
+      "id": "water-anxiety",
+      "name": "Water Anxiety",
+      "brief": ""
+    },
+    {
+      "id": "delusions-of-immortality",
+      "name": "Delusions of Immortality",
+      "brief": ""
+    },
+    {
+      "id": "hallucinatory-episodes",
+      "name": "Hallucinatory Episodes",
+      "brief": ""
+    },
+    {
+      "id": "unstable-mutation",
+      "name": "Unstable Mutation",
+      "brief": ""
+    },
+    {
+      "id": "trust-no-one-instinct",
+      "name": "Trust No One Instinct",
+      "brief": ""
+    },
+    {
+      "id": "hoarder-s-compulsion",
+      "name": "Hoarder’s Compulsion",
+      "brief": ""
+    },
+    {
+      "id": "isolation-induced-twitch",
+      "name": "Isolation-Induced Twitch",
+      "brief": ""
+    },
+    {
+      "id": "guilt-over-past-acts",
+      "name": "Guilt over Past Acts",
+      "brief": ""
+    },
+    {
+      "id": "fear-of-sunlight",
+      "name": "Fear of Sunlight",
+      "brief": ""
+    },
+    {
+      "id": "aversion-to-firearms",
+      "name": "Aversion to Firearms",
+      "brief": ""
+    },
+    {
+      "id": "constant-itch",
+      "name": "Constant Itch",
+      "brief": ""
+    },
+    {
+      "id": "memory-holes",
+      "name": "Memory Holes",
+      "brief": ""
+    },
+    {
+      "id": "bounty-on-their-head",
+      "name": "Bounty on Their Head",
+      "brief": ""
+    },
+    {
+      "id": "phantom-pain",
+      "name": "Phantom Pain",
+      "brief": ""
+    },
+    {
+      "id": "compulsion-to-preach",
+      "name": "Compulsion to Preach",
+      "brief": ""
+    },
+    {
+      "id": "terminal-diagnosis",
+      "name": "Terminal Diagnosis",
+      "brief": ""
+    },
+    {
+      "id": "glows-in-the-dark",
+      "name": "Glows in the Dark",
+      "brief": ""
+    }
+  ],
+  "gear": [
+    {
+      "id": "gas-mask",
+      "name": "Gas Mask",
+      "brief": ""
+    },
+    {
+      "id": "rusted-crowbar",
+      "name": "Rusted Crowbar",
+      "brief": ""
+    },
+    {
+      "id": "bio-filter-canteen",
+      "name": "Bio-Filter Canteen",
+      "brief": ""
+    },
+    {
+      "id": "map-of-forbidden-zone",
+      "name": "Map of Forbidden Zone",
+      "brief": ""
+    },
+    {
+      "id": "machete-of-bone",
+      "name": "Machete of Bone",
+      "brief": ""
+    },
+    {
+      "id": "geiger-sensor",
+      "name": "Geiger Sensor",
+      "brief": ""
+    },
+    {
+      "id": "rebar-spear",
+      "name": "Rebar Spear",
+      "brief": ""
+    },
+    {
+      "id": "cracked-sniper-rifle",
+      "name": "Cracked Sniper Rifle",
+      "brief": ""
+    },
+    {
+      "id": "bandit-cloak",
+      "name": "Bandit Cloak",
+      "brief": ""
+    },
+    {
+      "id": "lighter-scrap-fuel",
+      "name": "Lighter & Scrap Fuel",
+      "brief": ""
+    },
+    {
+      "id": "solar-patch-blanket",
+      "name": "Solar-Patch Blanket",
+      "brief": ""
+    },
+    {
+      "id": "handmade-crossbow",
+      "name": "Handmade Crossbow",
+      "brief": ""
+    },
+    {
+      "id": "vault-medkit",
+      "name": "Vault Medkit",
+      "brief": ""
+    },
+    {
+      "id": "duct-taped-armor",
+      "name": "Duct-Taped Armor",
+      "brief": ""
+    },
+    {
+      "id": "glowvine-tonic",
+      "name": "Glowvine Tonic",
+      "brief": ""
+    },
+    {
+      "id": "insect-jerky-rations",
+      "name": "Insect Jerky Rations",
+      "brief": ""
+    },
+    {
+      "id": "nailgun",
+      "name": "Nailgun",
+      "brief": ""
+    },
+    {
+      "id": "collapsible-tent",
+      "name": "Collapsible Tent",
+      "brief": ""
+    },
+    {
+      "id": "signal-flare-gun",
+      "name": "Signal Flare Gun",
+      "brief": ""
+    },
+    {
+      "id": "detonator-bricks",
+      "name": "Detonator Bricks",
+      "brief": ""
+    },
+    {
+      "id": "bone-dice-oracle",
+      "name": "Bone Dice Oracle",
+      "brief": ""
+    },
+    {
+      "id": "noise-trigger-mines",
+      "name": "Noise-Trigger Mines",
+      "brief": ""
+    },
+    {
+      "id": "rope-with-hooks",
+      "name": "Rope with Hooks",
+      "brief": ""
+    },
+    {
+      "id": "rat-cage-backpack",
+      "name": "Rat-Cage Backpack",
+      "brief": ""
+    },
+    {
+      "id": "flash-goggles",
+      "name": "Flash Goggles",
+      "brief": ""
+    },
+    {
+      "id": "rainwater-catcher",
+      "name": "Rainwater Catcher",
+      "brief": ""
+    },
+    {
+      "id": "hand-crank-radio",
+      "name": "Hand-Crank Radio",
+      "brief": ""
+    },
+    {
+      "id": "scavenger-s-toolkit",
+      "name": "Scavenger’s Toolkit",
+      "brief": ""
+    },
+    {
+      "id": "emp-spike",
+      "name": "EMP Spike",
+      "brief": ""
+    },
+    {
+      "id": "barbed-whip",
+      "name": "Barbed Whip",
+      "brief": ""
+    },
+    {
+      "id": "spore-breath-mask",
+      "name": "Spore-Breath Mask",
+      "brief": ""
+    },
+    {
+      "id": "broken-drone-eye",
+      "name": "Broken Drone Eye",
+      "brief": ""
+    },
+    {
+      "id": "chainblade",
+      "name": "Chainblade",
+      "brief": ""
+    },
+    {
+      "id": "chitin-shield",
+      "name": "Chitin Shield",
+      "brief": ""
+    },
+    {
+      "id": "magnet-compass",
+      "name": "Magnet Compass",
+      "brief": ""
+    },
+    {
+      "id": "voice-of-the-ancients-recorder",
+      "name": "Voice of the Ancients (Recorder)",
+      "brief": ""
+    }
+  ],
+  "spends_luck": false,
+  "factions": [
+    {
+      "name": "The Rust Saints",
+      "concept": "Devotional scrappers who worship the decay of the old world.",
+      "skills": [
+        "Scavenging",
+        "Tinkering"
+      ],
+      "frailties": [
+        "Obsessive relic hoarding"
+      ],
+      "gear": [
+        "Icon-welded armor",
+        "relic detectors",
+        "oxidized blades"
+      ],
+      "goal": "Unearth and sanctify lost pre-Collapse tech",
+      "motive": "Fusion of faith and survival",
+      "nemesis": "The Gutterkin"
+    },
+    {
+      "name": "The Verdancy",
+      "concept": "Symbiotic cult devoted to mutated flora and fungal enlightenment.",
+      "skills": [
+        "Herbalism",
+        "Mutation control"
+      ],
+      "frailties": [
+        "Vulnerable to fire and cold"
+      ],
+      "gear": [
+        "Spore-robes",
+        "mycelial salves",
+        "symbiont spores"
+      ],
+      "goal": "Spread the Green Gospel across the scorched earth",
+      "motive": "Evolution through fusion",
+      "nemesis": "The Blister March"
+    },
+    {
+      "name": "The Enclave Remnants",
+      "concept": "Heirs of a pre-collapse government bunker, still clinging to authority.",
+      "skills": [
+        "Engineering",
+        "Bureaucratic command"
+      ],
+      "frailties": [
+        "Rigid protocol blindness"
+      ],
+      "gear": [
+        "Old-world uniforms",
+        "biometric scanners",
+        "ration stockpiles"
+      ],
+      "goal": "Reassert order and reestablish a “civilized” chain of command",
+      "motive": "Restoration through control",
+      "nemesis": "The Radiant Front"
+    },
+    {
+      "name": "The Blister March",
+      "concept": "Nomadic war-clans hardened by fallout storms and endless raids.",
+      "skills": [
+        "Guerrilla tactics",
+        "Firearms"
+      ],
+      "frailties": [
+        "Blood-feud conditioning"
+      ],
+      "gear": [
+        "Scrap-mounted bikes",
+        "heat-flare bombs",
+        "bone-masks"
+      ],
+      "goal": "Scorch rival holdings and claim the ruins",
+      "motive": "Strength is the only law",
+      "nemesis": "The Enclave Remnants"
+    },
+    {
+      "name": "The Radiant Front",
+      "concept": "Revolutionary fanatics infused with controlled mutations.",
+      "skills": [
+        "Propaganda",
+        "Bio-enhancement"
+      ],
+      "frailties": [
+        "Unstable genetic shifts"
+      ],
+      "gear": [
+        "Glow-serums",
+        "neural injectors",
+        "living tattoos"
+      ],
+      "goal": "Overthrow the old world’s hierarchy through forced evolution",
+      "motive": "Mutate or die",
+      "nemesis": "The Enclave Remnants"
+    },
+    {
+      "name": "The Gutterkin",
+      "concept": "Underground traders and thieves operating out of collapsed city ruins.",
+      "skills": [
+        "Infiltration",
+        "Barter"
+      ],
+      "frailties": [
+        "Light sensitivity"
+      ],
+      "gear": [
+        "Sensor visors",
+        "smoke bombs",
+        "dermal lockpicks"
+      ],
+      "goal": "Maintain dominion over the black markets and buried tunnels",
+      "motive": "Control through scarcity",
+      "nemesis": "The Rust Saints"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Sister Kembra",
+      "concept": "Mutant healer of the fungal enclave",
+      "skills": [
+        "Spore-medicine",
+        "empathy under pressure"
+      ],
+      "frailties": [
+        "Slowly mutating mind"
+      ],
+      "gear": [
+        "Myco-kit",
+        "bone-thread sutures",
+        "whisper mask"
+      ],
+      "goal": "Cure the incurable before her body turns fully",
+      "motive": "Redemption through healing",
+      "nemesis": "Surgeon-Colonel Brannick (Enclave biologist)"
+    },
+    {
+      "name": "Rigs “Cinder” Malhoon",
+      "concept": "Ex-demolitionist turned scorched-earth preacher",
+      "skills": [
+        "Explosives",
+        "persuasion by fear"
+      ],
+      "frailties": [
+        "Pyromaniac religious visions"
+      ],
+      "gear": [
+        "Det-cord rosary",
+        "flareblade",
+        "incendiary sermons"
+      ],
+      "goal": "Reduce the Dam to ash and write scripture in smoke",
+      "motive": "Apocalyptic catharsis",
+      "nemesis": "Archdeacon Reese (Water-hoarding priest of the Flow Union)"
+    },
+    {
+      "name": "“Barter” Vex",
+      "concept": "Charismatic trade broker with a silver tongue and lead soul",
+      "skills": [
+        "Negotiation",
+        "tactical deception"
+      ],
+      "frailties": [
+        "Can’t resist a wager"
+      ],
+      "gear": [
+        "Relic chips",
+        "encrypted trade-coin",
+        "sawn-off dealmaker"
+      ],
+      "goal": "Establish a neutral trade node in contested ruins",
+      "motive": "Wealth, influence, survival",
+      "nemesis": "Syndicate Collector \"Bleed\" Malraux"
+    },
+    {
+      "name": "Issa Vorn",
+      "concept": "Warpath tracker turned reluctant justice-seeker",
+      "skills": [
+        "Precision marksmanship",
+        "mutant tracing"
+      ],
+      "frailties": [
+        "Blinded by vengeance"
+      ],
+      "gear": [
+        "Scorch rifle",
+        "claw-tag shackles",
+        "broken oath pendant"
+      ],
+      "goal": "Hunt down the escaped raider-king who killed her crew",
+      "motive": "Closure and quiet",
+      "nemesis": "The Flayed Wolf (Raider warlord)"
+    },
+    {
+      "name": "“Glass” Marlo",
+      "concept": "Vault-scanner and whisper-thief of lost tech",
+      "skills": [
+        "Espionage",
+        "radiation mapping"
+      ],
+      "frailties": [
+        "Believes they’re being watched by the ruins"
+      ],
+      "gear": [
+        "Dead-zone goggles",
+        "crowbar harp",
+        "vault signal prism"
+      ],
+      "goal": "Uncover and unlock a sealed Eden Protocol chamber",
+      "motive": "Obsession with forbidden knowledge",
+      "nemesis": "The Archive Custodian (AI defense remnant)"
+    },
+    {
+      "name": "Brakk “Husk” Juno",
+      "concept": "Hired gun with half a mind and too much armor",
+      "skills": [
+        "Heavy weapons",
+        "siege defense"
+      ],
+      "frailties": [
+        "Memory void from biotech trauma"
+      ],
+      "gear": [
+        "Railminigun",
+        "breach shield",
+        "stimulant spool"
+      ],
+      "goal": "Guard the settlement of Thornepost from mutant incursion",
+      "motive": "Contract and revenge",
+      "nemesis": "The Glimmer Host (bioluminescent hive-beast swarm)"
+    }
+  ],
+  "monsters": [
+    {
+      "name": "Glowback Coyote",
+      "concept": "Bioluminescent predator",
+      "skills": [
+        "Silent tracking",
+        "night ambush"
+      ],
+      "frailties": [
+        "Hyperreactive nervous system"
+      ],
+      "gear": [
+        "Glowing veinstalk hide",
+        "fused jawbone fangs"
+      ],
+      "goal": "Stalk contaminated prey through the night",
+      "motive": "Hunger sharpened by mutation",
+      "nemesis": "Pack-hunters and high-frequency pulses"
+    },
+    {
+      "name": "Ironclatter Beetle",
+      "concept": "Shrapnel-shelled scavenger",
+      "skills": [
+        "Burrowing",
+        "plating resilience"
+      ],
+      "frailties": [
+        "Overheats in direct sunlight"
+      ],
+      "gear": [
+        "Vibro-mandibles",
+        "scrap-sense antennae"
+      ],
+      "goal": "Harvest metal to construct secure nests",
+      "motive": "Instinctive hoarding of conductive salvage",
+      "nemesis": "Sudden temperature shifts, sonic blasts"
+    },
+    {
+      "name": "Bloomspite",
+      "concept": "Carnivorous bloom mimic",
+      "skills": [
+        "Toxin release",
+        "regenerative bloom cycles"
+      ],
+      "frailties": [
+        "Susceptible to frost and desiccation"
+      ],
+      "gear": [
+        "Petal-lined trap maw",
+        "pulsing spore core"
+      ],
+      "goal": "Lure and digest warm-blooded prey",
+      "motive": "Territorial instinct rooted in survival",
+      "nemesis": "Fire, salt, and anti-fungal wash"
+    },
+    {
+      "name": "Miremaw",
+      "concept": "Toxic sump predator",
+      "skills": [
+        "Ambush",
+        "venom secretion"
+      ],
+      "frailties": [
+        "UV-sensitive membranes"
+      ],
+      "gear": [
+        "Siphon tongue",
+        "sludge-coated hide"
+      ],
+      "goal": "Defend and dominate chemical lairs",
+      "motive": "Bio-filtration instinct linked to hunger",
+      "nemesis": "Droughts, predatory swarms"
+    },
+    {
+      "name": "Bramblecarver",
+      "concept": "Tech-burdened scrapyard scorpion",
+      "skills": [
+        "Armor resilience",
+        "mechanical detection"
+      ],
+      "frailties": [
+        "Magnetic interference vulnerability"
+      ],
+      "gear": [
+        "Arc-welded stinger",
+        "scanner-core optics"
+      ],
+      "goal": "Absorb and assimilate salvage into its body",
+      "motive": "Territorial maintenance through augmentation",
+      "nemesis": "EMP bursts, magnetic mines"
+    },
+    {
+      "name": "Tinker-Rat",
+      "concept": "Augmented junk rodent",
+      "skills": [
+        "Stealth",
+        "mimicry"
+      ],
+      "frailties": [
+        "Skeletal fragility"
+      ],
+      "gear": [
+        "Retinal flash memory",
+        "mechanical jaw pin"
+      ],
+      "goal": "Build semi-functional nests from scavenged tech",
+      "motive": "Compulsive tinkering driven by instinct",
+      "nemesis": "Traps, loud noise, plasma discharge"
+    }
+  ],
+  "twist_subjects": null,
+  "twist_actions": null
+}

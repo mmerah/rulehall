@@ -1,0 +1,69 @@
+[
+  {
+    "trace": "learned of the vault map[vault-map]",
+    "told": true,
+    "card": "The vault map discovered",
+    "dice": []
+  },
+  {
+    "trace": "Does he hear what waits past the vault door without being heard? — chance: 2d6 [6, 1]",
+    "told": false,
+    "card": "",
+    "dice": []
+  },
+  {
+    "trace": "Does he hear what waits past the vault door without being heard? — risk: d6 [5]",
+    "told": false,
+    "card": "",
+    "dice": []
+  },
+  {
+    "trace": "asked: Does he hear what waits past the vault door without being heard?",
+    "told": false,
+    "card": "",
+    "dice": []
+  },
+  {
+    "trace": "Listen at the vault door — oracle, advantage (Quiet Hands): yes, and better than hoped",
+    "told": true,
+    "card": "Listen at the vault door — oracle, advantage (Quiet Hands): yes, and better than hoped",
+    "dice": [
+      {
+        "label": "Chance",
+        "faces": [
+          6,
+          6
+        ],
+        "rolled": [
+          6,
+          1
+        ],
+        "highlight": [
+          0
+        ]
+      },
+      {
+        "label": "Risk",
+        "faces": [
+          6
+        ],
+        "rolled": [
+          5
+        ],
+        "highlight": []
+      }
+    ]
+  },
+  {
+    "trace": "the player Kael[player] condition +Listening",
+    "told": true,
+    "card": "Now: Listening",
+    "dice": []
+  },
+  {
+    "trace": "the game master directs: what waits past the door has weight, and it knows he is there",
+    "told": true,
+    "card": "",
+    "dice": []
+  }
+]

@@ -1,0 +1,28 @@
+# Environment
+.env
+
+# Python
+__pycache__/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+
+# Play data
+saves/
+/packs/
+/user/
+
+# Repo formatter
+.repo_formatter.yaml
+repository.md
+
+# QA harness screenshots
+qa/shots/
+
+# Subagent worktrees
+.claude/worktrees/
+
+# Battle simulator and view
+src/rulehall/engines/pokemon/showdown/node_modules/
+/vendor/

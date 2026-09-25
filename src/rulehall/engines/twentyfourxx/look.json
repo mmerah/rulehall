@@ -1,0 +1,17 @@
+{
+  "palette": {
+    "game-bg": "#0f1624",
+    "game-surface": "#182236",
+    "game-surface-raised": "#22314b",
+    "game-text": "#e3edf9",
+    "game-muted": "#afc0da",
+    "game-border": "#354968",
+    "game-accent": "#91c8ff",
+    "game-wash": "rgba(145, 200, 255, .08)",
+    "game-radius": "10px",
+    "game-heading": "'SFMono-Regular', Consolas, 'Liberation Mono', monospace",
+    "game-die-body": "#101418",
+    "game-die-ink": "#5ee1ff",
+    "game-die-glow": "#5ee1ff"
+  }
+}

@@ -1,0 +1,177 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "places": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "type": "string"
+            },
+            "known": {
+              "default": false,
+              "type": "boolean"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "brief",
+            "description"
+          ],
+          "type": "object"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "ways": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "items": {
+            "additionalProperties": false,
+            "description": "One way out, in one direction, from the place it is filed under.",
+            "properties": {
+              "to_id": {
+                "type": "string"
+              },
+              "known": {
+                "default": false,
+                "type": "boolean"
+              },
+              "locked": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "to_id"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "npcs": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "additionalProperties": false,
+          "description": "A character on the map, friend or enemy. Only a hired goon has dice. The player is one.",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "type": "string"
+            },
+            "known": {
+              "default": false,
+              "type": "boolean"
+            },
+            "alive": {
+              "default": true,
+              "type": "boolean"
+            },
+            "place_id": {
+              "type": "string"
+            },
+            "hp": {
+              "additionalProperties": false,
+              "properties": {
+                "current": {
+                  "type": "integer"
+                },
+                "maximum": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "current",
+                "maximum"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "brief",
+            "place_id",
+            "hp"
+          ],
+          "type": "object"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "items": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "type": "string"
+            },
+            "known": {
+              "default": false,
+              "type": "boolean"
+            },
+            "holder_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "brief",
+            "holder_id"
+          ],
+          "type": "object"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "arc": {
+      "default": "",
+      "description": "The truth behind this map: secrets, what can come, and what ties one hidden thing to another. The player never reads it.",
+      "type": "string"
+    },
+    "start_id": {
+      "description": "Exact id of the place this map starts from.",
+      "type": "string"
+    },
+    "recap": {
+      "description": "One paragraph on the part of the map the player leaves behind: what the player did there, paid and learned. The narrator reads it. Name nothing hidden.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "start_id",
+    "recap"
+  ],
+  "type": "object"
+}

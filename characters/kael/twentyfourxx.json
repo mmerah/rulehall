@@ -1,0 +1,30 @@
+{
+  "id": "kael",
+  "engine_id": "twentyfourxx",
+  "sheet": {
+    "id": "player",
+    "name": "Kael",
+    "brief": "A scarred relic-hunter who comes wherever something old lies sealed, and does not leave it shut.",
+    "known": true,
+    "sheet": {
+      "specialty": "Sneak",
+      "origin": "Human",
+      "skills": {
+        "Stealth": 12,
+        "Climbing": 8,
+        "Piloting": 8
+      },
+      "items": {
+        "comm": {
+          "name": "Comm"
+        },
+        "climbing-gear": {
+          "name": "Climbing gear"
+        },
+        "night-vision-goggles": {
+          "name": "Night vision goggles"
+        }
+      }
+    }
+  }
+}
