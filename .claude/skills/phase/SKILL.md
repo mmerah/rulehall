@@ -55,9 +55,11 @@ Rules paragraphs:
 > Verify with: `uv run pytest`, `uv run ruff check`, `uv run ruff format --check`,
 > `uv run basedpyright`. Don't commit and don't stage; the orchestrator stages.
 
-> Follow our coding principles: clean, SOLID, DRY, KISS, simple/readable code, concise docstrings,
-> only comment the 'why', fail fast, strict type safety, avoid 'Any' and avoid any optional unless
-> needed. Tests: green, and one test per new core behaviour. Do not read `tests/` beyond the
+> Follow our coding principles: clean, SOLID, Clean Architecture, DRY, KISS, simple/readable code
+> consistent with the codebase's patterns, fail fast, strict type safety, avoid 'Any' and avoid any
+> optional unless needed. No comments and no docstrings, except a critical 'why' (one line at most)
+> or text a model reads (tool docstrings, Field descriptions). Tests: green, and unit tests only
+> for the minimal core behaviour. Do not read `tests/` beyond the
 > files a step names; do not enumerate or audit existing test cases.
 
 If PLAN.md is ambiguous on something that changes the work, ask the user once, now.
