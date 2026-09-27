@@ -1,0 +1,80 @@
+[
+  {
+    "trace": "Does he hear what waits past the vault door without being heard? — chance: 2d6 [6, 1]",
+    "told": false,
+    "card": "",
+    "dice": []
+  },
+  {
+    "trace": "Does he hear what waits past the vault door without being heard? — risk: d6 [5]",
+    "told": false,
+    "card": "",
+    "dice": []
+  },
+  {
+    "trace": "oracle, advantage: Does he hear what waits past the vault door without being heard? yes, and better than hoped: You get what you want + an extra advantage",
+    "told": true,
+    "card": "Does he hear what waits past the vault door without being heard?\nyes, and better than hoped\ntags: +Quiet Hands",
+    "dice": [
+      {
+        "label": "Chance",
+        "faces": [
+          6,
+          6
+        ],
+        "rolled": [
+          6,
+          1
+        ],
+        "highlight": [
+          0
+        ]
+      },
+      {
+        "label": "Risk",
+        "faces": [
+          6
+        ],
+        "rolled": [
+          5
+        ],
+        "highlight": []
+      }
+    ]
+  },
+  {
+    "trace": "the player Kael[player] condition +Listening",
+    "told": true,
+    "card": "Now: Listening",
+    "dice": []
+  },
+  {
+    "trace": "scene transition: d6 [1]",
+    "told": false,
+    "card": "",
+    "dice": []
+  },
+  {
+    "trace": "Scene closes: resolved. Next: dramatic",
+    "told": true,
+    "card": "Scene closes: resolved. Next: dramatic",
+    "dice": [
+      {
+        "label": "Transition",
+        "faces": [
+          6
+        ],
+        "rolled": [
+          1
+        ],
+        "highlight": []
+      }
+    ]
+  },
+  {
+    "trace": "the game master directs: what waits past the door has weight, and it knows he is there",
+    "told": true,
+    "card": "",
+    "dice": []
+  }
+]

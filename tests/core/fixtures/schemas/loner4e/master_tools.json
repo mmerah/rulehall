@@ -1,0 +1,312 @@
+[
+  {
+    "name": "kill",
+    "description": "Kill someone here.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of who here died.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "leave_party",
+    "description": "Make a party member stop travelling with the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of the party member leaving.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "direct",
+    "description": "Call this last, once per turn. It ends the turn and gives notes to the narrator. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Apply world changes through the other tools before calling direct.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "description": "Brief factual notes for the narrator to phrase. Answer each question in the player action. Include the result, its known reason, and details needed for the next choice. For a request or warning, give what the person wants and the reason they share. Use facts the player can know now. Identify claims and unknown reasons as such. Keep every outcome consistent with tool results.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "enter",
+    "description": "Bring a cast member into the scene.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of a cast member not already here.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "leave",
+    "description": "Send a cast member out of the scene.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of someone here.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "join_party",
+    "description": "Make a person here travel with the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of who is joining.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "change_tags",
+    "description": "A character here, or the scene, gains tags, loses tags, or does both.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "gained": {
+          "default": [],
+          "description": "Tags gained, in title case, such as `Rusty Key`. Name it in three or four words, never more than 48 characters.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "lost": {
+          "default": [],
+          "description": "Exact tags lost, removed, or used up.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "actor_id": {
+          "description": "`player` for the protagonist, never their name, or the exact id of a living character here; a new id, such as `dock-guard`, brings in someone the story just named; or `scene`.",
+          "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "skill",
+                "frailty",
+                "gear",
+                "condition",
+                "relationship"
+              ],
+              "type": "string"
+            },
+            {
+              "const": "detail",
+              "type": "string"
+            }
+          ],
+          "description": "`gear` for a thing taken or lost. `condition`, the default for a person, for a passing state such as `Poisoned`. `relationship` on an NPC for what the bond with the protagonist has become, such as `Uneasy Ally`. `detail`, the default for the scene, for a tag on the place, with `actor_id: scene` only."
+        }
+      },
+      "required": [
+        "actor_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "drive",
+    "description": "Change the goal, the motive or the nemesis of a living character, or the goal of the scene; in the growth, the protagonist's concept too.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "description": "`player` for the protagonist, never their name, or the exact id of a living character here, or `scene` for the scene's goal.",
+          "type": "string"
+        },
+        "goal": {
+          "default": "",
+          "description": "What the character now wants, or what the protagonist is here for when `actor_id` is `scene`, in one line. Empty keeps the current goal.",
+          "type": "string"
+        },
+        "motive": {
+          "default": "",
+          "description": "Why the character wants it, in one line. Empty keeps the current motive.",
+          "type": "string"
+        },
+        "nemesis": {
+          "default": "",
+          "description": "Who or what is against the character. Empty keeps the current nemesis.",
+          "type": "string"
+        },
+        "concept": {
+          "default": "",
+          "description": "The protagonist's concept rewritten by the growth, in one short phrase. Empty keeps it; the growth only.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "actor_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "ask",
+    "description": "Ask the oracle: the engine nets the cited tags, rolls and reads the answer.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "One closed question; yes is what the protagonist hopes. The player reads it. Leave it out when THE PLAYER ASKS is shown: the engine asks the player's question word for word."
+        },
+        "helps": {
+          "default": [],
+          "description": "Exact tags here that bear on this moment and help.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "hinders": {
+          "default": [],
+          "description": "Exact tags here that bear on this moment and hinder, and `Untrained` when the task needs expertise the protagonist lacks.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "against_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "The id of the opponent in a Harm & Luck exchange; a new id, such as `dock-guard`, brings in an opponent the story just named. Null for one question or one key action. While a conflict is open, every ask is an exchange: null is against the opponent fought last."
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "withdraw",
+    "description": "The protagonist stops fighting and breaks off the Harm & Luck conflict: always allowed, never free. While the conflict is open every `ask` is an exchange, so call this first when the protagonist turns to anything else.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    }
+  },
+  {
+    "name": "close_scene",
+    "description": "Close the scene for the `reason` that holds, once the player's action is resolved. After it, call only `direct`. The engine opens what comes next.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "description": "`resolved`: the goal is achieved or definitively failed. `blocked`: it cannot be pursued further here. `abandoned`: the protagonist commits to another course. `turning_point`: a quiet scene tips into urgency.",
+          "enum": [
+            "resolved",
+            "blocked",
+            "abandoned",
+            "turning_point"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "end_adventure",
+    "description": "Propose the end of the adventure when one sign shows: the protagonist's goal is achieved or definitively failed; the goal is abandoned and the story found no new direction; a major revelation changed everything; the conflict reached a satisfying resolution; or the momentum slowed and the next significant scene is hard to find. The player ends it or plays on.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "why": {
+          "description": "The sign that shows, in one line the player reads.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "why"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "spend_luck",
+    "description": "A character here spends luck.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "description": "`player` for the protagonist, never their name, or the exact id of a living character here.",
+          "type": "string"
+        },
+        "amount": {
+          "description": "The luck to spend. SPECIAL RULES prints the cost.",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "why": {
+          "description": "What the luck buys, in one line. The player reads this text.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "actor_id",
+        "amount",
+        "why"
+      ],
+      "type": "object"
+    }
+  }
+]
