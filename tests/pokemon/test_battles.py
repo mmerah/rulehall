@@ -10,7 +10,8 @@ from rulehall.core.model import Check
 from rulehall.core.prompt import Prompt
 from rulehall.engines.entities import Gauge
 from rulehall.engines.pokemon.battle.models import Battle, BattleResult, BattleSetup
-from rulehall.engines.pokemon.world import Mon, PokemonGame, Trainer
+from rulehall.engines.pokemon.sheet import Mon, Trainer
+from rulehall.engines.pokemon.world import PokemonGame
 
 
 async def test_a_wild_battle_gets_no_model_opponent() -> None:
@@ -119,7 +120,7 @@ def test_after_a_badge_the_next_move_places_the_rival_and_notes_it() -> None:
 
     assert draft.world.npcs["tamsin"].place_id == "tern-harbour"
     assert draft.notes[-1].startswith("Your rival Tamsin waits here to battle.")
-    assert not draft.world.rival_due
+    assert not draft.world.rival_record.due
 
 
 def test_a_blackout_halves_the_money_and_heals_the_team() -> None:
@@ -128,7 +129,7 @@ def test_a_blackout_halves_the_money_and_heals_the_team() -> None:
     fainted = setup.team[0].model_copy(update={"hp": 0})
 
     _ = ENGINE.end_battle(
-        draft, BattleResult(outcome="lost", team=(fainted,), fainted_foes=(), on_field=())
+        draft, BattleResult(outcome="lost", team=(fainted,), fainted_foes=(), on_field_mon_ids=())
     )
 
     sheet = draft.world.player.require_sheet()
@@ -173,7 +174,7 @@ def test_a_nuzlocke_buries_a_fainted_pokemon_and_a_wipe_ends_the_journey() -> No
     wild = _rolled_wild(draft)
     wiped = wild.team[0].model_copy(update={"hp": 0})
     _ = ENGINE.end_battle(
-        draft, BattleResult(outcome="lost", team=(wiped,), fainted_foes=(), on_field=())
+        draft, BattleResult(outcome="lost", team=(wiped,), fainted_foes=(), on_field_mon_ids=())
     )
     assert sheet.mon_ids() == ["charmander"]
     assert ENGINE.ending(draft) == "Your whole team has fallen. The journey ends."
@@ -185,7 +186,7 @@ def test_a_nuzlocke_offers_balls_only_at_the_first_wild_battle_of_a_place() -> N
     first = _rolled_wild(draft)
     assert first.balls
     _ = ENGINE.end_battle(
-        draft, BattleResult(outcome="fled", team=first.team, fainted_foes=(), on_field=())
+        draft, BattleResult(outcome="fled", team=first.team, fainted_foes=(), on_field_mon_ids=())
     )
 
     assert _rolled_wild(draft).balls == ()
@@ -221,7 +222,7 @@ def _won(setup: BattleSetup) -> BattleResult:
         outcome="won",
         team=setup.team,
         fainted_foes=setup.foes,
-        on_field=(setup.team[0].mon_id,),
+        on_field_mon_ids=(setup.team[0].mon_id,),
     )
 
 

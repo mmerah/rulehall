@@ -1,16 +1,11 @@
-from rulehall.core.model import ScenarioMeta
+from rulehall.core.model import ScenarioDescription
 from rulehall.core.play import Chapter
 from rulehall.core.validation import EngineId, Slug
 from rulehall.engines.entities import PLAYER_ID, Gauge
 from rulehall.engines.rooms.world import Place, Prop, Way
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
-from rulehall.engines.tunnelgoons.world import (
-    HP_START,
-    Goon,
-    GoonSheet,
-    TunnelGoonsGame,
-    TunnelGoonsWorld,
-)
+from rulehall.engines.tunnelgoons.sheet import HP_START, Goon, GoonSheet
+from rulehall.engines.tunnelgoons.world import TunnelGoonsGame, TunnelGoonsWorld
 from support.table import ENGINES_BUILT, TUNNELGOONS, narrowed
 
 START: Slug = "start"
@@ -124,7 +119,7 @@ def _game(world: TunnelGoonsWorld, *, scenario_id: Slug, chapter: Chapter) -> Tu
     return TunnelGoonsGame(
         scenario_id=scenario_id,
         character_id="kael",
-        scenario=ScenarioMeta(
+        scenario_description=ScenarioDescription(
             title="Test",
             premise="A test dungeon.",
             backdrop="Plain.",

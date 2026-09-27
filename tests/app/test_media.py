@@ -18,7 +18,8 @@ from rulehall.config import MediaConfig, ProviderConfig
 from rulehall.core.io import FileStore
 from rulehall.core.views import NarratorView
 from rulehall.engines.engine import AnyEngine
-from rulehall.engines.loner4e.world import Loner4eEntity, Loner4eGame
+from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.loner4e.world import Loner4eGame
 
 STYLE = "Painterly fantasy illustration, muted colours, no text or lettering."
 
@@ -144,7 +145,7 @@ async def test_media_off_asks_for_no_art_and_hides_what_an_earlier_run_cached(
     off = Illustrator.open(
         offline_settings(tmp_path),
         FileStore(tmp_path),
-        TARGET.slug,
+        TARGET.save_id,
         style=STYLE,
         icon_dirs=(),
         portraits=True,

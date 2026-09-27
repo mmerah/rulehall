@@ -1,5 +1,5 @@
 {
-  "meta": {
+  "description": {
     "title": "The Tern Isles",
     "premise": "A new trainer leaves Tern Harbour with a first Pokemon, to earn the badges of the isles.",
     "backdrop": "Small green islands lie in a warm sea, and ferries join them. People live, work and battle beside Pokemon. Every island has a Pokemon Center, a shop and a gym.",
@@ -235,7 +235,7 @@
         }
       ]
     },
-    "centers": [
+    "center_place_ids": [
       "pokemon-center"
     ],
     "operation": {

@@ -6,7 +6,8 @@ from support.table import refused as change_refused
 
 from rulehall.engines.entities import PLAYER_ID, Gauge
 from rulehall.engines.loner4e.rules import DOUBLES_PER_TWIST, position_for
-from rulehall.engines.loner4e.world import Loner4eEntity, Loner4eGame
+from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.loner4e.world import Loner4eGame
 
 
 def changed(draft: Loner4eGame, name: str, **fields: JsonValue) -> list[str]:

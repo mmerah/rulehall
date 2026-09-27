@@ -8,7 +8,8 @@ from rulehall.engines.entities import (
     named_by_word,
     named_unmet,
 )
-from rulehall.engines.loner4e.world import Loner4eEntity, Loner4eGame
+from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.loner4e.world import Loner4eGame
 
 KAEL = Loner4eEntity(id="kael", name="Kael", brief="", known=True)
 

@@ -9,7 +9,6 @@ from rulehall.engines.twentyfourxx.engine import TwentyFourXXEngine
 
 
 def build_engines(packs_dir: Path) -> dict[EngineId, AnyEngine]:
-    """`packs_dir / <engine id>` holds the packs the player wrote for that engine."""
     engines = tuple(
         engine(packs_dir / engine.id)
         for engine in (Loner4eEngine, TunnelGoonsEngine, TwentyFourXXEngine, PokemonEngine)

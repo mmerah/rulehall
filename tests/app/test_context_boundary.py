@@ -6,7 +6,8 @@ from rulehall.core.play import Chapter, Exchange, SpokenLine
 from rulehall.core.prompt import Prompt
 from rulehall.core.views import NarratorView
 from rulehall.engines.engine import AnyEngine
-from rulehall.engines.twentyfourxx.world import Crewmate, TwentyFourXXGame
+from rulehall.engines.twentyfourxx.sheet import Crewmate
+from rulehall.engines.twentyfourxx.world import TwentyFourXXGame
 
 SECRET = "hidden-actor"
 UNREVEALED = "Unrevealed canon."

@@ -3,6 +3,7 @@ from collections.abc import Awaitable, Callable, Generator, Sequence
 from contextlib import contextmanager
 from functools import partial
 from hashlib import sha1
+from itertools import groupby
 from pathlib import Path
 from typing import Literal
 
@@ -10,9 +11,9 @@ from nicegui import app, ui
 from nicegui.events import EChartPointClickEventArguments
 
 from rulehall.app.launch import LaunchTarget
-from rulehall.core.play import Answer, DecisionOption
+from rulehall.core.play import PendingOption
 from rulehall.core.validation import EngineId, Slug
-from rulehall.core.views import Look, MapNode, MapView, Meter, Sprite, Tag
+from rulehall.core.views import Choice, Look, MapNode, MapView, Meter, Sprite, Tag
 from rulehall.ui import theme
 
 type ClipName = Literal["roll"]
@@ -30,8 +31,7 @@ SOUNDS_DIR = Path(__file__).parent / "sounds"
 SOUNDS_ROUTE = "/sounds/"
 ASSETS_ROUTE = "/assets"
 DICE_CLIP: ClipName = "roll"
-# The relative luminance above which dark text on the tag reads better than white.
-LIGHT_TAG = 0.4
+LIGHT_TAG_LUMINANCE = 0.4
 BLANK = string.whitespace + (
     "\xa0\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"
     "\u200b\u200c\u200d\u2060\ufeff"
@@ -312,16 +312,28 @@ def typed(box: ui.input | ui.textarea) -> str:
     return (box.value or "").strip(BLANK)
 
 
-def decision_options(
-    options: Sequence[DecisionOption],
-    play: Callable[[Answer], Awaitable[object]],
+def choice_groups[T: PendingOption | Choice](
+    items: Sequence[T],
+    pick: Callable[[T], Awaitable[object]],
     *,
     enabled: bool,
+    row_class: str,
 ) -> None:
-    with ui.row().classes("w-full items-start game-choices game-gap-md"):
-        for option in options:
-            chosen = partial(play, Answer(option_id=option.id))
-            choice_button(option.name, option.brief, chosen, enabled=enabled)
+    groups = [
+        (group, tuple(members)) for group, members in groupby(items, key=lambda item: item.group)
+    ]
+    for group, members in groups:
+        if len(groups) > 1 and group:
+            heading(group)
+        with ui.element("div").classes(row_class):
+            for item in members:
+                choice_button(
+                    item.name,
+                    item.refusal or item.brief,
+                    partial(pick, item),
+                    enabled=enabled and not item.refusal,
+                    tags=item.tags if isinstance(item, Choice) else (),
+                )
 
 
 def choice_button(
@@ -335,7 +347,6 @@ def choice_button(
     button = ui.button(on_click=on_click).props("outline").classes("game-choice")
     if tint := next((tag.colour for tag in tags if tag.colour), ""):
         button.style(f"--game-tag: {tint}").classes("game-choice-tinted")
-    # A label in the button's own slot sits beside the brief, not above it.
     with button.set_enabled(enabled), ui.column().classes("w-full game-gap-0"):
         with ui.row().classes("items-center w-full game-gap-sm game-choice-head"):
             ui.label(name)
@@ -404,7 +415,7 @@ def _map_style(node: MapNode, here_id: Slug, colours: dict[str, str]) -> dict[st
 
 def _light(colour: str) -> bool:
     red, green, blue = (int(colour[index : index + 2], 16) / 255 for index in (1, 3, 5))
-    return 0.2126 * red**2.2 + 0.7152 * green**2.2 + 0.0722 * blue**2.2 > LIGHT_TAG
+    return 0.2126 * red**2.2 + 0.7152 * green**2.2 + 0.0722 * blue**2.2 > LIGHT_TAG_LUMINANCE
 
 
 def _notify(message: str, kind: Literal["negative", "warning", "positive", "info"]) -> None:

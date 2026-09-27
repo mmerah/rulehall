@@ -7,7 +7,6 @@ from typing import Literal
 from rulehall.core.validation import Frozen, Slug
 
 SCENE_ID = "scene"
-# Cited in `hinders` for expertise the protagonist lacks; it is on no sheet.
 UNTRAINED = "Untrained"
 MEANWHILE_QUESTION = "Does an ally or wildcard act independently?"
 LUCK_MAX = 6
@@ -74,7 +73,6 @@ class RollOutcome(Frozen):
 
     @property
     def wording(self) -> str:
-        """Story words only: the narrator never reads a rule id."""
         return OUTCOME_WORDING[self.id]
 
     @property
@@ -112,5 +110,4 @@ def transition_for(face: int) -> Transition:
 
 
 def and_for_commas(tag: object) -> object:
-    """Tags are listed with commas, so a comma inside one reads as "and"."""
     return re.sub(r"\s*,\s*", " and ", tag) if isinstance(tag, str) else tag

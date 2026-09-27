@@ -15,7 +15,7 @@ from rulehall.core.model import AnyGame
 from rulehall.core.play import Answer
 from rulehall.core.validation import Refusal
 from rulehall.engines.entities import PLAYER_ID
-from rulehall.engines.loner4e.args import SCENE_UNWRITTEN
+from rulehall.engines.loner4e.engine import SCENE_UNWRITTEN
 from rulehall.engines.loner4e.rules import outcome_for
 from rulehall.engines.loner4e.world import Loner4eGame
 

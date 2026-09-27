@@ -9,7 +9,7 @@ from support.tunnelgoons import small_world as tunnelgoons_world
 
 from rulehall.core.validation import Slug
 from rulehall.core.views import NarratorView, Subject
-from rulehall.engines.loner4e.world import Loner4eEntity
+from rulehall.engines.loner4e.sheet import Loner4eEntity
 
 OBJECT = Loner4eEntity(
     id="a-locked-chest",

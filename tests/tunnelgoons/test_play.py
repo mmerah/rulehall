@@ -5,8 +5,10 @@ from random import Random
 from support.table import TUNNELGOONS, open_table, play_turn, tool_call
 
 from rulehall.core.play import Answer
-from rulehall.engines.rooms.engine import MORE_MAP
-from rulehall.engines.tunnelgoons.world import GoonSheet, TunnelGoonsGame, level_up_decision
+from rulehall.engines.rooms.panels import MORE_MAP
+from rulehall.engines.tunnelgoons.panels import level_up_decision
+from rulehall.engines.tunnelgoons.sheet import GoonSheet
+from rulehall.engines.tunnelgoons.world import TunnelGoonsGame
 
 GRIX = "grix"
 

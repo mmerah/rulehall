@@ -19,13 +19,11 @@ OPENING = (
 )
 
 
-def check_opening[C: Person](proposal: SceneProposal[C], *, needs: Sequence[str] = ()) -> None:
-    """Every refusal is gathered, so the worldsmith's one retry sees them all."""
+def check_opening[C: Person](proposal: SceneProposal[C]) -> None:
     everyone = proposal.cast
     present = _resolved_ids(proposal.present, everyone)
     hidden = _resolved_ids(proposal.hidden, everyone)
     gathered = [] if proposal.location else ["a `location`: the wider location the scene is in"]
-    gathered += needs
     gathered += _placement_needs(proposal, everyone, present, hidden)
     gathered += _cast_needs(proposal, {})
     scanned = "\n".join((proposal.title, proposal.situation))
@@ -41,7 +39,6 @@ def check_next[C: Person](
 def next_needs[C: Person](
     proposal: NextProposal[C], world: SceneWorld[C], *, needs: Sequence[str] = ()
 ) -> list[str]:
-    """Every refusal is gathered, so the worldsmith's one retry sees them all."""
     everyone: Mapping[Slug, Thing] = {
         world.player.id: world.player,
         **world.merged_cast(proposal.cast),

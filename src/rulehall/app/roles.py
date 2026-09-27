@@ -10,12 +10,12 @@ from rulehall.app.spawn import Spawner
 from rulehall.app.turn import Turn
 from rulehall.config import Role
 from rulehall.core.facts import Fact, traced
-from rulehall.core.io import decode, partial_lines, read_cached_text
+from rulehall.core.io import read_cached_text
 from rulehall.core.model import AnyGame, Check, RoleAnswer
-from rulehall.core.play import Debrief, Narration, SpokenLine
+from rulehall.core.play import Debrief, Narration, SpokenLine, partial_lines
 from rulehall.core.prompt import Prompt, Sections, lines_of, render_history, section_if, sections
 from rulehall.core.tools import schema_text
-from rulehall.core.validation import Refusal, parse_mended
+from rulehall.core.validation import Refusal, decode, parse_mended
 from rulehall.core.views import NarratorView
 from rulehall.engines.engine import AnyEngine
 
@@ -24,9 +24,10 @@ LOGGER = logging.getLogger(__name__)
 RETRIES = 1
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 MASTER_ROLE = PROMPTS_DIR / "master.md"
+NARRATOR_ROLE = PROMPTS_DIR / "narrator.md"
+DEBRIEF_ROLE = PROMPTS_DIR / "debrief.md"
 WRITING_GUIDE = PROMPTS_DIR / "writing.md"
-# Stated in the prompt, not checked: a model counts words badly, and a refusal loop costs the
-# whole turn.
+# Stated in the prompt, not checked: a model counts words badly; a refusal loop costs the turn.
 NARRATION_WORDS = 180
 PAUSED = (
     'play pauses here on the player\'s decision: "{prompt}" End at the pause. Settle nothing that '
@@ -54,7 +55,6 @@ OPENING_NARRATION = (
 
 
 async def run_master(spawner: Spawner, turn: Turn) -> None:
-    """A failed game master still played the turn when facts landed first."""
     prompt = render_master(
         turn.engine.instructions,
         turn.engine.master_sections(turn.draft),
@@ -138,7 +138,6 @@ async def ask[T: BaseModel](
         else:
             return answer
         correction = f"Your last answer was refused: {refused}\nAnswer again. Correct the error."
-        # The retry continues the refused attempt, which has read the prompt already.
         if conversation is not None:
             asked = Prompt(system="", user=correction)
         else:
@@ -159,7 +158,7 @@ def render_master(
     *,
     notes: Sequence[str] = (),
 ) -> Prompt:
-    played = sum(len(chapter.exchanges) for chapter in state.log)
+    played = len(state.exchanges())
     return Prompt(
         system=sections(
             (
@@ -169,12 +168,8 @@ def render_master(
         ),
         user=sections(
             (
-                *section_if(
-                    "SCENARIO",
-                    f"{state.scenario.title}\n{state.scenario.premise}" if played == 0 else "",
-                ),
-                ("BACKDROP", state.scenario.backdrop),
-                ("THE SCOPE OF PLAY", state.scenario.scope),
+                *_scenario_sections(state),
+                ("THE SCOPE OF PLAY", state.scenario_description.scope),
                 *engine_sections,
                 (f"RECENT PLAY (turn {played + 1})", render_history(state.log)),
                 ("NOTES FROM THE RULES", lines_of(f"- {note}" for note in notes)),
@@ -190,7 +185,7 @@ def render_narrator(view: NarratorView, state: AnyGame, *, evidence: str, prompt
             (
                 (
                     "YOUR ROLE",
-                    read_cached_text(PROMPTS_DIR / "narrator.md").format(words=NARRATION_WORDS),
+                    read_cached_text(NARRATOR_ROLE).format(words=NARRATION_WORDS),
                 ),
                 ("HOW TO WRITE", read_cached_text(WRITING_GUIDE)),
             )
@@ -211,7 +206,7 @@ def render_debrief(view: NarratorView, state: AnyGame) -> Prompt:
     return Prompt(
         system=sections(
             (
-                ("YOUR ROLE", read_cached_text(PROMPTS_DIR / "debrief.md")),
+                ("YOUR ROLE", read_cached_text(DEBRIEF_ROLE)),
                 ("HOW TO WRITE", read_cached_text(WRITING_GUIDE)),
             )
         ),
@@ -228,16 +223,20 @@ def _picture(view: NarratorView, state: AnyGame, evidence: str) -> Sections:
     who_is_here = (
         lines_of(f"- {subject.headline}" for subject in others) if others else "(nobody else)"
     )
-    opening = not any(chapter.exchanges for chapter in state.log)
     return (
-        *section_if(
-            "SCENARIO", f"{state.scenario.title}\n{state.scenario.premise}" if opening else ""
-        ),
-        ("BACKDROP", state.scenario.backdrop),
+        *_scenario_sections(state),
         ("SCENE", f"{view.title}\n{view.situation}"),
         ("WHO IS HERE", who_is_here),
         ("YOUR PARTY", party),
         ("THE PLAYER'S SHEET", lines_of(f"- {label}: {value}" for label, value in view.sheet)),
         ("WHAT THE PLAYER HAS READ", render_history(state.log)),
         ("WHAT HAPPENED", evidence),
+    )
+
+
+def _scenario_sections(state: AnyGame) -> Sections:
+    opening = f"{state.scenario_description.title}\n{state.scenario_description.premise}"
+    return (
+        *section_if("SCENARIO", "" if state.exchanges() else opening),
+        ("BACKDROP", state.scenario_description.backdrop),
     )

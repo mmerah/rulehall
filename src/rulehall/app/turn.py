@@ -48,12 +48,9 @@ class Turn:
     refused: list[Refused] = field(default_factory=list)
     words: str = ""
     by_option: bool = False
-    # What the master reads as PLAYER ACTION: the words, or the marker for a chosen option.
     master_input: str = ""
     notes: list[str] = field(default_factory=list)
-    # Whether the master plays: an answer that re-suspended leaves every tool refused.
     played: bool = True
-    # The direction stays the last told fact, even under a call made after it in its round.
     direction: Fact | None = None
 
     @classmethod
@@ -62,9 +59,7 @@ class Turn:
         turn.draft.directed = False
         turn.held, turn.draft.unnarrated = turn.draft.unnarrated, []
         turn._consume(answer)
-        # An option that hands to the worldsmith leaves the master nothing to play.
         turn.played = turn.draft.pending is None and turn.draft.request is None
-        # Notes are read once; a tool's own note is shown in its answer.
         if turn.played:
             held = [HELD.format(traces=traced(turn.held))] if turn.held else []
             turn.notes, turn.draft.notes = [*held, *turn.draft.notes], []
@@ -73,7 +68,6 @@ class Turn:
     def _consume(self, answer: Answer) -> None:
         engine, draft = self.engine, self.draft
         require_playable(engine, draft)
-        # Any input consumes the decision, a revision included: it never survives its own answer.
         consumed, draft.pending = draft.pending, None
         chosen = answer.option_id
         if consumed is not None and not consumed.allows_text and chosen is None:
@@ -94,7 +88,6 @@ class Turn:
         # A refusal raises: the engine enumerated the option, so it is never model error.
         facts = self.apply(lambda copy, dice: engine.play_option(copy, option, dice))
         traces = traced(facts)
-        # An answer that re-suspended has no tool answer to carry the wait, so the note says it.
         if self.draft.pending is not None:
             traces += f"\n- {RULES_WAIT}"
         self.draft.note(
@@ -110,8 +103,6 @@ class Turn:
 
     @property
     def narrates(self) -> bool:
-        """A waiting decision holds the prose, so nothing preempts the player's choice; a
-        hand-over that told the player nothing gets none."""
         draft = self.draft
         if draft.pending is not None:
             return False
@@ -119,7 +110,6 @@ class Turn:
 
     @property
     def over(self) -> bool:
-        """`direct` or a hand-over ended the turn: the master has nothing left to call."""
         draft, engine = self.draft, self.engine
         return (
             draft.directed
@@ -149,7 +139,6 @@ class Turn:
         if self.draft.directed and name == DIRECT:
             raise Refusal(DIRECTED_ONCE)
         pending = self.draft.pending
-        # The direction for the paused result is kept: the turn that answers it tells both.
         if pending is not None and name != DIRECT:
             # A plain answer, not a refusal: a retry prompt would tell the model to try again.
             return (
@@ -166,7 +155,6 @@ class Turn:
         elif self.direction is not None:
             self.facts.remove(self.direction)
             self.facts.append(self.direction)
-        # `begin` took the notes before any call: a note here is this call's, shown once.
         notes, self.draft.notes = self.draft.notes, []
         lines = [f"- {line}" for line in (*(fact.trace for fact in facts), *notes)]
         if self.draft.pending is not None:
@@ -191,7 +179,6 @@ class Turn:
         )
 
     def apply(self, play: Callable[[AnyGame, Random], tuple[Fact, ...]]) -> tuple[Fact, ...]:
-        """One execution against a candidate; a refused call leaves the draft and the dice alone."""
         candidate, dice = self.draft.draft(), deepcopy(self.rng)
         facts = play(candidate, dice)
         self.draft = self.engine.accept(candidate)

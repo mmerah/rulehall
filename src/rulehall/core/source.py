@@ -6,6 +6,7 @@ from pypdf import PdfReader
 
 from rulehall.core.validation import Refusal
 
+SOURCE_SUFFIXES = (".md", ".txt", ".pdf")
 MIN_PASSAGE = 24
 # The in-play request prompt adds cast and history under the 131072-byte argv cap.
 SOURCE_MAX_BYTES = 48_000
@@ -15,7 +16,6 @@ CAPS_HEADING = re.compile(r"[A-Z][A-Z '-]+:")
 
 
 def given_text(premise: str, document: Path | None) -> str:
-    """A premise next to a document tells the model what to take from the document."""
     if document is None:
         return f"PREMISE:\n{premise}"
     whole = f"SOURCE DOCUMENT:\n{whole_text(document)}"
@@ -49,7 +49,6 @@ def _pdf_pages(path: Path) -> tuple[str, ...]:
 def _passages(body: str) -> Iterator[str]:
     for block in BLANK_LINE.split(body.strip()):
         text = " ".join(LINE_BREAK_HYPHEN.sub(r"\1-\2", _unquoted(block)).split())
-        # A page number or a running header is not a passage.
         if len(text) >= MIN_PASSAGE and not CAPS_HEADING.fullmatch(text):
             yield text
 

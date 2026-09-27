@@ -108,7 +108,6 @@ class Chat:
         self.show_pause(view)
 
     def show_pause(self, view: PlayerView) -> None:
-        # The live decision widget sits directly below the last exchange, so it needs no pause line.
         if self.pause_line is not None:
             self.pause_line.set_visibility(view.decision is None)
 
@@ -246,12 +245,11 @@ def fact_cards(
     since: int = 0,
     live: bool = False,
 ) -> None:
-    """`since` counts facts and refusals together, so a live turn draws only what is new."""
     for entry in in_order(facts, refused)[since:]:
         if isinstance(entry, Fact):
             if entry.told and entry.card:
                 card(entry, live=live)
-        elif session.transcript_config.refusals:
+        elif session.settings.transcript.refusals:
             refusal_card(entry, live=live)
 
 
@@ -311,7 +309,6 @@ def bubble(
     named: bool = True,
     entering: bool = False,
 ) -> None:
-    """`named`: a run of lines from one speaker shows its name and avatar once, at its head."""
     narration = speaker_id is None
     chat_name = "DM" if narration else name
     message = ui.chat_message(text, name=chat_name if named else None).classes(
@@ -354,7 +351,6 @@ def draft_spent(draft: str, newest_prompt: str) -> bool:
 
 
 def in_order(facts: Sequence[Fact], refused: Sequence[Refused]) -> list[Fact | Refused]:
-    """A refusal goes after the facts that came before it and before the facts that came after."""
     placed: list[tuple[int, int, Fact | Refused]] = [
         (index, 1, fact) for index, fact in enumerate(facts)
     ]

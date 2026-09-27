@@ -6,8 +6,10 @@ from support.table import TWENTYFOURXX, open_table, play_turn, tool_call, update
 from support.twentyfourxx import open_crew
 
 from rulehall.core.play import Answer
-from rulehall.engines.twentyfourxx.engine import MOVE_ON, WAY_UNWRITTEN
-from rulehall.engines.twentyfourxx.world import STARTING_CREDITS, TwentyFourXXGame
+from rulehall.engines.twentyfourxx.engine import WAY_UNWRITTEN
+from rulehall.engines.twentyfourxx.panels import MOVE_ON
+from rulehall.engines.twentyfourxx.sheet import STARTING_CREDITS
+from rulehall.engines.twentyfourxx.world import TwentyFourXXGame
 
 # A setback (not a disaster or a success): the roll injures the player without killing them.
 SETBACK_SEED = 1

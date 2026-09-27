@@ -1,11 +1,54 @@
-from rulehall.core.play import PendingOption
+from rulehall.core.play import PendingDecision, PendingOption
 from rulehall.core.validation import Slug
 from rulehall.core.views import Meter, Panel, PanelRow
 from rulehall.engines.entities import Gauge
-from rulehall.engines.loner4e.args import BREAK_AWAY, END_HERE, MOVE_ON, RECOVER
-from rulehall.engines.loner4e.rules import STATUS_BOXES
+from rulehall.engines.loner4e.rules import STATUS_BOXES, STATUS_TAGS
 from rulehall.engines.loner4e.world import Loner4eWorld
 from rulehall.engines.panels import character_panel
+
+TAKE_BREATHER = PendingOption(
+    id="breather",
+    name="Take the breather",
+    brief="Say what you do with this quiet window.",
+    action_name="take_breather",
+)
+RECOVER = PendingOption(
+    id="recover",
+    name="Recover",
+    brief="Spend the quiet scene resting: it clears the newest box.",
+    action_name="recover",
+    told_in_turn=True,
+)
+MOVE_ON = PendingOption(
+    id="move-on",
+    name="Move on",
+    brief="Leave this scene; the dice say what comes next.",
+    action_name="move_on",
+)
+END_HERE = PendingOption(id="end", name="End the adventure", action_name="confirm_end")
+BREAK_AWAY = PendingOption(
+    id="break-away",
+    name="Break away",
+    brief="Always allowed, never free: the story sets the price.",
+    action_name="withdraw",
+)
+STATUS_PROMPT = "Does this defeat leave a lasting mark?"
+NO_MARK = PendingOption(
+    id="none", name="No lasting mark", action_name="mark_status", args={"column": None}
+)
+ASK_ORACLE = PendingOption(
+    id="ask",
+    name="Ask the oracle",
+    brief="Type one yes/no question.",
+    action_name="ask_oracle",
+)
+PLAY_ON = PendingOption(id="play-on", name="Play on", action_name="play_on")
+ENDING_PROMPT = "The adventure could end here: {why}. End it, or play on?"
+GROWTH_PROMPT = "What did {name} learn?"
+WRITE_LIVING_WORLD = PendingOption(
+    id="living-world", name="Write the Living World", action_name="request_living_world"
+)
+UNWRITTEN_PROMPT = "The adventure is over, and the Living World is still to be written."
 
 
 def sheet_panel(world: Loner4eWorld) -> Panel:
@@ -52,6 +95,47 @@ def here_panel(world: Loner4eWorld) -> Panel:
         for other in world.others()
     )
     return Panel(title="Also here", rows=tuple(rows))
+
+
+def ending_decision(why: str) -> PendingDecision:
+    end_it = PendingOption(id="end-it", name="End it", action_name="confirm_end", args={"why": why})
+    return PendingDecision(
+        kind="ending",
+        prompt=ENDING_PROMPT.format(why=why.rstrip(".")),
+        options=(end_it, PLAY_ON),
+        allows_text=False,
+    )
+
+
+def growth_decision(name: str) -> PendingDecision:
+    return PendingDecision(
+        kind="growth", prompt=GROWTH_PROMPT.format(name=name), options=(), allows_text=True
+    )
+
+
+def living_world_decision() -> PendingDecision:
+    return PendingDecision(
+        kind="living-world",
+        prompt=UNWRITTEN_PROMPT,
+        options=(WRITE_LIVING_WORLD,),
+        allows_text=False,
+    )
+
+
+def status_mark_decision(marked_boxes: int) -> PendingDecision:
+    options = tuple(
+        PendingOption(
+            id=column,
+            name=column.capitalize(),
+            brief=tags[marked_boxes],
+            action_name="mark_status",
+            args={"column": column},
+        )
+        for column, tags in STATUS_TAGS.items()
+    )
+    return PendingDecision(
+        kind="status", prompt=STATUS_PROMPT, options=(*options, NO_MARK), allows_text=False
+    )
 
 
 def _playing(world: Loner4eWorld) -> bool:

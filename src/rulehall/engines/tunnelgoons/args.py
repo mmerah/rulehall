@@ -4,7 +4,7 @@ from pydantic import Field, model_validator
 
 from rulehall.core.validation import Frozen, Slug
 from rulehall.engines.args import ACTOR, Attempt
-from rulehall.engines.tunnelgoons.world import Ability, Boost
+from rulehall.engines.tunnelgoons.sheet import Ability, Boost
 
 
 class Roll(Attempt):

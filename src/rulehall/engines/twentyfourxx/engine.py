@@ -12,12 +12,11 @@ from rulehall.core.creation import (
     option_of,
     picked,
 )
-from rulehall.core.facts import DiceEvent, Fact, notation, roll
+from rulehall.core.facts import DiceEvent, Fact, roll
 from rulehall.core.model import AnyCharacter, Character, Check, RoleAnswer, WorldsmithRequest
 from rulehall.core.play import (
     Cause,
     DecisionOption,
-    PendingDecision,
     PendingOption,
     Refused,
     SpokenLine,
@@ -26,38 +25,17 @@ from rulehall.core.prompt import Sections, lines_of, section_if, sentence
 from rulehall.core.tools import action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug, slug
 from rulehall.core.views import NarratorView, Panel, Rows, tag_of
-from rulehall.engines.args import LeaveParty, Words
+from rulehall.engines.args import Words
 from rulehall.engines.engine import RequestHandler, Resolution, Revealing
 from rulehall.engines.entities import IS_DEAD, PLAYER_ID, joined
 from rulehall.engines.hiring import HIRE_PENDING, HIRE_UNWRITTEN, Hiring, signed_on
 from rulehall.engines.packs import unique_options
 from rulehall.engines.panels import character_panel, here_panel, party_panel
-from rulehall.engines.scenes.engine import SceneEngine, trail_panel
+from rulehall.engines.scenes.engine import SceneEngine
+from rulehall.engines.scenes.panels import trail_panel
 from rulehall.engines.scenes.world import SceneProposal
 from rulehall.engines.scenes.worldsmith import check_next, check_opening
 from rulehall.engines.twentyfourxx.args import (
-    BY_SHIP,
-    CANNOT_SUCCEED,
-    COMPLICATION_UNWRITTEN,
-    CROSSING,
-    FLOWN,
-    GEAR_TOOK_THE_HIT,
-    JOB_PAID,
-    JOINING,
-    MOVE_ON,
-    MOVING_ON,
-    NEW_LEAD_HERE,
-    NEW_LOCATION,
-    NEWCOMER_PROMPT,
-    NO_JOB,
-    ODD_JOB,
-    RAISE_OWED,
-    RAISE_PROMPT,
-    SCENE_LEFT,
-    TURNING,
-    TWO_JOBS,
-    WAY_OFFERED,
-    WAY_UNWRITTEN,
     BringIn,
     CarriedItem,
     ChangeHindrances,
@@ -93,7 +71,19 @@ from rulehall.engines.twentyfourxx.pack import (
     TwentyFourXXHead,
     TwentyFourXXPack,
 )
-from rulehall.engines.twentyfourxx.panels import crew_rows, gear_rows, job_panel, ship_panel
+from rulehall.engines.twentyfourxx.panels import (
+    MOVE_ON,
+    NEWCOMER,
+    commit_decision,
+    crew_rows,
+    defence_decision,
+    gear_rows,
+    job_panel,
+    newcomer_decision,
+    raise_decision,
+    ship_panel,
+    succession_decision,
+)
 from rulehall.engines.twentyfourxx.rules import (
     DEFAULT_DIE,
     HELP_DIE,
@@ -108,13 +98,9 @@ from rulehall.engines.twentyfourxx.rules import (
     roll_band,
     spared,
 )
+from rulehall.engines.twentyfourxx.sheet import SHIP_IDS, Crewmate, CrewSheet, Gear, Kit
 from rulehall.engines.twentyfourxx.world import (
-    SHIP_IDS,
     WORK_AT,
-    Crewmate,
-    CrewSheet,
-    Gear,
-    Kit,
     TwentyFourXXGame,
     TwentyFourXXNext,
     TwentyFourXXScene,
@@ -125,7 +111,74 @@ from rulehall.engines.twentyfourxx.world import (
 DEPARTURE: Slug = "departure"
 FLIGHT: Slug = "flight"
 COMPLICATION: Slug = "complication"
-NEWCOMER: Slug = "newcomer"
+MOVING_ON = (
+    "The player moves on. PLAYER ACTION says where the player means to go. Play the leaving if "
+    "nothing stops the player. Then call `next_scene` with `pursuit` in the player's own words. "
+    "The worldsmith writes the crossing after this turn."
+)
+CROSSING = (
+    "The player is leaving {left} for the place in SCENE{how}. The narrator told the leaving "
+    "already. Write the arrival in the place that SCENE describes, and nothing the player "
+    "planned for it. Give the distance and the time in the fewest words that make them real. "
+    "End on what the player sees first. WHAT HAPPENED names everyone who travelled with the "
+    "player. The player has not acted in the new place, so settle nothing."
+)
+TURNING = (
+    "The situation changes where the player stands. The player did nothing to cause the "
+    "change. Write what arrives or changes, as the player sees it, from SCENE and WHAT "
+    "HAPPENED. End on what the new situation asks of the player. The player has not answered "
+    "it, so settle nothing."
+)
+BY_SHIP = ", flying there in the crew's own ship. Tell a flight and a landing, not a walk"
+JOINING = (
+    "{name} joins the crew here, in SCENE, and leads now. Tell the arrival in a line or two. "
+    "Settle nothing else."
+)
+NEW_LEAD_HERE = (
+    "{name} leads now and is here, in {scene}, where the dead operator fell. Play them here, "
+    "never anywhere else."
+)
+SCENE_LEFT = "the worldsmith writes the crossing once this turn ends. Stop here and exit."
+WAY_OFFERED = (
+    "This scene offers a way on. Ask the player what they want to pursue next. Ask in the "
+    "fiction, and name what the scene left open. Never ask with a list of choices. The player "
+    "can also stay and keep playing here, so ask; do not push the player out."
+)
+WAY_UNWRITTEN = Fact(
+    told=True,
+    trace="the crossing could not be written yet: the player arrives once they move on again",
+    card="The crossing is not written yet. Move on again to arrive.",
+)
+COMPLICATION_UNWRITTEN = Fact(
+    told=True,
+    trace="the complication could not be written",
+    card="Nothing new came down on this place after all. You are still where you were.",
+)
+NEW_LOCATION = "no new `location`: a complication happens where the player is; leave it empty"
+GEAR_TOOK_THE_HIT = (
+    "the gear took the hit: do not apply `risk`; the engine removes the brief hindrance at the "
+    "next scene"
+)
+TWO_JOBS = (
+    "offer two jobs with `direct`; the player picks in their words; `job` `take` records the pick"
+)
+ODD_JOB = (
+    "offer one job with `direct`, and let something about it seem off; write what seems off in "
+    "`terms` when the player takes it"
+)
+NO_JOB = (
+    "no work, unless the crew takes a job that leaves them owing somebody: offer that with "
+    "`direct`; write the debt in `terms` when the player takes it"
+)
+JOB_PAID = (
+    "the job is over, done or failed: the credits each operator earned above are their cut for "
+    "the work done. Tell them as that pay; never say that no pay came"
+)
+FLOWN = (
+    "a new `place_id`: the crew flew away from {place_id}. Land them at the place that WHAT "
+    "COMES NEXT names"
+)
+RAISE_OWED = "A raise is owed: when the player names a skill, call `raise_skill` with it."
 
 
 class Helping(NamedTuple):
@@ -206,17 +259,13 @@ class TwentyFourXXEngine(
         cause: Cause | None = None,
         refused: tuple[Refused, ...] = (),
     ) -> TwentyFourXXGame:
-        # Every exchange ends here, a failed newcomer write too, so no one plays a dead lead.
         if draft.pending is None and draft.request is None:
             self._succession(draft)
         if draft.pending is None and draft.request is None and draft.world.raise_owed:
-            draft.pending = _raise_decision(draft.world.player.require_sheet())
+            draft.pending = raise_decision(draft.world.player.require_sheet())
         return super().record(
             draft, lines, facts, words=words, by_option=by_option, cause=cause, refused=refused
         )
-
-    def file_stranger(self, draft: TwentyFourXXGame, target_id: Slug, /) -> list[Fact]:
-        return draft.world.file_stranger(target_id)
 
     def composer(self, _state: TwentyFourXXGame) -> tuple[PendingOption | None, bool]:
         return MOVE_ON, False
@@ -246,7 +295,6 @@ class TwentyFourXXEngine(
 
     def creation_steps(self, pack_id: Slug, picks: Picks) -> tuple[CreationStep, ...]:
         specialties, origins = self._offered(pack_id)
-        # The rules fix the seventeen skills: a pack adds specialties and origins only.
         skills = self.packs.srd().skills
         steps = [CreationStep(id="specialty", name="Specialty", options=specialties)]
         specialty = option_of(specialties, picked(picks, "specialty"))
@@ -462,13 +510,8 @@ class TwentyFourXXEngine(
         if args.to_id == world.player.id or (person and person.hired and person.id in world.party):
             taker = world.require_actor(args.to_id)
             return [*actor.spend(args.amount, args.why), *taker.earn(args.amount, giver=actor)]
-        # Anyone outside the crew, a hire not yet signed on too, simply takes the credits.
         taker_name = args.to_id if person is None else person.name
         return actor.spend(args.amount, f"{args.why}, to {taker_name}")
-
-    @action
-    def let_go(self, draft: TwentyFourXXGame, args: LeaveParty, _rng: Random) -> list[Fact]:
-        return draft.world.leave_party(args.target_id)
 
     @action
     def take_lead(self, draft: TwentyFourXXGame, args: TakeLead, _rng: Random) -> list[Fact]:
@@ -586,7 +629,9 @@ class TwentyFourXXEngine(
         def check(answer: TwentyFourXXNext) -> None:
             check_next(filed_by_name(answer), world, needs=needs(answer))
 
-        scene = await self.ask_worldsmith(draft, intent, worldsmith, TwentyFourXXNext, check)
+        scene = await self.ask_worldsmith_for_next_scene(
+            draft, worldsmith, intent, TwentyFourXXNext, check
+        )
         return [*world.end_brief_hindrances(), *self.install_scene(draft, filed_by_name(scene))]
 
     def check_opening(self, proposal: SceneProposal[Crewmate]) -> None:
@@ -605,28 +650,9 @@ class TwentyFourXXEngine(
         if dead.alive:
             return
         if not (members := world.hired_party_members()):
-            draft.pending = PendingDecision(
-                kind=NEWCOMER,
-                prompt=NEWCOMER_PROMPT.format(name=dead.name),
-                options=(),
-                allows_text=True,
-            )
+            draft.pending = newcomer_decision(dead)
             return
-        draft.pending = PendingDecision(
-            kind="succession",
-            prompt="Who leads now?",
-            options=tuple(
-                PendingOption(
-                    id=member.id,
-                    name=member.name,
-                    brief=member.brief,
-                    action_name="take_lead",
-                    args={"actor_id": member.id},
-                )
-                for member in members
-            ),
-            allows_text=False,
-        )
+        draft.pending = succession_decision(members)
 
     def ending(self, state: TwentyFourXXGame) -> str | None:  # noqa: ARG002
         return None
@@ -655,13 +681,14 @@ class TwentyFourXXEngine(
             ):
                 raise Refusal(f"{answer.name!r} is already in the cast: name a new operator")
 
-        prompt = self.render_request(
+        answer = await self.ask_worldsmith(
             draft,
-            intent=NEWCOMING.format(who=request.detail),
+            worldsmith,
+            NEWCOMING.format(who=request.detail),
+            NewcomerProposal,
+            check,
             guidance=self.hire_guidance(draft),
-            answer_model=NewcomerProposal,
         )
-        answer = await worldsmith(prompt, NewcomerProposal, check)
         newcomer = Crewmate(
             id=PLAYER_ID,
             name=answer.name,
@@ -681,28 +708,7 @@ class TwentyFourXXEngine(
         pool = self._pool(draft.world, args)
         if args.committed:
             return self._rolled(draft, pool, rng)
-        draft.pending = PendingDecision(
-            kind="risk",
-            prompt=" ".join(
-                part
-                for part in (
-                    f"{_roll_lines(pool)[1]}. Dice: {notation(pool.faces)}, the highest counts.",
-                    *_burdens(pool.actor),
-                    CANNOT_SUCCEED if max(pool.faces) < 5 else "",
-                    "Commit, or revise in your own words.",
-                )
-                if part
-            ),
-            options=(
-                PendingOption(
-                    id="commit",
-                    name="Commit",
-                    action_name="roll",
-                    args={**args.model_dump(mode="json"), "committed": True},
-                ),
-            ),
-            allows_text=True,
-        )
+        draft.pending = commit_decision(args, _roll_lines(pool)[1], pool.actor, pool.faces)
         return []
 
     @action
@@ -872,20 +878,11 @@ def _defend_or_land(
             if band == "setback"
             else f"{sentence(stake.risk)} hits {who.name}"
         )
-        draft.pending = PendingDecision(
-            kind="defence",
-            prompt=f"{pool.roll.what}: {band}. {hit}. Break an item to turn it into a brief "
-            "hindrance, or take it.",
-            options=(
-                *(
-                    _defence(
-                        f"Break {gear.name}", pool, rolled, {**choices, who.id: item_id}, item_id
-                    )
-                    for item_id, gear in defences
-                ),
-                _defence("Take it", pool, rolled, {**choices, who.id: None}, None),
-            ),
-            allows_text=False,
+        draft.pending = defence_decision(
+            f"{pool.roll.what}: {band}. {hit}.",
+            DefendHit(roll=pool.roll, rolled=rolled, choices=choices),
+            who.id,
+            defences,
         )
         return []
     return _land(draft, pool, band, rolled, choices)
@@ -927,40 +924,6 @@ def _land(
     return facts
 
 
-def _raise_decision(sheet: CrewSheet) -> PendingDecision:
-    return PendingDecision(
-        kind="raise",
-        prompt=RAISE_PROMPT,
-        options=tuple(
-            PendingOption(
-                id=slug(skill, ()),
-                name=f"{skill} d{die} → d{next_die}",
-                action_name="raise_skill",
-                args={"skill": skill},
-            )
-            for skill, die in sheet.skills.items()
-            if (next_die := raised(die)) is not None
-        ),
-        allows_text=True,
-    )
-
-
-def _defence(
-    name: str,
-    pool: DicePool,
-    rolled: DiceEvent,
-    choices: dict[Slug, Slug | None],
-    item_id: Slug | None,
-) -> PendingOption:
-    hit = DefendHit(roll=pool.roll, rolled=rolled, choices=choices)
-    return PendingOption(
-        id=item_id or "take-it",
-        name=name,
-        action_name="defend_hit",
-        args=hit.model_dump(mode="json"),
-    )
-
-
 def _roll_lines(pool: DicePool) -> tuple[str, str]:
     args = pool.roll
     line = f"{args.what} — {pool.actor.card_line(sentence(pool.label))} d{pool.die}"
@@ -977,16 +940,6 @@ def _roll_lines(pool: DicePool) -> tuple[str, str]:
         risked = risk_text(terms.risk, harm=terms.harm, deadly=terms.deadly)
         staked += f", {helping.who.name} risking {risked}"
     return line, f"{staked}, risking {risk_text(args.risk, harm=args.harm, deadly=args.deadly)}"
-
-
-def _burdens(actor: Crewmate) -> list[str]:
-    sheet = actor.require_sheet()
-    burdens: list[str] = []
-    if sheet.hindrances:
-        burdens.append(f"Hindrances: {', '.join(sheet.hindrances)}.")
-    if (bulky := sum(item.bulky for item in sheet.items.values())) > 1:
-        burdens.append(f"Carries {bulky} bulky items.")
-    return burdens
 
 
 def _item_lines(items: Mapping[Slug, Gear]) -> str:

@@ -5,8 +5,8 @@ from pydantic import Field, model_validator
 from rulehall.core.prompt import Sections, section_if
 from rulehall.core.validation import Frozen
 from rulehall.engines.hiring import HIRED
-from rulehall.engines.packs import NPCS, Pack, PackBody, PackHead, bullets, check_lines
-from rulehall.engines.tunnelgoons.world import ABILITY_POINTS, AbilityScores
+from rulehall.engines.packs import NPCS, Block, CastPack, PackBody, PackHead, check_lines
+from rulehall.engines.tunnelgoons.sheet import ABILITY_POINTS, AbilityScores
 
 WORLDSMITH_GUIDANCE = (
     "TUNNEL GOONS AUTHORING\n"
@@ -27,10 +27,10 @@ HIRING = (
 )
 
 
-class TunnelGoonsBlock(Frozen):
+class TunnelGoonsBlock(Block):
     name: str = Field(min_length=1)
     brief: str = Field(min_length=1)
-    hp: int = Field(ge=1)  # Health and Difficulty Score at once: 8 easy, 10 moderate, 12 hard
+    hp: int = Field(ge=1)
 
     @model_validator(mode="after")
     def _reads_in_a_block(self) -> Self:
@@ -41,20 +41,11 @@ class TunnelGoonsBlock(Frozen):
         return f"{self.name} — {self.brief} (hp {self.hp})"
 
 
-class TunnelGoonsPack(Pack):
-    items: tuple[str, ...] = ()  # the create page hints with these names
-    factions: tuple[TunnelGoonsBlock, ...] = ()
-    npcs: tuple[TunnelGoonsBlock, ...] = ()
-    monsters: tuple[TunnelGoonsBlock, ...] = ()
+class TunnelGoonsPack(CastPack[TunnelGoonsBlock]):
+    items: tuple[str, ...] = ()
 
-    def sections(self, *, opening: bool) -> Sections:
-        return (
-            *super().sections(opening=opening),
-            *section_if("ITEMS", ", ".join(self.items)),
-            *bullets("FACTIONS", (block.line() for block in self.factions)),
-            *bullets("PEOPLE", (block.line() for block in self.npcs)),
-            *bullets("MONSTERS", (block.line() for block in self.monsters)),
-        )
+    def table_sections(self) -> Sections:
+        return section_if("ITEMS", ", ".join(self.items))
 
 
 class AbilitiesProposal(Frozen):

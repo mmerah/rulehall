@@ -32,7 +32,6 @@ class Meter(Frozen):
     hint: str = ""
 
 
-# A picture, or one frame of a sheet; a zero size means the whole picture.
 class Sprite(Frozen):
     path: Path
     x: int = 0
@@ -41,8 +40,6 @@ class Sprite(Frozen):
     height: int = 0
 
 
-# Three row shapes, in order: entity (`icon_id`), named value (`brief`, tags or meters), or bare
-# name. A row with options or a detail opens its own dialog; a detail row's own are not read.
 class PanelRow(Frozen):
     name: str
     brief: str
@@ -59,7 +56,6 @@ class Choice(Frozen):
     name: str
     brief: str = ""
     group: str = ""
-    # Why it cannot be chosen now; empty when it can. It shows greyed and never runs.
     refusal: str = ""
     tags: tuple[Tag, ...] = ()
 
@@ -93,15 +89,12 @@ PanelRow.model_rebuild()
 class NarratorView(Frozen):
     """The Narrator's input type: it has no field that can hold hidden canon."""
 
-    # The place, as the art cache names it: two scenes in one place share one picture.
     place_id: Slug
     title: str
     situation: str
     subjects: tuple[Subject, ...]
     speakers: tuple[Slug, ...]
-    # The player first, then who travels with them.
     party: tuple[Slug, ...] = Field(min_length=1)
-    # The player's own sheet: theirs to know, so the narrator may show it through detail.
     sheet: Rows
     departed: tuple[Subject, ...] = ()
 
@@ -119,7 +112,6 @@ class NarratorView(Frozen):
         return tuple(subject for subject in self.subjects if subject.id not in self.party)
 
     def after(self, before: "NarratorView") -> "NarratorView":
-        """Who could speak when the turn began still speaks in its narration after leaving."""
         departed = tuple(
             subject
             for subject in before.subjects
@@ -128,7 +120,6 @@ class NarratorView(Frozen):
         return self.model_copy(update={"departed": departed})
 
     def spoken(self, lines: Sequence[Line]) -> tuple[SpokenLine, ...]:
-        """A line given to a voice not here is repaired into narration, not refused."""
         voices = {subject.id: subject for subject in self.subjects if subject.id in self.speakers}
         voices.update((subject.id, subject) for subject in self.departed)
 

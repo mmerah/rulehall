@@ -22,8 +22,9 @@ from rulehall.core.model import Check, RoleAnswer, WorldsmithRequest
 from rulehall.core.play import Exchange, PendingDecision
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal
-from rulehall.engines.loner4e.args import MOVE_ON, TAKE_BREATHER, CloseScene
+from rulehall.engines.loner4e.args import CloseScene
 from rulehall.engines.loner4e.engine import ELSEWHERE_TITLE
+from rulehall.engines.loner4e.panels import MOVE_ON, TAKE_BREATHER
 from rulehall.engines.loner4e.rules import MEANWHILE_QUESTION, SceneKind, transition_for
 from rulehall.engines.loner4e.world import (
     OFF_SCREEN,
@@ -31,6 +32,7 @@ from rulehall.engines.loner4e.world import (
     Loner4eNext,
     Loner4eOpening,
 )
+from rulehall.engines.scenes.worldsmith import check_opening
 
 GOAL = "Find the stair down"
 NEXT_SCENE: dict[str, object] = {
@@ -204,7 +206,7 @@ async def test_a_failed_write_keeps_the_close_and_the_next_turn_asks_again_with_
 
 
 async def test_loner_knows_everyone_so_no_name_is_refused_and_a_stranger_is_met() -> None:
-    ENGINE.check_opening(_opening(goal="Find Elena"))
+    check_opening(_opening(goal="Find Elena"))
     _, state = initialized()
     assert all(entry.known for entry in state.world.cast.values())
     request = WorldsmithRequest(kind="dramatic")

@@ -1,13 +1,14 @@
 from collections.abc import Collection
 from pathlib import Path
 
-from rulehall.core.play import PendingOption
+from rulehall.core.play import PendingDecision, PendingOption
 from rulehall.core.validation import Slug
 from rulehall.core.views import Meter, Panel, PanelRow, Sprite, Tag
 from rulehall.engines.pokemon.battle.models import FRIENDSHIP_MAX, LEVEL_MAX
 from rulehall.engines.pokemon.dex import Species, dex
 from rulehall.engines.pokemon.rules import (
     ITEMS,
+    SKILL_USES,
     STAT_NAMES,
     TIMES,
     BagId,
@@ -15,13 +16,8 @@ from rulehall.engines.pokemon.rules import (
     nature_effect,
     tm_move,
 )
-from rulehall.engines.pokemon.world import (
-    SCHEME_STAGES,
-    Mon,
-    MoveSlot,
-    PokemonWorld,
-    TrainerSheet,
-)
+from rulehall.engines.pokemon.sheet import Mon, MoveSlot, TrainerSheet
+from rulehall.engines.pokemon.world import SCHEME_STAGES, PokemonWorld
 
 type StatLine = tuple[str, int, str]
 ICON_SHEET = Path("sprites/pokemonicons-sheet.png")
@@ -131,17 +127,22 @@ def team_panels(sheet: TrainerSheet, species_pool: Collection[Slug]) -> tuple[Pa
 
 
 def scheme_panels(world: PokemonWorld) -> tuple[Panel, ...]:
-    scheme = world.scheme
-    if scheme is None or not any(world.npcs[leader_id].known for leader_id in world.leader_ids):
+    evil_team = world.evil_team
+    scheme = evil_team.scheme
+    if scheme is None or not any(world.npcs[leader_id].known for leader_id in evil_team.leader_ids):
         return ()
-    operation = world.operation
+    operation = evil_team.operation
     rows = (
-        PanelRow(name="Stage", brief=f"{world.stage()}/{SCHEME_STAGES}"),
-        PanelRow(name="Foiled", brief=str(world.foiled)),
-        PanelRow(name="Succeeded", brief=str(world.succeeded)),
+        PanelRow(name="Stage", brief=f"{evil_team.stage()}/{SCHEME_STAGES}"),
+        PanelRow(name="Foiled", brief=str(evil_team.foiled)),
+        PanelRow(name="Succeeded", brief=str(evil_team.succeeded)),
         *(() if operation is None else (PanelRow(name="Now", brief=operation.goal),)),
     )
     return (Panel(title=scheme.name, rows=rows),)
+
+
+def pending_decision(world: PokemonWorld) -> PendingDecision | None:
+    return _learning_decision(world) or _evolution_decision(world) or _rank_decision(world)
 
 
 def mon_row(mon: Mon, cap: int, options: tuple[PendingOption, ...] = ()) -> PanelRow:
@@ -324,6 +325,79 @@ def item_option(
         args={"mon_id": mon.mon_id, "item_id": item_id},
         group=group,
         refusal=mon.item_refusal(item_id, species_pool, cap),
+    )
+
+
+def _learning_decision(world: PokemonWorld) -> PendingDecision | None:
+    if not world.learning:
+        return None
+    learning = world.learning[0]
+    mon = world.player.require_sheet().require_mon(learning.mon_id)
+    move = dex().moves[learning.move_id].name
+    return PendingDecision(
+        kind="new-move",
+        prompt=(
+            f"{mon.name} wants to learn {move}. It knows four moves. Forget one, or skip {move}?"
+        ),
+        options=tuple(
+            PendingOption(
+                id=forget_id or "skip",
+                name=name,
+                action_name="learn_move",
+                args={
+                    "mon_id": learning.mon_id,
+                    "move_id": learning.move_id,
+                    "forget_id": forget_id,
+                },
+            )
+            for forget_id, name in (
+                *((slot.move_id, f"Forget {slot.move.name}") for slot in mon.moves),
+                (None, f"Skip {move}"),
+            )
+        ),
+        allows_text=False,
+    )
+
+
+def _evolution_decision(world: PokemonWorld) -> PendingDecision | None:
+    if not world.evolving:
+        return None
+    evolving = world.evolving[0]
+    mon = world.player.require_sheet().require_mon(evolving.mon_id)
+    return PendingDecision(
+        kind="evolution",
+        prompt=f"{mon.name} is ready to evolve. Into which?",
+        options=tuple(
+            PendingOption(
+                id=species_id,
+                name=dex().species[species_id].name,
+                action_name="evolve",
+                args={"mon_id": evolving.mon_id, "species_id": species_id},
+            )
+            for species_id in evolving.species_ids
+        ),
+        allows_text=False,
+    )
+
+
+def _rank_decision(world: PokemonWorld) -> PendingDecision | None:
+    options = tuple(
+        PendingOption(
+            id=skill,
+            name=skill.title(),
+            brief=SKILL_USES[skill],
+            action_name="raise_skill",
+            args={"skill": skill},
+        )
+        for skill in world.player.require_sheet().rankable()
+    )
+    if not (world.ranks_due and options):
+        return None
+    return PendingDecision(
+        kind="badge-rank",
+        prompt="Your new badge gives one skill rank. Which skill gains it?",
+        options=options,
+        allows_text=False,
     )
 
 

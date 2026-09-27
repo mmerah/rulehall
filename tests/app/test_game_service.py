@@ -25,34 +25,34 @@ from rulehall.app.session import IN_FLIGHT_ELSEWHERE, NOTHING_TO_REWIND
 from rulehall.config import Role
 from rulehall.core.facts import Fact
 from rulehall.core.io import FileStore
-from rulehall.core.model import AnyGame, ScenarioMeta, WorldsmithRequest
+from rulehall.core.model import AnyGame, ScenarioDescription, WorldsmithRequest
 from rulehall.core.play import Answer
 from rulehall.core.validation import Refusal
 from rulehall.engines.entities import PLAYER_ID
-from rulehall.engines.loner4e.args import TAKE_BREATHER
-from rulehall.engines.loner4e.world import Loner4eEntity
+from rulehall.engines.loner4e.panels import TAKE_BREATHER
+from rulehall.engines.loner4e.sheet import Loner4eEntity
 from rulehall.engines.pokemon.world import PokemonGame
 
 
 class _UnsavableStore(FileStore):
     """Overrides `save` alone: `FileStore` is frozen and slotted, so this cannot monkeypatch it."""
 
-    def write(self, _slug: str, _state: AnyGame, /) -> None:
+    def write(self, _save_id: str, _state: AnyGame, /) -> None:
         raise OSError("disk is gone")
 
 
 async def test_opening_does_not_save_and_restart_discards_durable_state(tmp_path: Path) -> None:
     store = FileStore(tmp_path)
     game = session(tmp_path)
-    assert store.slugs() == ()
+    assert store.save_ids() == ()
 
-    store.write(TARGET.slug, game.state.model_copy(update={"notes": ["kept"]}).commit())
+    store.write(TARGET.save_id, game.state.model_copy(update={"notes": ["kept"]}).commit())
     assert session(tmp_path).state.notes == ["kept"]
 
     game = session(tmp_path)
     await game.restart()
     assert game.state.notes == []
-    assert store.read(TARGET.slug) is None
+    assert store.read(TARGET.save_id) is None
 
 
 def test_the_player_view_is_built_once_per_saved_state(tmp_path: Path) -> None:
@@ -119,7 +119,7 @@ async def test_rewind_before_any_turn_finds_nothing_to_rewind(tmp_path: Path) ->
         ({"character_id": "someone-else"}, "save is 'whispering-vault--someone-else'"),
         (
             {
-                "scenario": ScenarioMeta(
+                "scenario_description": ScenarioDescription(
                     title="Another Vault",
                     premise="Elsewhere.",
                     backdrop="Plain.",
@@ -135,7 +135,7 @@ def test_resume_refuses_a_save_that_is_not_this_game(
     tmp_path: Path, change: dict[str, object], message: str
 ) -> None:
     game = session(tmp_path)
-    FileStore(tmp_path).write(TARGET.slug, game.state.model_copy(update=change).commit())
+    FileStore(tmp_path).write(TARGET.save_id, game.state.model_copy(update=change).commit())
 
     with pytest.raises(Refusal, match=message):
         session(tmp_path)
@@ -250,9 +250,9 @@ def test_a_save_never_carries_a_request(tmp_path: Path) -> None:
     game = session(tmp_path)
     draft = game.state.draft()
     draft.request = WorldsmithRequest(kind="complication", detail="A crew breaks in.")
-    FileStore(tmp_path).write(TARGET.slug, draft)
+    FileStore(tmp_path).write(TARGET.save_id, draft)
 
-    assert "request" not in json.loads(FileStore(tmp_path).read(TARGET.slug) or "")
+    assert "request" not in json.loads(FileStore(tmp_path).read(TARGET.save_id) or "")
 
 
 async def test_two_concurrent_plays_on_different_sessions_cannot_both_open_a_turn(

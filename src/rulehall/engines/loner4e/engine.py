@@ -1,7 +1,6 @@
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from random import Random
-from typing import cast
 
 from rulehall.core.creation import (
     CreationStep,
@@ -17,7 +16,7 @@ from rulehall.core.model import (
     RoleAnswer,
     WorldsmithRequest,
 )
-from rulehall.core.play import DecisionOption, PendingDecision, PendingOption
+from rulehall.core.play import DecisionOption, PendingOption
 from rulehall.core.prompt import Sections, section_if
 from rulehall.core.tools import MasterTool, NoArgs, action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
@@ -27,39 +26,6 @@ from rulehall.engines.engine import RequestHandler, Resolution
 from rulehall.engines.entities import PLAYER_ID
 from rulehall.engines.hiring import Joining
 from rulehall.engines.loner4e.args import (
-    ARRIVING,
-    ARRIVING_QUIET,
-    ASK_ORACLE,
-    BROKE_AWAY,
-    CONCEPT_GROWS,
-    CONFLICT_MARKS,
-    DEFEATED,
-    DRAMATIC_CLOSES,
-    ENDING_PROMPT,
-    EPILOGUE,
-    GROWN,
-    GROWTH,
-    GROWTH_PROMPT,
-    GROWTH_WAITS,
-    LAST_WORDS,
-    LIVING_WORLD_UNWRITTEN,
-    MARK_ONLY,
-    MAY_END,
-    MEANWHILE_CUE,
-    MEANWHILE_UNSAID,
-    NO_MARK,
-    PLAY_ON,
-    QUESTION_REQUIRED,
-    QUIET_LASTS,
-    RECOVERING,
-    SCENE_UNWRITTEN,
-    STATUS_PROMPT,
-    STILL_IN_IT,
-    TAKE_BREATHER,
-    TWIST_ACTION_NOTES,
-    TWIST_NOTE,
-    UNWRITTEN_PROMPT,
-    WRITE_LIVING_WORLD,
     Ask,
     ChangeTags,
     CloseScene,
@@ -87,11 +53,22 @@ from rulehall.engines.loner4e.pack import (
     Loner4eHead,
     Loner4ePack,
 )
-from rulehall.engines.loner4e.panels import here_panel, scene_panel, sheet_panel
+from rulehall.engines.loner4e.panels import (
+    ASK_ORACLE,
+    TAKE_BREATHER,
+    ending_decision,
+    growth_decision,
+    here_panel,
+    living_world_decision,
+    scene_panel,
+    sheet_panel,
+    status_mark_decision,
+)
 from rulehall.engines.loner4e.rules import (
+    ALTERS_THE_LOCATION,
+    CHANGES_THE_GOAL,
     ENDS_THE_SCENE,
     SCENE_ID,
-    STATUS_TAGS,
     RollOutcome,
     position_for,
 )
@@ -106,12 +83,94 @@ from rulehall.engines.loner4e.world import (
     Loner4eWorld,
 )
 from rulehall.engines.packs import unique_options
+from rulehall.engines.panels import party_panel
 from rulehall.engines.scenes.engine import SceneEngine
-from rulehall.engines.scenes.world import SceneProposal
-from rulehall.engines.scenes.worldsmith import OPENING, check_next, check_opening, next_needs
+from rulehall.engines.scenes.panels import trail_panel
+from rulehall.engines.scenes.worldsmith import OPENING, check_next, next_needs
 
+QUIET_SCENE_REQUEST = "quiet"
+RECOVERY_SCENE_REQUEST = "recovery"
+DRAMATIC_SCENE_REQUEST = "dramatic"
+MEANWHILE_REQUEST = "meanwhile"
+LIVING_WORLD_REQUEST = "living-world"
 LET_PLAY_DECIDE = "Leave empty to let play decide"
 ELSEWHERE_TITLE = "MET, NOT HERE (use these ids when one of them comes back)"
+TWIST_NOTE = (
+    "A twist interrupts the scene: {subject} / {action}. The pair is one beat: read it in what "
+    "is already here, and develop it this turn. Read the room, then the table: if SETTLED and "
+    "the sheet show pressure, land it hard; if the scene has been clean, it is a shift."
+)
+TWIST_ACTION_NOTES: dict[str, str] = {
+    ENDS_THE_SCENE: "The scene is closing: develop the twist and direct.",
+    CHANGES_THE_GOAL: "Call `drive` with `actor_id: scene` and the new goal.",
+    ALTERS_THE_LOCATION: "Call `change_tags` with `actor_id: scene` and kind `detail`.",
+}
+DEFEATED = (
+    "{name} is out of luck and lost the conflict. Tell now in `direct` what the defeat means: "
+    "captured, disarmed, driven off, cornered or conceding. Defeat is not death."
+)
+MARK_ONLY = "The player picks only the lasting mark, never what the defeat means."
+STILL_IN_IT = (
+    "{name} is still in it: direct; the player's next words press on, change tack or break away"
+)
+RECOVERING = "Rest and recover from being {status}"
+BROKE_AWAY = "the protagonist broke away: name the cost with `change_tags`"
+CONFLICT_MARKS = (
+    "a Harm & Luck conflict is open: the protagonist gains no condition from it. Luck is the "
+    "harm, and the player's Status pick after a defeat is the only lasting mark. Tell the hurt "
+    "in `direct`."
+)
+DRAMATIC_CLOSES = (
+    "`turning_point` closes a quiet scene only: close this dramatic scene as `resolved`, "
+    "`blocked` or `abandoned`"
+)
+QUESTION_REQUIRED = "`question` is required: write the question"
+QUIET_LASTS = (
+    "a quiet scene lasts: it is the protagonist's pause to recover, plan or deepen a bond, and "
+    "it neither resolves nor turns on the player's first turn in it. Later, the player's Move "
+    "on or a turning point ends it. Call `direct` now."
+)
+MEANWHILE_UNSAID = "The Meanwhile is the worldsmith's: say nothing of it and call `direct` now."
+MAY_END = "If this settles what the protagonist set out to do, call `end_adventure` now."
+SCENE_UNWRITTEN = Fact(
+    told=True,
+    trace="the next scene could not be written",
+    card="The next scene could not be written. You are still where you were.",
+)
+LAST_WORDS = 'The player\'s last words: "{words}". '
+ARRIVING = (
+    "The player arrives in the place in SCENE. The narrator told the leaving already: tell only "
+    "the arrival in the place SCENE describes, and end on what presses. The player has not "
+    "acted here, so settle nothing."
+)
+MEANWHILE_CUE = (
+    "Cut away from the protagonist: tell only what the Meanwhile card says moved, as the "
+    "world's turn; the protagonist does not see it. Name nothing else in the cutaway."
+)
+GROWTH = (
+    "The player ended the adventure and said what {name} learned: write that growth once with "
+    "`change_tags`, or with `drive` for a new nemesis or the concept reworded. Drop with "
+    "`change_tags` `lost` any gear on the sheet that the story gave away or lost. Then direct."
+)
+GROWTH_WAITS = (
+    "a new skill or frailty on the protagonist is the growth at the end of the adventure: it is "
+    "written only after the player picks End it. Propose the end with `end_adventure`, or tell the "
+    "change in `direct`"
+)
+CONCEPT_GROWS = (
+    "the concept changes only in the growth, after the player picks End it. Call `direct` now."
+)
+GROWN = "the growth is one new skill or frailty, and it is written. Call `direct` now."
+EPILOGUE = "The adventure is over. Tell WHAT HAPPENED as a short epilogue."
+LIVING_WORLD_UNWRITTEN = Fact(
+    told=True,
+    trace="the living world could not be written",
+    card="The Living World could not be written. Ask for it again.",
+)
+ARRIVING_QUIET = (
+    "The protagonist has just arrived in SCENE to pursue their aim. Direct the arrival with "
+    "your first result."
+)
 
 
 class Loner4eEngine(Joining, SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePack]):
@@ -131,17 +190,12 @@ class Loner4eEngine(Joining, SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePac
     def request_handlers(self) -> Mapping[Slug, RequestHandler[Loner4eWorld]]:
         return {
             **super().request_handlers(),
-            "quiet": RequestHandler(self.write_quiet, SCENE_UNWRITTEN),
-            "recovery": RequestHandler(self.write_quiet, SCENE_UNWRITTEN),
-            "dramatic": RequestHandler(self.write_dramatic, SCENE_UNWRITTEN),
-            "meanwhile": RequestHandler(self.write_meanwhile, SCENE_UNWRITTEN),
-            "living-world": RequestHandler(self.write_living_world, LIVING_WORLD_UNWRITTEN),
+            QUIET_SCENE_REQUEST: RequestHandler(self.write_quiet, SCENE_UNWRITTEN),
+            RECOVERY_SCENE_REQUEST: RequestHandler(self.write_quiet, SCENE_UNWRITTEN),
+            DRAMATIC_SCENE_REQUEST: RequestHandler(self.write_dramatic, SCENE_UNWRITTEN),
+            MEANWHILE_REQUEST: RequestHandler(self.write_meanwhile, SCENE_UNWRITTEN),
+            LIVING_WORLD_REQUEST: RequestHandler(self.write_living_world, LIVING_WORLD_UNWRITTEN),
         }
-
-    def check_opening(self, proposal: SceneProposal[Loner4eEntity]) -> None:
-        # Safe: the engine opens on a Loner4eOpening only.
-        opening = cast(Loner4eOpening, proposal)
-        check_opening(opening, needs=_loner_needs(opening))
 
     def published(self, state: Loner4eGame, /) -> tuple[MasterTool, ...]:
         tools = super().published(state)
@@ -179,9 +233,13 @@ class Loner4eEngine(Joining, SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePac
 
     def scene_panels(self, state: Loner4eGame) -> tuple[Panel, ...]:
         world = state.world
-        _sheet, *party, _here, trail = super().scene_panels(state)
-        scene = scene_panel(world, played=_played_here(state))
-        return (sheet_panel(world), scene, *party, here_panel(world), trail)
+        return (
+            sheet_panel(world),
+            scene_panel(world, played=_played_here(state)),
+            *party_panel(world.party_members()),
+            here_panel(world),
+            trail_panel(scene.title for scene in world.scenes),
+        )
 
     def end_turn(self, draft: Loner4eGame, /, *, acted: bool) -> None:  # noqa: ARG002
         draft.world.player_question = ""
@@ -206,8 +264,7 @@ class Loner4eEngine(Joining, SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePac
             intent += f" {OFFSCREEN.format(offscreen=offscreen)}"
         facts = await self._frame_next(draft, intent, worldsmith)
         facts += draft.world.player.refill("a quiet scene")
-        # SRD: recovery needs a scene framed around it, not just time passing.
-        if request.kind == "recovery":
+        if request.kind == RECOVERY_SCENE_REQUEST:
             facts += draft.world.status.recover()
         draft.note(ARRIVING_QUIET)
         return Resolution(tuple(facts), None)
@@ -242,11 +299,13 @@ class Loner4eEngine(Joining, SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePac
                     f"a `scene` exactly when the follow-up is dramatic: it is {request.detail}"
                 )
             elif scene is not None:
-                needs += next_needs(scene, moved, needs=_loner_needs(scene))
+                needs += next_needs(scene, moved)
             if needs:
                 raise Refusal("the meanwhile needs " + "; ".join(needs))
 
-        answer = await self.ask_worldsmith(draft, intent, worldsmith, Loner4eMeanwhile, check)
+        answer = await self.ask_worldsmith_for_next_scene(
+            draft, worldsmith, intent, Loner4eMeanwhile, check
+        )
         facts = world.cut_away(answer.updates)
         cutaway = MEANWHILE_CUE if any(fact.card for fact in facts) else ""
         if answer.scene is None:
@@ -267,7 +326,9 @@ class Loner4eEngine(Joining, SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePac
             _ = answer.lines(named)
 
         intent = LIVING_WORLD.format(why=request.detail)
-        answer = await self.ask_worldsmith(draft, intent, worldsmith, LivingWorld, check)
+        answer = await self.ask_worldsmith_for_next_scene(
+            draft, worldsmith, intent, LivingWorld, check
+        )
         lines = answer.lines(named)
         world.player.living_world.extend(lines)
         world.ended = True
@@ -293,7 +354,6 @@ class Loner4eEngine(Joining, SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePac
         )
 
     def _spends_luck(self, state: Loner4eGame) -> bool:
-        """SPECIAL RULES come from the played pack, so the cost in luck does too."""
         return self.packs.require(state.pack_id).spends_luck
 
     async def _frame_next(
@@ -302,9 +362,12 @@ class Loner4eEngine(Joining, SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePac
         world = draft.world
 
         def check(answer: Loner4eNext) -> None:
-            check_next(answer, world, needs=_loner_needs(answer))
+            check_next(answer, world)
 
-        return await self.write_scene(draft, intent, worldsmith, Loner4eNext, check)
+        scene = await self.ask_worldsmith_for_next_scene(
+            draft, worldsmith, intent, Loner4eNext, check
+        )
+        return self.install_scene(draft, scene)
 
     def creation_steps(self, pack_id: Slug, picks: Picks) -> tuple[CreationStep, ...]:
         played = self.packs.played(pack_id)
@@ -333,7 +396,6 @@ class Loner4eEngine(Joining, SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePac
                 hint=LET_PLAY_DECIDE,
                 optional=True,
             ),
-            # SRD: the player invents their traits; the pack tables are suggestions.
             _invented("skill-1", "Choose skill 1", skills),
             _invented("skill-2", "Choose skill 2", other_than(skills, picked(picks, "skill-1"))),
             _invented("frailty", "Choose a frailty", frailties),
@@ -371,7 +433,6 @@ class Loner4eEngine(Joining, SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePac
 
     def master_sections(self, state: Loner4eGame) -> Sections:
         world = state.world
-        # The concept's pack blurb is generic where the entity's own brief is not: skip it.
         brief_of = {
             entry.name: entry.brief
             for pack in self.packs.played(state.pack_id)
@@ -440,15 +501,12 @@ class Loner4eEngine(Joining, SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePac
         question = asked or args.question
         if question is None:
             raise Refusal(QUESTION_REQUIRED)
-        # A player's question with no conflict open asks what is true: it opens no exchange.
         fought = args.against_id if world.opponent_ids or not asked else None
-        # SRD: in Harm & Luck every question is an exchange; the one fought last by default.
         against_id = fought or next(reversed(world.opponent_ids), None)
         opponent, entered = (None, []) if against_id is None else world.met_here(against_id)
         world.check_cited(args.helps, args.hinders)
         position = position_for(len(args.helps), len(args.hinders))
         faced, facing = _absorbed([] if opponent is None else world.face(opponent))
-        # An exchange is not an established fact: the next exchange asks it again.
         consulted = world.consult(question, position, rng, settle=opponent is None)
         cited = (*(f"+{tag}" for tag in args.helps), *(f"-{tag}" for tag in args.hinders))
         lines = (*((f"tags: {', '.join(cited)}",) if cited else ()), *facing)
@@ -518,27 +576,14 @@ class Loner4eEngine(Joining, SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePac
         player ends it or plays on."""
         if draft.world.end_why:
             raise Refusal(ENDING_ASKS_NOTHING)
-        end_it = PendingOption(
-            id="end-it", name="End it", action_name="confirm_end", args={"why": args.why}
-        )
-        draft.pending = PendingDecision(
-            kind="ending",
-            prompt=ENDING_PROMPT.format(why=args.why.rstrip(".")),
-            options=(end_it, PLAY_ON),
-            allows_text=False,
-        )
+        draft.pending = ending_decision(args.why)
         return [Fact(trace=f"the end is proposed: {args.why}")]
 
     @action
     def confirm_end(self, draft: Loner4eGame, args: ConfirmEnd, _rng: Random) -> list[Fact]:
         world = draft.world
         world.end_why = args.why
-        draft.pending = PendingDecision(
-            kind="growth",
-            prompt=GROWTH_PROMPT.format(name=world.player.name),
-            options=(),
-            allows_text=True,
-        )
+        draft.pending = growth_decision(world.player.name)
         return [Fact(trace=f"the player ends the adventure: {args.why}")]
 
     @action
@@ -557,13 +602,13 @@ class Loner4eEngine(Joining, SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePac
 
     @action
     def take_breather(self, draft: Loner4eGame, args: Words, _rng: Random) -> list[Fact]:
-        draft.request = WorldsmithRequest(kind="quiet", detail=args.words)
+        draft.request = WorldsmithRequest(kind=QUIET_SCENE_REQUEST, detail=args.words)
         return []
 
     @action
     def recover(self, draft: Loner4eGame, _args: NoArgs, _rng: Random) -> list[Fact]:
         aim = RECOVERING.format(status=draft.world.status.active)
-        draft.request = WorldsmithRequest(kind="recovery", detail=aim)
+        draft.request = WorldsmithRequest(kind=RECOVERY_SCENE_REQUEST, detail=aim)
         return []
 
     @tool
@@ -581,35 +626,16 @@ def _invented(step_id: Slug, name: str, options: tuple[DecisionOption, ...]) -> 
 
 
 def _await_living_world(draft: Loner4eGame) -> None:
-    """The end is confirmed: until the Living World lands, the only way on is its write."""
-    draft.pending = PendingDecision(
-        kind="living-world",
-        prompt=UNWRITTEN_PROMPT,
-        options=(WRITE_LIVING_WORLD,),
-        allows_text=False,
-    )
-    draft.request = WorldsmithRequest(kind="living-world", detail=draft.world.end_why)
+    draft.pending = living_world_decision()
+    draft.request = WorldsmithRequest(kind=LIVING_WORLD_REQUEST, detail=draft.world.end_why)
 
 
 def _hand_over(draft: Loner4eGame) -> None:
     frame = draft.world.frame
     if frame.meanwhile:
-        draft.request = WorldsmithRequest(kind="meanwhile", detail=frame.coming)
+        draft.request = WorldsmithRequest(kind=MEANWHILE_REQUEST, detail=frame.coming)
     elif frame.next == "dramatic":
-        draft.request = WorldsmithRequest(kind="dramatic")
-
-
-def _status_options(box: int) -> tuple[PendingOption, ...]:
-    return tuple(
-        PendingOption(
-            id=column,
-            name=column.capitalize(),
-            brief=tags[box],
-            action_name="mark_status",
-            args={"column": column},
-        )
-        for column, tags in STATUS_TAGS.items()
-    )
+        draft.request = WorldsmithRequest(kind=DRAMATIC_SCENE_REQUEST)
 
 
 def _defeated(draft: Loner4eGame, beaten: Loner4eEntity) -> None:
@@ -617,12 +643,7 @@ def _defeated(draft: Loner4eGame, beaten: Loner4eEntity) -> None:
     status = draft.world.status
     if beaten is draft.world.player and not status.full:
         draft.note(MARK_ONLY)
-        draft.pending = PendingDecision(
-            kind="status",
-            prompt=STATUS_PROMPT,
-            options=(*_status_options(len(status.boxes)), NO_MARK),
-            allows_text=False,
-        )
+        draft.pending = status_mark_decision(len(status.boxes))
 
 
 def _exchange(draft: Loner4eGame, opponent: Loner4eEntity, outcome: RollOutcome) -> list[Fact]:
@@ -634,7 +655,6 @@ def _exchange(draft: Loner4eGame, opponent: Loner4eEntity, outcome: RollOutcome)
 
 
 def _grow(world: Loner4eWorld, gained: Sequence[str]) -> None:
-    """SRD: a new skill or frailty is the post-game growth, written once after the end."""
     if not world.end_why:
         raise Refusal(GROWTH_WAITS)
     if world.grown or len(gained) > 1:
@@ -650,25 +670,16 @@ def _dramatic_intent(draft: Loner4eGame) -> str:
 
 
 def _last_words(draft: Loner4eGame) -> str:
-    """Move on is not the player's words: the ones before it belong to the scene left behind."""
     if draft.world.frame.closed_by == "moved_on":
         return ""
     return LAST_WORDS.format(words=draft.last_words())
 
 
 def _played_here(draft: Loner4eGame) -> bool:
-    """A turn the player played in this scene; the scene's own arrival is the story's."""
     return any(exchange.cause is None for exchange in draft.log[-1].exchanges)
 
 
-def _loner_needs(proposal: Loner4eOpening | Loner4eNext) -> list[str]:
-    if SCENE_ID in proposal.cast:
-        return [f"no cast entry filed under `{SCENE_ID}`: that id names the scene"]
-    return []
-
-
 def _absorbed(exchange: list[Fact]) -> tuple[list[Fact], tuple[str, ...]]:
-    """The exchange reads as lines inside the Oracle card, so it shows no cards of its own."""
     lines = tuple(fact.card for fact in exchange if fact.told and fact.card)
     return [fact.model_copy(update={"card": ""}) for fact in exchange], lines
 

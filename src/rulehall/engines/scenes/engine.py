@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable
+from abc import abstractmethod
 from pathlib import Path
 from random import Random
 from typing import Any
@@ -6,15 +6,14 @@ from typing import Any
 from pydantic import BaseModel
 
 from rulehall.core.facts import Fact
-from rulehall.core.model import AnyCharacter, AnyScenario, Character, Game, RoleAnswer
+from rulehall.core.model import AnyCharacter, AnyScenario, Character, Check, Game, RoleAnswer
 from rulehall.core.play import PendingOption
 from rulehall.core.prompt import Sections, render_history, section_if
 from rulehall.core.tools import tool
-from rulehall.core.views import NarratorView, Panel, PanelRow, PlayerView
+from rulehall.core.views import NarratorView, Panel, PlayerView
 from rulehall.engines.engine import Engine
 from rulehall.engines.entities import HIDDEN_TITLE, Person, party_section
 from rulehall.engines.packs import Pack
-from rulehall.engines.panels import character_panel, here_panel, party_panel
 from rulehall.engines.scenes.args import Enter, Leave
 from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
 from rulehall.engines.scenes.worldsmith import OPENING, OPENING_SECTIONS, check_opening
@@ -49,9 +48,6 @@ class SceneEngine[C: Person, W: SceneWorld[Any], K: Pack](Engine[W, K]):
 
     def check_opening(self, proposal: SceneProposal[C]) -> None:
         check_opening(proposal)
-
-    def composer(self, _state: Game[W]) -> tuple[PendingOption | None, bool]:
-        return None, False
 
     def scene_text(self, state: Game[W]) -> str:
         scene = state.world.scene
@@ -105,7 +101,7 @@ class SceneEngine[C: Person, W: SceneWorld[Any], K: Pack](Engine[W, K]):
         world = state.world
         option, only = self.composer(state) if state.pending is None else (None, False)
         return PlayerView(
-            premise=state.scenario.premise,
+            premise=state.scenario_description.premise,
             player=world.player.subject(),
             scene_title=world.scene.title,
             situation=world.scene.situation,
@@ -116,14 +112,10 @@ class SceneEngine[C: Person, W: SceneWorld[Any], K: Pack](Engine[W, K]):
             composer_only=only,
         )
 
-    def scene_panels(self, state: Game[W]) -> tuple[Panel, ...]:
-        world = state.world
-        return (
-            character_panel(world.sheet_rows()),
-            *party_panel(world.party_members()),
-            here_panel(other.subject() for other in world.others()),
-            trail_panel(scene.title for scene in world.scenes),
-        )
+    @abstractmethod
+    def composer(self, state: Game[W], /) -> tuple[PendingOption | None, bool]: ...
+    @abstractmethod
+    def scene_panels(self, state: Game[W], /) -> tuple[Panel, ...]: ...
 
     @tool
     def enter(self, draft: Game[W], args: Enter, _rng: Random) -> list[Fact]:
@@ -135,24 +127,13 @@ class SceneEngine[C: Person, W: SceneWorld[Any], K: Pack](Engine[W, K]):
         """Send a cast member out of the scene."""
         return draft.world.leave(args.target_id)
 
-    async def write_scene[P: NextProposal[Any]](
+    async def ask_worldsmith_for_next_scene[A: BaseModel](
         self,
         draft: Game[W],
-        intent: str,
         worldsmith: RoleAnswer,
-        answer_model: type[P],
-        check: Callable[[P], None],
-    ) -> list[Fact]:
-        scene = await self.ask_worldsmith(draft, intent, worldsmith, answer_model, check)
-        return self.install_scene(draft, scene)
-
-    async def ask_worldsmith[A: BaseModel](
-        self,
-        draft: Game[W],
         intent: str,
-        worldsmith: RoleAnswer,
         answer_model: type[A],
-        check: Callable[[A], None],
+        check: Check[A],
     ) -> A:
         world = draft.world
         if world.arc:
@@ -164,13 +145,7 @@ class SceneEngine[C: Person, W: SceneWorld[Any], K: Pack](Engine[W, K]):
                     "\nRevise `arc` only where what happened makes a change necessary. Leave "
                     "`arc` empty to keep it."
                 )
-        prompt = self.render_request(
-            draft,
-            guidance=self.guidance_for(draft.pack_id, opening=False),
-            intent=intent,
-            answer_model=answer_model,
-        )
-        return await worldsmith(prompt, answer_model, check)
+        return await self.ask_worldsmith(draft, worldsmith, intent, answer_model, check)
 
     def install_scene(self, draft: Game[W], scene: NextProposal[Any]) -> list[Fact]:
         world = draft.world
@@ -182,7 +157,3 @@ class SceneEngine[C: Person, W: SceneWorld[Any], K: Pack](Engine[W, K]):
         if travelling := [member.name for member in world.party_members()]:
             trace += f", the player travelling with {', '.join(travelling)}"
         return [Fact(trace=trace, told=True, card=f"New scene: {scene.title}")]
-
-
-def trail_panel(titles: Iterable[str]) -> Panel:
-    return Panel(title="Trail", rows=tuple(PanelRow(name=title, brief="") for title in titles))

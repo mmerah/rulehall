@@ -158,7 +158,9 @@ async def test_the_live_turn_puts_a_refused_call_between_its_facts_only_when_sho
 ) -> None:
     table = open_game(tmp_path)
     service = table.service
-    service.transcript_config = TranscriptConfig(refusals=shown)
+    service.settings = service.settings.model_copy(
+        update={"transcript": TranscriptConfig(refusals=shown)}
+    )
     page()
     live = LiveTurn(service)
     drawn = TurnProgress.of(service)

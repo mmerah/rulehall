@@ -21,7 +21,8 @@ from rulehall.core.validation import Refusal
 from rulehall.engines.entities import PLAYER_ID
 from rulehall.engines.rooms.world import Place, Prop, RegionProposal
 from rulehall.engines.tunnelgoons.args import LevelUp, Roll
-from rulehall.engines.tunnelgoons.world import Goon, GoonSheet, TunnelGoonsGame, TunnelGoonsWorld
+from rulehall.engines.tunnelgoons.sheet import Goon, GoonSheet
+from rulehall.engines.tunnelgoons.world import TunnelGoonsGame, TunnelGoonsWorld
 
 TOTAL_RE = re.compile(r"(-?\d+) vs DS")
 

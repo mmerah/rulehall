@@ -8,7 +8,8 @@ from rulehall.core.model import Character, Scenario
 from rulehall.core.validation import Slug
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.loner4e.engine import Loner4eEngine
-from rulehall.engines.loner4e.world import Loner4eEntity, Loner4eGame, Loner4eOpening
+from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.loner4e.world import Loner4eGame, Loner4eOpening
 from support.table import (
     ENGINES_BUILT,
     LIBRARY,

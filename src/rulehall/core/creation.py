@@ -8,8 +8,6 @@ ANSWER_MAX = 100
 
 
 class CreationStep(Frozen):
-    """No options means the player writes the answer."""
-
     id: Slug
     name: str
     options: tuple[DecisionOption, ...] = ()
@@ -30,7 +28,6 @@ def picked(picks: Picks, step_id: Slug) -> str:
 
 
 def check_picks(steps: Sequence[CreationStep], picks: Picks) -> None:
-    """One legality rule for the page and for `create`, so neither can drift."""
     known = {step.id for step in steps}
     if unknown := sorted(set(picks) - known):
         raise Refusal(f"no creation step is called {unknown}")
@@ -47,7 +44,6 @@ def check_picks(steps: Sequence[CreationStep], picks: Picks) -> None:
 
 
 def drop_stale(steps: Sequence[CreationStep], picks: dict[Slug, str]) -> None:
-    """A new pack, or a skill moved onto its twin, can leave an answer its step no longer offers."""
     for step in steps:
         if not step.offers(picked(picks, step.id)):
             picks.pop(step.id, None)

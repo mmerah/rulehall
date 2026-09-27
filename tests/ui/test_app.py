@@ -5,7 +5,7 @@ from nicegui import Client, ui
 from support.game import TARGET
 from support.table import ENGINES_BUILT, offline_settings
 
-from rulehall.app.launch import LauncherCatalog
+from rulehall.app.launch import LauncherCatalog, scenario_models
 from rulehall.core.io import FileStore, Library
 from rulehall.ui.app import LaunchForm
 from rulehall.ui.widgets import DICE_CLIP, SOUNDS_DIR
@@ -15,10 +15,12 @@ def test_an_unresumable_save_renders_no_start_button(
     tmp_path: Path, page: Callable[[], Client]
 ) -> None:
     settings = offline_settings(tmp_path)
-    _ = (tmp_path / f"{TARGET.slug}.json").write_bytes(b"\xff\xfe not text")
+    _ = (tmp_path / f"{TARGET.save_id}.json").write_bytes(b"\xff\xfe not text")
     library = Library(settings.scenarios_dir, settings.characters_dir)
-    catalog = LauncherCatalog.read(library, FileStore(settings.saves_dir), ENGINES_BUILT)
-    assert catalog.unresumable == (TARGET.slug,)
+    catalog = LauncherCatalog.read(
+        library, FileStore(settings.saves_dir), ENGINES_BUILT, scenario_models(ENGINES_BUILT)
+    )
+    assert catalog.unresumable == (TARGET.save_id,)
 
     form = LaunchForm(catalog)
     form.scenario_id = TARGET.scenario_id

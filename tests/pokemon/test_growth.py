@@ -8,7 +8,9 @@ from rulehall.core.play import PendingOption
 from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.battle.models import BattleResult
 from rulehall.engines.pokemon.dex import dex
-from rulehall.engines.pokemon.world import Mon, PokemonGame
+from rulehall.engines.pokemon.panels import pending_decision
+from rulehall.engines.pokemon.sheet import Mon
+from rulehall.engines.pokemon.world import PokemonGame
 
 
 def test_a_new_move_is_learned_at_once_below_four_moves() -> None:
@@ -20,7 +22,7 @@ def test_a_new_move_is_learned_at_once_below_four_moves() -> None:
     assert charmander.level == 8
     assert [slot.move_id for slot in charmander.moves][-1] == "smokescreen"
     assert charmander.moves[-1].pp == dex().moves["smokescreen"].pp
-    assert draft.world.next_decision() is None
+    assert pending_decision(draft.world) is None
 
 
 def test_a_fifth_move_waits_on_a_decision_and_the_answer_replaces_a_move() -> None:
@@ -30,7 +32,7 @@ def test_a_fifth_move_waits_on_a_decision_and_the_answer_replaces_a_move() -> No
 
     _win_wild(draft)
 
-    decision = draft.world.next_decision()
+    decision = pending_decision(draft.world)
     assert decision is not None
     assert decision.kind == "new-move"
     assert [option.id for option in decision.options] == [
@@ -45,7 +47,7 @@ def test_a_fifth_move_waits_on_a_decision_and_the_answer_replaces_a_move() -> No
         "dragonbreath",
     ]
     assert draft.world.learning == []
-    assert draft.world.next_decision() is None
+    assert pending_decision(draft.world) is None
 
 
 def test_a_pokemon_at_its_evolution_level_evolves_after_the_battle() -> None:
@@ -99,13 +101,13 @@ def test_a_new_badge_opens_a_skill_rank_decision() -> None:
     _ = ENGINE.end_battle(draft, _won(draft))
 
     assert sheet.badges == ["Tide Badge"]
-    decision = draft.world.next_decision()
+    decision = pending_decision(draft.world)
     assert decision is not None
     assert decision.kind == "badge-rank"
     _ = ENGINE.play_option(draft, _option(draft, "lore"), Random(0))
     assert sheet.skills["lore"] == lore + 1
     assert draft.world.ranks_due == 0
-    assert draft.world.next_decision() is None
+    assert pending_decision(draft.world) is None
 
 
 def test_a_tool_that_decides_nothing_keeps_an_open_badge_rank_decision() -> None:
@@ -128,10 +130,10 @@ def test_a_remembered_move_learns_at_once_or_opens_the_decision() -> None:
 
     _ = run_action(ENGINE, draft, "relearn_move", mon_id="charmander", move_id="smokescreen")
     assert [slot.move_id for slot in charmander.moves][-1] == "smokescreen"
-    assert draft.world.next_decision() is None
+    assert pending_decision(draft.world) is None
 
     _ = run_action(ENGINE, draft, "relearn_move", mon_id="charmander", move_id="dragonbreath")
-    decision = draft.world.next_decision()
+    decision = pending_decision(draft.world)
     assert decision is not None and decision.kind == "new-move"
     with pytest.raises(Refusal, match="Charmander cannot remember 'flamethrower'"):
         _ = run_action(ENGINE, draft, "relearn_move", mon_id="charmander", move_id="flamethrower")
@@ -153,11 +155,14 @@ def _won(draft: PokemonGame) -> BattleResult:
     assert draft.world.battle is not None
     setup = draft.world.battle.setup
     return BattleResult(
-        outcome="won", team=setup.team, fainted_foes=setup.foes, on_field=(setup.team[0].mon_id,)
+        outcome="won",
+        team=setup.team,
+        fainted_foes=setup.foes,
+        on_field_mon_ids=(setup.team[0].mon_id,),
     )
 
 
 def _option(draft: PokemonGame, option_id: str) -> PendingOption:
-    decision = draft.world.next_decision()
+    decision = pending_decision(draft.world)
     assert decision is not None
     return next(option for option in decision.options if option.id == option_id)

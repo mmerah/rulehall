@@ -14,9 +14,8 @@ from rulehall.app.spawn import (
     run_cli,
 )
 from rulehall.config import Role, RoleConfig
-from rulehall.core.io import decode
 from rulehall.core.prompt import Prompt
-from rulehall.core.validation import Refusal
+from rulehall.core.validation import Refusal, decode
 
 
 @dataclass(frozen=True, slots=True)

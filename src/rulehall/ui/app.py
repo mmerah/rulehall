@@ -93,13 +93,13 @@ class LaunchForm:
             ui.label("No character is written for these rules.").classes("text-negative")
             return
         target = catalog.target(self.scenario_id, self.character_id)
-        if target.slug in catalog.unresumable:
+        if target.save_id in catalog.unresumable:
             ui.label(
-                f"A save file exists at {target.slug!r} and cannot be resumed. "
+                f"A save file exists at {target.save_id!r} and cannot be resumed. "
                 "Nothing is deleted or migrated."
             ).classes("text-negative")
             return
-        started = any(save.target.slug == target.slug for save in catalog.saves)
+        started = any(save.target.save_id == target.save_id for save in catalog.saves)
         ui.button(
             "Continue game" if started else "Start game",
             icon=PLAY_ICON,
@@ -185,14 +185,14 @@ def _new_content() -> None:
 def _saved_games(runtime: Runtime, catalog: LauncherCatalog) -> None:
     heading("Saved games", len(catalog.saves))
     with ui.column().classes("w-full game-gap-xl"):
-        for slug in catalog.unresumable:
+        for save_id in catalog.unresumable:
             with entry_card(
                 "sym_r_broken_image",
-                slug,
+                save_id,
                 "This save cannot be resumed. Nothing is deleted or migrated.",
                 (),
             ):
-                _delete_button(runtime, slug)
+                _delete_button(runtime, save_id)
         if not catalog.saves:
             empty_state("sym_r_bookmarks", "No saved games yet.")
         for saved in catalog.saves:
@@ -212,21 +212,21 @@ def _saved_card(runtime: Runtime, saved: SaveOption) -> None:
             icon=PLAY_ICON,
             on_click=partial(_open_game, saved.target),
         ).props("color=primary")
-        _delete_button(runtime, saved.target.slug)
+        _delete_button(runtime, saved.target.save_id)
 
 
-def _delete_button(runtime: Runtime, slug: str) -> None:
-    icon_button(DELETE_ICON, "Delete", partial(_confirm_delete, runtime, slug))
+def _delete_button(runtime: Runtime, save_id: str) -> None:
+    icon_button(DELETE_ICON, "Delete", partial(_confirm_delete, runtime, save_id))
 
 
-async def _confirm_delete(runtime: Runtime, slug: str) -> None:
+async def _confirm_delete(runtime: Runtime, save_id: str) -> None:
     dialog = Confirm(keep="Keep", confirm="Delete")
-    confirmed = await dialog.ask(f"Delete the save {slug!r}? It cannot be brought back.")
+    confirmed = await dialog.ask(f"Delete the save {save_id!r}? It cannot be brought back.")
     dialog.delete()
     if not confirmed:
         return
     try:
-        await runtime.delete_save(slug)
+        await runtime.delete_save(save_id)
     except Refusal as refused:
         alert(str(refused))
         return
@@ -234,7 +234,7 @@ async def _confirm_delete(runtime: Runtime, slug: str) -> None:
 
 
 def _open_game(target: LaunchTarget) -> None:
-    LOGGER.info("launcher opening %r", target.slug)
+    LOGGER.info("launcher opening %r", target.save_id)
     ui.navigate.to(game_path(target))
 
 

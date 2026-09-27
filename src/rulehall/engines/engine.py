@@ -10,22 +10,31 @@ from pydantic import BaseModel
 
 from rulehall.core.creation import CreationStep, Picks, check_picks
 from rulehall.core.facts import Fact
-from rulehall.core.io import decode, read_cached_text, read_model
+from rulehall.core.io import read_cached_text, read_model
 from rulehall.core.model import (
     AnyCharacter,
     AnyGame,
     AnyScenario,
-    EngineHeader,
+    Check,
     Game,
     RoleAnswer,
     Scenario,
-    ScenarioMeta,
+    ScenarioDescription,
     WorldsmithRequest,
 )
 from rulehall.core.play import Cause, Chapter, Exchange, PendingOption, Refused, SpokenLine
 from rulehall.core.prompt import Prompt, Sections, sections
-from rulehall.core.tools import Call, MasterTool, actions_of, tool, tools_of
-from rulehall.core.validation import EngineId, Refusal, Slug, parse, parse_json, slug
+from rulehall.core.tools import Call, MasterTool, action, actions_of, tool, tools_of
+from rulehall.core.validation import (
+    EngineHeader,
+    EngineId,
+    Refusal,
+    Slug,
+    decode,
+    parse,
+    parse_json,
+    slug,
+)
 from rulehall.core.views import Choice, Look, NarratorView, PlayerView, Rows, Sprite
 from rulehall.engines.args import Direct, Kill, LeaveParty, Reveal
 from rulehall.engines.entities import PLAYER_ID, OpeningProposal, Person, World
@@ -87,7 +96,7 @@ class Engine[W: World[Any], K: Pack](ABC):
     worldsmith_guidance: str
     art_style: str
     portraits: bool = True
-    directory: Path  # rules.md, look.json and a shipped packs/
+    directory: Path
     family_dir: Path
     assets: Path | None = None
     battle_script: Path | None = None
@@ -126,6 +135,7 @@ class Engine[W: World[Any], K: Pack](ABC):
         return draft.world.kill(args.target_id)
 
     @tool
+    @action
     def leave_party(self, draft: Game[W], args: LeaveParty, _rng: Random) -> list[Fact]:
         """Make a party member stop travelling with the player."""
         return draft.world.leave_party(args.target_id)
@@ -191,29 +201,44 @@ class Engine[W: World[Any], K: Pack](ABC):
     def sprite(self, _state: Game[W], _entity_id: Slug, /) -> Sprite | None:
         return None
 
-    def render_request(
-        self, draft: Game[W], *, intent: str, guidance: str, answer_model: type[BaseModel]
-    ) -> Prompt:
-        return render_worldsmith(
+    async def ask_worldsmith[A: BaseModel](
+        self,
+        draft: Game[W],
+        worldsmith: RoleAnswer,
+        intent: str,
+        answer_model: type[A],
+        check: Check[A],
+        *,
+        guidance: str | None = None,
+    ) -> A:
+        if guidance is None:
+            guidance = self.guidance_for(draft.pack_id, opening=False)
+        prompt = render_worldsmith(
             self.worldsmith_role,
             source=draft.source,
-            backdrop=draft.scenario.backdrop,
-            scope=draft.scenario.scope,
+            backdrop=draft.scenario_description.backdrop,
+            scope=draft.scenario_description.scope,
             world_sections=self.worldsmith_sections(draft),
             intent=intent,
             guidance=guidance,
             answer_model=answer_model,
         )
+        return await worldsmith(prompt, answer_model, check)
 
     def sheet_character(self, name: str, sheet: BaseModel) -> AnyCharacter:
         return self.character(id=slug(name, ()), engine_id=self.id, sheet=sheet)
 
     def build_scenario(
-        self, meta: ScenarioMeta, pack_id: Slug, proposal: OpeningProposal, source: str
+        self,
+        description: ScenarioDescription,
+        pack_id: Slug,
+        proposal: OpeningProposal,
+        source: str,
     ) -> AnyScenario:
-        """No check here: `begin` is the one check an opening meets, and `check` always runs it."""
         return self.scenario(
-            meta=meta.model_copy(update={"premise": meta.premise or proposal.premise()}),
+            description=description.model_copy(
+                update={"premise": description.premise or proposal.premise()}
+            ),
             engine_id=self.id,
             pack_id=pack_id,
             source=source,
@@ -222,20 +247,20 @@ class Engine[W: World[Any], K: Pack](ABC):
 
     async def write_opening(
         self,
-        meta: ScenarioMeta,
+        description: ScenarioDescription,
         source: str,
         pack_id: Slug,
         worldsmith: RoleAnswer,
         check: Callable[[AnyScenario], None],
     ) -> AnyScenario:
         def built(proposal: OpeningProposal) -> AnyScenario:
-            return self.build_scenario(meta, pack_id, proposal, source)
+            return self.build_scenario(description, pack_id, proposal, source)
 
         prompt = render_worldsmith(
             self.worldsmith_role,
             source=source,
-            backdrop=meta.backdrop,
-            scope=meta.scope,
+            backdrop=description.backdrop,
+            scope=description.scope,
             world_sections=self.opening_sections,
             intent=self.opening_intent,
             guidance=self.guidance_for(pack_id, opening=True),
@@ -251,8 +276,6 @@ class Engine[W: World[Any], K: Pack](ABC):
                 self.pack,
                 {
                     "name": name,
-                    # The pack's `source` is its provenance; the material it was
-                    # written from is not kept.
                     "source": origin,
                     "license": license,
                     **from_head.pack_fields(),
@@ -339,7 +362,7 @@ class Engine[W: World[Any], K: Pack](ABC):
             {
                 "scenario_id": scenario_id,
                 "character_id": character.id,
-                "scenario": scenario.meta,
+                "scenario_description": scenario.description,
                 "engine_id": self.id,
                 "pack_id": scenario.pack_id,
                 "source": scenario.source,
@@ -367,7 +390,6 @@ class Engine[W: World[Any], K: Pack](ABC):
         return self.build_character(name, brief, pack_id, picks)
 
     def validate(self, state: Game[W]) -> None:
-        """A family adds its own check after `super()`."""
         if not state.log:
             raise Refusal(f"a {self.id!r} game has no chapter open")
         request = state.request

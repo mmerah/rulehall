@@ -9,13 +9,11 @@ from pydantic import BaseModel, ConfigDict, JsonValue
 from rulehall.app.providers import post_bearer, stream_bearer
 from rulehall.app.turn import UNDIRECTED, Turn
 from rulehall.config import ProviderConfig, Role, RoleConfig
-from rulehall.core.io import decode
 from rulehall.core.prompt import Prompt
 from rulehall.core.tools import MasterTool, schema_of
-from rulehall.core.validation import Loose, Refusal, parse_json
+from rulehall.core.validation import Loose, Refusal, decode, parse_json
 
 LOGGER = logging.getLogger(__name__)
-# A round may take this share of the run's time limit, so a stalled one is asked once more.
 ROUND_SHARE = 3
 
 
@@ -77,7 +75,6 @@ async def run_over_api(
     turn: Turn | None,
     heard: Callable[[str], None] | None,
 ) -> str:
-    """Stateless: nothing resumes, and a retry sends the whole prompt again."""
     messages: list[JsonValue] = [
         {"role": "system", "content": prompt.system},
         {"role": "user", "content": prompt.user},

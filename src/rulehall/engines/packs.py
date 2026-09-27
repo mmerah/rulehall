@@ -1,4 +1,5 @@
 import logging
+from abc import abstractmethod
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,10 +14,15 @@ from rulehall.core.validation import EngineId, Frozen, Refusal, Slug, content_id
 
 LOGGER = logging.getLogger(__name__)
 
-DASH = " — "  # parts a name from its brief (`Named`, `Pack.sections`); inside neither
-SEPARATOR = ", "  # parts one name from the next in the NAMES line; nowhere inside a name
+DASH = " — "
+SEPARATOR = ", "
 SRD_PACK: Slug = "srd"
 NPCS = "People a player could meet and deal with."
+
+
+class Block(Frozen):
+    @abstractmethod
+    def line(self) -> str: ...
 
 
 class Names(Frozen):
@@ -59,7 +65,7 @@ class Named(Frozen):
 class Location(Frozen):
     name: str = Field(min_length=1)
     brief: str = Field(min_length=1)
-    encounters: str = ""  # the SRD's "Possible encounters" line, names the worldsmith may use
+    encounters: str = ""
 
     @model_validator(mode="after")
     def _reads_in_a_block(self) -> Self:
@@ -73,7 +79,7 @@ class Pack(Frozen):
     license: str
     backdrop: str = ""
     names: Names = Field(default_factory=Names)
-    rules: str = ""  # read by the master alone
+    rules: str = ""
     locations: tuple[Location, ...] = ()
     seeds: tuple[str, ...] = ()
 
@@ -92,6 +98,24 @@ class Pack(Frozen):
             *section_if("LOCATIONS", "\n".join(location_lines)),
             *(bullets("ADVENTURE SEEDS", self.seeds) if opening else ()),
         )
+
+
+class CastPack[B: Block](Pack):
+    factions: tuple[B, ...] = ()
+    npcs: tuple[B, ...] = ()
+    monsters: tuple[B, ...] = ()
+
+    def sections(self, *, opening: bool) -> Sections:
+        return (
+            *super().sections(opening=opening),
+            *self.table_sections(),
+            *bullets("FACTIONS", (block.line() for block in self.factions)),
+            *bullets("PEOPLE", (block.line() for block in self.npcs)),
+            *bullets("MONSTERS", (block.line() for block in self.monsters)),
+        )
+
+    def table_sections(self) -> Sections:
+        return ()
 
 
 class PackHead(Frozen):
@@ -141,7 +165,7 @@ class PackBody(Frozen):
 class PackSet[K: Pack]:
     engine_id: EngineId
     shipped: Mapping[Slug, K]
-    written: Mapping[Slug, K]  # the player's, from `packs/<engine>/`; never shadows a shipped id
+    written: Mapping[Slug, K]
 
     @property
     def installed(self) -> Mapping[Slug, K]:
@@ -195,7 +219,6 @@ def with_ids(rows: Iterable[Named], taken: list[Slug]) -> tuple[DecisionOption, 
 
 
 def unique_options[T: DecisionOption](rows: Iterable[T]) -> tuple[T, ...]:
-    """Packs play together, so a written row repeating an SRD id is dropped, not offered twice."""
     offered: dict[Slug, T] = {}
     for row in rows:
         offered.setdefault(row.id, row)
@@ -222,7 +245,6 @@ def check_items(what: str, values: Iterable[str]) -> None:
 def read_packs[P: Pack](
     engine_id: EngineId, shipped: Path, written: Path, model: type[P]
 ) -> PackSet[P]:
-    """A shipped file that fails to parse is a bug; a written one is logged and skipped."""
     shipped_packs = {
         content_id(path.stem): read_model(path, model) for path in sorted(shipped.glob("*.json"))
     }

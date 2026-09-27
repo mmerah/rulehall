@@ -10,7 +10,6 @@ _client: AsyncClient | None = None
 
 
 def client() -> AsyncClient:
-    """One pool for the process: a new client per call pays a new handshake."""
     global _client
     if _client is None:
         _client = AsyncClient()

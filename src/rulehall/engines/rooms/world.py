@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Iterator
+from collections.abc import Collection, Iterable, Iterator
 from typing import ClassVar, Self
 
 from pydantic import Field, model_validator
@@ -19,7 +19,7 @@ from rulehall.engines.entities import (
 
 
 class Dweller(Person):
-    place_id: Slug  # a player's place is never read: where they stand is `RoomWorld.current`
+    place_id: Slug
 
 
 class Prop(Thing):
@@ -60,7 +60,6 @@ class Dungeon[N: Dweller](Mutable):
         for npc in self.npcs.values():
             if npc.place_id not in self.places:
                 raise ValueError(f"{npc.name} is in no place: {npc.place_id!r}")
-        # An authored item may already start held by the player, who exists in no dict here.
         holders = {*self.npcs, *self.places, PLAYER_ID}
         for item in self.items.values():
             if item.holder_id not in holders:
@@ -102,7 +101,6 @@ class Dungeon[N: Dweller](Mutable):
         return (npc for npc in self.npcs.values() if npc.place_id == place_id)
 
     def carried(self, holder_id: Slug) -> Iterator[Prop]:
-        """A place holds what lies loose in it, the way an npc holds what it carries."""
         return (item for item in self.items.values() if item.holder_id == holder_id)
 
     def things_at(self, place_id: Slug) -> Iterator[N | Prop]:
@@ -111,13 +109,24 @@ class Dungeon[N: Dweller](Mutable):
         for holder in (place_id, *(npc.id for npc in npcs)):
             yield from self.carried(holder)
 
-    def reachable(self, start_id: Slug, *, past_locks: bool = False) -> set[Slug]:
+    def reachable(
+        self,
+        start_id: Slug,
+        *,
+        past_locks: bool = False,
+        cut: Collection[tuple[Slug, Slug]] = (),
+    ) -> set[Slug]:
+        blocked = {*cut, *((to_id, from_id) for from_id, to_id in cut)}
         reached = {start_id}
         pending = [start_id]
         while pending:
             current = pending.pop()
             for way in self.ways.get(current, ()):
-                if way.to_id in reached or (way.locked and not past_locks):
+                if (
+                    way.to_id in reached
+                    or (way.locked and not past_locks)
+                    or (current, way.to_id) in blocked
+                ):
                     continue
                 reached.add(way.to_id)
                 pending.append(way.to_id)
@@ -144,14 +153,13 @@ class RegionProposal[N: Dweller](MapProposal[N]):
 
 
 class RoomWorld[N: Dweller](Dungeon[N], World[N]):
-    meanwhile_every: ClassVar[int]  # counted turns between two firings of the meanwhile clock
+    meanwhile_every: ClassVar[int]
 
     visits: list[Slug] = Field(min_length=1)
     turns_since_meanwhile: int = Field(default=0, ge=0)
-    meanwhile_due: bool = False  # the clock has fired and nothing has spent it yet
+    meanwhile_due: bool = False
 
     def people(self) -> Iterable[N]:
-        """Npcs only: item names are common nouns the master must be free to say."""
         return (self.player, *self.npcs.values())
 
     @model_validator(mode="after")
@@ -159,7 +167,7 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
         for place_id in self.visits:
             self.require_place(place_id)
         for member_id in self.party:
-            npc = self.npcs[member_id]  # the base validator has proven every party id a known npc
+            npc = self.npcs[member_id]
             if npc.place_id != self.current.id:
                 raise ValueError(f"{member_id!r} travels with the player but is not at their place")
         return self
@@ -249,10 +257,9 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
         fired = self.turns_since_meanwhile >= self.meanwhile_every
         if fired:
             self.turns_since_meanwhile = 0
-        self.meanwhile_due = fired and not armed  # the armed turn is spent; one chance, not several
+        self.meanwhile_due = fired and not armed
 
     def _open_way(self, way: Way, destination: Place) -> None:
-        """Walked or unlocked, a way is known from both sides."""
         way.known = True
         if (back := self.way(destination.id, self.current.id)) is not None:
             back.known = True
@@ -423,7 +430,6 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
         return (npc for npc in self.at(self.current.id) if npc.known and npc.id not in self.party)
 
     def place_lines(self, *, known: bool) -> str:
-        """A member prints under THE PARTY instead; what they carry stays listed here."""
         return lines_of(
             self.line(entity)
             for entity in self.things_at(self.current.id)
@@ -458,7 +464,6 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
         return [place for place in self.visited_places() if place.id != self.current.id]
 
     def can_move_offscreen(self) -> bool:
-        """True when `meanwhile` could touch something the master is shown offscreen."""
         here = self.current.id
         away = {place.id for place in self.elsewhere()}
         if not away:

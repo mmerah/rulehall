@@ -30,7 +30,6 @@ def brief_hindrance(hindrance: str) -> str:
 
 
 def spared(*, deadly: bool) -> str:
-    """What a softened hit leaves: never the full risk, or the story tells the full risk."""
     return CLOSE_CALL if deadly else MINOR_HURT
 
 

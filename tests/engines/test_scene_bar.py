@@ -17,11 +17,13 @@ from rulehall.core.model import AnyGame
 from rulehall.core.validation import Refusal, Slug
 from rulehall.engines.entities import PLAYER_ID, Person
 from rulehall.engines.loner4e.engine import Loner4eEngine
-from rulehall.engines.loner4e.world import Loner4eEntity, Loner4eWorld
+from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.loner4e.world import Loner4eWorld
 from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
 from rulehall.engines.scenes.worldsmith import check_next
 from rulehall.engines.twentyfourxx.engine import TwentyFourXXEngine
-from rulehall.engines.twentyfourxx.world import Crewmate, TwentyFourXXWorld
+from rulehall.engines.twentyfourxx.sheet import Crewmate
+from rulehall.engines.twentyfourxx.world import TwentyFourXXWorld
 
 BAR_RECAP = "They moved on."
 DECOY_CAST_ENTRY = {"id": PLAYER_ID, "name": "Someone", "brief": "filed wrongly", "known": True}

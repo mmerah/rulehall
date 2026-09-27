@@ -13,7 +13,7 @@ from tempfile import TemporaryDirectory
 from time import monotonic
 from typing import Annotated, Protocol
 
-from pydantic import Field, ValidationError
+from pydantic import Field
 
 from rulehall.app.api_roles import run_over_api
 from rulehall.app.turn import Turn
@@ -39,7 +39,7 @@ KEPT_ENV = (
     "TEMP",
     "TMP",
 )
-OUTPUT_MAX_BYTES = 4_194_304  # a role answer is kilobytes; a runaway CLI streams without end
+OUTPUT_MAX_BYTES = 4_194_304
 # The id goes back as an argv element; a leading `-` must not parse as a flag.
 ConversationId = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")]
 
@@ -51,8 +51,6 @@ class RunResult:
 
 
 class Driver(Protocol):
-    """A driver never starts a process."""
-
     @property
     def secrets(self) -> tuple[str, ...]: ...
 
@@ -126,7 +124,6 @@ class ClaudeDriver:
             config.effort,
             *(() if conversation is None else ("--resume", conversation)),
             "--restricted",
-            # Measured on 2.1.282: no built-in tool is left; the MCP tools stay.
             "--tools",
             "",
         ]
@@ -135,8 +132,8 @@ class ClaudeDriver:
         return (*argv, "--strict-mcp-config")
 
     def delta(self, line: str) -> str:
-        with suppress(ValidationError):
-            event = _ClaudeEvent.model_validate_json(line).event
+        with suppress(Refusal):
+            event = parse_json(_ClaudeEvent, line).event
             if event is not None and event.delta is not None:
                 return event.delta.text
         return ""
@@ -171,7 +168,6 @@ class CodexDriver:
             f"model_reasoning_effort={config.effort}",
             "-c",
             "web_search=disabled",
-            # The account's own MCP servers, which `--ignore-user-config` keeps.
             "--disable",
             "apps",
             "--ignore-user-config",
@@ -200,7 +196,6 @@ class CodexDriver:
         return [*argv, "-"]
 
     def delta(self, line: str) -> str:
-        # `codex exec --json` prints a message only once it is complete: nothing to stream.
         del line
         return ""
 
@@ -265,7 +260,6 @@ async def run_cli(
     conversation: str | None,
     heard: Callable[[str], None] | None = None,
 ) -> RunResult:
-    """One of the two places that start a process; `line_process.start_process` is the other."""
     url = f"http://localhost:{port}/mcp/"
     argv = driver.command(role, config, conversation, url)
     said = ""
@@ -290,12 +284,10 @@ def final_message(output: str) -> str:
             body = body.split("\n", 1)[1]
         else:
             body = body.removeprefix("json")
-        # A fence holding something else is prose about the answer, not the answer.
         with suppress(json.JSONDecodeError, RecursionError):
             json.loads(body)
             return body
     tail = output.rstrip()
-    # Only the first `{`: digging past a broken one costs a whole re-prompt on a chatty answer.
     start = tail.find("{")
     if start != -1:
         try:
@@ -344,7 +336,6 @@ async def _spawn(
             stderr=subprocess.STDOUT,
             cwd=cwd,
             env=env,
-            # Its own group, so an abandoned spawn leaves no child process running.
             start_new_session=True,
             limit=OUTPUT_MAX_BYTES,
         )
@@ -352,13 +343,11 @@ async def _spawn(
         raise Refusal(f"the {role} could not be started: {failed}") from failed
     try:
         assert process.stdin is not None and process.stdout is not None
-        # No drain: the pipe flushes while the output is read, so a full pipe cannot deadlock.
         process.stdin.write(prompt.encode())
         process.stdin.close()
         output = await _capped(role, process.stdout, heard_line)
         _ = await process.wait()
     finally:
-        # Does nothing once it exited; an abandoned or timed-out spawn dies with its children.
         await stop_process(process)
     if process.returncode != 0:
         LOGGER.warning("the %s exited %s: %s", role, process.returncode, output[-500:])
@@ -375,15 +364,14 @@ def _kill_tree(pid: int) -> None:
 
 
 def _claude_mcp(url: str) -> str:
-    """A string, not a file: `--mcp-config` takes either, and a string needs no cleanup."""
     return json.dumps({"mcpServers": {"rulehall": {"type": "http", "url": url}}})
 
 
 def _codex_events(output: str) -> list[_CodexEvent]:
     events: list[_CodexEvent] = []
     for line in output.splitlines():
-        with suppress(ValidationError):
-            events.append(_CodexEvent.model_validate_json(line))
+        with suppress(Refusal):
+            events.append(parse_json(_CodexEvent, line))
     return events
 
 
@@ -398,7 +386,6 @@ def _said(events: Sequence[_CodexEvent]) -> str | None:
 
 
 async def _capped(role: Role, stdout: StreamReader, heard_line: Callable[[str], None]) -> str:
-    """Stderr is merged into stdout, so the cap covers both."""
     read: list[str] = []
     size = 0
     try:

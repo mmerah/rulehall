@@ -2,8 +2,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.facts import DiceEvent, Fact
-from rulehall.core.play import PendingOption
+from rulehall.core.facts import DiceEvent
 from rulehall.core.tools import Told
 from rulehall.core.validation import Frozen, Slug
 from rulehall.engines.args import ACTOR, BE_SHORT, Attempt, ShortName
@@ -12,85 +11,6 @@ from rulehall.engines.twentyfourxx.world import NO_PAY_FIGURE
 RISK_MAX = 100
 RISK_SHORT = f"Say it in one short phrase, never more than {RISK_MAX} characters."
 Risk = Annotated[Told, Field(max_length=RISK_MAX)]
-
-MOVING_ON = (
-    "The player moves on. PLAYER ACTION says where the player means to go. Play the leaving if "
-    "nothing stops the player. Then call `next_scene` with `pursuit` in the player's own words. "
-    "The worldsmith writes the crossing after this turn."
-)
-CROSSING = (
-    "The player is leaving {left} for the place in SCENE{how}. The narrator told the leaving "
-    "already. Write the arrival in the place that SCENE describes, and nothing the player "
-    "planned for it. Give the distance and the time in the fewest words that make them real. "
-    "End on what the player sees first. WHAT HAPPENED names everyone who travelled with the "
-    "player. The player has not acted in the new place, so settle nothing."
-)
-TURNING = (
-    "The situation changes where the player stands. The player did nothing to cause the "
-    "change. Write what arrives or changes, as the player sees it, from SCENE and WHAT "
-    "HAPPENED. End on what the new situation asks of the player. The player has not answered "
-    "it, so settle nothing."
-)
-BY_SHIP = ", flying there in the crew's own ship. Tell a flight and a landing, not a walk"
-JOINING = (
-    "{name} joins the crew here, in SCENE, and leads now. Tell the arrival in a line or two. "
-    "Settle nothing else."
-)
-NEW_LEAD_HERE = (
-    "{name} leads now and is here, in {scene}, where the dead operator fell. Play them here, "
-    "never anywhere else."
-)
-SCENE_LEFT = "the worldsmith writes the crossing once this turn ends. Stop here and exit."
-WAY_OFFERED = (
-    "This scene offers a way on. Ask the player what they want to pursue next. Ask in the "
-    "fiction, and name what the scene left open. Never ask with a list of choices. The player "
-    "can also stay and keep playing here, so ask; do not push the player out."
-)
-
-MOVE_ON = PendingOption(
-    id="move-on",
-    name="Move on",
-    brief="Say where you go and move on.",
-    action_name="move_on",
-)
-WAY_UNWRITTEN = Fact(
-    told=True,
-    trace="the crossing could not be written yet: the player arrives once they move on again",
-    card="The crossing is not written yet. Move on again to arrive.",
-)
-COMPLICATION_UNWRITTEN = Fact(
-    told=True,
-    trace="the complication could not be written",
-    card="Nothing new came down on this place after all. You are still where you were.",
-)
-NEW_LOCATION = "no new `location`: a complication happens where the player is; leave it empty"
-GEAR_TOOK_THE_HIT = (
-    "the gear took the hit: do not apply `risk`; the engine removes the brief hindrance at the "
-    "next scene"
-)
-TWO_JOBS = (
-    "offer two jobs with `direct`; the player picks in their words; `job` `take` records the pick"
-)
-ODD_JOB = (
-    "offer one job with `direct`, and let something about it seem off; write what seems off in "
-    "`terms` when the player takes it"
-)
-NO_JOB = (
-    "no work, unless the crew takes a job that leaves them owing somebody: offer that with "
-    "`direct`; write the debt in `terms` when the player takes it"
-)
-JOB_PAID = (
-    "the job is over, done or failed: the credits each operator earned above are their cut for "
-    "the work done. Tell them as that pay; never say that no pay came"
-)
-FLOWN = (
-    "a new `place_id`: the crew flew away from {place_id}. Land them at the place that WHAT "
-    "COMES NEXT names"
-)
-RAISE_PROMPT = "The job is done. Which skill do you raise? Pick one, or name a new one."
-NEWCOMER_PROMPT = "{name} is dead. Who joins the crew? Describe them in your own words."
-RAISE_OWED = "A raise is owed: when the player names a skill, call `raise_skill` with it."
-CANNOT_SUCCEED = "Cannot succeed without help."
 
 
 class NextScene(Frozen):
@@ -331,7 +251,6 @@ class Job(Frozen):
 
     @model_validator(mode="after")
     def _fields_for_verb(self) -> Self:
-        # The fields of another verb are ignored, so a stray one costs no retry.
         needed = {"find": ("where", self.where), "take": ("terms", self.terms)}.get(self.verb)
         if needed is not None and not needed[1]:
             raise ValueError(f"{self.verb} needs {needed[0]}")

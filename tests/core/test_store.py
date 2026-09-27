@@ -5,8 +5,8 @@ from support.game import character, initialized, scenario
 from support.table import ENGINES_BUILT, LONER4E, NO_SHIPPED, SCENARIO_MODELS, updated
 
 from rulehall.core.facts import Fact
-from rulehall.core.io import ENCODING, FileStore, Library, partial_lines, publish, write_text
-from rulehall.core.play import Exchange, Line
+from rulehall.core.io import ENCODING, FileStore, Library, publish, write_text
+from rulehall.core.play import Exchange, Line, partial_lines
 from rulehall.core.validation import EngineId, Refusal
 
 MIRROR = EngineId("mirror")
@@ -38,12 +38,12 @@ def test_a_saved_games_history_round_trips(tmp_path: Path) -> None:
     assert engine.restore(reloaded).exchanges() == saved.exchanges()
 
 
-@pytest.mark.parametrize("slug", ("../escape", "/absolute", "bad slug", ""))
-def test_storage_rejects_unsafe_slugs(tmp_path: Path, slug: str) -> None:
+@pytest.mark.parametrize("save_id", ("../escape", "/absolute", "bad slug", ""))
+def test_storage_rejects_unsafe_save_ids(tmp_path: Path, save_id: str) -> None:
     store = FileStore(tmp_path)
 
-    with pytest.raises(ValueError, match="invalid storage slug"):
-        store.read(slug)
+    with pytest.raises(ValueError, match="invalid save id"):
+        store.read(save_id)
 
 
 def test_content_paths_reject_an_unsafe_id(tmp_path: Path) -> None:
@@ -76,9 +76,9 @@ def _beside_a_broken_world(directory: Path, world: bytes) -> Library:
 
 
 def test_read_scenarios_skips_a_world_that_fails_to_validate(tmp_path: Path) -> None:
-    library = _beside_a_broken_world(tmp_path, b'{"meta": {}}')
+    library = _beside_a_broken_world(tmp_path, b'{"description": {}}')
 
-    assert [slug for slug, _ in library.read_scenarios(SCENARIO_MODELS)] == ["good"]
+    assert [scenario_id for scenario_id, _ in library.read_scenarios(SCENARIO_MODELS)] == ["good"]
 
 
 def test_shipped_content_is_read_only_and_wins_an_id_over_player_content(tmp_path: Path) -> None:
@@ -88,14 +88,19 @@ def test_shipped_content_is_read_only_and_wins_an_id_over_player_content(tmp_pat
     shipped.write_character(character())
     player = tmp_path / "user"
     unshipped = Library(player, player, NO_SHIPPED)
-    unshipped.write_scenario("vault", updated(scenario(), meta=updated(scenario().meta, title="X")))
+    unshipped.write_scenario(
+        "vault", updated(scenario(), description=updated(scenario().description, title="X"))
+    )
     unshipped.write_character(updated(character(), sheet=updated(character().sheet, name="Mira")))
     library = Library(player, player, tmp_path)
 
     library.write_scenario("mine", scenario())
 
     assert (player / "mine" / "world.json").is_file()
-    assert [slug for slug, _ in library.read_scenarios(SCENARIO_MODELS)] == ["mine", "vault"]
+    assert [scenario_id for scenario_id, _ in library.read_scenarios(SCENARIO_MODELS)] == [
+        "mine",
+        "vault",
+    ]
     assert library.read_scenario("vault", SCENARIO_MODELS) == scenario()
     assert library.read_character("kael", engine.id, engine.character).sheet.name == "Kael"
     with pytest.raises(Refusal, match="already exists"):

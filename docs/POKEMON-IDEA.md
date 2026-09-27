@@ -50,8 +50,8 @@ The first brainstorm named three causes: nothing pushes back, battles have low s
   - A Pokemon that faints goes to the memorial. If the whole team faints, the team stays and the game ends.
   - Only the first wild battle at a place with WILD HERE offers balls.
   - `start_wild_battle` refuses a chosen species: the table decides.
-  - The dupes clause: the roll skips a species the player has already caught. `caught_species` on the sheet tracks it.
-- **Pokemon Centers.** `PokemonMap.centers` marks the places that heal. `heal_team` works only at an open Center. An opening map without a Center is refused. The guidance puts a Center in every town.
+  - The dupes clause: the roll skips a species the player has already caught. `caught_species_ids` on the sheet tracks it.
+- **Pokemon Centers.** `PokemonMap.center_place_ids` marks the places that heal. `heal_team` works only at an open Center. An opening map without a Center is refused. The guidance puts a Center in every town.
 - **Nicknames.** A Team page action. A nickname is unique on the team and in the box, because the battle view keys its tags by name. Showdown shows the nickname.
 - **A record of each Pokemon.** Code writes where the Pokemon was met and its wins against key trainers.
 - **YOUR POKEMON for the narrator.** It holds the nickname, the species, a nature word, a friendship band (wary, warm, devoted), where the Pokemon was met and its key wins. A MEMORIAL section adds each fallen Pokemon and who it fell to. The narrator only gets facts the player already knows.

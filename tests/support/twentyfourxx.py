@@ -1,7 +1,7 @@
 from collections.abc import Mapping, Sequence
 from functools import partial
 
-from rulehall.core.model import ScenarioMeta
+from rulehall.core.model import ScenarioDescription
 from rulehall.core.play import Chapter
 from rulehall.core.validation import EngineId, Slug
 from rulehall.engines.entities import PLAYER_ID
@@ -9,13 +9,8 @@ from rulehall.engines.packs import SRD_PACK
 from rulehall.engines.scenes.world import Scene
 from rulehall.engines.twentyfourxx.engine import TwentyFourXXEngine
 from rulehall.engines.twentyfourxx.rules import SkillDie
-from rulehall.engines.twentyfourxx.world import (
-    Crewmate,
-    CrewSheet,
-    Gear,
-    TwentyFourXXGame,
-    TwentyFourXXWorld,
-)
+from rulehall.engines.twentyfourxx.sheet import Crewmate, CrewSheet, Gear
+from rulehall.engines.twentyfourxx.world import TwentyFourXXGame, TwentyFourXXWorld
 from support.table import ENGINES_BUILT, TWENTYFOURXX, narrowed, open_table
 
 KESTREL: Slug = "kestrel"
@@ -48,7 +43,7 @@ def small_world() -> TwentyFourXXGame:
     return TwentyFourXXGame(
         scenario_id="loading-bay",
         character_id="rook",
-        scenario=ScenarioMeta(
+        scenario_description=ScenarioDescription(
             title="Loading Bay",
             premise="A cargo job gone quiet.",
             backdrop="Plain.",

@@ -27,8 +27,6 @@ ICON_RATIO = "1:1"
 
 @dataclass(slots=True)
 class Claims:
-    """Keys in generation now, so two callers never both pay for one image."""
-
     held: set[str] = field(default_factory=set)
 
     @contextmanager
@@ -65,28 +63,23 @@ class Illustrator:
         cls,
         settings: Settings,
         store: FileStore,
-        slug: str,
+        save_id: str,
         *,
         style: str,
         icon_dirs: tuple[Path, ...],
         portraits: bool,
     ) -> Self:
-        """Authored icons are shared between games. Drawn art stays with the save."""
         return cls(
             config=settings.media,
-            provider=settings.providers.for_name(settings.media.provider),
-            saves=store.media_dir(slug),
+            provider=_media_provider(settings),
+            saves=store.media_dir(save_id),
             icon_dirs=icon_dirs,
             style=style,
             portraits=portraits,
         )
 
     def configured(self, settings: Settings) -> Self:
-        return replace(
-            self,
-            config=settings.media,
-            provider=settings.providers.for_name(settings.media.provider),
-        )
+        return replace(self, config=settings.media, provider=_media_provider(settings))
 
     def scene_art(self, scene: NarratorView) -> Path | None:
         return _existing(self.saves, scene_key(scene)) if self.config.enabled else None
@@ -121,10 +114,9 @@ class Illustrator:
                 await self._drawn_icon(player)
                 if drawing and _existing(self.saves, key) is None:
                     await self._draw(scene, key)
-                # Outside the scene cache: a subject revealed later still needs its icon.
                 for subject in scene.subjects:
                     await self._drawn_icon(subject)
-        except (HTTPError, OSError, Refusal) as failed:
+        except (HTTPError, Refusal) as failed:
             LOGGER.warning("image generation failed: %s", failed)
 
     def _finished(self, task: Task[None]) -> None:
@@ -140,7 +132,6 @@ class Illustrator:
         )
 
     async def _drawn_icon(self, subject: Subject) -> Path | None:
-        """The loser of the claim race gets no icon and does not wait."""
         found = self.icon(subject.id)
         if found is not None or not self.portraits:
             return found
@@ -149,7 +140,6 @@ class Illustrator:
             if not drawing:
                 return None
             generated = await self._generate(_icon_request(subject, self.style), ICON_RATIO)
-            # Authored directories stay authored: a drawn icon belongs to the save.
             path = self.saves / ICON_DIR / f"{subject.id}{generated.suffix}"
             publish(path, lambda staged: staged.write_bytes(generated.data))
             return path
@@ -197,7 +187,6 @@ class _ImageReply(Loose):
 
 
 def scene_key(scene: NarratorView) -> str:
-    """Hashed because `place_id` names a file."""
     return sha1(scene.place_id.encode(), usedforsecurity=False).hexdigest()[:12]
 
 
@@ -219,6 +208,10 @@ def _icon_request(subject: Subject, style: str) -> str:
     )
 
 
+def _media_provider(settings: Settings) -> ProviderConfig:
+    return settings.providers.for_name(settings.media.provider)
+
+
 def _decode(url: str) -> GeneratedImage:
     header, _, payload = url.partition(",")
     suffix = SUFFIXES.get(header.removeprefix("data:").removesuffix(";base64"))
@@ -232,6 +225,5 @@ def _decode(url: str) -> GeneratedImage:
 
 
 def _existing(directory: Path, stem: str) -> Path | None:
-    """The reply names the format, so a cached file is found by stem rather than assumed png."""
     candidates = (directory / f"{stem}{suffix}" for suffix in SUFFIXES.values())
     return next((path for path in candidates if path.is_file()), None)

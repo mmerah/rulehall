@@ -1,6 +1,7 @@
 from typing import Literal, Self
 
-from pydantic import Field, JsonValue, model_validator
+from pydantic import Field, JsonValue, TypeAdapter, model_validator
+from pydantic_core import from_json
 
 from rulehall.core.facts import Fact
 from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, check_unique
@@ -19,8 +20,6 @@ class Line(Frozen):
 
 
 class SpokenLine(Frozen):
-    """Carries the speaker's name so chat and journal never resolve an id through state."""
-
     speaker_id: Slug | None = None
     speaker: str = ""
     text: str = Field(min_length=1)
@@ -85,20 +84,15 @@ class PendingOption(DecisionOption):
     action_name: str = Field(min_length=1)
     args: dict[str, JsonValue] = Field(default_factory=dict)
     group: str = ""
-    # Why it cannot be used now; empty when it can. It shows greyed and never runs.
     refusal: str = ""
-    # A panel option whose result the master tells in a turn of its own.
     told_in_turn: bool = False
 
 
 class PendingDecision(Frozen):
-    """One decision the game waits on; None at `Game.pending` means the composer is the only way."""
-
     kind: Slug
     # A prose-less segment replays into model history from this alone, so it can never be empty.
     prompt: str = Field(min_length=1)
     options: tuple[PendingOption, ...]
-    # False where the SRD gives the player a pick and the options are that pick, whole.
     allows_text: bool
 
     @model_validator(mode="after")
@@ -119,8 +113,6 @@ class Answer(Frozen):
 
 
 class Refused(Frozen):
-    """A master tool call the rules refused; `after_facts` places it among the turn's facts."""
-
     tool: str
     reason: str
     after_facts: int = Field(ge=0)
@@ -128,14 +120,11 @@ class Refused(Frozen):
 
 class Exchange(Frozen):
     words: str
-    # The words are an option's name, not the player's own.
     by_option: bool = False
     cause: Cause | None = None
     lines: tuple[SpokenLine, ...]
-    # Every fact, told or not; `cards` picks the ones the player may see.
     facts: tuple[Fact, ...] = ()
     refused: tuple[Refused, ...] = ()
-    # The suspending decision's prompt: the pause has to survive after `Game.pending` clears.
     decision: str = ""
     context: str = ""
 
@@ -144,9 +133,23 @@ class Exchange(Frozen):
 
 
 class Chapter(Mutable):
-    """One scene or place as the player read it; `recap` is empty until the scene closes."""
-
     title: str
     context: str = ""
     recap: str = ""
     exchanges: list[Exchange] = Field(default_factory=list)
+
+
+LINES = TypeAdapter(list[Line])
+
+
+def partial_lines(raw: str) -> tuple[Line, ...]:
+    start = raw.find("{")
+    if start == -1:
+        return ()
+    try:
+        partial = from_json(raw[start:], allow_partial="trailing-strings")
+        return tuple(
+            LINES.validate_python(partial.get("lines", []), experimental_allow_partial=True)
+        )
+    except ValueError:
+        return ()

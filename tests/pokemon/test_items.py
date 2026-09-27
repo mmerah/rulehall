@@ -6,7 +6,7 @@ from support.table import change, refused, run_action
 
 from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.rules import START_BAG
-from rulehall.engines.pokemon.world import Mon
+from rulehall.engines.pokemon.sheet import Mon
 
 
 def test_a_tm_teaches_its_move_and_stays_in_the_bag() -> None:

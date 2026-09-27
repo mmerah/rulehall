@@ -4,42 +4,24 @@ from typing import Self, cast
 
 from pydantic import Field
 
-from rulehall.core.facts import DiceEvent, Fact
+from rulehall.core.facts import Fact
 from rulehall.core.model import Game
 from rulehall.core.prompt import lines_of
-from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, slug
-from rulehall.core.views import Rows, filled, tag_of
+from rulehall.core.validation import Refusal, Slug, slug
+from rulehall.core.views import Rows
 from rulehall.engines.entities import (
     PLAYER_ID,
-    Sheeted,
-    Thing,
-    changed_tags,
-    tag_card,
 )
-from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
+from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld, stranger_name
 from rulehall.engines.twentyfourxx.rules import (
     BRIEF,
-    DEFAULT_DIE,
-    SkillDie,
     brief_hindrance,
-    raised,
     spared,
 )
+from rulehall.engines.twentyfourxx.sheet import MAIMED, SHIP_FUNCTIONS, SHIP_IDS, Crewmate, Gear
 
-STARTING_CREDITS = 2
-MAIMED = "Maimed"
 ALREADY_MAIMED = "{who} is already maimed: the engine writes no second maim"
 GEAR_KEPT = "a setback is a lesser consequence: the gear named for {who} stays whole"
-SHIP_FUNCTIONS: tuple[str, ...] = (
-    "Comms",
-    "Crafts",
-    "Drive",
-    "Equipment",
-    "Hull armor",
-    "Sensors",
-    "Weapons",
-)  # the SRD's seven, in its order
-SHIP_IDS: tuple[Slug, ...] = tuple(slug(name, ()) for name in SHIP_FUNCTIONS)
 UPGRADE_COST = 10
 ALREADY_BROKEN = "{name} is already broken"
 BREAKS_HARMLESSLY = "{name} breaks harmlessly. Leave `hindrance` empty"
@@ -59,179 +41,6 @@ FIND_FIRST = (
 WORK_AT = "Work at "
 JOB_TAKEN = "Job taken"
 JOB_OPEN = "a job is open: {job}. Call `job` `finish` first if that job is over or failed for good"
-
-
-class Kit(Frozen):
-    name: str
-    bulky: bool = False
-    breaks: int = Field(default=1, ge=1)
-    harmless: bool = False  # SRD: "break harmlessly for defense"
-
-
-class Gear(Mutable):
-    name: str
-    bulky: bool = False
-    breaks: int = Field(default=1, ge=1)  # a vest breaks once; battle armor "up to 3x"
-    broken_times: int = Field(default=0, ge=0)
-    upgrades: list[str] = Field(default_factory=list)
-    harmless: bool = False
-
-    @property
-    def broken(self) -> bool:
-        return self.broken_times >= self.breaks
-
-    def notes(self) -> str:
-        return ", ".join(self.marks())
-
-    def marks(self) -> tuple[str, ...]:
-        parts: list[str] = []
-        if self.bulky:
-            parts.append("bulky")
-        if self.harmless:
-            parts.append("breaks harmlessly")
-        if self.broken:
-            parts.append("broken")
-        elif self.breaks > 1 and self.broken_times > 0:
-            parts.append(f"broken {self.broken_times}/{self.breaks}")
-        parts.extend(f"upgraded: {name}" if name else "upgraded" for name in self.upgrades)
-        return tuple(parts)
-
-
-class CrewSheet(Mutable):
-    items: dict[Slug, Gear] = Field(default_factory=dict)
-    specialty: str
-    origin: str = ""
-    traits: tuple[str, ...] = ()  # an alien's two; an android's body
-    skills: dict[str, SkillDie] = Field(default_factory=dict)  # keyed by the pack skill's name
-    credits: int = Field(default=STARTING_CREDITS, ge=0)
-    hindrances: list[str] = Field(default_factory=list)
-
-    def best_skill(self) -> tuple[str, int]:
-        return max(self.skills.items(), key=lambda skill: skill[1], default=("", DEFAULT_DIE))
-
-    def rows(self) -> Rows:
-        skills = ", ".join(f"{skill} d{die}" for skill, die in self.skills.items())
-        return filled(
-            ("Specialty", self.specialty),
-            ("Origin", self.origin),
-            ("Traits", ", ".join(self.traits)),
-            ("Skills", skills),
-            ("Credits", f"₡{self.credits}"),
-            ("Hindrances", ", ".join(self.hindrances)),
-        )
-
-    def gear_text(self, *, ids: bool = False) -> str:
-        return ", ".join(
-            (tag_of(item.name, key) if ids else item.name)
-            + (f" ({notes})" if (notes := item.notes()) else "")
-            for key, item in self.items.items()
-        )
-
-    def require(self, item_id: Slug, owner: str) -> Gear:
-        item = self.items.get(item_id)
-        if item is None:
-            raise Refusal(f"{item_id!r} is not among {owner}'s items")
-        return item
-
-    def drop_item(self, item_id: Slug, owner: Thing) -> list[Fact]:
-        if (item := self.items.pop(item_id, None)) is None:
-            return []
-        return [owner.fact(f"{owner.mention} drops {item.name}", card=f"Dropped {item.name}")]
-
-
-class Crewmate(Sheeted[CrewSheet]):
-    def rows(self) -> Rows:
-        return self.sheet.rows() if self.sheet is not None else ()
-
-    def line(self, *, rows: Rows | None = None, detail: str = "", gear: bool = True) -> str:
-        if gear and self.sheet is not None and (carried := self.sheet.gear_text(ids=True)):
-            detail = "; ".join(part for part in (detail, carried) if part)
-        return super().line(rows=rows, detail=detail)
-
-    def pay(self, cost: int) -> None:
-        sheet = self.require_sheet()
-        if cost > sheet.credits:
-            raise Refusal(f"{self.name} has only ₡{sheet.credits}, not ₡{cost}")
-        sheet.credits -= cost
-
-    def change_hindrances(self, gained: Sequence[str], lost: Sequence[str]) -> list[Fact]:
-        sheet = self.require_sheet()
-        carried = {hindrance.casefold(): hindrance for hindrance in sheet.hindrances}
-        gained = [name for name in gained if name.casefold() not in carried]
-        lost = [
-            carried.get(name.casefold()) or carried.get(brief_hindrance(name).casefold(), name)
-            for name in lost
-        ]
-        if not gained and not lost:
-            return []
-        sheet.hindrances = changed_tags(self.name, "hindrance", sheet.hindrances, gained, lost)
-        card = tag_card(gained, lost, "Hindered: ", "Recovered: ", joiner=" / ")
-        trace = f"{self.mention} — {card}"
-        return [self.fact(trace, card=self.card_line(card))]
-
-    def gain_item(self, name: str, *, bulky: bool, breaks: int, cost: int) -> list[Fact]:
-        self.pay(cost)
-        items = self.require_sheet().items
-        items[slug(name, [*items, *SHIP_IDS])] = Gear(name=name, bulky=bulky, breaks=breaks)
-        suffix = f" (₡{cost})" if cost > 0 else ""
-        card = f"Gained {name}{suffix}"
-        trace = f"{self.mention} gains {name}{suffix}"
-        return [self.fact(trace, card=self.card_line(card))]
-
-    def repair_item(self, item: Gear, cost: int) -> list[Fact]:
-        if item.broken_times == 0:
-            raise Refusal(f"{item.name} is not broken")
-        self.pay(cost)
-        item.broken_times = 0
-        trace = f"{self.mention} repairs {item.name}"
-        return [self.fact(trace, card=self.card_line(f"Repaired {item.name}"))]
-
-    def spend(self, amount: int, why: str) -> list[Fact]:
-        self.pay(amount)
-        trace = f"{self.mention} spends ₡{amount} — {why}"
-        return [self.fact(trace, card=self.card_line(f"₡{amount} spent — {why}"))]
-
-    def carry(self, hindrance: str) -> bool:
-        hindrances = self.require_sheet().hindrances
-        if hindrance in hindrances:
-            return False
-        hindrances.append(hindrance)
-        return True
-
-    def hinder(self, name: str) -> list[Fact]:
-        if not self.carry(name):
-            return []
-        return [
-            self.fact(
-                f"{self.mention} is hindered — {name}",
-                card=self.card_line(f"Hindered: {name}"),
-            )
-        ]
-
-    def maimed(self) -> bool:
-        return MAIMED in self.require_sheet().hindrances
-
-    def raise_skill(self, skill: str) -> list[Fact]:
-        sheet = self.require_sheet()
-        if (new_die := raised(sheet.skills.get(skill))) is None:
-            raise Refusal(f"{self.name}'s {skill} is already at d12. Raise another skill for them.")
-        sheet.skills[skill] = new_die
-        trace = f"{self.mention} — {skill} rises to d{new_die}"
-        return [self.fact(trace, card=self.card_line(f"Job done: {skill} d{new_die}"))]
-
-    def earn(
-        self, credits: int, *, dice: tuple[DiceEvent, ...] = (), giver: Thing | None = None
-    ) -> list[Fact]:
-        sheet = self.require_sheet()
-        sheet.credits += credits
-        source = f" from {giver.name}" if giver is not None else ""
-        return [
-            self.fact(
-                f"{self.mention} earns ₡{credits}{source} → ₡{sheet.credits}",
-                card=self.card_line(f"+₡{credits}{source} → ₡{sheet.credits}"),
-                dice=dice,
-            )
-        ]
 
 
 class TwentyFourXXScene(SceneProposal[Crewmate]):
@@ -265,7 +74,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
     @classmethod
     def opening(cls, proposal: SceneProposal[Crewmate], player: Crewmate) -> Self:
         world = super().opening(filed_by_name(proposal), player)
-        # Safe: the engine's `opening` makes every opening a TwentyFourXXScene.
+        # Safe: the engine writes only this proposal type.
         opening = cast(TwentyFourXXScene, proposal)
         world.job = opening.job
         world.ship_at = opening.ship_at or world.scene.location
@@ -295,7 +104,6 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         return (*rows, ("Gear", gear)) if gear else rows
 
     def player_line(self) -> str:
-        """The gear stands in the sheet rows already, so the line does not repeat it."""
         return self.player.line(rows=self.sheet_rows(), gear=False)
 
     def require_gear(self, actor: Crewmate, item_id: Slug, *, hold: bool = False) -> Gear:
@@ -334,7 +142,6 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         harm: bool,
     ) -> list[Fact]:
         if not disaster and not deadly:
-            # SRD: a setback is a lesser consequence, so a harm is already brief and no gear breaks.
             kept = [actor.fact(GEAR_KEPT.format(who=actor.mention))] if item_id else []
             hurt = actor.hinder(brief_hindrance(spared(deadly=False))) if harm else []
             return [*kept, *hurt]
@@ -464,7 +271,6 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         return self.lead(member)
 
     def lead(self, member: Crewmate) -> list[Fact]:
-        """The new lead takes the player's id, so no view shows them as someone else."""
         dead = self.player
         dead.id = slug(dead.name, [PLAYER_ID, *self.cast])
         member.id = PLAYER_ID
@@ -498,20 +304,19 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         trace = f"{member.tag} is no longer with the crew"
         return [member.fact(trace, card=f"{member.name} leaves the crew")]
 
-    def let_go(self, entry: Crewmate) -> bool:
+    def was_let_go(self, entry: Crewmate) -> bool:
         return entry.hired and entry.alive and entry.id not in self.party
 
     def last_seen(self, entity_id: Slug) -> str:
         seen = super().last_seen(entity_id)
-        return f"{LET_GO}; {seen}" if self.let_go(self.cast[entity_id]) else seen
+        return f"{LET_GO}; {seen}" if self.was_let_go(self.cast[entity_id]) else seen
 
     def here_lines(self) -> str:
         return lines_of(
-            other.line(detail=LET_GO if self.let_go(other) else "") for other in self.others()
+            other.line(detail=LET_GO if self.was_let_go(other) else "") for other in self.others()
         )
 
     def check_unnamed(self, *texts: str) -> None:
-        """A name told to the player is someone they now know of; only the hidden stay unnamed."""
         self.hear(*texts)
         super().check_unnamed(*texts)
 
@@ -521,17 +326,14 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
             if person.id not in hidden:
                 person.known = True
 
-    def file_stranger(self, entity_id: Slug) -> list[Fact]:
+    def enter_if_stranger(self, entity_id: Slug, /) -> list[Fact]:
         known = entity_id in self.cast or entity_id == self.player.id
         return [] if known else self.enter(entity_id)
 
     def enter(self, entity_id: Slug) -> list[Fact]:
-        """An id the story just named files a met stranger, so play goes on."""
         if entity_id not in self.cast and entity_id != self.player.id:
-            name = entity_id.replace("-", " ").title()
-            super().check_unnamed(name)
-            brief = f"met at {self.scene.title}"
-            self.cast[entity_id] = Crewmate(id=entity_id, name=name, brief=brief)
+            super().check_unnamed(stranger_name(entity_id))
+            self.file_stranger(entity_id, f"met at {self.scene.title}")
         return super().enter(entity_id)
 
     def require_no_job(self) -> None:
@@ -539,7 +341,6 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
             raise Refusal(JOB_OPEN.format(job=self.job))
 
     def looked_at(self) -> str:
-        """Where the last `find` since the last take looked, in any scene; empty when none."""
         for entry in reversed([entry for scene in self.scenes for entry in scene.settled]):
             if entry.question == JOB_TAKEN:
                 return ""
@@ -548,7 +349,6 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         return ""
 
     def take_job(self, terms: str) -> list[Fact]:
-        """A take while a job is open amends its terms: only `finish` closes it."""
         if not self.job and not self.looked_at():
             raise Refusal(FIND_FIRST)
         self.settle(JOB_TAKEN, terms)
@@ -566,11 +366,11 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
 
 TwentyFourXXNext = NextProposal[Crewmate]
 
+
 TwentyFourXXGame = Game[TwentyFourXXWorld]
 
 
 def filed_by_name[P: SceneProposal[Crewmate]](proposal: P) -> P:
-    """Code names every cast entry, so no id the worldsmith invents reaches the narrator."""
     filed: dict[Slug, Crewmate] = {}
     renamed: dict[str, Slug] = {}
     for key, entry in proposal.cast.items():

@@ -25,7 +25,6 @@ class SettingsForm:
 
     def build(self) -> None:
         groups = _shown(self.settings)
-        # In the header: a taller tab panel must not move the Save button.
         with page_header("Settings"):
             ui.space()
             ui.button("Save", icon="sym_r_save", on_click=self.save).props("color=primary")
@@ -96,7 +95,6 @@ def changes(settings: Settings, typed: Mapping[tuple[str, ...], object]) -> Chan
             continue
         stored = _stored(settings, path)
         if isinstance(stored, SecretStr):
-            # The box starts blank, so only a typed key is a change.
             if isinstance(value, str) and value:
                 changed[path] = value
         elif value != stored:

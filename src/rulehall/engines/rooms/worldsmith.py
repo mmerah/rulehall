@@ -30,7 +30,6 @@ def check_next_map[N: Dweller](proposal: RegionProposal[N], world: RoomWorld[N])
 
 
 def _planted_needs[N: Dweller](proposal: MapProposal[N]) -> list[str]:
-    """A new region may not put items straight into the player's pack: no fact, no narration."""
     if planted := sorted(
         item.id for item in proposal.items.values() if item.holder_id == PLAYER_ID
     ):

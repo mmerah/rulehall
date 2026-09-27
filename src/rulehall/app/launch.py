@@ -3,9 +3,9 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Self
 
-from rulehall.core.io import FileStore, Library, decode, routed
-from rulehall.core.model import AnyGame, ScenarioMeta
-from rulehall.core.validation import EngineId, Refusal, Slug
+from rulehall.core.io import FileStore, Library
+from rulehall.core.model import AnyGame, AnyScenario, ScenarioDescription
+from rulehall.core.validation import EngineId, Refusal, Slug, routed
 from rulehall.core.views import Look
 from rulehall.engines.engine import AnyEngine
 
@@ -37,7 +37,7 @@ class LaunchTarget:
     character_id: Slug
 
     @property
-    def slug(self) -> str:
+    def save_id(self) -> str:
         return f"{self.scenario_id}--{self.character_id}"
 
 
@@ -76,32 +76,37 @@ class LauncherCatalog:
 
     @classmethod
     def read(
-        cls, library: Library, store: FileStore, engines: Mapping[EngineId, AnyEngine]
+        cls,
+        library: Library,
+        store: FileStore,
+        engines: Mapping[EngineId, AnyEngine],
+        scenario_models: Mapping[EngineId, type[AnyScenario]],
     ) -> Self:
-        scenario_models = {engine_id: engine.scenario for engine_id, engine in engines.items()}
         on_disk = dict(library.read_scenarios(scenario_models))
         scenarios = tuple(
             CatalogEntry(
-                id=name,
+                id=scenario_id,
                 engine_id=scenario.engine_id,
-                name=scenario.meta.title,
-                brief=scenario.meta.premise,
+                name=scenario.description.title,
+                brief=scenario.description.premise,
                 rules=engines[scenario.engine_id].title,
                 look=engines[scenario.engine_id].look,
             )
-            for name, scenario in on_disk.items()
+            for scenario_id, scenario in on_disk.items()
         )
-        metas = {name: scenario.meta for name, scenario in on_disk.items()}
+        descriptions = {
+            scenario_id: scenario.description for scenario_id, scenario in on_disk.items()
+        }
         characters = tuple(
             CatalogEntry(
-                id=name,
+                id=character_id,
                 engine_id=engine_id,
                 name=header.sheet.name,
                 brief=header.sheet.brief,
                 rules=engines[engine_id].title,
                 look=engines[engine_id].look,
             )
-            for name, engine_id, header in library.read_characters(engines)
+            for character_id, engine_id, header in library.read_characters(engines)
         )
         packs = tuple(
             PackEntry(
@@ -119,13 +124,12 @@ class LauncherCatalog:
         played_by = {entry.id: entry.engine_id for entry in scenarios}
         saves: list[SaveOption] = []
         unresumable: list[str] = []
-        for slug in store.slugs():
+        for save_id in store.save_ids():
             try:
-                option = _save_option(slug, store, engines, titles, played_by, metas)
-            # Skipped, never deleted: one save that does not resume must not hide the rest.
+                option = _save_option(save_id, store, engines, titles, played_by, descriptions)
             except Refusal as unreadable:
-                LOGGER.warning("skipping save %r: %s", slug, unreadable)
-                unresumable.append(slug)
+                LOGGER.warning("skipping save %r: %s", save_id, unreadable)
+                unresumable.append(save_id)
             else:
                 if option is not None:
                     saves.append(option)
@@ -138,35 +142,38 @@ class LauncherCatalog:
         )
 
 
-def check_resumes(state: AnyGame, slug: str, meta: ScenarioMeta) -> None:
-    actual = LaunchTarget(scenario_id=state.scenario_id, character_id=state.character_id).slug
-    if actual != slug:
-        raise Refusal(f"save is {actual!r}, filed as {slug!r}")
-    state.scenario.check_drift(meta)
+def scenario_models(engines: Mapping[EngineId, AnyEngine]) -> dict[EngineId, type[AnyScenario]]:
+    return {engine_id: engine.scenario for engine_id, engine in engines.items()}
+
+
+def check_resumes(state: AnyGame, save_id: str, description: ScenarioDescription) -> LaunchTarget:
+    target = LaunchTarget(scenario_id=state.scenario_id, character_id=state.character_id)
+    if target.save_id != save_id:
+        raise Refusal(f"save is {target.save_id!r}, filed as {save_id!r}")
+    state.scenario_description.check_drift(description)
+    return target
 
 
 def _save_option(
-    slug: str,
+    save_id: str,
     store: FileStore,
     engines: Mapping[EngineId, AnyEngine],
     titles: Mapping[tuple[Slug, EngineId], str],
     played_by: Mapping[Slug, EngineId],
-    metas: Mapping[Slug, ScenarioMeta],
+    descriptions: Mapping[Slug, ScenarioDescription],
 ) -> SaveOption | None:
-    raw = store.read(slug)
+    raw = store.read(save_id)
     if raw is None:
-        # Gone between `slugs()` and `read`: listing it would hide a Start that works.
+        # Gone between `save_ids()` and `read`: listing it would hide a Start that works.
         return None
-    engine = routed(decode(raw), engines)
+    engine = routed(raw, engines)
     state = engine.restore(raw)
     title = titles.get((state.character_id, state.engine_id))
     if played_by.get(state.scenario_id) != state.engine_id or title is None:
         raise Refusal("its scenario or character is gone")
-    target = LaunchTarget(scenario_id=state.scenario_id, character_id=state.character_id)
-    check_resumes(state, slug, metas[state.scenario_id])
     return SaveOption(
-        target=target,
-        scenario_label=state.scenario.title,
+        target=check_resumes(state, save_id, descriptions[state.scenario_id]),
+        scenario_label=state.scenario_description.title,
         character_label=title,
         turn=len(state.exchanges()),
         where=state.log[-1].title,

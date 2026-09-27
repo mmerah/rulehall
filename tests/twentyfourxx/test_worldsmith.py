@@ -2,9 +2,10 @@ import pytest
 from support.table import LIBRARY, TWENTYFOURXX
 from support.twentyfourxx import ENGINE, SCENE_BASE
 
-from rulehall.core.model import AnyScenario, ScenarioMeta
+from rulehall.core.model import AnyScenario, ScenarioDescription
 from rulehall.core.validation import Refusal
-from rulehall.engines.twentyfourxx.world import Crewmate, TwentyFourXXScene
+from rulehall.engines.twentyfourxx.sheet import Crewmate
+from rulehall.engines.twentyfourxx.world import TwentyFourXXScene
 
 SRD = ENGINE.packs.srd()
 
@@ -15,7 +16,7 @@ def _proposal(**fields: object) -> TwentyFourXXScene:
 
 def _built(proposal: TwentyFourXXScene) -> AnyScenario:
     return ENGINE.build_scenario(
-        ScenarioMeta(
+        ScenarioDescription(
             title="Loading Bay", premise="", backdrop="Plain.", scope="One tense night shift."
         ),
         "srd",

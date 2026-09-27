@@ -1,6 +1,5 @@
 from collections.abc import Callable, Sequence
-from functools import cache, partial
-from itertools import groupby
+from functools import cache
 from pathlib import Path
 from typing import cast
 
@@ -18,7 +17,7 @@ from rulehall.ui.widgets import (
     Sounds,
     alert,
     assets_route,
-    choice_button,
+    choice_groups,
 )
 
 
@@ -65,7 +64,6 @@ class BattlePanel:
         self.on_show()
 
     def sync(self, *, live: bool) -> None:
-        # A run another tab closed waits for the next Battle click here.
         closed = self.session.battle_run is None and self.drawn_run is not None
         self.shown = self.shown and live and not self._failed and not closed
         if self.shown and not self.column.visible and self.session.battle_run is None:
@@ -88,8 +86,8 @@ class BattlePanel:
             {
                 "base": assets_route(session.engine.id),
                 "lines": list(run.log),
-                "sprites": session.battle_config.sprites,
-                "music": session.battle_config.music,
+                "sprites": session.settings.battle.sprites,
+                "music": session.settings.battle.music,
                 **run.props(),
             }
         )
@@ -99,18 +97,12 @@ class BattlePanel:
     def choices(self) -> None:
         run = self.session.battle_run
         self.shown_choices = choices = () if run is None else run.choices()
-        for group, row in groupby(choices, key=lambda choice: choice.group):
-            if group:
-                ui.label(group).classes("game-eyebrow")
-            with ui.element("div").classes("game-battle-choices"):
-                for choice in row:
-                    choice_button(
-                        choice.name,
-                        choice.refusal or choice.brief,
-                        partial(self._choose, choice.command),
-                        enabled=not choice.refusal,
-                        tags=choice.tags,
-                    )
+        choice_groups(
+            choices,
+            lambda choice: self._choose(choice.command),
+            enabled=True,
+            row_class="game-battle-choices",
+        )
 
     def _draw(self) -> None:
         run = self.session.battle_run
@@ -179,7 +171,6 @@ class BattlePanel:
             with self.column:
                 alert(str(refused))
             if self.shown and self.session.battle_run is None:
-                # Drawn closed first, so the sync keeps the screen for the reopening.
                 self._draw()
                 self._open()
 

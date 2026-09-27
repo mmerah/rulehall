@@ -27,9 +27,8 @@ from rulehall.core.validation import Refusal
 from rulehall.engines.entities import PLAYER_ID
 from rulehall.engines.rooms.args import MOVED_CARD, MOVES_OFFSCREEN
 from rulehall.engines.rooms.panels import map_view
-from rulehall.engines.rooms.world import MapProposal
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
-from rulehall.engines.tunnelgoons.world import Goon, TunnelGoonsGame, TunnelGoonsWorld
+from rulehall.engines.tunnelgoons.world import TunnelGoonsGame, TunnelGoonsWorld
 
 
 def test_a_member_joins_and_leaves_the_party() -> None:
@@ -201,11 +200,7 @@ def test_the_arc_reaches_the_master_and_the_worldsmith_and_nobody_else() -> None
     arc = "The Warden answers to the Gremlin Queen."
     begun_room.world.arc = arc
 
-    written = ENGINE.render_request(
-        begun_room, intent="More map.", guidance="", answer_model=MapProposal[Goon]
-    ).text
-
     assert arc in str(ENGINE.master_sections(begun_room))
-    assert arc in written
+    assert arc in str(ENGINE.worldsmith_sections(begun_room))
     assert arc not in str(ENGINE.narrator_view(begun_room).model_dump())
     assert arc not in str(ENGINE.player_view(begun_room).model_dump())

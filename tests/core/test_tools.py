@@ -5,7 +5,7 @@ import pytest
 from pydantic import Field, JsonValue
 
 from rulehall.core.facts import Fact
-from rulehall.core.model import AnyGame, Game, ScenarioMeta
+from rulehall.core.model import AnyGame, Game, ScenarioDescription
 from rulehall.core.tools import Told, action, actions_of, tool, tools_of
 from rulehall.core.validation import EngineId, Frozen, Refusal, Slug, parse_mended
 
@@ -142,7 +142,7 @@ def _draft() -> AnyGame:
     return Game[Word](
         scenario_id="trial",
         character_id="player",
-        scenario=ScenarioMeta(
+        scenario_description=ScenarioDescription(
             title="Trial", premise="A trial runs", backdrop="Plain.", scope="One trial"
         ),
         engine_id=EngineId("trial"),

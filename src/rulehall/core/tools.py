@@ -39,7 +39,6 @@ class MasterTool:
 
 
 def tool[F: Callable[..., Sequence[Fact]]](method: F) -> F:
-    """The method docstring is the text the master reads."""
     if not (method.__doc__ or "").strip():
         raise ValueError(f"{method.__qualname__} carries no description")
     args = _args_of(method)
@@ -71,7 +70,6 @@ def actions_of(engine: object) -> dict[str, Call]:
 
 
 def schema_of(args: type[BaseModel]) -> dict[str, JsonValue]:
-    """One schema function, so what MCP publishes is what every prompt describes."""
     schema = args.model_json_schema()
     defs = schema.pop("$defs", {})
     _inline_refs(schema, defs)
@@ -103,15 +101,12 @@ def _marked(engine: object, marks: Marks, mark: str) -> dict[str, FunctionType]:
 def _published(
     engine: object, name: str, function: FunctionType, check_unnamed: CheckUnnamed
 ) -> MasterTool:
-    """The marked function carries the text and the model."""
     args = _TOOLS[function]
-    # One line: the master reads a description, not the source's wrapping.
     description = " ".join(cleandoc(function.__doc__ or "").split())
     return MasterTool(name, description, args, _call_of(engine, name, args, check_unnamed))
 
 
 def _call_of(engine: object, name: str, args: type[BaseModel], check_unnamed: CheckUnnamed) -> Call:
-    """The bound method resolves an override."""
     bound: Callable[[AnyGame, BaseModel, Random], Sequence[Fact]] = getattr(engine, name)
 
     def call(draft: AnyGame, raw: JsonValue, rng: Random) -> tuple[Fact, ...]:
@@ -124,7 +119,7 @@ def _call_of(engine: object, name: str, args: type[BaseModel], check_unnamed: Ch
 
 
 def _trusted(_draft: AnyGame, _texts: tuple[str, ...]) -> None:
-    """Code builds the page's options, so their texts need no check."""
+    pass
 
 
 def _told_texts(value: object, annotation: object, *, told: bool = False) -> Iterator[str]:
@@ -143,7 +138,6 @@ def _told_texts(value: object, annotation: object, *, told: bool = False) -> Ite
         for member in members:
             yield from _told_texts(value, member)
     elif origin in (tuple, list) and isinstance(value, tuple | list):
-        # Every args sequence is `tuple[X, ...]` or `list[X]`.
         for item in cast("Sequence[object]", value):
             yield from _told_texts(item, members[0])
 
@@ -159,7 +153,6 @@ def _args_of(function: Callable[..., object]) -> type[BaseModel]:
 
 
 def _inline_refs(node: JsonValue, defs: Mapping[str, JsonValue]) -> None:
-    """A `$ref` becomes its definition: the model reads one tree and no class name leaks in."""
     if isinstance(node, list):
         for item in node:
             _inline_refs(item, defs)

@@ -1,5 +1,4 @@
 import logging
-from asyncio import CancelledError
 from collections.abc import Awaitable, Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -14,7 +13,7 @@ from rulehall.app.line_process import start_process
 from rulehall.app.roles import OPENING_NARRATION, role_answer, run_debrief, run_master, run_narrator
 from rulehall.app.spawn import Spawner
 from rulehall.app.turn import NO_TURN, Turn, require_playable
-from rulehall.config import BattleConfig, TranscriptConfig
+from rulehall.config import Settings
 from rulehall.core.facts import Fact
 from rulehall.core.io import FileStore, Library
 from rulehall.core.model import AnyCharacter, AnyGame, AnyScenario
@@ -42,6 +41,12 @@ class Rewind:
 class StateCache[T]:
     held: tuple[AnyGame, T] | None = None
 
+    def get(self, state: AnyGame) -> T | None:
+        return self.held[1] if self.held is not None and self.held[0] is state else None
+
+    def put(self, state: AnyGame, value: T) -> None:
+        self.held = (state, value)
+
     def read(self, state: AnyGame, build: Callable[[AnyGame], T]) -> T:
         if self.held is None or self.held[0] is not state:
             self.held = (state, build(state))
@@ -61,17 +66,17 @@ class GameService:
     gate: "Gate" = field(repr=False, compare=False)
     illustrator: Illustrator
     start_transport: Callable[[AnyEngine], Awaitable[Transport]] = start_process
-    battle_config: BattleConfig = field(default_factory=BattleConfig)
-    transcript_config: TranscriptConfig = field(default_factory=TranscriptConfig)
+    settings: Settings
     rng: Random = field(default_factory=Random)
     working_role: Step | None = None
-    # The player's words for a write that opens no turn; the page shows them as their bubble.
     intent: str = ""
     live: tuple[SpokenLine, ...] = ()
     turn: Turn | None = None
     rewind_point: Rewind | None = None
     battle_run: BattleRun[AnyGame] | None = None
-    debriefed: tuple[AnyGame, Debrief] | None = field(default=None, repr=False)
+    debriefs: StateCache[Debrief] = field(
+        default_factory=StateCache[Debrief], repr=False, compare=False
+    )
     views: StateCache[PlayerView] = field(
         default_factory=StateCache[PlayerView], repr=False, compare=False
     )
@@ -84,7 +89,6 @@ class GameService:
         return self.working_role is None and not self.history()
 
     async def open(self) -> None:
-        """A failed narrator saves nothing: the player then reads the premise."""
         # A second tab's timer must not run the page reset over an opening already in flight.
         if not self.unopened:
             return
@@ -147,12 +151,12 @@ class GameService:
             draft = self.state.draft()
             opponent = (
                 role_answer(self.spawner, "opponent")
-                if self.battle_config.opponent == "model"
+                if self.settings.battle.opponent == "model"
                 else None
             )
             try:
                 run = self.battle_run = await self.engine.open_battle(draft, transport, opponent)
-            except (Refusal, CancelledError):
+            except BaseException:
                 await transport.close()
                 raise
             await self._settle(run, draft)
@@ -166,7 +170,7 @@ class GameService:
             draft = self.state.draft()
             try:
                 await run.choose(draft, command, self.rng)
-            except (Refusal, CancelledError):
+            except BaseException:
                 await self._close_battle()
                 raise
             await self._settle(run, draft)
@@ -184,15 +188,15 @@ class GameService:
         with self.gate.admit(self):
             await self._close_battle()
             opening = self.engine.begin(self.target.scenario_id, self.scenario, self.character)
-            self.store.discard(self.target.slug)
+            self.store.discard(self.target.save_id)
             self.state = opening
 
     async def debrief(self) -> Debrief:
         state = self.state
-        if self.debriefed is not None and self.debriefed[0] is state:
-            return self.debriefed[1]
+        if (cached := self.debriefs.get(state)) is not None:
+            return cached
         answer = await run_debrief(self.spawner, self.engine, state)
-        self.debriefed = (state, answer)
+        self.debriefs.put(state, answer)
         return answer
 
     def present(self) -> None:
@@ -216,7 +220,7 @@ class GameService:
         return sprite.model_copy(update={"path": path}) if path.is_file() else None
 
     def save(self, state: AnyGame) -> None:
-        self.store.write(self.target.slug, state)
+        self.store.write(self.target.save_id, state)
         self.state = state
 
     async def close(self) -> None:
@@ -310,7 +314,6 @@ class GameService:
         if resolution.narrator_cue is None:
             if not resolution.facts:
                 return self.engine.accept(draft)
-            # The words that asked for it open the turn that follows, which shows them.
             return self.engine.record(draft, (), resolution.facts, cause="story")
         with self.working("narrator"):
             lines = await self._narrated(draft, resolution.facts, resolution.narrator_cue)
@@ -325,7 +328,6 @@ class GameService:
         landed: bool = True,
         before: NarratorView | None = None,
     ) -> tuple[SpokenLine, ...]:
-        """No landed fact means nothing to save, so the player hears why and keeps the words."""
         try:
             return await run_narrator(
                 self.spawner, self.engine, draft, facts, cue, self._hear, before
@@ -392,14 +394,12 @@ class Gate:
         return None if self.admitted is None else self.admitted.turn
 
     def require_turn(self) -> Turn:
-        """A tool call between turns is a refusal, not a crash: nobody plays a turn."""
         if (turn := self.turn) is None:
             raise Refusal(NO_TURN)
         return turn
 
     @contextmanager
     def admit(self, session: GameService) -> Generator[None]:
-        """One writer at a time: two turns on one save is the failure that costs a game."""
         if self.admitted is not None:
             raise Busy(elsewhere=self.admitted is not session)
         self.admitted = session

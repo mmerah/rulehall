@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Annotated, Literal, Self
+from typing import Annotated, Literal, Self, get_args
 
 import httpx
 from dotenv import set_key, unset_key
@@ -53,7 +53,6 @@ class ProviderConfig(Configured):
 
 class RoleConfig(Configured):
     provider: RoleProvider = "claude"
-    # A string, not a `Literal`: model aliases move faster than this file.
     model: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
     effort: Effort = "medium"
     timeout: float = Field(
@@ -102,9 +101,7 @@ class ServerConfig(Configured):
 class RoleSettings(Configured):
     master: RoleConfig = RoleConfig(model="opus", effort="high")
     narrator: RoleConfig = RoleConfig(model="sonnet", effort="low", timeout=120.0)
-    # A whole scene from the source, the cast and the history: measured at 335 seconds.
     worldsmith: RoleConfig = RoleConfig(model="sonnet", timeout=900.0)
-    # One choice from a short, exact prompt: the smallest model, and a battle turn waits on it.
     opponent: RoleConfig = RoleConfig(model="haiku", effort="low", timeout=120.0)
 
     def for_name(self, name: Role) -> RoleConfig:
@@ -155,7 +152,7 @@ class Settings(BaseSettings):
         posting: list[tuple[str, ProviderName]] = (
             [("media", self.media.provider)] if self.media.enabled else []
         )
-        roles: tuple[Role, ...] = ("master", "narrator", "worldsmith", "opponent")
+        roles: tuple[Role, ...] = get_args(Role.__value__)
         for role in roles:
             config = self.roles.for_name(role)
             if config.provider in ("openrouter", "local"):
@@ -175,7 +172,6 @@ def env_key(path: tuple[str, ...]) -> str:
 
 
 def save_settings(changed: Mapping[tuple[str, ...], str | None]) -> None:
-    """`set_key` rewrites one line in place, so comments and untouched keys survive."""
     for path, value in changed.items():
         if value is None:
             unset_key(ENV_FILE, env_key(path))

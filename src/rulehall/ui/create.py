@@ -13,9 +13,9 @@ from nicegui.events import UploadEventArguments, ValueChangeEventArguments
 from rulehall.app.launch import LauncherCatalog, LaunchTarget
 from rulehall.app.runtime import Runtime
 from rulehall.core.creation import CreationStep, drop_stale, option_of, picked
-from rulehall.core.io import SOURCE_SUFFIXES
-from rulehall.core.model import ScenarioMeta
+from rulehall.core.model import ScenarioDescription
 from rulehall.core.play import DecisionOption
+from rulehall.core.source import SOURCE_SUFFIXES
 from rulehall.core.validation import EngineId, Refusal, Slug, content_id
 from rulehall.ui import theme
 from rulehall.ui.widgets import (
@@ -49,7 +49,6 @@ class DocumentUpload:
         ui.context.client.on_delete(self.discard)  # pyright: ignore[reportUnknownMemberType]
 
     async def uploaded(self, event: UploadEventArguments) -> None:
-        # The source reader opens a path, and a PDF cannot be parsed from bytes.
         if self.uploads is None:
             self.uploads = Path(mkdtemp())
         if self.document is not None:
@@ -100,12 +99,10 @@ class CharacterForm:
                 self.preview()
 
     def use_engine(self, engine_id: EngineId) -> None:
-        self.engine_id = engine_id
-        self.pack_id = self.engine.packs.options()[0].id
+        self.engine_id, self.pack_id = engine_id, _first_pack_id(self.runtime, engine_id)
 
     def choose_engine(self, engine_id: EngineId) -> None:
         self.use_engine(engine_id)
-        # The steps come from the engine and its pack, so an answer to the old ones means nothing.
         self.picks.clear()
         self.steps.refresh()
         self.preview.refresh()
@@ -134,7 +131,6 @@ class CharacterForm:
                 value=given,
                 on_change=partial(self.write, step.id),
             )
-            # Rebuilding the whole form on blur would destroy the field Tab just moved to.
             box.on("blur", self.preview.refresh)
             return
         if step.options[0].sprite:
@@ -276,18 +272,13 @@ class ScenarioForm:
             self.button_row()
 
     def use_engine(self, engine_id: EngineId) -> None:
-        self.engine_id = engine_id
-        self.pack_id = self.engine.packs.options()[0].id
+        self.engine_id, self.pack_id = engine_id, _first_pack_id(self.runtime, engine_id)
 
     def choose_engine(self, engine_id: EngineId) -> None:
         self.use_engine(engine_id)
         self.character_fields.refresh()
         self._set_style_placeholder()
         self.button_row.refresh()
-
-    def _set_style_placeholder(self) -> None:
-        art_style = self.engine.art_style
-        self.style.props(f'placeholder="Leave empty for: {art_style}"')
 
     @ui.refreshable_method
     def character_fields(self) -> None:
@@ -310,10 +301,6 @@ class ScenarioForm:
     def choose_pack(self, event: ValueChangeEventArguments[str]) -> None:
         self.pack_id = content_id(event.value)
         self._show_pack_buttons()
-
-    def _show_pack_buttons(self) -> None:
-        self.seed_button.set_visibility(bool(self.pack.seeds))
-        self.backdrop_button.set_visibility(bool(self.pack.backdrop))
 
     def roll_seed(self) -> None:
         if seeds := self.pack.seeds:
@@ -346,7 +333,7 @@ class ScenarioForm:
             warn("A title, a backdrop, a scope, a character, and a premise or a document.")
             return
         self.button.props("loading")
-        meta = ScenarioMeta(
+        description = ScenarioDescription(
             title=title,
             premise=premise,
             backdrop=backdrop,
@@ -355,17 +342,25 @@ class ScenarioForm:
         )
         try:
             character_id = content_id(character_id)
-            name = await self.runtime.new_scenario(
-                self.engine_id, meta, document, self.pack_id, character_id
+            scenario_id = await self.runtime.new_scenario(
+                self.engine_id, description, document, self.pack_id, character_id
             )
-            opened = LaunchTarget(scenario_id=name, character_id=character_id)
+            opened = LaunchTarget(scenario_id=scenario_id, character_id=character_id)
         except Refusal as refused:
             alert(str(refused))
             return
         finally:
             self.button.props(remove="loading")
-        LOGGER.info("scenario created: slug=%s", name)
+        LOGGER.info("scenario created: scenario_id=%s", scenario_id)
         ui.navigate.to(game_path(opened))
+
+    def _set_style_placeholder(self) -> None:
+        art_style = self.engine.art_style
+        self.style.props(f'placeholder="Leave empty for: {art_style}"')
+
+    def _show_pack_buttons(self) -> None:
+        self.seed_button.set_visibility(bool(self.pack.seeds))
+        self.backdrop_button.set_visibility(bool(self.pack.backdrop))
 
 
 class PackForm:
@@ -441,6 +436,10 @@ def scenario_page(runtime: Runtime) -> None:
 
 def new_pack_page(runtime: Runtime) -> None:
     PackForm(runtime).build()
+
+
+def _first_pack_id(runtime: Runtime, engine_id: EngineId) -> Slug:
+    return runtime.engine(engine_id).packs.options()[0].id
 
 
 @contextmanager

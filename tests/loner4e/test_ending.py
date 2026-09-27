@@ -20,8 +20,9 @@ from rulehall.core.io import Library
 from rulehall.core.play import Answer
 from rulehall.core.validation import Refusal
 from rulehall.engines.entities import PLAYER_ID
-from rulehall.engines.loner4e.args import END_HERE
-from rulehall.engines.loner4e.world import Loner4eEntity, Loner4eGame
+from rulehall.engines.loner4e.panels import END_HERE
+from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.loner4e.world import Loner4eGame
 
 NEXT_SCENE: dict[str, object] = {
     "place_id": "cloister",

@@ -22,7 +22,8 @@ from rulehall.engines.tunnelgoons.pack import (
     TunnelGoonsHead,
     TunnelGoonsPack,
 )
-from rulehall.engines.tunnelgoons.world import (
+from rulehall.engines.tunnelgoons.panels import level_up_decision
+from rulehall.engines.tunnelgoons.sheet import (
     ABILITIES,
     ABILITY_POINTS,
     HP_START,
@@ -30,10 +31,8 @@ from rulehall.engines.tunnelgoons.world import (
     Ability,
     Goon,
     GoonSheet,
-    TunnelGoonsGame,
-    TunnelGoonsWorld,
-    level_up_decision,
 )
+from rulehall.engines.tunnelgoons.world import TunnelGoonsGame, TunnelGoonsWorld
 
 POINT_OPTIONS: tuple[DecisionOption, ...] = tuple(
     DecisionOption(id=str(points), name=str(points)) for points in range(ABILITY_POINTS + 1)
@@ -145,7 +144,6 @@ class TunnelGoonsEngine(
         )
         facts = [rolled.fact, actor.card_fact(line, (rolled.event,))]
 
-        # SRD: only a dangerous action turns the margin into damage; an npc's DS alone does not.
         if not args.dangerous:
             return facts
         margin = total - difficulty
@@ -169,7 +167,6 @@ class TunnelGoonsEngine(
         actor = player if player.require_sheet().level == 1 else world.next_to_level(player)
         if actor is None:
             raise Refusal("the player and every hired member have already levelled up")
-        # Both or neither, by `LevelUp`; `or` narrows both for the fall-through.
         if args.ability is None or args.boost is None:
             draft.pending = level_up_decision(actor)
             return []

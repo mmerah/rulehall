@@ -3,6 +3,13 @@ from rulehall.core.validation import Slug
 from rulehall.core.views import MapEdge, MapNode, MapView, Panel, PanelRow
 from rulehall.engines.rooms.world import Dweller, Place, RoomWorld
 
+EXTEND: Slug = "extend"
+MORE_MAP = PendingOption(
+    id=EXTEND,
+    name="More map",
+    brief="The map runs out here: say where you push on.",
+    action_name="extend",
+)
 GO_TO = "I go to {name}"
 TRY_WAY = "I try the way to {name}"
 HEAD_BACK = "I head back to {name}"

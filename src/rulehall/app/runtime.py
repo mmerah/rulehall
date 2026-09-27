@@ -4,14 +4,14 @@ from pathlib import Path
 from shutil import rmtree
 
 from rulehall.app.illustration import ICON_DIR, Illustrator
-from rulehall.app.launch import LauncherCatalog, LaunchTarget, check_resumes
+from rulehall.app.launch import LauncherCatalog, LaunchTarget, check_resumes, scenario_models
 from rulehall.app.providers import close_client
 from rulehall.app.roles import role_answer
 from rulehall.app.session import GameService, Gate
 from rulehall.app.spawn import RoleRunner, Spawner
 from rulehall.config import Settings
 from rulehall.core.io import FileStore, Library, PackStore
-from rulehall.core.model import AnyScenario, ScenarioMeta
+from rulehall.core.model import AnyScenario, ScenarioDescription
 from rulehall.core.source import given_text
 from rulehall.core.validation import EngineId, Refusal, Slug, slug
 from rulehall.engines.engine import AnyEngine
@@ -26,6 +26,7 @@ class Runtime:
         self.spawner: Spawner = spawner or RoleRunner(settings)
         self.gate = Gate()
         self.engines = build_engines(settings.packs_dir)
+        self.scenario_models = scenario_models(self.engines)
         self.library = Library(settings.scenarios_dir, settings.characters_dir)
         self.store = FileStore(settings.saves_dir)
         self.packs = PackStore(settings.packs_dir)
@@ -40,31 +41,31 @@ class Runtime:
             await session.close()
         await close_client()
 
-    async def delete_save(self, slug: str) -> None:
-        session = self._sessions.get(slug)
+    async def delete_save(self, save_id: str) -> None:
+        session = self._sessions.get(save_id)
         if session is not None:
             if session.working_role is not None:
-                raise Refusal(f"{slug} is taking a turn. Wait for that turn to end, then delete.")
+                raise Refusal(
+                    f"{save_id} is taking a turn. Wait for that turn to end, then delete."
+                )
             if session.battle_run is not None:
-                raise Refusal(f"{slug} is in a battle. End that battle, then delete.")
-            del self._sessions[slug]
+                raise Refusal(f"{save_id} is in a battle. End that battle, then delete.")
+            del self._sessions[save_id]
             await session.close()
-        self.store.discard(slug)
-        rmtree(self.store.media_dir(slug), ignore_errors=True)
+        self.store.discard(save_id)
+        rmtree(self.store.media_dir(save_id), ignore_errors=True)
 
     def configure(self, settings: Settings) -> None:
-        # The server is already bound: a CLI role must reach the port it listens on.
         settings = settings.model_copy(update={"server": self.settings.server})
         self.settings = settings
         if isinstance(self.spawner, RoleRunner):
             self.spawner.settings = settings
         for session in self._sessions.values():
-            session.battle_config = settings.battle
-            session.transcript_config = settings.transcript
+            session.settings = settings
             session.illustrator = session.illustrator.configured(settings)
 
     def catalog(self) -> LauncherCatalog:
-        return LauncherCatalog.read(self.library, self.store, self.engines)
+        return LauncherCatalog.read(self.library, self.store, self.engines, self.scenario_models)
 
     def engine(self, engine_id: EngineId) -> AnyEngine:
         found = self.engines.get(engine_id)
@@ -75,7 +76,7 @@ class Runtime:
     async def new_scenario(
         self,
         engine_id: EngineId,
-        meta: ScenarioMeta,
+        description: ScenarioDescription,
         document: Path | None,
         pack_id: Slug,
         character_id: Slug,
@@ -83,24 +84,23 @@ class Runtime:
         engine = self.engine(engine_id)
         character = self.library.read_character(character_id, engine.id, engine.character)
         engine.packs.require(pack_id)
-        source = await to_thread(given_text, meta.premise, document)
-        name = slug(meta.title, self.library.scenario_ids())
+        source = await to_thread(given_text, description.premise, document)
+        scenario_id = slug(description.title, self.library.scenario_ids())
 
         def check(built: AnyScenario) -> None:
-            engine.begin(name, built, character)
+            engine.begin(scenario_id, built, character)
 
         with self.gate.creation():
             scenario = await engine.write_opening(
-                meta, source, pack_id, role_answer(self.spawner, "worldsmith"), check
+                description, source, pack_id, role_answer(self.spawner, "worldsmith"), check
             )
-        self.library.write_scenario(name, scenario)
-        LOGGER.info("scenario written: slug=%s title=%r", name, meta.title)
-        return name
+        self.library.write_scenario(scenario_id, scenario)
+        LOGGER.info("scenario written: scenario_id=%s title=%r", scenario_id, description.title)
+        return scenario_id
 
     async def new_pack(
         self, engine_id: EngineId, name: str, premise: str, document: Path | None, license: str
     ) -> Slug:
-        """Written and installed only after both answers land, so a failed pack leaves no file."""
         engine = self.engine(engine_id)
         source = await to_thread(given_text, premise, document)
         pack_id = slug(name, (*engine.packs.installed, *self.packs.ids(engine.id)))
@@ -120,21 +120,20 @@ class Runtime:
 
     def session(self, target: LaunchTarget) -> GameService:
         """Memoised: a page render must not rebuild the game and drop the running turn."""
-        if target.slug not in self._sessions:
-            self._sessions[target.slug] = self._open(target)
-        return self._sessions[target.slug]
+        if target.save_id not in self._sessions:
+            self._sessions[target.save_id] = self._open(target)
+        return self._sessions[target.save_id]
 
     def _open(self, target: LaunchTarget) -> GameService:
-        models = {engine_id: engine.scenario for engine_id, engine in self.engines.items()}
-        scenario = self.library.read_scenario(target.scenario_id, models)
+        scenario = self.library.read_scenario(target.scenario_id, self.scenario_models)
         engine = self.engine(scenario.engine_id)
         character = self.library.read_character(target.character_id, engine.id, engine.character)
-        saved = self.store.read(target.slug)
+        saved = self.store.read(target.save_id)
         if saved is None:
             state = engine.begin(target.scenario_id, scenario, character)
         else:
             state = engine.restore(saved)
-            check_resumes(state, target.slug, scenario.meta)
+            check_resumes(state, target.save_id, scenario.description)
         return GameService(
             target=target,
             scenario=scenario,
@@ -145,13 +144,12 @@ class Runtime:
             library=self.library,
             state=state,
             gate=self.gate,
-            battle_config=self.settings.battle,
-            transcript_config=self.settings.transcript,
+            settings=self.settings,
             illustrator=Illustrator.open(
                 self.settings,
                 self.store,
-                target.slug,
-                style=scenario.meta.art_style or engine.art_style,
+                target.save_id,
+                style=scenario.description.art_style or engine.art_style,
                 icon_dirs=(
                     self.library.scenario_folder(target.scenario_id) / ICON_DIR,
                     self.library.character_folder(target.character_id) / ICON_DIR,

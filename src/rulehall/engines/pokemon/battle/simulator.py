@@ -208,7 +208,6 @@ class ShowdownRun:
         return (*choices_of(request, self.setup.team), *balls, leave)
 
     async def choose(self, draft: PokemonGame, command: str, rng: Random) -> None:
-        # The run keeps the record between calls; each draft is a fresh copy of the save.
         draft.world.battle = self.battle
         if command == LEAVE:
             await self._end("fled" if self.setup.kind == "wild" else "lost")
@@ -288,7 +287,6 @@ class ShowdownRun:
                         self.side_request = ask
                         return
                     elif thinking := self.thinking or await self._think(ask):
-                        # The buttons go while the opponent thinks, until the next request.
                         self.side_request = None
                         lines.append(f">p2 {(await thinking).command}")
                     else:
@@ -454,7 +452,7 @@ def battle_result(setup: BattleSetup, dump: Dump, outcome: Outcome | None) -> Ba
         outcome=decided,
         team=tuple(as_dumped(setup.team[mon.slot], mon) for mon in dump.p1),
         fainted_foes=tuple(setup.foes[mon.slot] for mon in dump.p2 if mon.hp == 0),
-        on_field=tuple(setup.team[mon.slot].mon_id for mon in dump.p1 if mon.out > 0),
+        on_field_mon_ids=tuple(setup.team[mon.slot].mon_id for mon in dump.p1 if mon.out > 0),
         caught=_first_foe(setup, dump) if decided == "caught" else None,
     )
 

@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from random import Random
 from typing import Annotated, Self, cast
 
@@ -8,27 +8,21 @@ from pydantic.json_schema import SkipJsonSchema
 from rulehall.core.facts import DiceEvent, Fact, Rolled, roll
 from rulehall.core.model import Game
 from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, listed
-from rulehall.core.views import Rows, filled
-from rulehall.engines.args import BE_SHORT, ShortName
+from rulehall.core.views import Rows
+from rulehall.engines.args import BE_SHORT
 from rulehall.engines.entities import (
     IS_DEAD,
     Gauge,
     OpeningProposal,
-    Person,
     changed_tags,
-    joined,
     tag_card,
     tag_delta,
 )
 from rulehall.engines.loner4e.rules import (
     DIE_FACE,
     DOUBLES_PER_TWIST,
-    GROUP_LUCK,
-    LUCK_MAX,
     MEANWHILE_QUESTION,
     SCENE_ID,
-    STATUS_BOXES,
-    STATUS_TAGS,
     TWIST_ACTIONS,
     TWIST_SUBJECTS,
     UNTRAINED,
@@ -36,13 +30,12 @@ from rulehall.engines.loner4e.rules import (
     Position,
     RollOutcome,
     SceneKind,
-    StatusColumn,
     TagKind,
-    and_for_commas,
     faces_for,
     outcome_for,
     transition_for,
 )
+from rulehall.engines.loner4e.sheet import Loner4eEntity, StatusTrack, TagName, Tags
 from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
 
 SCENE_CLOSED = "the scene has closed: change nothing more in it. Call `direct` now."
@@ -50,122 +43,17 @@ NO_SUCH_TAG = (
     "no such tag here: {missing}. Cite exact tags from SCENE, the sheet or who is here, or cite "
     "none."
 )
-# So no decision can open beside the ending.
 ENDING_ASKS_NOTHING = "the adventure is ending: ask nothing; write the growth"
 FILED = (
     "{name}[{entity_id}] is new to the cast, which also holds: {others}. Use one of those ids "
     "when you mean them"
 )
 OFF_SCREEN = "the world moves off screen"
-# Past it, the oldest details give way, so stale beats leave the scene.
 DETAILS_KEPT = 6
-OVERCOME = "the protagonist is overcome; the story decides what that means"
 MEANWHILE_HINT = (
     ". First the world moves while you are away: the question below is about people "
     "elsewhere, not this scene"
 )
-
-Tag = Annotated[str, BeforeValidator(and_for_commas)]
-TagName = Annotated[ShortName, BeforeValidator(and_for_commas)]
-Tags = Annotated[tuple[str, ...], BeforeValidator(listed)]
-
-
-class Loner4eEntity(Person):
-    """A character is a person, an object, a vehicle or a curse."""
-
-    # SRD: the solo player sees everything, so no one is unmet.
-    known: SkipJsonSchema[bool] = True
-    concept: str = ""
-    tags: dict[TagKind, list[Tag]] = Field(default_factory=dict)
-    # Living characters only; the SRD gives none to an object, a vehicle or a curse.
-    goal: str = ""
-    motive: str = ""
-    nemesis: str = ""
-    group: bool = False
-    luck: SkipJsonSchema[Gauge] = Field(
-        default_factory=lambda: Gauge(current=LUCK_MAX, maximum=LUCK_MAX)
-    )
-    living_world: SkipJsonSchema[list[str]] = Field(default_factory=list)
-
-    @model_validator(mode="before")
-    @classmethod
-    def _a_group_pool_by_default(cls, data: object) -> object:
-        if not isinstance(data, dict):
-            return data
-        fields = cast("dict[str, object]", data)
-        if fields.get("group") is not True or "luck" in fields:
-            return fields
-        return {**fields, "luck": {"current": GROUP_LUCK, "maximum": GROUP_LUCK}}
-
-    def tagged(self, kind: TagKind) -> list[str]:
-        return self.tags.get(kind, [])
-
-    def rows(self) -> Rows:
-        return (*self.traits(), ("Luck", str(self.luck)))
-
-    def traits(self) -> Rows:
-        return filled(
-            ("Concept", self.concept),
-            ("Skills", ", ".join(self.tagged("skill"))),
-            ("Frailties", ", ".join(self.tagged("frailty"))),
-            ("Gear", ", ".join(self.tagged("gear"))),
-            ("Conditions", ", ".join(self.tagged("condition"))),
-            ("Relationships", ", ".join(self.tagged("relationship"))),
-            ("Goal", self.goal),
-            ("Motive", self.motive),
-            ("Nemesis", self.nemesis),
-            ("Group", "yes" if self.group else ""),
-        )
-
-    def required(self) -> str:
-        return joined(super().required(), "no living world" if self.living_world else "")
-
-    def change_tags(self, kind: TagKind, gained: Sequence[str], lost: Sequence[str]) -> list[Fact]:
-        here = [tag for tag in lost if self._carrier(tag, kind) == kind]
-        for tag in lost:
-            if (carrier := self._carrier(tag, kind)) != kind:
-                self.tags[carrier] = changed_tags(
-                    self.name, carrier, self.tagged(carrier), (), [tag]
-                )
-        self.tags[kind] = changed_tags(self.name, kind, self.tagged(kind), gained, here)
-        trace = f"{self.mention} {kind} {tag_delta(gained, lost)}"
-        now, gone = ("Took ", "Lost ") if kind == "gear" else ("Now: ", "No longer: ")
-        return [self.fact(trace, card=self.card_line(tag_card(gained, lost, now, gone)))]
-
-    def _carrier(self, tag: str, kind: TagKind) -> TagKind:
-        """A lost tag is lost whichever kind the master names it under."""
-        folded = tag.casefold()
-        for other in (kind, *self.tags):
-            if folded in map(str.casefold, self.tagged(other)):
-                return other
-        return kind
-
-    def drive(self, *, goal: str, motive: str, nemesis: str, concept: str) -> list[Fact]:
-        parts: list[str] = []
-        if concept:
-            self.concept = concept
-            parts.append(f"concept: {concept}")
-        if goal:
-            self.goal = goal
-            parts.append(f"goal: {goal}")
-        if motive:
-            self.motive = motive
-            parts.append(f"motive: {motive}")
-        if nemesis:
-            self.nemesis = nemesis
-            parts.append(f"nemesis: {nemesis}")
-        trace = f"{self.mention} " + "; ".join(parts)
-        shown = (goal, concept and f"Concept: {concept}", nemesis and f"Nemesis: {nemesis}")
-        card = "; ".join(part for part in shown if part)
-        return [self.fact(trace, card=self.card_line(card) if card else "")]
-
-    def refill(self, why: str) -> list[Fact]:
-        return self.change(self.luck, self.luck.shortfall, "Luck", why)
-
-    def spend_luck(self, amount: int, why: str) -> list[Fact]:
-        if amount > self.luck.current:
-            raise Refusal(f"{self.name} has {self.luck.current} luck, not {amount}.")
-        return self.change(self.luck, -amount, "Luck", why)
 
 
 class Framing(Frozen):
@@ -184,11 +72,17 @@ class Framing(Frozen):
 
 
 class Loner4eOpening(Framing, SceneProposal[Loner4eEntity]):
-    pass
+    @model_validator(mode="after")
+    def _scene_id_unfiled(self) -> Self:
+        _check_scene_id_unfiled(self.cast)
+        return self
 
 
 class Loner4eNext(Framing, NextProposal[Loner4eEntity]):
-    pass
+    @model_validator(mode="after")
+    def _scene_id_unfiled(self) -> Self:
+        _check_scene_id_unfiled(self.cast)
+        return self
 
 
 class TagChange(Frozen):
@@ -243,7 +137,6 @@ class Consulted(Frozen):
     outcome: RollOutcome
     chance: Rolled
     risk: Rolled
-    # Doubles outside Harm & Luck: the Twist Counter this question reached, 0 when it rests.
     twist_count: int = 0
 
     @property
@@ -254,7 +147,6 @@ class Consulted(Frozen):
         return [self.chance.fact, self.risk.fact, self._card(*lines, hoped=hoped)]
 
     def _card(self, *lines: str, hoped: bool) -> Fact:
-        """A player's own question may hope for a no, so its answer is read as the words only."""
         outcome = self.outcome
         reading = f": {outcome.reading}" if hoped else ""
         return Fact(
@@ -268,45 +160,13 @@ class Consulted(Frozen):
         return (f"+1 Twist ({self.twist_count}/{DOUBLES_PER_TWIST})",) if self.twist_count else ()
 
 
-class StatusTrack(Mutable):
-    boxes: list[str] = Field(default_factory=list, max_length=STATUS_BOXES)
-
-    @property
-    def active(self) -> str:
-        return self.boxes[-1] if self.boxes else ""
-
-    @property
-    def full(self) -> bool:
-        return len(self.boxes) == STATUS_BOXES
-
-    def line(self) -> str:
-        return f"{self.active or 'clear'} ({len(self.boxes)}/{STATUS_BOXES})"
-
-    def mark(self, column: StatusColumn) -> list[Fact]:
-        """SRD: take the tag from the column of the newest defeat, at the next box."""
-        self.boxes.append(STATUS_TAGS[column][len(self.boxes)])
-        card = f"Status: {self.line()}"
-        overcome = f"; {OVERCOME}" if self.full else ""
-        return [Fact(trace=f"{card}{overcome}", told=True, card=card)]
-
-    def recover(self) -> list[Fact]:
-        if not self.boxes:
-            return []
-        self.boxes.pop()
-        card = f"Status: {self.line()}"
-        return [Fact(trace=f"the protagonist recovers: a box clears; {card}", told=True, card=card)]
-
-
 class Frame(Mutable):
     kind: SceneKind = "dramatic"
     goal: str = ""
     details: list[str] = Field(default_factory=list)
-    # None while the scene is open.
     next: SceneKind | None = None
-    # The world's turn is played before the next scene.
     meanwhile: bool = False
     closed_by: ClosedBy | None = None
-    # The oracle's answer to the Meanwhile's ally question.
     ally: str = ""
     offscreen: str = ""
     twist: str = ""
@@ -352,7 +212,6 @@ class Frame(Mutable):
 
 
 class Loner4eWorld(SceneWorld[Loner4eEntity]):
-    # The played character's tally paces the whole game, so no sheet carries one.
     twist: Gauge = Field(default_factory=lambda: Gauge(current=0, maximum=DOUBLES_PER_TWIST))
     frame: Frame = Field(default_factory=Frame)
     opponent_ids: list[Slug] = Field(default_factory=list)
@@ -360,7 +219,6 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
     status: StatusTrack = Field(default_factory=StatusTrack)
     end_why: str = ""
     ended: bool = False
-    # This turn only: the growth was written.
     grown: bool = Field(default=False, exclude=True)
 
     @model_validator(mode="after")
@@ -370,7 +228,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         return self
 
     def absorb(self, proposal: OpeningProposal) -> None:
-        # Safe: the engine opens on a Loner4eOpening and writes only Loner4eNext.
+        # Safe: the engine writes only this proposal type.
         framing = cast(Framing, proposal)
         self.frame = Frame(kind=self.frame.coming, goal=framing.goal, details=list(framing.details))
 
@@ -399,7 +257,6 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
                 follow = roll((DIE_FACE,), "meanwhile follow-up", rng, label="Transition")
                 facts.append(follow.fact)
                 dice.append(follow.event)
-                # A second 6 cannot chain another meanwhile.
                 quiet = transition_for(follow.face) == "quiet"
                 frame.meanwhile = True
                 frame.next = "quiet" if quiet else "dramatic"
@@ -410,7 +267,6 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         if frame.meanwhile:
             card += MEANWHILE_HINT
         facts.append(Fact(trace=card, told=True, card=card, dice=tuple(dice)))
-        # The worldsmith plays the Meanwhile: the player reads its cards, the story nothing.
         return [
             *facts,
             *(fact.model_copy(update={"trace": OFF_SCREEN}) for fact in meanwhile if fact.told),
@@ -475,7 +331,6 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         return entity.change_tags(update.kind, update.gained, update.lost)
 
     def cut_away(self, updates: Sequence[CastUpdate]) -> list[Fact]:
-        """SRD: cut to whoever holds power. The player reads what moved on one card."""
         facts = [fact for update in updates for fact in self.cut_to(update)]
         self.frame.offscreen = "; ".join(fact.card for fact in facts)
         if not facts:
@@ -509,7 +364,6 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         return question
 
     def met_here(self, entity_id: Slug) -> tuple[Loner4eEntity, list[Fact]]:
-        """Whom the story acts on is here: someone elsewhere enters, a new id files a stranger."""
         known = self._known_id(entity_id)
         if known is not None and (known == self.player.id or known in self.scene.here):
             return self.require_living_here(known), []
@@ -539,13 +393,11 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         return (*rows, ("Status", self.status.line())) if self.status.boxes else rows
 
     def tick_twist(self) -> int:
-        """SRD: doubles tick the counter, except while a Harm & Luck conflict is open."""
         reached = self.twist.current + 1
         self.twist.current = 0 if reached == DOUBLES_PER_TWIST else reached
         return reached
 
     def face(self, opponent: Loner4eEntity) -> list[Fact]:
-        """SRD: luck resets fully when a conflict begins, for every side in it."""
         if opponent.id in self.opponent_ids:
             # Last in the list is the one fought last: an `ask` with no `against_id` faces them.
             self.opponent_ids.remove(opponent.id)
@@ -577,7 +429,6 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         return [*facts, *self.knock_out(spender)], spender
 
     def knock_out(self, loser: Loner4eEntity) -> list[Fact]:
-        """SRD: reaching 0 luck loses the conflict; the protagonist's loss ends it."""
         if loser is self.player:
             return self.end_conflict(f"{loser.name} is out of luck")
         return self.drop_opponent(loser.id)
@@ -602,14 +453,12 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         ]
 
     def enter(self, entity_id: Slug) -> list[Fact]:
-        """An id the story just named files a met stranger, so play goes on."""
         self.require_open()
         known = self._known_id(entity_id)
         if known is not None:
             return super().enter(known)
-        name = entity_id.replace("-", " ").title()
         others = ", ".join(entry.tag for entry in self.cast.values() if entry.alive)
-        self.cast[entity_id] = Loner4eEntity(id=entity_id, name=name, brief="")
+        name = self.file_stranger(entity_id, "").name
         filed = FILED.format(name=name, entity_id=entity_id, others=others or "(no one)")
         return [Fact(trace=filed), *super().enter(entity_id)]
 
@@ -621,7 +470,6 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         return [*super().leave(known), *self.drop_opponent(known)]
 
     def _known_id(self, entity_id: Slug) -> Slug | None:
-        """`crane` names `silas-crane` when no one else carries that part of an id."""
         if entity_id in self.cast or entity_id == self.player.id:
             return entity_id
         found = [key for key in self.cast if f"-{entity_id}-" in f"-{key}-"]
@@ -632,3 +480,8 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
 
 
 Loner4eGame = Game[Loner4eWorld]
+
+
+def _check_scene_id_unfiled(cast: Mapping[Slug, Loner4eEntity]) -> None:
+    if SCENE_ID in cast:
+        raise ValueError(f"no cast entry filed under `{SCENE_ID}`: that id names the scene")

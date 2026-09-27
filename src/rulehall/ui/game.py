@@ -1,8 +1,6 @@
 from asyncio import get_running_loop
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from functools import partial
-from itertools import groupby
 from pathlib import Path
 from typing import Self
 
@@ -26,8 +24,7 @@ from rulehall.ui.widgets import (
     Confirm,
     Sounds,
     alert,
-    choice_button,
-    decision_options,
+    choice_groups,
     heading,
     icon_button,
     media_url,
@@ -36,6 +33,7 @@ from rulehall.ui.widgets import (
     warn,
 )
 
+CHOICES_ROW = "row w-full items-start game-choices game-gap-md"
 SOUND_ICONS = {True: "sym_r_volume_up", False: "sym_r_volume_off"}
 
 
@@ -71,7 +69,6 @@ class Snapshot:
     def rolled_since(self, drawn: Self) -> bool:
         if len(self.history) > len(drawn.history):
             newest = self.history[-1]
-            # The battle's closing exchange repeats the throws, whose dice already played live.
             seen = drawn.progress.fact_count
             if newest.cause != "battle" and transcript.rolled_since(newest.facts, seen):
                 return True
@@ -156,14 +153,17 @@ class DecisionPanel:
         if not pending.options:
             return
         with banner:
-            decision_options(pending.options, self.play, enabled=enabled)
+            choice_groups(
+                pending.options,
+                lambda option: self.play(Answer(option_id=option.id)),
+                enabled=enabled,
+                row_class=CHOICES_ROW,
+            )
             if pending.allows_text:
                 ui.label("Or answer in your own words below.").classes("game-hint")
 
 
 class GamePage:
-    """One page object per browser tab; several tabs can share one session."""
-
     def __init__(self, session: GameService) -> None:
         self.session = session
         self.drawn: Snapshot
@@ -238,7 +238,6 @@ class GamePage:
     def tick(self) -> None:
         now, drawn = Snapshot.of(self.session), self.drawn
         if now.progress.working_role != drawn.progress.working_role:
-            # Its buttons were enabled for the old step and its rows are the old view's.
             self.row_dialog.close()
         if now.rolled_since(drawn):
             self.sounds.play(DICE_CLIP)
@@ -281,7 +280,7 @@ class GamePage:
     def header(self) -> None:
         session = self.session
         with page_header(
-            session.state.scenario.title, session.engine.title, look=session.engine.look
+            session.state.scenario_description.title, session.engine.title, look=session.engine.look
         ):
             ui.space()
             self.rewind_button = icon_button("sym_r_undo", "Rewind last turn", self.rewind)
@@ -331,7 +330,7 @@ class GamePage:
                 .props('autogrow type=textarea borderless input-style="max-height: 9rem"')
                 .props(remove="outlined")
             )
-            self.box.bind_value(app.storage.tab, f"draft:{self.session.target.slug}")
+            self.box.bind_value(app.storage.tab, f"draft:{self.session.target.save_id}")
             # Enter sends on a fine pointer only; a touch keyboard's Enter must stay a newline.
             self.box.on(
                 "keydown.enter",
@@ -352,25 +351,16 @@ class GamePage:
         self.row_dialog.clear()
         now = self.drawn
         reason = transcript.CLOSED_REASONS[now.blocker]
-        groups = [
-            (group, tuple(options))
-            for group, options in groupby(row.options, key=lambda option: option.group)
-        ]
         with self.row_dialog, ui.card().classes("game-row-dialog game-gap-md"):
             panel_row(row, self.session.icon)
             if reason and row.options:
                 ui.label(reason).classes("game-hint")
-            for group, options in groups:
-                if len(groups) > 1:
-                    heading(group)
-                with ui.row().classes("w-full items-start game-choices game-gap-md"):
-                    for option in options:
-                        choice_button(
-                            option.name,
-                            option.refusal or option.brief,
-                            partial(self.use_panel_option, option),
-                            enabled=not reason and not option.refusal,
-                        )
+            choice_groups(
+                row.options,
+                self.use_panel_option,
+                enabled=not reason,
+                row_class=CHOICES_ROW,
+            )
             for panel in row.detail:
                 heading(panel.title)
                 for each in panel.rows:
@@ -454,7 +444,6 @@ class GamePage:
                     ui.label(line)
 
     async def restart(self) -> None:
-        # A menu action, not a composer double-click: any refusal here must reach the player.
         try:
             await self.session.restart()
         except Refusal as error:
@@ -468,7 +457,7 @@ class GamePage:
         if not history:
             await self.restart()
             return
-        title = self.session.state.scenario.title
+        title = self.session.state.scenario_description.title
         if await self.restart_dialog.ask(f"Restart {title}? {len(history)} turns are erased."):
             await self.restart()
 
@@ -533,7 +522,6 @@ class GamePage:
                 opener.cancel()
 
     async def _run(self, playing: Callable[[], Awaitable[None]]) -> bool:
-        # The composer greys at once, not at the next tick: a second Enter has nothing to hit.
         for widget in (self.box, self.send_button, self.composer_button):
             widget.set_enabled(False)
         try:
@@ -553,7 +541,6 @@ class GamePage:
         finally:
             if not self.box.is_deleted:
                 self.tick()
-            # A move that changed nothing must not pull a reader down on the next change.
             self.own_move = False
         return True
 

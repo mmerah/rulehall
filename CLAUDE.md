@@ -37,8 +37,9 @@ The tests run offline. They give the same result every time.
 - Validate data at each boundary with strict models. Reject bad data at once.
 - A message for a person or a model is a `Refusal`. Any other exception is a bug. Do not catch it.
 - Use the same field names for the same things. An id field ends in `_id`.
-- An engine package holds `engine.py`, `world.py`, `args.py` and `pack.py`; a family base holds `worldsmith.py` instead of `pack.py`. The engines root holds the shared `worldsmith.py`. `rules.py` holds pure rules only (no world or engine import); `panels.py` holds the engine's own page panels. Each exists only when needed. A subpackage holds one engine-specific concern of several files.
-- Inside an engine, imports flow `rules <- world <- args <- panels <- engine`. Data and contract modules (Pokemon's `dex.py`, `battle/models.py`) sit below `rules`; the rest of a subpackage sits between `panels` and `engine`.
+- Every leaf engine holds the same files: `sheet.py` (the person model, its sheet and their parts), `world.py` (the world, its sub-state and the worldsmith proposal models), `args.py` (argument models and their field descriptions only), `panels.py` (every panel, pending option and pending decision builder), `pack.py` and `engine.py` (the engine and the notes, cards and facts it sends). `rules.py` holds pure rules only, and exists only when needed.
+- A family base (`rooms`, `scenes`) holds `world.py`, `args.py`, `panels.py`, `worldsmith.py` and `engine.py`. The engines root holds the shared `worldsmith.py`. A subpackage holds one engine-specific concern of several files.
+- Inside an engine, imports flow `rules <- sheet <- world <- args <- panels <- engine`. Data and contract modules (Pokemon's `dex.py`, `battle/models.py`) sit below `rules`; the rest of a subpackage sits between `panels` and `engine`.
 - Do not add an abstraction before two things need it.
 - Do not build for future needs.
 - Names must explain themselves. Add a comment only when the code cannot show the reason.

@@ -4,7 +4,9 @@ from support.game import ENGINE, MARA, initialized, loner_sheet
 
 from rulehall.core.views import Panel
 from rulehall.engines.entities import PLAYER_ID
-from rulehall.engines.loner4e.args import BREAK_AWAY, BROKE_AWAY, DEFEATED, MOVE_ON, Ask, SpendLuck
+from rulehall.engines.loner4e.args import Ask, SpendLuck
+from rulehall.engines.loner4e.engine import BROKE_AWAY, DEFEATED
+from rulehall.engines.loner4e.panels import BREAK_AWAY, MOVE_ON
 from rulehall.engines.loner4e.rules import DOUBLES_PER_TWIST, LUCK_MAX, outcome_for
 from rulehall.engines.loner4e.world import Loner4eGame
 

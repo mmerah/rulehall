@@ -35,7 +35,6 @@ class Settled(Frozen):
 
 
 class Scene(Mutable):
-    # Names the art cache entry, so returning to a place reuses its picture.
     place_id: Slug
     location: str = Field(min_length=1)
     title: str
@@ -81,7 +80,6 @@ class SceneProposal[C: Person](Frozen, OpeningProposal):
 
     @model_validator(mode="after")
     def _hidden_unmet(self) -> Self:
-        """A new entry the scene hides is one the player has not met, whatever `known` says."""
         for key in self.hidden:
             if (entry := self.cast.get(key)) is not None:
                 entry.known = False
@@ -119,7 +117,6 @@ class SceneWorld[C: Person](World[C]):
 
     @classmethod
     def opening(cls, proposal: SceneProposal[C], player: C) -> Self:
-        """The player is added by code and never authored, so no scenario can claim their id."""
         cast, scene = built_scene(proposal, player, dict(proposal.cast), (), proposal.location)
         return parse(cls, {"player": player, "cast": cast, "scenes": [scene], "arc": proposal.arc})
 
@@ -134,7 +131,6 @@ class SceneWorld[C: Person](World[C]):
         return [entity_id for entity_id in self.scene.here if not self.cast[entity_id].known]
 
     def last_seen(self, entity_id: Slug) -> str:
-        """Scans every scene, so an entity the story dropped is still placed."""
         for scene in reversed(self.scenes):
             if entity_id in scene.here:
                 return f"last seen in: {scene.title}"
@@ -182,7 +178,6 @@ class SceneWorld[C: Person](World[C]):
         return self.require_living_here(entity_id)
 
     def people(self) -> Iterable[C]:
-        """The whole cast, not this scene's: a sheet row outlives its scene."""
         return (self.player, *self.cast.values())
 
     def others(self) -> Iterator[C]:
@@ -253,7 +248,6 @@ class SceneWorld[C: Person](World[C]):
     def leave(self, entity_id: Slug) -> list[Fact]:
         if entity_id == self.player.id:
             raise Refusal("the player is in every scene; move the story on instead")
-        # A body stays where it fell.
         if entity_id not in self.cast or not self.cast[entity_id].alive:
             return []
         entity = self.require_living_here(entity_id)
@@ -266,6 +260,11 @@ class SceneWorld[C: Person](World[C]):
     def kill(self, entity_id: Slug) -> list[Fact]:
         entity = self.require_here(entity_id)
         return [entity.fact(f"{entity.mention} is dead", card=self.die(entity))]
+
+    def file_stranger(self, entity_id: Slug, brief: str) -> C:
+        stranger = type(self.player)(id=entity_id, name=stranger_name(entity_id), brief=brief)
+        self.cast[entity_id] = stranger
+        return stranger
 
     def merged_cast(self, cast: Mapping[Slug, C]) -> dict[Slug, C]:
         return {
@@ -297,9 +296,7 @@ def built_scene[C: Person](
     party: Sequence[Slug],
     location: str,
 ) -> tuple[dict[Slug, C], Scene]:
-    """The world may not exist yet, so this takes the cast and the party as arguments."""
     everyone: Mapping[Slug, Thing] = {player.id: player, **cast}
-    # Code places the player and the party, so a worldsmith that lists them is not followed.
     placed = {player.id, *party}
     present = [
         who for who in resolved_ids(proposal.present, everyone, "present") if who not in placed
@@ -317,6 +314,10 @@ def built_scene[C: Person](
     return cast, scene
 
 
+def stranger_name(entity_id: Slug) -> str:
+    return entity_id.replace("-", " ").title()
+
+
 def check_named(here: Sequence[Slug], cast: Mapping[Slug, Thing]) -> None:
     check_unique("ids in the scene", here)
     for who in here:
@@ -325,7 +326,6 @@ def check_named(here: Sequence[Slug], cast: Mapping[Slug, Thing]) -> None:
 
 
 def resolved_id(wanted: str, cast: Mapping[Slug, Thing]) -> Slug | None:
-    """Ids are the worldsmith's failure mode: an unknown one matches a cast name before refusal."""
     if wanted in cast:
         return wanted
     matches = [entry.id for entry in cast.values() if entry.name.casefold() == wanted.casefold()]

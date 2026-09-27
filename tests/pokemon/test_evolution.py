@@ -4,7 +4,9 @@ from support.pokemon import ENGINE, started
 from support.table import change, refused
 
 from rulehall.engines.pokemon.battle.models import BattleResult
-from rulehall.engines.pokemon.world import Mon, PokemonGame
+from rulehall.engines.pokemon.panels import pending_decision
+from rulehall.engines.pokemon.sheet import Mon
+from rulehall.engines.pokemon.world import PokemonGame
 
 
 def test_friendship_evolves_at_a_level_up_from_160_inside_the_region() -> None:
@@ -44,7 +46,7 @@ def test_two_candidates_open_an_evolution_decision() -> None:
 
     _level_up(draft, eevee)
 
-    decision = draft.world.next_decision()
+    decision = pending_decision(draft.world)
     assert decision is not None
     assert decision.kind == "evolution"
     assert [option.id for option in decision.options] == ["espeon", "umbreon"]
@@ -52,7 +54,7 @@ def test_two_candidates_open_an_evolution_decision() -> None:
     _ = ENGINE.play_option(draft, umbreon, Random(0))
     assert eevee.species_id == "umbreon"
     assert draft.world.evolving == []
-    assert draft.world.next_decision() is None
+    assert pending_decision(draft.world) is None
 
 
 def test_the_linking_cord_needs_the_held_item_of_a_trade_evolution() -> None:
@@ -90,7 +92,7 @@ def test_an_evolution_follows_the_gender() -> None:
     assert male.species_id == "gallade"
     _level_up(draft, espurr)
     assert espurr.species_id == "meowsticf"
-    assert draft.world.next_decision() is None
+    assert pending_decision(draft.world) is None
 
 
 def _in(draft: PokemonGame, pack_id: str) -> None:
@@ -110,6 +112,9 @@ def _level_up(draft: PokemonGame, mon: Mon) -> None:
     assert draft.world.battle is not None
     setup = draft.world.battle.setup
     result = BattleResult(
-        outcome="won", team=setup.team, fainted_foes=setup.foes, on_field=(setup.team[0].mon_id,)
+        outcome="won",
+        team=setup.team,
+        fainted_foes=setup.foes,
+        on_field_mon_ids=(setup.team[0].mon_id,),
     )
     _ = ENGINE.end_battle(draft, result)

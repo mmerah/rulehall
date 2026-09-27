@@ -17,7 +17,8 @@ from rulehall.core.model import AnyGame, WorldsmithRequest
 from rulehall.core.validation import Refusal, Slug
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.hiring import HIRE, SIGNED_ON
-from rulehall.engines.tunnelgoons.world import GoonSheet, TunnelGoonsGame
+from rulehall.engines.tunnelgoons.sheet import GoonSheet
+from rulehall.engines.tunnelgoons.world import TunnelGoonsGame
 from rulehall.engines.twentyfourxx.world import TwentyFourXXGame
 
 TERMS = "Watch our backs"

@@ -9,8 +9,8 @@ from rulehall.app.turn import Turn
 from rulehall.core.facts import cards
 from rulehall.core.play import Answer, SpokenLine
 from rulehall.engines.entities import PLAYER_ID
-from rulehall.engines.loner4e.args import BROKE_AWAY
-from rulehall.engines.loner4e.world import Loner4eEntity
+from rulehall.engines.loner4e.engine import BROKE_AWAY
+from rulehall.engines.loner4e.sheet import Loner4eEntity
 
 
 def test_a_name_the_player_is_told_or_narrated_is_met_where_loner_refused_it() -> None:

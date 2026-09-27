@@ -12,8 +12,6 @@ from rulehall.core.validation import Refusal
 from rulehall.engines.entities import PLAYER_ID
 from rulehall.engines.scenes.world import SceneProposal
 from rulehall.engines.twentyfourxx.args import (
-    SCENE_LEFT,
-    WAY_OFFERED,
     Defence,
     Helper,
     Job,
@@ -21,14 +19,9 @@ from rulehall.engines.twentyfourxx.args import (
     Raise,
     Roll,
 )
-from rulehall.engines.twentyfourxx.world import (
-    SHIP_AWAY,
-    STARTING_CREDITS,
-    UPGRADE_COST,
-    Crewmate,
-    Gear,
-    TwentyFourXXGame,
-)
+from rulehall.engines.twentyfourxx.engine import SCENE_LEFT, WAY_OFFERED
+from rulehall.engines.twentyfourxx.sheet import STARTING_CREDITS, Crewmate, Gear
+from rulehall.engines.twentyfourxx.world import SHIP_AWAY, UPGRADE_COST, TwentyFourXXGame
 
 
 def _rolled(draft: TwentyFourXXGame, roll: Roll, *, seed: int = 0) -> list[Fact]:
@@ -666,8 +659,7 @@ def test_a_death_with_no_hired_crew_asks_who_joins(draft: TwentyFourXXGame) -> N
 def test_a_hired_member_let_go_by_the_master_or_the_player_is_crew_no_more() -> None:
     for let_go in (change, run_action):
         draft = hired(small_world(), KESTREL, skills={"Shooting": 8}).draft()
-        name = "leave_party" if let_go is change else "let_go"
-        facts = let_go(ENGINE, draft, name, target_id=KESTREL)
+        facts = let_go(ENGINE, draft, "leave_party", target_id=KESTREL)
         assert [(fact.trace, fact.told) for fact in facts] == [
             ("Kestrel[kestrel] is no longer with the crew", True)
         ]

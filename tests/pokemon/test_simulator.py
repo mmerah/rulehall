@@ -248,7 +248,7 @@ def test_each_outcome_reads_the_dump(
     assert result.outcome == expected
     assert result.team[0].hp == player_hp
     assert [move.pp for move in result.team[0].moves] == [40, 60]
-    assert result.on_field == ("pikachu",)
+    assert result.on_field_mon_ids == ("pikachu",)
     assert result.fainted_foes == ((RATTATA,) if foe_hp == 0 else ())
     if expected == "caught":
         assert result.caught is not None

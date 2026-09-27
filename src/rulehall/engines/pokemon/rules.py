@@ -57,8 +57,6 @@ LEGENDARY_AT = 3
 SPECIES_ID = "A species id from SPECIES."
 NICKNAME_MAX = 12
 NICKNAME_MARKS = " '-"
-# Moves that fail, recharge, take two turns, faint the user, strike later or change type in
-# Showdown.
 SIGNATURE_EXCLUDED = frozenset(
     (
         *("hyperbeam", "gigaimpact", "lastresort", "focuspunch", "selfdestruct", "explosion"),
@@ -103,7 +101,6 @@ class Item(Frozen):
     kind: Literal["ball", "potion", "full-heal", "revive", "candy", "held", "evolution", "tm"]
     catch_bonus: int = 0
     heal: int = 0
-    # Only where the dex has no text for the item.
     text: str = ""
 
 
@@ -287,7 +284,7 @@ def evolved(species_id: Slug, level: int, pool: Collection[Slug]) -> Slug:
     species = dex().species
     while steps := sorted(
         evo_id
-        for evo_id in species[species_id].evos
+        for evo_id in species[species_id].evolution_species_ids
         if evo_id in pool and _levels_into(species[evo_id], level)
     ):
         species_id = steps[0]

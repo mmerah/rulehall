@@ -5,12 +5,8 @@ from support.twentyfourxx import ENGINE, KESTREL, hired, small_world
 from rulehall.core.validation import Refusal
 from rulehall.engines.entities import PLAYER_ID
 from rulehall.engines.twentyfourxx.rules import raised
-from rulehall.engines.twentyfourxx.world import (
-    STARTING_CREDITS,
-    Gear,
-    TwentyFourXXGame,
-    TwentyFourXXWorld,
-)
+from rulehall.engines.twentyfourxx.sheet import STARTING_CREDITS, Gear
+from rulehall.engines.twentyfourxx.world import TwentyFourXXGame, TwentyFourXXWorld
 
 
 def test_item_broken_at_and_below_breaks() -> None:

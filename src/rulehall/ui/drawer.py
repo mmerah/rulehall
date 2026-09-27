@@ -159,7 +159,6 @@ class Drawer:
                 ):
                     for name in self.names:
                         ui.tab(name, icon=TAB_ICONS.get(name, PANEL_TAB_ICON))
-                # Below 600px the drawer covers the header, so it needs its own close button.
                 icon_button("sym_r_close", "Close", self.side.hide).classes("lt-sm")
             with ui.tab_panels(self.tab_bar, value=SCENE_TAB).classes("w-full flex-grow"):
                 for tab in self.tabs:

@@ -9,12 +9,12 @@ from rulehall.core.validation import Frozen, Slug
 from rulehall.engines.loner4e.rules import MEANWHILE_QUESTION
 from rulehall.engines.packs import (
     NPCS,
+    Block,
+    CastPack,
     Named,
-    Pack,
     PackBody,
     PackHead,
     block_line,
-    bullets,
     check_items,
     check_lines,
     with_ids,
@@ -128,7 +128,7 @@ class LivingWorld(Frozen):
         return (*people, *self.places, *self.events)
 
 
-class Loner4eBlock(Frozen):
+class Loner4eBlock(Block):
     """A faction, an npc or a monster, as the SRD prints it. The worldsmith copies it into cast."""
 
     name: str = Field(min_length=1)
@@ -161,17 +161,14 @@ class Loner4eBlock(Frozen):
         )
 
 
-class Loner4ePack(Pack):
+class Loner4ePack(CastPack[Loner4eBlock]):
     concepts: tuple[DecisionOption, ...] = Field(min_length=1)
     skills: tuple[DecisionOption, ...] = Field(min_length=1)
     frailties: tuple[DecisionOption, ...] = Field(min_length=1)
     gear: tuple[DecisionOption, ...] = Field(min_length=1)
-    spends_luck: bool = False  # AP01: `rules` spends Luck, so `spend_luck` is allowed
-    factions: tuple[Loner4eBlock, ...] = ()
-    npcs: tuple[Loner4eBlock, ...] = ()
-    monsters: tuple[Loner4eBlock, ...] = ()
+    spends_luck: bool = False
 
-    def sections(self, *, opening: bool) -> Sections:
+    def table_sections(self) -> Sections:
         tags = "\n".join(
             f"{kind}: {', '.join(entry.name for entry in entries)}"
             for kind, entries in (
@@ -181,13 +178,7 @@ class Loner4ePack(Pack):
                 ("gear", self.gear),
             )
         )
-        return (
-            *super().sections(opening=opening),
-            ("TRAIT TAGS", tags),
-            *bullets("FACTIONS", (block.line() for block in self.factions)),
-            *bullets("PEOPLE", (block.line() for block in self.npcs)),
-            *bullets("MONSTERS", (block.line() for block in self.monsters)),
-        )
+        return (("TRAIT TAGS", tags),)
 
 
 class Loner4eHead(PackHead):

@@ -27,12 +27,12 @@ class Species(Frozen):
     abilities: tuple[str, ...] = Field(min_length=1)
     gender: Literal["M", "F", "N", ""]
     male_share: float
-    evos: tuple[Slug, ...]
+    evolution_species_ids: tuple[Slug, ...]
     evo_level: int | None
     evo_type: EvoType | None
     evo_item: str | None
     evo_condition: str | None
-    evo_move: Slug | None
+    evolution_move_id: Slug | None
     evolutions_left: int
     tags: tuple[str, ...]
     levelup: tuple[tuple[int, Slug], ...]
@@ -48,7 +48,6 @@ class Move(Frozen):
     type: str
     category: Literal["Physical", "Special", "Status"]
     power: int = Field(ge=0)
-    # None: the move never misses.
     accuracy: int | None
     pp: int
     tm: bool

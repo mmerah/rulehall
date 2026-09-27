@@ -7,7 +7,8 @@ from support.table import change, refused
 from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.battle.models import BattleResult, BattleSetup
 from rulehall.engines.pokemon.rules import RosterSlot
-from rulehall.engines.pokemon.world import PokemonGame, PokemonRegion, Trainer
+from rulehall.engines.pokemon.sheet import Trainer
+from rulehall.engines.pokemon.world import PokemonGame, PokemonRegion
 from rulehall.engines.rooms.world import Place
 
 TEAM_BEATEN = "The team is beaten. Your journey is complete."
@@ -18,9 +19,9 @@ def test_beating_the_operation_leader_foils_it_and_reveals_a_stage() -> None:
 
     resolution = ENGINE.end_battle(draft, _won(_battle(draft, "vesper")))
 
-    world = draft.world
-    assert (world.foiled, world.succeeded, world.operation) == (1, 0, None)
-    stage = world.require_scheme().stages[0]
+    evil_team = draft.world.evil_team
+    assert (evil_team.foiled, evil_team.succeeded, evil_team.operation) == (1, 0, None)
+    stage = evil_team.require_scheme().stages[0]
     assert any(fact.told and stage in fact.trace for fact in resolution.facts)
     assert draft.notes[-1] == "The team's operation at Gull Cove is foiled."
 
@@ -30,9 +31,9 @@ def test_a_badge_earned_while_the_operation_is_open_makes_it_succeed_and_hold_it
 
     _ = ENGINE.end_battle(draft, _won(_battle(draft, "ines")))
 
-    world = draft.world
-    assert (world.foiled, world.succeeded, world.operation) == (0, 1, None)
-    assert world.held_ways == [("gull-cove", "harbour-road")]
+    evil_team = draft.world.evil_team
+    assert (evil_team.foiled, evil_team.succeeded, evil_team.operation) == (0, 1, None)
+    assert evil_team.held_ways == [("gull-cove", "harbour-road")]
     assert refused(ENGINE, draft, "unlock_way", to_id="gull-cove") == (
         "Grunts of Team Undertow hold this way"
     )
@@ -43,21 +44,21 @@ def test_a_way_that_would_cut_a_place_off_closes_a_center_instead() -> None:
     world = draft.world
     for start, end in (("gull-cove", "tern-harbour"), ("tern-harbour", "gull-cove")):
         world.ways[start] = [way for way in world.ways[start] if way.to_id != end]
-    world.centers.append("tern-harbour")
+    world.center_place_ids.append("tern-harbour")
     setup = _battle(draft, "vesper")
 
     _ = ENGINE.end_battle(
-        draft, BattleResult(outcome="lost", team=setup.team, fainted_foes=(), on_field=())
+        draft, BattleResult(outcome="lost", team=setup.team, fainted_foes=(), on_field_mon_ids=())
     )
 
-    assert world.succeeded == 1
-    assert world.held_ways == []
-    assert world.centers == ["tern-harbour"]
+    assert world.evil_team.succeeded == 1
+    assert world.evil_team.held_ways == []
+    assert world.center_place_ids == ["tern-harbour"]
 
 
 def test_a_region_without_the_operation_that_is_owed_is_refused() -> None:
     draft = started().draft()
-    draft.world.operation = None
+    draft.world.evil_team.operation = None
     region = PokemonRegion(
         places={"reef": Place(id="reef", name="Reef", brief="b", known=False, description="d")},
         start_id="reef",
@@ -74,9 +75,9 @@ def test_the_boss_ace_rises_with_each_success_and_the_legendary_joins_at_three()
     boss = _boss(draft)
     pool = ENGINE.packs.require(draft.pack_id).species
 
-    world.succeeded = 1
+    world.evil_team.succeeded = 1
     once = world.trainer_team(boss, pool, Random(0))
-    world.succeeded = 3
+    world.evil_team.succeeded = 3
     thrice = world.trainer_team(boss, pool, Random(0))
 
     assert [(mon.species_id, mon.level) for mon in once] == [("zubat", 12), ("grimer", 14)]
@@ -93,7 +94,7 @@ def test_beating_the_boss_ends_the_journey_with_an_epilogue() -> None:
 
     resolution = ENGINE.end_battle(draft, _won(_battle(draft, "boss")))
 
-    assert draft.world.boss_beaten
+    assert draft.world.evil_team.boss_beaten
     assert ENGINE.ending(draft) == TEAM_BEATEN
     assert (resolution.narrator_cue or "").startswith("The boss is beaten.")
 
@@ -116,7 +117,7 @@ def _boss(draft: PokemonGame) -> Trainer:
         avatar_id="veteran",
     )
     world.npcs[boss.id] = boss
-    world.boss_id = boss.id
+    world.evil_team.boss_id = boss.id
     return boss
 
 
@@ -131,5 +132,8 @@ def _battle(draft: PokemonGame, trainer_id: str) -> BattleSetup:
 
 def _won(setup: BattleSetup) -> BattleResult:
     return BattleResult(
-        outcome="won", team=setup.team, fainted_foes=setup.foes, on_field=(setup.team[0].mon_id,)
+        outcome="won",
+        team=setup.team,
+        fainted_foes=setup.foes,
+        on_field_mon_ids=(setup.team[0].mon_id,),
     )

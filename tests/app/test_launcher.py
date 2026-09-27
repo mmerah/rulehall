@@ -22,11 +22,11 @@ from support.table import (
     updated,
 )
 
-from rulehall.app.launch import LauncherCatalog
+from rulehall.app.launch import LauncherCatalog, scenario_models
 from rulehall.app.runtime import Runtime
 from rulehall.config import Settings
 from rulehall.core.io import ENCODING, FileStore, Library
-from rulehall.core.model import ScenarioMeta
+from rulehall.core.model import ScenarioDescription
 from rulehall.core.validation import EngineId, Refusal
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.loner4e.engine import Loner4eEngine
@@ -47,7 +47,9 @@ KAEL_FOR_EACH = [
 
 def _catalog(settings: Settings, engines: Mapping[EngineId, AnyEngine]) -> LauncherCatalog:
     library = Library(settings.scenarios_dir, settings.characters_dir, NO_SHIPPED)
-    return LauncherCatalog.read(library, FileStore(settings.saves_dir), engines)
+    return LauncherCatalog.read(
+        library, FileStore(settings.saves_dir), engines, scenario_models(engines)
+    )
 
 
 def _opening_state(settings: Settings) -> Loner4eGame:
@@ -76,9 +78,9 @@ def _retitled(tmp_path: Path) -> Path:
     scenarios = _scenarios_copy(tmp_path)
     world = scenarios / "whispering-vault" / "world.json"
     canon: dict[str, JsonValue] = json.loads(world.read_text(encoding=ENCODING))
-    meta = canon["meta"]
-    assert isinstance(meta, dict)
-    canon["meta"] = meta | {"title": "The Vault, Renamed"}
+    description = canon["description"]
+    assert isinstance(description, dict)
+    canon["description"] = description | {"title": "The Vault, Renamed"}
     _ = world.write_text(json.dumps(canon), encoding=ENCODING)
     return scenarios
 
@@ -122,8 +124,8 @@ type BadSave = tuple[Settings, Mapping[EngineId, AnyEngine], str]
 
 def _playing_another_engine(tmp_path: Path) -> BadSave:
     """The scenario and the character are both still there; only the rules disagree."""
-    FileStore(tmp_path).write(TARGET.slug, _opening_state(offline_settings(tmp_path)))
-    return offline_settings(tmp_path, _declaring(tmp_path, MIRROR)), INSTALLED, TARGET.slug
+    FileStore(tmp_path).write(TARGET.save_id, _opening_state(offline_settings(tmp_path)))
+    return offline_settings(tmp_path, _declaring(tmp_path, MIRROR)), INSTALLED, TARGET.save_id
 
 
 def _filed_under_another_stem(tmp_path: Path) -> BadSave:
@@ -134,19 +136,19 @@ def _filed_under_another_stem(tmp_path: Path) -> BadSave:
 
 def _playing_an_uninstalled_pack(tmp_path: Path) -> BadSave:
     settings = offline_settings(tmp_path)
-    FileStore(tmp_path).write(TARGET.slug, updated(_opening_state(settings), pack_id="gone"))
-    return settings, ENGINES_BUILT, TARGET.slug
+    FileStore(tmp_path).write(TARGET.save_id, updated(_opening_state(settings), pack_id="gone"))
+    return settings, ENGINES_BUILT, TARGET.save_id
 
 
 def _whose_scenario_drifted(tmp_path: Path) -> BadSave:
-    FileStore(tmp_path).write(TARGET.slug, _opening_state(offline_settings(tmp_path)))
-    return offline_settings(tmp_path, _retitled(tmp_path)), ENGINES_BUILT, TARGET.slug
+    FileStore(tmp_path).write(TARGET.save_id, _opening_state(offline_settings(tmp_path)))
+    return offline_settings(tmp_path, _retitled(tmp_path)), ENGINES_BUILT, TARGET.save_id
 
 
 def _that_will_not_restore(tmp_path: Path) -> BadSave:
     settings = offline_settings(tmp_path)
     state = _opening_state(settings)
-    FileStore(tmp_path).write(TARGET.slug, state)
+    FileStore(tmp_path).write(TARGET.save_id, state)
     broken = state.model_dump(mode="json")
     broken["world"]["cast"]["ghost"] = {"name": "Ghost"}
     _ = (tmp_path / "unopenable.json").write_text(json.dumps(broken), encoding=ENCODING)
@@ -155,7 +157,7 @@ def _that_will_not_restore(tmp_path: Path) -> BadSave:
 
 def _that_is_not_utf8(tmp_path: Path) -> BadSave:
     settings = offline_settings(tmp_path)
-    FileStore(tmp_path).write(TARGET.slug, _opening_state(settings))
+    FileStore(tmp_path).write(TARGET.save_id, _opening_state(settings))
     _ = (tmp_path / "binary.json").write_bytes(b"\xff\xfe not text")
     return settings, ENGINES_BUILT, "binary"
 
@@ -188,7 +190,9 @@ def test_a_save_the_launcher_cannot_resume_is_skipped_not_listed(
     catalog = _catalog(settings, engines)
 
     written = sorted(path.stem for path in tmp_path.glob("*.json"))
-    assert [save.target.slug for save in catalog.saves] == [stem for stem in written if stem != bad]
+    assert [save.target.save_id for save in catalog.saves] == [
+        stem for stem in written if stem != bad
+    ]
     assert bad in catalog.unresumable
 
 
@@ -227,27 +231,29 @@ async def test_a_written_opening_becomes_a_playable_scenario(tmp_path: Path) -> 
     spawner = ScriptedSpawner(answers={"worldsmith": [thin, json.dumps(_OPENING)]})
     runtime = Runtime(settings, spawner=spawner)
 
-    meta = ScenarioMeta(
+    description = ScenarioDescription(
         title="The Sunken Bell",
         premise="The tide took the lower town.",
         backdrop="Plain.",
         scope="One crossing, before the tide turns.",
         art_style="woodcut",
     )
-    name = await runtime.new_scenario(LONER4E, meta, None, "srd", "kael")
+    scenario_id = await runtime.new_scenario(LONER4E, description, None, "srd", "kael")
 
     # The scene bar refuses the first answer, and the reason goes back with the re-prompt.
     assert "these name nobody" in spawner.prompts[1][1]
     # The selected pack is the setting's vocabulary, so the worldsmith is given its tables.
     assert "Quiet Hands" in spawner.prompt("worldsmith")
     catalog = _catalog(settings, runtime.engines)
-    state = runtime.session(catalog.target(name, "kael")).state
-    assert (name, len(state.exchanges())) == ("the-sunken-bell", 0)
+    state = runtime.session(catalog.target(scenario_id, "kael")).state
+    assert (scenario_id, len(state.exchanges())) == ("the-sunken-bell", 0)
     assert state.world.scene.title == "The Bell Under the Water"
     assert state.world.player.name == "Kael"
     assert state.source.startswith("PREMISE:")
-    world = json.loads((settings.scenarios_dir / name / "world.json").read_text(encoding=ENCODING))
-    assert world["meta"]["art_style"] == "woodcut"
+    world = json.loads(
+        (settings.scenarios_dir / scenario_id / "world.json").read_text(encoding=ENCODING)
+    )
+    assert world["description"]["art_style"] == "woodcut"
 
 
 async def test_an_opening_the_rules_will_not_play_never_reaches_disk(tmp_path: Path) -> None:
@@ -267,7 +273,7 @@ async def test_an_opening_the_rules_will_not_play_never_reaches_disk(tmp_path: P
     with pytest.raises(Refusal, match="the worldsmith answered nothing usable"):
         _ = await runtime.new_scenario(
             LONER4E,
-            ScenarioMeta(
+            ScenarioDescription(
                 title="The Sunken Bell",
                 premise="The tide.",
                 backdrop="Plain.",
@@ -283,10 +289,12 @@ async def test_an_opening_the_rules_will_not_play_never_reaches_disk(tmp_path: P
 
 async def test_a_scenario_for_unknown_rules_is_refused(tmp_path: Path) -> None:
     runtime = Runtime(offline_settings(tmp_path), spawner=ScriptedSpawner())
-    meta = ScenarioMeta(title="Nowhere", premise="Nothing.", backdrop="Plain.", scope="Brief.")
+    description = ScenarioDescription(
+        title="Nowhere", premise="Nothing.", backdrop="Plain.", scope="Brief."
+    )
 
     with pytest.raises(Refusal, match="no rules 'nowhere'"):
-        _ = await runtime.new_scenario(EngineId("nowhere"), meta, None, "srd", "kael")
+        _ = await runtime.new_scenario(EngineId("nowhere"), description, None, "srd", "kael")
 
 
 async def test_a_scenario_written_from_a_document_carries_its_text(tmp_path: Path) -> None:
@@ -294,16 +302,18 @@ async def test_a_scenario_written_from_a_document_carries_its_text(tmp_path: Pat
     spawner = ScriptedSpawner(answers={"worldsmith": [json.dumps(_OPENING)]})
     runtime = Runtime(offline_settings(tmp_path, scenarios), spawner=spawner)
 
-    name = await runtime.new_scenario(
+    scenario_id = await runtime.new_scenario(
         LONER4E,
-        ScenarioMeta(title="The Sunken Bell", premise="", backdrop="Plain.", scope="One crossing."),
+        ScenarioDescription(
+            title="The Sunken Bell", premise="", backdrop="Plain.", scope="One crossing."
+        ),
         SOURCE_MD,
         "srd",
         "kael",
     )
 
     catalog = _catalog(runtime.settings, runtime.engines)
-    state = runtime.session(catalog.target(name, "kael")).state
+    state = runtime.session(catalog.target(scenario_id, "kael")).state
     assert state.source.startswith("SOURCE DOCUMENT:")
     # The premise the player never wrote is the scene's own words.
-    assert state.scenario.premise == _OPENING["situation"]
+    assert state.scenario_description.premise == _OPENING["situation"]

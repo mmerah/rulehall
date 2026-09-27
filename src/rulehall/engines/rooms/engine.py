@@ -12,7 +12,6 @@ from rulehall.core.model import (
     RoleAnswer,
     WorldsmithRequest,
 )
-from rulehall.core.play import PendingOption
 from rulehall.core.prompt import Sections, lines_of, render_history, section_if
 from rulehall.core.tools import action, tool
 from rulehall.core.validation import Refusal, Slug
@@ -33,17 +32,10 @@ from rulehall.engines.rooms.args import (
     MoveItem,
     UnlockWay,
 )
-from rulehall.engines.rooms.panels import carried_panel, map_view, ways_panel
+from rulehall.engines.rooms.panels import EXTEND, MORE_MAP, carried_panel, map_view, ways_panel
 from rulehall.engines.rooms.world import Dweller, MapProposal, Prop, RegionProposal, RoomWorld
 from rulehall.engines.rooms.worldsmith import MAP_ASK, OPENING_SECTIONS, check_map, check_next_map
 
-EXTEND: Slug = "extend"
-MORE_MAP = PendingOption(
-    id=EXTEND,
-    name="More map",
-    brief="The map runs out here: say where you push on.",
-    action_name="extend",
-)
 MAP_UNWRITTEN = Fact(
     told=True,
     trace="the map could not be written",
@@ -51,7 +43,6 @@ MAP_UNWRITTEN = Fact(
 )
 
 
-# Generic over its dweller: the family cannot import the one engine that names it.
 class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Revealing, Engine[W, K]):
     family_dir = Path(__file__).parent
     opening_sections = OPENING_SECTIONS
@@ -121,7 +112,6 @@ class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Revealing, Engine[W, K]
             title=place.name,
             situation="\n".join(part for part in (place.brief, place.description) if part),
             subjects=tuple(entity.subject() for entity in here),
-            # A corpse may stay a subject in the room; it does not speak.
             speakers=tuple(entity.id for entity in here if entity.alive),
             party=(world.player.id, *world.party),
             sheet=(*world.sheet_rows(), ("Carrying", carrying or "nothing")),
@@ -131,7 +121,7 @@ class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Revealing, Engine[W, K]
         world = state.world
         player = world.player
         return PlayerView(
-            premise=state.scenario.premise,
+            premise=state.scenario_description.premise,
             player=player.subject(),
             scene_title=world.current.name,
             situation=world.current.description,
@@ -206,18 +196,15 @@ class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Revealing, Engine[W, K]
     async def write_next(
         self, draft: Game[W], intent: str, worldsmith: RoleAnswer
     ) -> RegionProposal[N]:
-        prompt = self.render_request(
+        return await self.ask_worldsmith(
             draft,
-            intent=intent,
-            guidance=self.guidance_for(draft.pack_id, opening=False),
-            answer_model=self.next_proposal,
-        )
-        return await worldsmith(
-            prompt, self.next_proposal, lambda answer: self.check_next(draft, answer)
+            worldsmith,
+            intent,
+            self.next_proposal,
+            lambda answer: self.check_next(draft, answer),
         )
 
     def install(self, draft: Game[W], proposal: RegionProposal[N]) -> None:
-        """Hidden, so nothing is told: the region reaches the player only as they walk it."""
         draft.world.attach(proposal, proposal.start_id)
         draft.world.absorb(proposal)
         draft.log[-1].recap = proposal.recap

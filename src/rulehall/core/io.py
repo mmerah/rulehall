@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import re
@@ -8,29 +7,25 @@ from functools import cache
 from pathlib import Path
 from tempfile import mkstemp
 
-from pydantic import BaseModel, JsonValue, TypeAdapter
-from pydantic_core import from_json
+from pydantic import BaseModel
 
-from rulehall.core.model import AnyCharacter, AnyGame, AnyScenario, CharacterHeader, EngineHeader
-from rulehall.core.play import Line
+from rulehall.core.model import AnyCharacter, AnyGame, AnyScenario, CharacterHeader
 from rulehall.core.validation import (
     EngineId,
     Refusal,
     Slug,
-    check_unique,
     content_id,
-    parse,
+    decode,
     parse_json,
+    routed,
 )
 
 LOGGER = logging.getLogger(__name__)
 
 ENCODING = "utf-8"
 WORLD_FILE = "world.json"
-SOURCE_SUFFIXES = (".md", ".txt", ".pdf")
-# Two content ids joined by `--`: a save name is not a `Slug`.
-SAVE_SLUG_PATTERN = r"[a-z0-9][a-z0-9-]*"
-LINES = TypeAdapter(list[Line])
+# Two content ids joined by `--`: a save id is not a `Slug`.
+SAVE_ID_PATTERN = r"[a-z0-9][a-z0-9-]*"
 SHIPPED_CONTENT = Path(__file__).parents[3]
 
 
@@ -38,31 +33,31 @@ SHIPPED_CONTENT = Path(__file__).parents[3]
 class FileStore:
     directory: Path
 
-    def slugs(self) -> tuple[str, ...]:
+    def save_ids(self) -> tuple[str, ...]:
         return tuple(
             path.stem
             for path in sorted(self.directory.glob("*.json"))
-            if re.fullmatch(SAVE_SLUG_PATTERN, path.stem) is not None
+            if re.fullmatch(SAVE_ID_PATTERN, path.stem) is not None
         )
 
-    def read(self, slug: str) -> str | None:
-        path = self._save_path(slug)
+    def read(self, save_id: str) -> str | None:
+        path = self._save_path(save_id)
         return _read_text(path) if path.exists() else None
 
-    def write(self, slug: str, state: AnyGame, /) -> None:
-        write_text(self._save_path(slug), state.model_dump_json(indent=2))
+    def write(self, save_id: str, state: AnyGame, /) -> None:
+        write_model(self._save_path(save_id), state)
 
-    def media_dir(self, slug: str) -> Path:
-        return _safe_path(self.directory, slug, ".media")
+    def media_dir(self, save_id: str) -> Path:
+        return _safe_path(self.directory, save_id, ".media")
 
-    def discard(self, slug: str) -> None:
+    def discard(self, save_id: str) -> None:
         try:
-            self._save_path(slug).unlink(missing_ok=True)
+            self._save_path(save_id).unlink(missing_ok=True)
         except OSError as broken:
-            raise Refusal(f"{slug} cannot be discarded: {broken}") from broken
+            raise Refusal(f"{save_id} cannot be discarded: {broken}") from broken
 
-    def _save_path(self, slug: str) -> Path:
-        return _safe_path(self.directory, slug, ".json")
+    def _save_path(self, save_id: str) -> Path:
+        return _safe_path(self.directory, save_id, ".json")
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,7 +98,6 @@ class Library:
             try:
                 scenario = self.read_scenario(path.name, models)
             except Refusal as unreadable:
-                # Skip incomplete scenarios so the home screen remains usable.
                 LOGGER.warning("skipping scenario %r: %s", path.name, unreadable)
                 continue
             yield content_id(path.name), scenario
@@ -111,27 +105,26 @@ class Library:
     def read_characters(
         self, engines: Collection[EngineId]
     ) -> Iterator[tuple[Slug, EngineId, CharacterHeader]]:
-        """One entry per (character, engine) file, so a shared id never names one engine's rules."""
         for path in _entries(self.shipped_characters, self.characters, "character"):
             for engine_id in engines:
                 file = path / f"{engine_id}.json"
                 if not file.is_file():
                     continue
                 try:
-                    name = content_id(path.name)
+                    character_id = content_id(path.name)
                     header = read_model(file, CharacterHeader)
-                    _check_filed(header.id, header.engine_id, name, engine_id)
+                    _check_filed(header.id, header.engine_id, character_id, engine_id)
                 except Refusal as unreadable:
                     LOGGER.warning("skipping character %r: %s", path.name, unreadable)
                     continue
-                yield name, engine_id, header
+                yield character_id, engine_id, header
 
     def read_scenario(
         self, scenario_id: Slug, models: Mapping[EngineId, type[AnyScenario]]
     ) -> AnyScenario:
         path = self.scenario_folder(scenario_id) / WORLD_FILE
         raw = _read_text(path)
-        return parse_json(routed(decode(raw), models), raw)
+        return parse_json(routed(raw, models), raw)
 
     def read_character(
         self, character_id: Slug, engine_id: EngineId, model: type[AnyCharacter]
@@ -144,24 +137,20 @@ class Library:
         path = self._player_character_path(character)
         if path.exists():
             raise Refusal(f"character {character.id!r} already exists")
-        # One folder is one person played by several engines, so any sibling settles who that is.
         sibling = next(path.parent.glob("*.json"), None)
         if sibling is not None:
             filed, named = read_model(sibling, CharacterHeader).sheet.name, character.sheet.name
             if filed != named:
                 raise Refusal(f"character {character.id!r} is {filed!r}, not {named!r}")
-        write_text(path, character.model_dump_json(indent=2))
+        write_model(path, character)
 
     def rewrite_character(self, character: AnyCharacter) -> None:
-        write_text(self._player_character_path(character), character.model_dump_json(indent=2))
+        write_model(self._player_character_path(character), character)
 
     def write_scenario(self, scenario_id: Slug, scenario: AnyScenario) -> None:
         if content_id(scenario_id) in self.scenario_ids():
             raise Refusal(f"scenario {scenario_id!r} already exists")
-        write_text(
-            self.scenarios / content_id(scenario_id) / WORLD_FILE,
-            scenario.model_dump_json(indent=2),
-        )
+        write_model(self.scenarios / content_id(scenario_id) / WORLD_FILE, scenario)
 
     def _player_character_path(self, character: AnyCharacter) -> Path:
         if (self.shipped_characters / content_id(character.id)).exists():
@@ -184,7 +173,7 @@ class PackStore:
         return self.directory / engine_id / f"{pack_id}.json"
 
     def write(self, engine_id: EngineId, pack_id: Slug, pack: BaseModel) -> None:
-        write_text(self.path(engine_id, pack_id), pack.model_dump_json(indent=2))
+        write_model(self.path(engine_id, pack_id), pack)
 
 
 @cache
@@ -193,7 +182,6 @@ def read_cached_text(path: Path) -> str:
 
 
 def publish(path: Path, write: Callable[[Path], object]) -> None:
-    """Write beside, then replace: a reader never sees a partial file."""
     staged: Path | None = None
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -213,43 +201,15 @@ def write_text(path: Path, body: str) -> None:
     publish(path, lambda staged: staged.write_text(body, encoding=ENCODING))
 
 
-def decode(raw: str) -> JsonValue:
-    """`json` keeps the last of two equal keys, so a doubled id would vanish without a word."""
-    try:
-        return json.loads(raw, object_pairs_hook=_unique_keys)
-    except (json.JSONDecodeError, RecursionError) as broken:
-        raise Refusal(f"not JSON: {broken}") from broken
-
-
-def parse_text[T: BaseModel](model: type[T], raw: str) -> T:
-    """The decode pass rejects a doubled key; a caller that already decoded uses `parse_json`."""
-    decode(raw)
-    return parse_json(model, raw)
-
-
-def partial_lines(raw: str) -> tuple[Line, ...]:
-    start = raw.find("{")
-    if start == -1:
-        return ()
-    try:
-        partial = from_json(raw[start:], allow_partial="trailing-strings")
-        return tuple(
-            LINES.validate_python(partial.get("lines", []), experimental_allow_partial=True)
-        )
-    except ValueError:
-        return ()
-
-
-def routed[T](value: JsonValue, by_engine: Mapping[EngineId, T]) -> T:
-    engine_id = parse(EngineHeader, value).engine_id
-    found = by_engine.get(engine_id)
-    if found is None:
-        raise Refusal(f"the {engine_id!r} engine is not installed")
-    return found
+def write_model(path: Path, model: BaseModel) -> None:
+    write_text(path, model.model_dump_json(indent=2))
 
 
 def read_model[T: BaseModel](path: Path, model: type[T]) -> T:
-    return parse_text(model, _read_text(path))
+    raw = _read_text(path)
+    # The decode pass rejects a doubled key, which validation alone would let through.
+    decode(raw)
+    return parse_json(model, raw)
 
 
 def _read_text(path: Path) -> str:
@@ -288,12 +248,7 @@ def _folders(root: Path) -> list[Path]:
     return [entry for entry in root.iterdir() if entry.is_dir()] if root.is_dir() else []
 
 
-def _unique_keys(pairs: list[tuple[str, JsonValue]]) -> dict[str, JsonValue]:
-    check_unique("keys in a JSON object", (key for key, _ in pairs))
-    return dict(pairs)
-
-
 def _safe_path(directory: Path, stem: str, suffix: str) -> Path:
-    if re.fullmatch(SAVE_SLUG_PATTERN, stem) is None:
-        raise ValueError(f"invalid storage slug {stem!r}")
+    if re.fullmatch(SAVE_ID_PATTERN, stem) is None:
+        raise ValueError(f"invalid save id {stem!r}")
     return directory / f"{stem}{suffix}"

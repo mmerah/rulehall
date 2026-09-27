@@ -14,7 +14,7 @@ from rulehall.engines.pokemon.rules import (
     stats,
     succeeds,
 )
-from rulehall.engines.pokemon.world import Mon
+from rulehall.engines.pokemon.sheet import Mon
 
 TWO_NATURE_RANKS = {
     "rank-1": "nature",
@@ -95,7 +95,7 @@ def test_the_rival_counter_picks_squirtle_against_charmander() -> None:
     charmander = dex().species["charmander"]
 
     assert counter_pick(("bulbasaur", "squirtle"), charmander.types, STARTER_LEVEL) == "squirtle"
-    assert started().world.rival_starter_id == "squirtle"
+    assert started().world.rival_record.starter_id == "squirtle"
 
 
 def test_creation_refuses_a_third_rank_in_one_skill() -> None:

@@ -87,7 +87,6 @@ class Thing(Mutable):
         return "\n".join(parts)
 
     def fact(self, trace: str, *, card: str = "", dice: tuple[DiceEvent, ...] = ()) -> Fact:
-        """`told` only when the player has learned of this thing, so no unknown name leaks."""
         return Fact(trace=trace, told=self.known, card=card, dice=dice)
 
     def card_fact(self, line: str, dice: tuple[DiceEvent, ...] = ()) -> Fact:
@@ -114,7 +113,6 @@ class Thing(Mutable):
 
 
 class Person(Thing):
-    # A new cast member is alive: the worldsmith never writes this.
     alive: SkipJsonSchema[bool] = True
 
     @property
@@ -129,7 +127,6 @@ class Person(Thing):
         return False
 
     def required(self) -> str:
-        """What a new cast member must be for the worldsmith to write it; empty when nothing."""
         return "" if self.alive else "alive"
 
 
@@ -175,19 +172,14 @@ class World[M: Person](Mutable):
     @abstractmethod
     def person_of(self, person_id: Slug) -> M | None: ...
     @abstractmethod
-    def require_person_here(self, entity_id: Slug) -> M:
-        """Alive and here with the player."""
+    def require_person_here(self, entity_id: Slug) -> M: ...
 
     @abstractmethod
     def reveal_hidden(self, entity_id: Slug) -> list[Fact]: ...
     @abstractmethod
     def kill(self, entity_id: Slug) -> list[Fact]: ...
     @abstractmethod
-    def people(self) -> Iterable[M]:
-        """The player and everyone the world files."""
-
-    def unmet(self) -> list[M]:
-        return [person for person in self.people() if not person.known]
+    def people(self) -> Iterable[M]: ...
 
     def hired_party_members(self) -> list[M]:
         return [member for member in self.party_members() if member.hired]
@@ -215,13 +207,13 @@ class World[M: Person](Mutable):
             raise Refusal(f"this names what the player has not met: {leaked}. Say it another way.")
 
     def hear(self, *texts: str) -> None:
-        """The player read these texts; by default the world learns nothing from them."""
+        pass
 
     def unmet_named(self, *texts: str) -> list[M]:
         return named_people("\n".join(texts), self.people())
 
     def absorb(self, proposal: OpeningProposal) -> None:
-        """Take the engine's own extra fields of an installed proposal; none by default."""
+        pass
 
     def die(self, person: M) -> str:
         if not person.alive:
@@ -230,6 +222,9 @@ class World[M: Person](Mutable):
             self.party.remove(person.id)
         person.alive = False
         return "You are dead" if person.id == self.player.id else f"{person.name} is dead"
+
+    def enter_if_stranger(self, _entity_id: Slug, /) -> list[Fact]:
+        return []
 
     def join_party(self, entity_id: Slug) -> list[Fact]:
         return self.join(self.require_person_here(entity_id))
@@ -302,7 +297,6 @@ def named_unmet(text: str, entities: Iterable[Thing]) -> list[str]:
 
 
 def named_people[P: Person](text: str, people: Iterable[P]) -> list[P]:
-    """The unmet people a text names by full name or a name word."""
     everyone = list(people)
     unmet = [person for person in everyone if not person.known]
     met = [person for person in everyone if person.known]
@@ -311,8 +305,6 @@ def named_people[P: Person](text: str, people: Iterable[P]) -> list[P]:
 
 
 def named_by_word(text: str, people: Iterable[Person], met: Iterable[Person]) -> list[str]:
-    """`Orlov's rank` names Collector Orlov: a word of a name, capitalised as a name is written.
-    A word a met name shares is a title or a place, so it does not count."""
     shared = {word for person in met for word in _capitalised(person.name)}
     return [
         person.name
@@ -326,7 +318,6 @@ def named_by_word(text: str, people: Iterable[Person], met: Iterable[Person]) ->
 
 
 def leaked_names(read: str, things: Iterable[Thing], hidden: Sequence[Thing]) -> set[str]:
-    """No text the player may read names something hidden; nothing watches itself."""
     leaked = set(named_unmet(read, hidden))
     for thing in things:
         text = "\n".join((thing.brief, *(value for _, value in thing.rows())))
@@ -351,6 +342,5 @@ def _capitalised(name: str) -> list[str]:
 
 
 def _name_words(name: str) -> list[str]:
-    """A name led by an article is a description, so none of its words is a name."""
     words = _words(name)
     return [] if not words or words[0].casefold() in ARTICLES else _capitalised(name)

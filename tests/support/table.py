@@ -60,8 +60,8 @@ def updated[T: BaseModel](model: T, **changes: object) -> T:
 def scenario_for(engine_id: EngineId) -> Slug:
     """Read off the shipped content rather than tabulated, so a second one fails here loudly."""
     matches = [
-        slug
-        for slug, scenario in LIBRARY.read_scenarios(SCENARIO_MODELS)
+        scenario_id
+        for scenario_id, scenario in LIBRARY.read_scenarios(SCENARIO_MODELS)
         if scenario.engine_id == engine_id
     ]
     if len(matches) != 1:
@@ -206,7 +206,7 @@ class Table[G: AnyGame]:
         return state
 
     def saved(self) -> G:
-        raw = self.service.store.read(self.service.target.slug)
+        raw = self.service.store.read(self.service.target.save_id)
         assert raw is not None
         restored = self.service.engine.restore(raw)
         assert isinstance(restored, self.state_type), (

@@ -100,12 +100,12 @@ def _draw_offline() -> None:
 
 
 def _seed_dice() -> None:
-    """The real runtime, with each game's dice seeded by its save slug, so QA numbers repeat."""
+    """The real runtime, with each game's dice seeded by its save id, so QA numbers repeat."""
     open_game = Runtime._open  # pyright: ignore[reportPrivateUsage]
 
     def seeded(runtime: Runtime, target: LaunchTarget) -> GameService:
         session = open_game(runtime, target)
-        session.rng.seed(target.slug)
+        session.rng.seed(target.save_id)
         return session
 
     Runtime._open = seeded  # pyright: ignore[reportAttributeAccessIssue]

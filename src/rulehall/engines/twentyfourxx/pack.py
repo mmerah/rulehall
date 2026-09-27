@@ -7,8 +7,9 @@ from rulehall.core.prompt import Sections, section_if
 from rulehall.core.validation import Frozen, Slug, check_unique, slug
 from rulehall.engines.hiring import HIRED, UNWRITTEN_CAST
 from rulehall.engines.packs import (
+    Block,
+    CastPack,
     Named,
-    Pack,
     PackBody,
     PackHead,
     block_line,
@@ -17,7 +18,7 @@ from rulehall.engines.packs import (
     check_lines,
 )
 from rulehall.engines.twentyfourxx.rules import SkillDie
-from rulehall.engines.twentyfourxx.world import Kit
+from rulehall.engines.twentyfourxx.sheet import Kit
 
 WORLDSMITH_GUIDANCE = (
     "24XX AUTHORING\n"
@@ -72,10 +73,10 @@ class SkillChoice(DecisionOption):
 
 
 class Specialty(DecisionOption):
-    skills: dict[str, SkillDie]  # the fixed ones, at d8
+    skills: dict[str, SkillDie]
     choice: tuple[SkillChoice, ...] = ()
     kit: tuple[Kit, ...] = ()
-    kit_choice: tuple[Kit, ...] = ()  # Muscle picks one of "a sword, firearm, or cyber-arm"
+    kit_choice: tuple[Kit, ...] = ()
 
     def line(self) -> str:
         parts = [", ".join(f"{skill} d{die}" for skill, die in self.skills.items())]
@@ -89,12 +90,12 @@ class Specialty(DecisionOption):
 
 
 class Body(DecisionOption):
-    kit: Kit | None = None  # the android case is an item that breaks to defend
+    kit: Kit | None = None
 
 
 class Origin(DecisionOption):
-    increases: int = 0  # human 3, android 1
-    invents: int = 0  # alien 2
+    increases: int = 0
+    invents: int = 0
     choice: tuple[Body, ...] = ()
 
     def line(self) -> str:
@@ -109,7 +110,7 @@ class Origin(DecisionOption):
         return f"{line} ({'; '.join(gives)})" if gives else line
 
 
-class TwentyFourXXBlock(Frozen):
+class TwentyFourXXBlock(Block):
     name: str = Field(min_length=1)
     brief: str = Field(min_length=1)
     skills: tuple[str, ...] = Field(min_length=1)
@@ -132,18 +133,14 @@ class TwentyFourXXBlock(Frozen):
         )
 
 
-class TwentyFourXXPack(Pack):
-    skills: tuple[DecisionOption, ...] = ()  # the SRD's seventeen; a written pack adds none
+class TwentyFourXXPack(CastPack[TwentyFourXXBlock]):
+    skills: tuple[DecisionOption, ...] = ()
     specialties: tuple[Specialty, ...] = ()
     origins: tuple[Origin, ...] = ()
     starting_kit: tuple[Kit, ...] = ()
-    factions: tuple[TwentyFourXXBlock, ...] = ()
-    npcs: tuple[TwentyFourXXBlock, ...] = ()
-    monsters: tuple[TwentyFourXXBlock, ...] = ()
 
     @model_validator(mode="after")
     def _every_pick_told(self) -> Self:
-        """A pick's brief is its prompt text, so a pack may not leave it blank."""
         untold = [option.id for option in (*self.specialties, *self.origins) if not option.brief]
         if untold:
             raise ValueError(f"no brief for {', '.join(untold)}")
@@ -152,14 +149,10 @@ class TwentyFourXXPack(Pack):
     def specialty_lines(self) -> str:
         return "\n".join(specialty.line() for specialty in self.specialties)
 
-    def sections(self, *, opening: bool) -> Sections:
+    def table_sections(self) -> Sections:
         return (
-            *super().sections(opening=opening),
             *section_if("SPECIALTIES", self.specialty_lines()),
             *bullets("ORIGINS", (origin.line() for origin in self.origins)),
-            *bullets("FACTIONS", (block.line() for block in self.factions)),
-            *bullets("PEOPLE", (block.line() for block in self.npcs)),
-            *bullets("MONSTERS", (block.line() for block in self.monsters)),
         )
 
 
@@ -224,7 +217,6 @@ class SpecialtyProposal(Named):
 
     @model_validator(mode="after")
     def _skills_are_distinct_and_read_in_a_block(self) -> Self:
-        """A skill written twice would collapse into one die without a word."""
         check_unique("skills", self.skills)
         check_items("a specialty list", (*self.skills, *self.kit))
         return self

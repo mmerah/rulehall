@@ -13,7 +13,6 @@ def character_panel(rows: Rows, *extra: PanelRow) -> Panel:
 
 
 def here_panel(others: Iterable[Subject]) -> Panel:
-    """The player already has the sheet above, so a row for them would say it twice."""
     return Panel(title="Also here", rows=tuple(other.row() for other in others))
 
 

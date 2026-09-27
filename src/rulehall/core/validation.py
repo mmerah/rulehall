@@ -11,7 +11,6 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 SLUG_PATTERN = r"[a-z0-9]+(?:-[a-z0-9]+)*"
 SLUG_MAX = 64
-# assignment, not `type`: an alias publishes a dict key as `propertyNames`, without the pattern
 Slug = Annotated[str, Field(pattern=rf"^{SLUG_PATTERN}$", max_length=SLUG_MAX)]
 
 EngineId = NewType("EngineId", str)
@@ -33,12 +32,20 @@ class Loose(BaseModel):
     model_config = ConfigDict(extra="ignore", frozen=True, strict=True)
 
 
+class EngineHeader(Loose):
+    engine_id: EngineId
+
+
 class Refusal(ValueError):
-    """A message a role or the player is meant to read; any other exception is a bug."""
+    pass
+
+
+def refuse(reason: str) -> None:
+    if reason:
+        raise Refusal(reason)
 
 
 def content_id(value: str) -> Slug:
-    """Narrow a routed id before it names a directory, so `Slug` downstream is a fact."""
     if re.fullmatch(SLUG_PATTERN, value) is None or len(value) > SLUG_MAX:
         raise Refusal(f"invalid content id {value!r}")
     return value
@@ -57,7 +64,6 @@ def check_unique(what: str, ids: Iterable[str]) -> None:
 
 
 def listed(value: object) -> object:
-    """A model often sends one item bare where a list is asked: it is the list of that item."""
     if isinstance(value, str):
         return (value,)
     # Past a before-validator the input is Python, where strict mode takes a tuple, not a list.
@@ -79,8 +85,23 @@ def parse_json[T: BaseModel](model: type[T], raw: str | bytes) -> T:
         raise _refused(broken) from broken
 
 
+def decode(raw: str) -> JsonValue:
+    """`json` keeps the last of two equal keys, so a doubled id would vanish without a word."""
+    try:
+        return json.loads(raw, object_pairs_hook=_unique_keys)
+    except (json.JSONDecodeError, RecursionError) as broken:
+        raise Refusal(f"not JSON: {broken}") from broken
+
+
+def routed[T](raw: str, by_engine: Mapping[EngineId, T]) -> T:
+    engine_id = parse(EngineHeader, decode(raw)).engine_id
+    found = by_engine.get(engine_id)
+    if found is None:
+        raise Refusal(f"the {engine_id!r} engine is not installed")
+    return found
+
+
 def parse_mended[T: BaseModel](model: type[T], value: JsonValue) -> T:
-    """A model's answer: a harmless slip is mended, and validation refuses only what is left."""
     return parse_json(model, json.dumps(_mended(value, _schema(model), model)))
 
 
@@ -90,8 +111,12 @@ def _refused(broken: ValidationError) -> Refusal:
     return Refusal(f"{where}: {first['msg']}" if where else first["msg"])
 
 
+def _unique_keys(pairs: list[tuple[str, JsonValue]]) -> dict[str, JsonValue]:
+    check_unique("keys in a JSON object", (key for key, _ in pairs))
+    return dict(pairs)
+
+
 def _folded(text: str) -> str:
-    """An accent is dropped, not cut into a dash: `Naïve` is named `naive`, as the packs name it."""
     stripped = unicodedata.normalize("NFKD", text)
     return "".join(char for char in stripped if not unicodedata.combining(char))
 
@@ -114,7 +139,6 @@ def _schema(model: type[BaseModel]) -> Schema:
 
 
 def _shapes(schema: Schema, model: type[BaseModel]) -> list[Schema]:
-    """The schema itself, its `$ref` and each `anyOf` branch, resolved against the model's."""
     ref = schema.get("$ref")
     if isinstance(ref, str):
         defs = _as_schema(_schema(model).get("$defs", {}))
@@ -130,8 +154,6 @@ def _as_schema(node: JsonValue | Schema) -> Schema:
 
 
 def _mended(value: JsonValue, schema: Schema, model: type[BaseModel]) -> JsonValue:
-    """A null written as text is null, a bare text where a list is asked is that list, and a
-    field no schema names is dropped."""
     shapes = {shape.get("type"): shape for shape in _shapes(schema, model)}
     if isinstance(value, str):
         if "null" in shapes and value.strip() in NULL_WORDS:
@@ -155,8 +177,6 @@ def _mended(value: JsonValue, schema: Schema, model: type[BaseModel]) -> JsonVal
 
 
 def _field(schema: Schema, key: str) -> Schema | None:
-    """A named field, else the first key pattern it matches, else any other key's shape; None
-    when the schema forbids the key."""
     if key in (fields := _as_schema(schema.get("properties"))):
         return _as_schema(fields[key])
     patterns = _as_schema(schema.get("patternProperties"))

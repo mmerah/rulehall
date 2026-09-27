@@ -2,13 +2,14 @@ import pytest
 from support.table import TUNNELGOONS, game, narrowed
 from support.tunnelgoons import ENGINE, small_world
 
-from rulehall.core.model import ScenarioMeta
+from rulehall.core.model import ScenarioDescription
 from rulehall.core.validation import Refusal
 from rulehall.engines.entities import PLAYER_ID, Gauge
-from rulehall.engines.rooms.engine import MORE_MAP
+from rulehall.engines.rooms.panels import MORE_MAP
 from rulehall.engines.rooms.world import MapProposal, Place, Prop, RegionProposal, Way
 from rulehall.engines.rooms.worldsmith import check_map, check_next_map
-from rulehall.engines.tunnelgoons.world import Goon, TunnelGoonsGame
+from rulehall.engines.tunnelgoons.sheet import Goon
+from rulehall.engines.tunnelgoons.world import TunnelGoonsGame
 
 ONLY = "only"
 HIDDEN = "hidden"
@@ -60,7 +61,9 @@ def test_a_one_place_map_with_no_ways_passes_the_map_bar_and_builds() -> None:
     check_map(THIN)
 
     built = ENGINE.build_scenario(
-        ScenarioMeta(title="Only", premise="", backdrop="Plain.", scope="One room, one visit."),
+        ScenarioDescription(
+            title="Only", premise="", backdrop="Plain.", scope="One room, one visit."
+        ),
         "srd",
         THIN,
         "source",
@@ -125,7 +128,7 @@ def test_check_next_map_refuses_an_item_planted_on_the_player() -> None:
 
 def test_check_next_map_refuses_a_recap_that_names_an_unmet_npc() -> None:
     world = _tunnelgoons_game().world
-    unmet = next(iter(world.unmet()))
+    unmet = next(person for person in world.people() if not person.known)
     region = _region().model_copy(update={"recap": f"They never found {unmet.name}."})
     with pytest.raises(Refusal, match="has not met"):
         check_next_map(region, world)

@@ -52,10 +52,8 @@ class Joining:
 
 
 class Hiring[W: World[Any], K: Pack, P: Person, A: BaseModel](Engine[W, K]):
-    """The worldsmith writes the sheet of whom the player hires; the engine gives the hooks."""
-
     hire_model: type[A]
-    hire_intent: str  # a template of `name`, `brief` and `terms`
+    hire_intent: str
 
     @tool
     def join_party(self, draft: Game[W], args: HireOrJoin, _rng: Random) -> list[Fact]:
@@ -63,7 +61,7 @@ class Hiring[W: World[Any], K: Pack, P: Person, A: BaseModel](Engine[W, K]):
         work, also someone who already travels with the player: the worldsmith writes their sheet
         at the end of the turn, and nothing more happens this turn. Leave `terms` empty for
         someone who only comes along."""
-        filed = self.file_stranger(draft, args.target_id)
+        filed = draft.world.enter_if_stranger(args.target_id)
         person = draft.world.require_person_here(args.target_id)
         # A member let go keeps their sheet, so hiring them again only brings them back.
         if not args.terms or person.hired:
@@ -80,22 +78,18 @@ class Hiring[W: World[Any], K: Pack, P: Person, A: BaseModel](Engine[W, K]):
         assert request.target_id is not None
         world = draft.world
         person: P = require_hireable(world, request.target_id)
-        prompt = self.render_request(
+        answer = await self.ask_worldsmith(
             draft,
-            intent=self.hire_intent.format(
-                name=person.name, brief=person.brief, terms=request.detail
-            ),
+            worldsmith,
+            self.hire_intent.format(name=person.name, brief=person.brief, terms=request.detail),
+            self.hire_model,
+            self.hire_check(draft),
             guidance=self.hire_guidance(draft),
-            answer_model=self.hire_model,
         )
-        answer = await worldsmith(prompt, self.hire_model, self.hire_check(draft))
         summary = self.sign_on(draft, person, answer)
         facts = world.join(person) if person.id not in world.party else []
         facts.append(signed_on(person, summary))
         return Resolution(tuple(facts), SIGNED_ON.format(name=person.name))
-
-    def file_stranger(self, _draft: Game[W], _target_id: Slug, /) -> list[Fact]:
-        return []
 
     def hire_check(self, _draft: Game[W], /) -> Check[A]:
         return lambda _answer: None
@@ -103,8 +97,7 @@ class Hiring[W: World[Any], K: Pack, P: Person, A: BaseModel](Engine[W, K]):
     @abstractmethod
     def hire_guidance(self, draft: Game[W], /) -> str: ...
     @abstractmethod
-    def sign_on(self, draft: Game[W], person: P, answer: A, /) -> str:
-        """Write the answer onto the hired person's sheet; return the summary."""
+    def sign_on(self, draft: Game[W], person: P, answer: A, /) -> str: ...
 
 
 def signed_on(person: Person, summary: str) -> Fact:

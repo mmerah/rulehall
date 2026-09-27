@@ -86,7 +86,7 @@ class BattleResult(Frozen):
     outcome: Outcome
     team: tuple[Battler, ...]
     fainted_foes: tuple[Battler, ...]
-    on_field: tuple[Slug, ...]
+    on_field_mon_ids: tuple[Slug, ...]
     caught: Battler | None = None
 
     @model_validator(mode="after")

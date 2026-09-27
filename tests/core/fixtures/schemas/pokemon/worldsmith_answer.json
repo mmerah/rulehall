@@ -245,7 +245,7 @@
       "propertyNames": {},
       "type": "object"
     },
-    "centers": {
+    "center_place_ids": {
       "default": [],
       "description": "Ids of the places of this map that are a Pokemon Center, where the team heals. One in every town.",
       "items": {

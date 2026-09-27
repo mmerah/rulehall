@@ -9,8 +9,9 @@ from rulehall.core.views import Meter, Sprite
 from rulehall.engines.pokemon.battle.models import LEVEL_MAX
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.panels import ICON_SHEET, item_text, mon_row
-from rulehall.engines.pokemon.rules import ITEMS, TIMES
-from rulehall.engines.pokemon.world import Mon, PokemonWorld, RosterSlot, Trainer
+from rulehall.engines.pokemon.rules import ITEMS, TIMES, RosterSlot
+from rulehall.engines.pokemon.sheet import Mon, Trainer
+from rulehall.engines.pokemon.world import PokemonWorld
 
 
 def test_people_and_pokemon_name_their_showdown_sprites() -> None:
