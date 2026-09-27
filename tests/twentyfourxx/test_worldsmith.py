@@ -4,27 +4,13 @@ from support.twentyfourxx import ENGINE, SCENE_BASE
 
 from rulehall.core.model import AnyScenario, ScenarioMeta
 from rulehall.core.validation import Refusal
-from rulehall.engines.twentyfourxx.pack import SheetProposal
 from rulehall.engines.twentyfourxx.world import Crewmate, TwentyFourXXScene
 
 SRD = ENGINE.packs.srd()
 
 
-def test_sheet_check_accepts_a_muscle_with_intimidation_and_shooting() -> None:
-    proposal = SheetProposal(
-        specialty="Muscle", skills={"Intimidation": 8, "Shooting": 8}, items=("Firearm",)
-    )
-    proposal.check((SRD,))
-
-
-def test_sheet_check_refuses_an_unknown_specialty() -> None:
-    proposal = SheetProposal(specialty="Wizard", skills={"Shooting": 8}, items=())
-    with pytest.raises(Refusal, match="Wizard"):
-        proposal.check((SRD,))
-
-
 def _proposal(**fields: object) -> TwentyFourXXScene:
-    return TwentyFourXXScene.model_validate(dict(SCENE_BASE) | {"ship_here": False} | fields)
+    return TwentyFourXXScene.model_validate(dict(SCENE_BASE) | fields)
 
 
 def _built(proposal: TwentyFourXXScene) -> AnyScenario:
@@ -38,15 +24,15 @@ def _built(proposal: TwentyFourXXScene) -> AnyScenario:
     )
 
 
-def test_new_game_marks_present_known() -> None:
-    stranger = "stranger"
+def test_new_game_files_the_cast_by_name() -> None:
     proposal = _proposal(
-        present=(stranger,),
-        cast={stranger: Crewmate(id=stranger, name="A Stranger", brief="new to the world")},
+        present=("stranger",),
+        cast={"stranger": Crewmate(id="stranger", name="Bray Kell", brief="new to the world")},
     )
     character = LIBRARY.read_character("kael", TWENTYFOURXX, ENGINE.character)
     world = ENGINE.new_game(_built(proposal), character)
-    assert world.cast[stranger].known is True
+    assert list(world.cast) == ["bray-kell"]
+    assert world.cast["bray-kell"].known is True
 
 
 def test_new_game_takes_the_job_the_opening_wrote() -> None:

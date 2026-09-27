@@ -1,5 +1,7 @@
 # Plan: Loner 4e, the scenes family, and 24XX fidelity
 
+> Superseded in part: the PROGRESS entry "Simplify Loner for an AI master" replaces this plan's Challenge Tracks, Leverage, `dead_end`, `inspire`, `unclear` and master-owned Status content.
+
 ## Goal
 
 Move Loner 3e to Loner 4e (engine id `loner4e`). Make Loner 4e and 24XX play as their SRDs intend.

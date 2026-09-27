@@ -1,6 +1,12 @@
 from rulehall.core.play import PendingOption
 from rulehall.core.views import Panel, PanelRow, Tag
-from rulehall.engines.twentyfourxx.world import UPGRADE_COST, Crewmate, Gear, TwentyFourXXWorld
+from rulehall.engines.twentyfourxx.world import (
+    UPGRADE_COST,
+    WORK_AT,
+    Crewmate,
+    Gear,
+    TwentyFourXXWorld,
+)
 
 
 def gear_rows(world: TwentyFourXXWorld, actor: Crewmate) -> tuple[PanelRow, ...]:
@@ -17,7 +23,7 @@ def gear_rows(world: TwentyFourXXWorld, actor: Crewmate) -> tuple[PanelRow, ...]
                     name="Stow in the hold",
                     action_name="stow_item",
                     args={"item_id": key, "actor_id": actor.id},
-                    refusal=world.hold_refusal(),
+                    refusal=world.ship_refusal(),
                 ),
                 PendingOption(
                     id="drop",
@@ -29,6 +35,15 @@ def gear_rows(world: TwentyFourXXWorld, actor: Crewmate) -> tuple[PanelRow, ...]
         )
         for key, item in actor.sheet.items.items()
     )
+
+
+def crew_rows(world: TwentyFourXXWorld, member: Crewmate) -> tuple[PanelRow, ...]:
+    if not member.hired:
+        return ()
+    let_go = PendingOption(
+        id="let-go", name="Let go", action_name="let_go", args={"target_id": member.id}
+    )
+    return (*gear_rows(world, member), PanelRow(name="Hired crew", brief="", options=(let_go,)))
 
 
 def ship_panel(world: TwentyFourXXWorld) -> Panel:
@@ -43,7 +58,7 @@ def ship_panel(world: TwentyFourXXWorld) -> Panel:
                     name=f"Upgrade (₡{UPGRADE_COST})",
                     action_name="ship_upgrade",
                     args={"function_id": key},
-                    refusal=world.upgrade_refusal(function),
+                    refusal=world.upgrade_refusal(),
                 ),
             ),
         )
@@ -64,7 +79,7 @@ def ship_panel(world: TwentyFourXXWorld) -> Panel:
                     name=name,
                     action_name="retrieve_item",
                     args={"item_id": key, "actor_id": crewmate.id},
-                    refusal=world.hold_refusal(),
+                    refusal=world.ship_refusal(),
                 )
                 for crewmate, name in receivers
             ),
@@ -75,9 +90,21 @@ def ship_panel(world: TwentyFourXXWorld) -> Panel:
 
 
 def job_panel(world: TwentyFourXXWorld) -> tuple[Panel, ...]:
-    if not world.job:
+    if world.job:
+        return (Panel(title="Job", rows=(PanelRow(name=world.job, brief=""),)),)
+    if not (where := world.looked_at()):
         return ()
-    return (Panel(title="Job", rows=(PanelRow(name=world.job, brief=""),)),)
+    # SRD: "Spend ₡1 to re-roll" any find, until a job is taken.
+    look_again = PendingOption(
+        id="look-again",
+        name="Pay ₡1 and look again",
+        action_name="find_again",
+        args={"where": where},
+        told_in_turn=True,
+    )
+    options = (look_again,) if world.player.require_sheet().credits >= 1 else ()
+    row = PanelRow(name=f"{WORK_AT}{where}", brief="", options=options)
+    return (Panel(title="Job", rows=(row,)),)
 
 
 def _mark_tags(gear: Gear) -> tuple[Tag, ...]:

@@ -1,11 +1,10 @@
-from collections.abc import Sequence
 from typing import Self
 
 from pydantic import Field, model_validator
 
 from rulehall.core.play import DecisionOption
 from rulehall.core.prompt import Sections, section_if
-from rulehall.core.validation import Frozen, Refusal, Slug, check_unique, slug
+from rulehall.core.validation import Frozen, Slug, check_unique, slug
 from rulehall.engines.hiring import HIRED, UNWRITTEN_CAST
 from rulehall.engines.packs import (
     Named,
@@ -24,13 +23,46 @@ WORLDSMITH_GUIDANCE = (
     "24XX AUTHORING\n"
     f"{UNWRITTEN_CAST}The player is an operator on a job in a hard science-fiction future. "
     "Write each scene as a work site, a station or a ship. Write the people who control "
-    "these places. Set `ship_here` for each scene: true when the crew's ship is docked here "
-    "or within reach. The crew uses its hold only then."
+    "these places. People the player left behind move on without them.\n\n"
+    "Code files each `cast` entry under the slug of its name: Bray Kell is `bray-kell`. Name "
+    "entries so in `present` and `hidden`. The crew's ship belongs to the rules: never file it "
+    "in `cast`.\n\n"
+    "A scene is one place. A scene ends when the player leaves the place. WHAT COMES NEXT holds "
+    "the player's own words about where they go and what they are after. Build the scene the "
+    "player asked for. When the player leaves, the new scene is the place they named: never "
+    "short of it, and never back where they left. Only a complication keeps them in the same "
+    "place. Give the player what they went to look for, or the reason they cannot "
+    "have it. Never give the player silence. A complication changes that place. Keep what the "
+    "brief does not move.\n\n"
+    "Put something in `hidden` when the scene has something worth finding. `hidden` is not "
+    "necessary. Never name a hidden entity in `title`, `situation` or `recap`. Never name a "
+    "hidden entity in the `brief` or the sheet of anyone the player can see. The player reads "
+    "all of that text, and a name there gives the player the find. A hidden entity can name "
+    "itself. Write in `arc` what ties one hidden thing to another. THE SCENE NOW names who is "
+    "hidden there. Never put an entry the player has met in `hidden`. A hidden person's `brief` "
+    "is what the player sees on meeting them. Put their secret in `arc`, never in the "
+    "`brief`.\n\n"
+    "Surprise the player. Turn an established fact against the player, or bring back something "
+    "the player has stopped thinking about. Make the surprise from what exists. Never invent "
+    "what the source would not hold."
+)
+COMPLICATING = (
+    "The game master brings a complication into the scene the player is in: {brief}. Write the "
+    "new situation as a new scene. You can keep the same `place_id`, and this is usual. Leave "
+    "`location` empty: the player has not moved. Everyone here stays, unless the brief moves "
+    "them. Change the situation. Do not change the player's answer to it. The player has not "
+    "acted, so settle nothing for the player. Write in `recap` the scene as it was before it "
+    "changed."
 )
 HIRING = (
-    f"{HIRED}Write the sheet of this character from the specialties in ENGINE GUIDANCE. "
-    "Write a character that a crew can hire for this work. Put the skills of the specialty "
-    "in `skills`. Invent one skill that fits when no printed skill fits."
+    f"{HIRED}Choose the specialty, the origin and their options from ENGINE GUIDANCE for a "
+    "character that a crew can hire for this work."
+)
+NEWCOMING = (
+    "The player's operator is dead and no hired member lives. A new operator joins the crew "
+    "and leads: {who}. They join in THE SCENE NOW, where the dead operator fell, and nowhere "
+    "else. Write them from the player's words, and choose their specialty, "
+    "origin and options from ENGINE GUIDANCE."
 )
 SKILL_COUNT = 17
 
@@ -46,16 +78,14 @@ class Specialty(DecisionOption):
     kit_choice: tuple[Kit, ...] = ()  # Muscle picks one of "a sword, firearm, or cyber-arm"
 
     def line(self) -> str:
-        fixed = ", ".join(f"{skill} d{die}" for skill, die in self.skills.items())
-        if not self.choice:
-            return f"{self.name}: {fixed}"
-        alternatives = " / ".join(
-            ", ".join(f"{skill} d{die}" for skill, die in option.skills.items())
-            for option in self.choice
-        )
-        if fixed:
-            return f"{self.name}: {fixed} plus one of: {alternatives}"
-        return f"{self.name}: one of: {alternatives}"
+        parts = [", ".join(f"{skill} d{die}" for skill, die in self.skills.items())]
+        if self.choice:
+            parts.append(f"skills, one of: {' / '.join(option.name for option in self.choice)}")
+        if self.kit:
+            parts.append(f"takes {', '.join(kit.name for kit in self.kit)}")
+        if self.kit_choice:
+            parts.append(f"weapon, one of: {' / '.join(kit.name for kit in self.kit_choice)}")
+        return f"{self.name}: {'; '.join(part for part in parts if part)}"
 
 
 class Body(DecisionOption):
@@ -66,6 +96,17 @@ class Origin(DecisionOption):
     increases: int = 0  # human 3, android 1
     invents: int = 0  # alien 2
     choice: tuple[Body, ...] = ()
+
+    def line(self) -> str:
+        gives: list[str] = []
+        if self.increases:
+            gives.append(f"skill increases: {self.increases}")
+        if self.invents:
+            gives.append(f"traits to invent: {self.invents}")
+        if self.choice:
+            gives.append(f"body, one of: {' / '.join(body.name for body in self.choice)}")
+        line = f"{self.name} — {self.brief}"
+        return f"{line} ({'; '.join(gives)})" if gives else line
 
 
 class TwentyFourXXBlock(Frozen):
@@ -115,7 +156,7 @@ class TwentyFourXXPack(Pack):
         return (
             *super().sections(opening=opening),
             *section_if("SPECIALTIES", self.specialty_lines()),
-            *bullets("ORIGINS", (f"{origin.name} — {origin.brief}" for origin in self.origins)),
+            *bullets("ORIGINS", (origin.line() for origin in self.origins)),
             *bullets("FACTIONS", (block.line() for block in self.factions)),
             *bullets("PEOPLE", (block.line() for block in self.npcs)),
             *bullets("MONSTERS", (block.line() for block in self.monsters)),
@@ -123,30 +164,38 @@ class TwentyFourXXPack(Pack):
 
 
 class SheetProposal(Frozen):
-    """The sheet of a hired member."""
+    """An operator's creation choices. The engine builds the sheet from them: the specialty's
+    skills and kit, the origin's increases, traits and body, the starting kit and ₡2."""
 
     specialty: str = Field(description="One of the specialties in ENGINE GUIDANCE.")
-    skills: dict[str, SkillDie] = Field(
-        min_length=1,
-        max_length=3,
-        description="One to three skills, at d8, d10 or d12. Use ENGINE GUIDANCE first. "
-        "Invent one skill that fits when no printed skill fits.",
+    specialty_skills: str = Field(
+        default="",
+        description="The specialty's skills option, when it offers one. Empty otherwise.",
     )
-    items: tuple[str, ...] = Field(
-        max_length=3,
-        description="What the character carries, three items at most. Use plain names.",
+    weapon: str = Field(
+        default="",
+        description="The specialty's weapon option, when it offers one. Empty otherwise.",
     )
-    hindrances: tuple[str, ...] = Field(
+    origin: str = Field(description="One of the origins in ENGINE GUIDANCE.")
+    traits: tuple[str, ...] = Field(
         default=(),
-        description="What already slows the character, if anything: an injury, a debt, a fear.",
+        description="One invented trait for each the origin gives, such as 'wings'. Empty "
+        "otherwise.",
+    )
+    body: str = Field(
+        default="", description="The origin's body option, when it offers one. Empty otherwise."
+    )
+    increases: tuple[str, ...] = Field(
+        default=(),
+        description="One skill for each increase the origin gives: from the skills in ENGINE "
+        "GUIDANCE, or one you invent that fits. A skill named twice rises twice.",
     )
 
-    def check(self, packs: Sequence[TwentyFourXXPack]) -> None:
-        check_unique("items", self.items)
-        check_unique("hindrances", self.hindrances)
-        specialties = {specialty.name for pack in packs for specialty in pack.specialties}
-        if self.specialty not in specialties:
-            raise Refusal(f"{self.specialty!r} is not a specialty these packs list")
+
+class NewcomerProposal(Frozen):
+    name: str = Field(min_length=1, description="The operator's name, as the player gave it.")
+    brief: str = Field(min_length=1, description="Who they are, in one line.")
+    sheet: SheetProposal
 
 
 class SpecialtyProposal(Named):
