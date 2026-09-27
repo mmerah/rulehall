@@ -5,7 +5,6 @@ from typing import Self
 from pydantic import Field, model_validator
 
 from rulehall.core.play import (
-    DecisionOption,
     Line,
     Narration,
     PendingDecision,
@@ -104,6 +103,7 @@ class NarratorView(Frozen):
     party: tuple[Slug, ...] = Field(min_length=1)
     # The player's own sheet: theirs to know, so the narrator may show it through detail.
     sheet: Rows
+    departed: tuple[Subject, ...] = ()
 
     @model_validator(mode="after")
     def _everyone_is_a_subject(self) -> Self:
@@ -118,15 +118,24 @@ class NarratorView(Frozen):
     def others(self) -> tuple[Subject, ...]:
         return tuple(subject for subject in self.subjects if subject.id not in self.party)
 
+    def after(self, before: "NarratorView") -> "NarratorView":
+        """Who could speak when the turn began still speaks in its narration after leaving."""
+        departed = tuple(
+            subject
+            for subject in before.subjects
+            if subject.id in before.speakers and subject.id not in self.speakers
+        )
+        return self.model_copy(update={"departed": departed})
+
     def spoken(self, lines: Sequence[Line]) -> tuple[SpokenLine, ...]:
-        here = {subject.id: subject for subject in self.subjects if subject.id in self.speakers}
+        """A line given to a voice not here is repaired into narration, not refused."""
+        voices = {subject.id: subject for subject in self.subjects if subject.id in self.speakers}
+        voices.update((subject.id, subject) for subject in self.departed)
 
         def spoken_line(line: Line) -> SpokenLine:
-            if line.speaker_id is None:
-                return SpokenLine(text=line.text)
-            who = here.get(line.speaker_id)
+            who = None if line.speaker_id is None else voices.get(line.speaker_id)
             if who is None:
-                raise Refusal(f"nobody here has id {line.speaker_id!r}")
+                return SpokenLine(text=line.text)
             return SpokenLine(speaker_id=who.id, speaker=who.name, text=line.text)
 
         return tuple(spoken_line(line) for line in lines)
@@ -134,12 +143,6 @@ class NarratorView(Frozen):
     def check_narration(self, narration: Narration) -> None:
         if not narration.lines:
             raise Refusal("Write the narration lines. An empty answer shows the player nothing.")
-        spoken = {line.speaker_id for line in narration.lines if line.speaker_id is not None}
-        if strangers := sorted(spoken - set(self.speakers)):
-            raise Refusal(
-                f"nobody here has id {', '.join(strangers)}. Only the player, or a person here "
-                "with the player, speaks. Use null for `speaker_id` in narration."
-            )
 
 
 class MapNode(Frozen):
@@ -168,9 +171,10 @@ class PlayerView(Frozen):
     situation: str
     panels: tuple[Panel, ...]
     decision: PendingDecision | None
-    way_on: DecisionOption | None
     ending: str | None
     map: MapView | None = None
+    composer_option: PendingOption | None = None
+    composer_only: bool = False
 
 
 class Look(Frozen):

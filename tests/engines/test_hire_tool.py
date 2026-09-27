@@ -51,7 +51,13 @@ CASES = (
         game=twentyfourxx_world,
         member=KESTREL,
         sheeted=_twentyfourxx_sheeted,
-        answer={"specialty": "Muscle", "skills": {"Intimidation": 8}, "items": ["Crowbar"]},
+        answer={
+            "specialty": "Muscle",
+            "specialty_skills": "Shooting",
+            "weapon": "Firearm",
+            "origin": "Human",
+            "increases": ["Shooting", "Labor", "Piloting"],
+        },
     ),
     HireCase(
         engine=TUNNELGOONS_ENGINE,
@@ -86,9 +92,13 @@ def test_join_party_with_terms_files_the_hire_and_without_joins_at_once(case: Hi
 
 
 @pytest.mark.parametrize("case", CASES, ids=_case_id)
-def test_hire_refuses_a_sheeted_member(case: HireCase) -> None:
+def test_hiring_a_member_let_go_brings_them_back_with_their_sheet(case: HireCase) -> None:
     draft = case.sheeted(case.game()).draft()
-    with pytest.raises(Refusal, match="already carries a sheet"):
+    draft.world.party.clear()
+    _join_party(case, draft, TERMS)
+    assert draft.request is None
+    assert case.member in draft.world.party
+    with pytest.raises(Refusal, match="already travels"):
         _join_party(case, draft, TERMS)
 
 

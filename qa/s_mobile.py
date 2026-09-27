@@ -11,7 +11,10 @@ from drive import (
     clean,
     composer,
     placeholder,
+    reach_breather,
+    send,
     submit,
+    take_breather,
     wait_idle,
     working,
 )
@@ -78,23 +81,24 @@ def body(s: Session, device: Device) -> None:
         page.locator(".q-drawer__backdrop").click(position={"x": 20, "y": 300})
     page.wait_for_timeout(600)
     s.check(not page.locator(".game-drawer").is_visible(), "drawer did not close")
-    # A conflict decision and the way-on banner on a narrow footer.
-    submit(page, 'I fight.\n!roll what="Strike" actor_id=player question="Land it?" target_id=mara')
+    # A conflict exchange, then the composer banner.
+    submit(page, 'I fight.\n!ask question="Do I land it?" against_id=mara')
     wait_idle(page)
-    s.shot(page, "decision")
-    submit(page, "I break off.\n!none")
+    s.shot(page, "conflict")
+    submit(page, "I break off.\n!withdraw")
     wait_idle(page)
-    submit(page, "Done here.\n!next_scene")
-    wait_idle(page)
-    s.shot(page, "way-on")
+    s.check(reach_breather(page), "no breather after eight closes")
+    s.shot(page, "composer")
     s.check(
-        page.locator(".game-banner button", has_text="Move on").is_visible(),
-        "Move on hidden on a phone",
+        page.locator(".game-banner button", has_text="Take the breather").is_visible(),
+        "Take the breather hidden on a phone",
     )
+    s.check(not send(page).is_visible(), "the send button shows beside the breather")
     s.check(
         page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
-        "way-on banner overflows",
+        "composer banner overflows",
     )
+    take_breather(page, 'I rest.\n!direct text="He rests."')
     s.note(f"placeholder: {placeholder(page)}")
     # The restart menu.
     page.locator(".q-header button").last.click()

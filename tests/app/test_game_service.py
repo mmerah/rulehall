@@ -17,6 +17,7 @@ from support.table import (
     tool_call,
     updated,
 )
+from support.twentyfourxx import open_crew
 
 from rulehall.app.launch import LaunchTarget
 from rulehall.app.runtime import Runtime
@@ -28,7 +29,8 @@ from rulehall.core.model import AnyGame, ScenarioMeta, WorldsmithRequest
 from rulehall.core.play import Answer
 from rulehall.core.validation import Refusal
 from rulehall.engines.entities import PLAYER_ID
-from rulehall.engines.loner3e.world import Loner3eEntity
+from rulehall.engines.loner4e.args import TAKE_BREATHER
+from rulehall.engines.loner4e.world import Loner4eEntity
 from rulehall.engines.pokemon.world import PokemonGame
 
 
@@ -170,36 +172,35 @@ async def test_a_failed_commit_still_frees_the_game(tmp_path: Path) -> None:
     assert (table.service.working_role, table.service.turn) == (None, None)
 
 
-def _scene(**changes: object) -> str:
-    scene = {
-        "place_id": "abbots-study",
-        "title": "The Abbot's Study, Disturbed",
-        "situation": "A second crew has forced the outer door, and torchlight swings wild across "
-        "the ledgers while Mara flattens herself against the shelves.",
-        "present": ["mara"],
-        "hidden": [],
-        "recap": "The player was keeping watch on the study door when a second crew broke in.",
-        "arc": "",
-    }
-    return json.dumps(scene | changes)
+def _scene() -> str:
+    return json.dumps(
+        {
+            "place_id": "docking-ring",
+            "title": "The Docking Ring, Breached",
+            "situation": "A second crew has forced the airlock, and torchlight swings wild "
+            "across the dark comm panels while Vessa flattens herself against the bulkhead.",
+            "present": ["vessa-rune", "harl-odum"],
+            "recap": "The player was keeping watch on the airlock when a second crew broke in.",
+        }
+    )
 
 
 async def test_a_complication_writes_and_installs_at_the_same_place(tmp_path: Path) -> None:
-    table = open_game(tmp_path)
+    table = open_crew(tmp_path)
     place = table.state.world.scene.place_id
     here_before = list(table.state.world.scene.here)
     table.spawner.answers["worldsmith"] = [_scene()]
 
     state = await play_turn(
         table,
-        "I keep watch on the study door.",
-        tool_call("next_scene", complication="A second crew breaches the study door."),
+        "I keep watch on the airlock.",
+        tool_call("next_scene", complication="A second crew breaches the airlock."),
         arrival="Torchlight swings wild across the ledgers.",
     )
 
     exchanges = state.exchanges()
     assert len(exchanges) == 2
-    assert exchanges[0].words == "I keep watch on the study door."
+    assert exchanges[0].words == "I keep watch on the airlock."
     assert exchanges[1].cause == "story"
     assert state.world.scene.place_id == place
     assert all(entity_id in state.world.cast for entity_id in here_before)
@@ -210,13 +211,13 @@ async def test_a_complication_writes_and_installs_at_the_same_place(tmp_path: Pa
 async def test_a_failed_write_after_a_complication_leaves_the_turn_committed(
     tmp_path: Path,
 ) -> None:
-    table = open_game(tmp_path)
+    table = open_crew(tmp_path)
     title = table.state.world.scene.title
 
     state = await play_turn(
         table,
-        "I keep watch on the study door.",
-        tool_call("next_scene", complication="A second crew breaches the study door."),
+        "I keep watch on the airlock.",
+        tool_call("next_scene", complication="A second crew breaches the airlock."),
     )
 
     exchange = state.exchanges()[-1]
@@ -230,13 +231,12 @@ async def test_a_failed_write_after_a_complication_leaves_the_turn_committed(
 
 async def test_no_generation_runs_once_the_game_is_over(tmp_path: Path) -> None:
     table = open_game(tmp_path)
-    table.spawner.answers["worldsmith"] = [_scene()]
 
     state = await play_turn(
         table,
         "I keep watch, whatever comes.",
         tool_call("kill", target_id=PLAYER_ID),
-        tool_call("next_scene", complication="A second crew breaches the study door."),
+        tool_call("close_scene", reason="resolved"),
     )
 
     assert table.service.engine.ending(state) is not None
@@ -287,6 +287,17 @@ async def test_two_concurrent_plays_on_different_sessions_cannot_both_open_a_tur
 
     assert len(first.state.exchanges()) == 1
     assert runtime.gate.status()["busy"] is False
+
+
+async def test_a_composer_option_the_page_no_longer_offers_is_refused(tmp_path: Path) -> None:
+    table = open_game(tmp_path)
+    before = table.state
+
+    with pytest.raises(Refusal, match="the page changed"):
+        await table.service.use_composer_option(TAKE_BREATHER, "I rest by the fire.")
+
+    assert table.state is before
+    assert table.spawner.prompts == []
 
 
 async def test_a_team_page_option_applies_at_once_with_no_turn(tmp_path: Path) -> None:
@@ -358,7 +369,7 @@ async def test_the_debrief_prompt_holds_no_hidden_entity_and_no_untold_fact(
     tmp_path: Path,
 ) -> None:
     table = open_game(tmp_path)
-    hidden = Loner3eEntity(id="the-lurker", name="The Lurker", brief="It waits.", known=False)
+    hidden = Loner4eEntity(id="the-lurker", name="The Lurker", brief="It waits.", known=False)
     draft = with_entity(table.state, hidden).draft()
     facts = (Fact(trace="The door creaks.", told=True), Fact(trace="A trap arms below."))
     table.service.save(table.service.engine.record(draft, (), facts, words="I open the door."))

@@ -4,6 +4,7 @@ from typing import Any, Protocol, Self
 
 from pydantic import BaseModel, Field
 
+from rulehall.core.facts import Fact
 from rulehall.core.play import Chapter, Exchange, PendingDecision
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import EngineId, Frozen, Loose, Mutable, Refusal, Slug, parse
@@ -67,7 +68,7 @@ class WorldsmithRequest(Frozen):
     """An engine's one request to the worldsmith; the platform runs it once the turn ends."""
 
     kind: Slug  # the engine's own name for what it will author and install
-    detail: str = Field(min_length=1)
+    detail: str = ""
     target_id: Slug | None = None
 
 
@@ -83,6 +84,8 @@ class Game[W: BaseModel](Mutable):
     request: WorldsmithRequest | None = Field(default=None, exclude=True)
     directed: bool = Field(default=False, exclude=True)
     notes: list[str] = Field(default_factory=list)
+    # Told facts a waiting decision kept from the narrator: the turn that answers it tells them.
+    unnarrated: list[Fact] = Field(default_factory=list)
     log: list[Chapter] = Field(default_factory=list)
     world: W
 
@@ -91,6 +94,16 @@ class Game[W: BaseModel](Mutable):
 
     def exchanges(self) -> tuple[Exchange, ...]:
         return tuple(exchange for chapter in self.log for exchange in chapter.exchanges)
+
+    def last_words(self) -> str:
+        return next(
+            (
+                exchange.words
+                for exchange in reversed(self.exchanges())
+                if exchange.words and not exchange.by_option
+            ),
+            "",
+        )
 
     def draft(self) -> Self:
         """A working copy a resolution mutates; a failed turn never replaces the committed state."""

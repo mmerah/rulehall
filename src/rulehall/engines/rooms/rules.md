@@ -7,6 +7,11 @@ way carries nobody until `unlock_way` opens it, so open the lock first. Sometime
 to a place the player has not seen. The page then offers the player "More map", and the worldsmith
 writes what lies beyond. Never invent a place, a way, or what waits in them, yourself.
 
+## Failure
+
+A failure costs something and changes the situation. A failure never shuts the only way on: after
+a failure the player can try another way.
+
 ## The arc
 
 THE ARC is the worldsmith's setup beyond the map. The arc says what can come. The arc never says

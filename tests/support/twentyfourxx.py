@@ -1,4 +1,5 @@
 from collections.abc import Mapping, Sequence
+from functools import partial
 
 from rulehall.core.model import ScenarioMeta
 from rulehall.core.play import Chapter
@@ -15,7 +16,7 @@ from rulehall.engines.twentyfourxx.world import (
     TwentyFourXXGame,
     TwentyFourXXWorld,
 )
-from support.table import ENGINES_BUILT, TWENTYFOURXX, narrowed
+from support.table import ENGINES_BUILT, TWENTYFOURXX, narrowed, open_table
 
 KESTREL: Slug = "kestrel"
 SABLE: Slug = "sable"
@@ -33,6 +34,7 @@ SCENE_BASE: Mapping[str, object] = {
     "situation": SITUATION,
     "arc": "Farther in, the fixer's own supplier still owes for the last load.",
 }
+open_crew = partial(open_table, engine_id=TWENTYFOURXX, state_type=TwentyFourXXGame)
 
 
 def small_world() -> TwentyFourXXGame:
@@ -42,7 +44,6 @@ def small_world() -> TwentyFourXXGame:
         cast={KESTREL: kestrel, SABLE: sable},
         player=_player(),
         scenes=[_scene(here=[KESTREL, SABLE])],
-        ship_here=False,
     )
     return TwentyFourXXGame(
         scenario_id="loading-bay",
@@ -90,7 +91,6 @@ def _player() -> Crewmate:
         name="Rook",
         brief="A quiet operator",
         known=True,
-        leads=True,
         sheet=CrewSheet(
             specialty="Sneak",
             origin="Human",

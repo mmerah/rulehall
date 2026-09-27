@@ -6,7 +6,7 @@ from support.engine_dir import install_engine_dir
 from support.table import (
     ENGINE_IDS,
     ENGINES_BUILT,
-    LONER3E,
+    LONER4E,
     change,
     game,
 )
@@ -15,7 +15,6 @@ from rulehall.core.io import ENCODING
 from rulehall.core.model import Character
 from rulehall.core.validation import EngineId, Refusal
 from rulehall.engines.entities import PLAYER_ID, Person
-from rulehall.engines.loner3e.world import Loner3eWorld
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
 
 
@@ -26,22 +25,6 @@ def _engine_at(tmp_path: Path) -> type[TunnelGoonsEngine]:
         directory = tmp_path
 
     return Installed
-
-
-def test_the_clock_arms_on_reaching_the_tempo_and_starts_over() -> None:
-    engine, state = game(LONER3E)
-    draft = state.draft()
-
-    for _ in range(Loner3eWorld.meanwhile_every - 1):
-        engine.count_turn(draft)
-    assert (draft.world.turns_since_meanwhile, draft.world.meanwhile_due) == (
-        Loner3eWorld.meanwhile_every - 1,
-        False,
-    )
-
-    engine.count_turn(draft)
-
-    assert (draft.world.turns_since_meanwhile, draft.world.meanwhile_due) == (0, True)
 
 
 def test_a_pack_with_doubled_keys_is_refused(tmp_path: Path) -> None:
@@ -82,7 +65,7 @@ def test_restore_refuses_a_save_smuggling_a_pending_request() -> None:
 
 
 def test_a_direction_marks_the_draft_and_never_reaches_the_save() -> None:
-    engine, state = game(LONER3E)
+    engine, state = game(LONER4E)
     draft = state.draft()
 
     _ = change(engine, draft, "direct", text="the cold off the stone reaches him")

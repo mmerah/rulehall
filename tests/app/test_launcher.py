@@ -8,7 +8,7 @@ from pydantic import JsonValue
 from support.game import TARGET
 from support.table import (
     ENGINES_BUILT,
-    LONER3E,
+    LONER4E,
     NO_PACKS,
     NO_SHIPPED,
     POKEMON,
@@ -29,16 +29,16 @@ from rulehall.core.io import ENCODING, FileStore, Library
 from rulehall.core.model import ScenarioMeta
 from rulehall.core.validation import EngineId, Refusal
 from rulehall.engines.engine import AnyEngine
-from rulehall.engines.loner3e.engine import Loner3eEngine
-from rulehall.engines.loner3e.world import Loner3eGame
+from rulehall.engines.loner4e.engine import Loner4eEngine
+from rulehall.engines.loner4e.world import Loner4eGame
 
 MIRROR = EngineId("mirror")
-_MIRRORED = Loner3eEngine(NO_PACKS)
+_MIRRORED = Loner4eEngine(NO_PACKS)
 _MIRRORED.id = MIRROR
 # A second engine installed, so the engine the launcher pairs on is observable at all.
 INSTALLED = {**ENGINES_BUILT, MIRROR: _MIRRORED}
 KAEL_FOR_EACH = [
-    ("kael", LONER3E),
+    ("kael", LONER4E),
     ("kael", TUNNELGOONS),
     ("kael", TWENTYFOURXX),
     ("kael", POKEMON),
@@ -50,10 +50,10 @@ def _catalog(settings: Settings, engines: Mapping[EngineId, AnyEngine]) -> Launc
     return LauncherCatalog.read(library, FileStore(settings.saves_dir), engines)
 
 
-def _opening_state(settings: Settings) -> Loner3eGame:
+def _opening_state(settings: Settings) -> Loner4eGame:
     """The launcher reads saves, so a test needs a state a real game would have written."""
     runtime = Runtime(settings, spawner=ScriptedSpawner())
-    return narrowed(runtime.session(TARGET).state, Loner3eGame)
+    return narrowed(runtime.session(TARGET).state, Loner4eGame)
 
 
 def _scenarios_copy(tmp_path: Path) -> Path:
@@ -94,7 +94,7 @@ def test_the_catalog_pairs_a_scenario_with_a_character(tmp_path: Path) -> None:
 def test_a_character_is_offered_only_to_the_rules_it_is_written_for(tmp_path: Path) -> None:
     catalog = _catalog(offline_settings(tmp_path, _declaring(tmp_path, MIRROR)), INSTALLED)
 
-    assert [entry.id for entry in catalog.characters_for(LONER3E)] == ["kael"]
+    assert [entry.id for entry in catalog.characters_for(LONER4E)] == ["kael"]
     assert catalog.characters_for(MIRROR) == ()
     with pytest.raises(Refusal, match="no character 'kael' is written for the 'mirror' rules"):
         _ = catalog.target("whispering-vault", "kael")
@@ -111,9 +111,9 @@ def test_launcher_lists_and_resolves_an_existing_save(tmp_path: Path) -> None:
         "The Whispering Vault",
         "Kael",
         0,
-        "LONER 3E",
+        "LONER 4E",
     )
-    assert catalog.scenario("whispering-vault").rules == "LONER 3E"
+    assert catalog.scenario("whispering-vault").rules == "LONER 4E"
     assert saved.target == TARGET
 
 
@@ -204,8 +204,9 @@ _OPENING: dict[str, JsonValue] = {
     "title": "The Bell Under the Water",
     "situation": "The tide has taken the lower town and left the bell tower standing in it, "
     "and something down there still rings the hour.",
+    "goal": "Cross the drowned town before the tide turns",
+    "details": ["Black Floodwater", "A Leaning Tower"],
     "present": ["hana"],
-    "hidden": ["bell-rope"],
     "arc": "Farther down, the bell tower's keeper is still owed for the crossing, and has not "
     "yet been met.",
     "cast": {
@@ -233,7 +234,7 @@ async def test_a_written_opening_becomes_a_playable_scenario(tmp_path: Path) -> 
         scope="One crossing, before the tide turns.",
         art_style="woodcut",
     )
-    name = await runtime.new_scenario(LONER3E, meta, None, "srd", "kael")
+    name = await runtime.new_scenario(LONER4E, meta, None, "srd", "kael")
 
     # The scene bar refuses the first answer, and the reason goes back with the re-prompt.
     assert "these name nobody" in spawner.prompts[1][1]
@@ -265,7 +266,7 @@ async def test_an_opening_the_rules_will_not_play_never_reaches_disk(tmp_path: P
 
     with pytest.raises(Refusal, match="the worldsmith answered nothing usable"):
         _ = await runtime.new_scenario(
-            LONER3E,
+            LONER4E,
             ScenarioMeta(
                 title="The Sunken Bell",
                 premise="The tide.",
@@ -294,7 +295,7 @@ async def test_a_scenario_written_from_a_document_carries_its_text(tmp_path: Pat
     runtime = Runtime(offline_settings(tmp_path, scenarios), spawner=spawner)
 
     name = await runtime.new_scenario(
-        LONER3E,
+        LONER4E,
         ScenarioMeta(title="The Sunken Bell", premise="", backdrop="Plain.", scope="One crossing."),
         SOURCE_MD,
         "srd",

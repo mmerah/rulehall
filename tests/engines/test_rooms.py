@@ -29,7 +29,7 @@ from rulehall.engines.rooms.args import MOVED_CARD, MOVES_OFFSCREEN
 from rulehall.engines.rooms.panels import map_view
 from rulehall.engines.rooms.world import MapProposal
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
-from rulehall.engines.tunnelgoons.world import Goon, TunnelGoonsGame
+from rulehall.engines.tunnelgoons.world import Goon, TunnelGoonsGame, TunnelGoonsWorld
 
 
 def test_a_member_joins_and_leaves_the_party() -> None:
@@ -175,11 +175,23 @@ def test_meanwhile_never_reaches_the_narrator() -> None:
     assert cards(facts) == (only,)
 
 
+def test_the_clock_counts_only_a_turn_that_acted_and_arms_at_the_tempo() -> None:
+    draft = _walked(keep())
+
+    ENGINE.end_turn(draft, acted=False)
+    assert draft.world.turns_since_meanwhile == 0
+
+    for _ in range(TunnelGoonsWorld.meanwhile_every):
+        ENGINE.end_turn(draft, acted=True)
+
+    assert (draft.world.turns_since_meanwhile, draft.world.meanwhile_due) == (0, True)
+
+
 def test_a_counted_turn_spends_the_armed_flag() -> None:
     draft = _walked(keep())
     draft.world.meanwhile_due = True
 
-    ENGINE.count_turn(draft)
+    ENGINE.end_turn(draft, acted=True)
 
     assert not draft.world.meanwhile_due
 

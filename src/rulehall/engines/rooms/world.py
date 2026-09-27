@@ -1,5 +1,5 @@
 from collections.abc import Iterable, Iterator
-from typing import Self
+from typing import ClassVar, Self
 
 from pydantic import Field, model_validator
 
@@ -144,11 +144,15 @@ class RegionProposal[N: Dweller](MapProposal[N]):
 
 
 class RoomWorld[N: Dweller](Dungeon[N], World[N]):
-    visits: list[Slug] = Field(min_length=1)
+    meanwhile_every: ClassVar[int]  # counted turns between two firings of the meanwhile clock
 
-    def unmet(self) -> Iterable[N]:
+    visits: list[Slug] = Field(min_length=1)
+    turns_since_meanwhile: int = Field(default=0, ge=0)
+    meanwhile_due: bool = False  # the clock has fired and nothing has spent it yet
+
+    def people(self) -> Iterable[N]:
         """Npcs only: item names are common nouns the master must be free to say."""
-        return (npc for npc in self.npcs.values() if not npc.known)
+        return (self.player, *self.npcs.values())
 
     @model_validator(mode="after")
     def _playable(self) -> Self:
@@ -241,9 +245,11 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
         armed = self.meanwhile_due
         if not armed and not self.can_move_offscreen():
             return
-        super().count_turn()
-        if armed:
-            self.clear_meanwhile()  # the armed turn is spent; one chance, not several
+        self.turns_since_meanwhile += 1
+        fired = self.turns_since_meanwhile >= self.meanwhile_every
+        if fired:
+            self.turns_since_meanwhile = 0
+        self.meanwhile_due = fired and not armed  # the armed turn is spent; one chance, not several
 
     def _open_way(self, way: Way, destination: Place) -> None:
         """Walked or unlocked, a way is known from both sides."""

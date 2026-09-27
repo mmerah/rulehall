@@ -141,19 +141,19 @@ class Library:
         return character
 
     def write_character(self, character: AnyCharacter) -> None:
-        if (self.shipped_characters / content_id(character.id)).exists():
-            raise Refusal(f"character {character.id!r} ships with the game")
-        folder = self.characters / content_id(character.id)
-        path = folder / f"{character.engine_id}.json"
+        path = self._player_character_path(character)
         if path.exists():
             raise Refusal(f"character {character.id!r} already exists")
         # One folder is one person played by several engines, so any sibling settles who that is.
-        sibling = next(folder.glob("*.json"), None)
+        sibling = next(path.parent.glob("*.json"), None)
         if sibling is not None:
             filed, named = read_model(sibling, CharacterHeader).sheet.name, character.sheet.name
             if filed != named:
                 raise Refusal(f"character {character.id!r} is {filed!r}, not {named!r}")
         write_text(path, character.model_dump_json(indent=2))
+
+    def rewrite_character(self, character: AnyCharacter) -> None:
+        write_text(self._player_character_path(character), character.model_dump_json(indent=2))
 
     def write_scenario(self, scenario_id: Slug, scenario: AnyScenario) -> None:
         if content_id(scenario_id) in self.scenario_ids():
@@ -162,6 +162,11 @@ class Library:
             self.scenarios / content_id(scenario_id) / WORLD_FILE,
             scenario.model_dump_json(indent=2),
         )
+
+    def _player_character_path(self, character: AnyCharacter) -> Path:
+        if (self.shipped_characters / content_id(character.id)).exists():
+            raise Refusal(f"character {character.id!r} ships with the game")
+        return self.characters / content_id(character.id) / f"{character.engine_id}.json"
 
 
 @dataclass(frozen=True, slots=True)

@@ -247,7 +247,7 @@ body, body.body--dark {
   box-shadow: 0 0 0 2px var(--game-surface-raised), 0 0 0 4px var(--game-accent), 0 10px 24px -8px var(--game-accent-glow);
 }
 .game-card-icon { color: var(--game-accent); font-size: 1.25rem }
-.game-decision {
+.game-decision, .game-offer {
   border-color: color-mix(in srgb, var(--game-accent) 45%, transparent);
   background: linear-gradient(115deg, var(--game-accent-soft), transparent 55%), var(--game-surface-raised);
   box-shadow: var(--game-shadow-md), var(--game-highlight);
@@ -318,12 +318,12 @@ body, body.body--dark {
 }
 .game-choice .q-btn__content { justify-content: flex-start }
 .game-choice:not(.disabled):hover { transform: translateY(-2px); box-shadow: 0 12px 24px -12px var(--game-accent-glow) }
-/* The way on is the one outline the page offers unasked, so it wears the accent edge already. */
-.game-way-on { min-height: 2.75rem }
-.game-way-on .q-btn__content { flex-wrap: nowrap; white-space: nowrap }
-.game-way-on:before { border-color: var(--game-accent) }
-.game-way-on .q-icon { transition: transform var(--game-medium) var(--game-spring) }
-.game-way-on:hover .q-icon { transform: translateX(3px) }
+/* The composer option is the one outline the page offers unasked, so it wears the accent edge already. */
+.game-composer-option { min-height: 2.75rem }
+.game-composer-option .q-btn__content { flex-wrap: nowrap; white-space: nowrap }
+.game-composer-option:before { border-color: var(--game-accent) }
+.game-composer-option .q-icon { transition: transform var(--game-medium) var(--game-spring) }
+.game-composer-option:hover .q-icon { transform: translateX(3px) }
 .q-btn:focus-visible, .q-field:focus-within .q-field__control {
   outline: 2px solid var(--game-accent);
   outline-offset: 3px;

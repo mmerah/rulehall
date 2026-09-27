@@ -16,11 +16,11 @@ from rulehall.app.spawn import Spawner
 from rulehall.app.turn import NO_TURN, Turn, require_playable
 from rulehall.config import BattleConfig, TranscriptConfig
 from rulehall.core.facts import Fact
-from rulehall.core.io import FileStore
+from rulehall.core.io import FileStore, Library
 from rulehall.core.model import AnyCharacter, AnyGame, AnyScenario
 from rulehall.core.play import Answer, Cause, Debrief, Exchange, PendingOption, SpokenLine
 from rulehall.core.validation import Refusal, Slug
-from rulehall.core.views import PlayerView, Sprite
+from rulehall.core.views import NarratorView, PlayerView, Sprite
 from rulehall.engines.engine import AnyEngine, BattleRun, Resolution, Transport
 
 LOGGER = logging.getLogger(__name__)
@@ -56,6 +56,7 @@ class GameService:
     engine: AnyEngine
     spawner: Spawner
     store: FileStore
+    library: Library
     state: AnyGame
     gate: "Gate" = field(repr=False, compare=False)
     illustrator: Illustrator
@@ -98,11 +99,14 @@ class GameService:
         with self.gate.admit(self), self.remembered(answer.text):
             await self._turn(answer, self.state)
 
-    async def take_way_on(self, way_on_id: Slug, words: str) -> None:
+    async def use_composer_option(self, option: PendingOption, words: str) -> None:
         with self.gate.admit(self), self.remembered(words):
             self._require_free()
+            if option != self.player_view().composer_option:
+                raise Refusal("the page changed; try again")
             draft = self.state.draft()
-            self.engine.take_way_on(draft, way_on_id, words)
+            chosen = option.model_copy(update={"args": {**option.args, "words": words}})
+            _ = self.engine.play_option(draft, chosen, self.rng)
             if draft.request is None:
                 await self._turn(Answer(text=words), draft)
                 return
@@ -123,8 +127,16 @@ class GameService:
                 raise Refusal(f"{option.name!r} is not an option now")
             draft = self.state.draft()
             facts = self.engine.play_option(draft, option, self.rng)
+            if option.told_in_turn:
+                draft.unnarrated = list(facts)
             accepted = self.engine.accept(draft)
-            self.save(self.engine.record(accepted, (), facts, words=option.name))
+            self.save(self.engine.record(accepted, (), facts, words=option.name, by_option=True))
+            if self.state.request is not None and not await self._write_request(
+                words="", cause="story"
+            ):
+                return
+            if option.told_in_turn:
+                await self._turn(Answer(text=option.name), self.state)
 
     async def open_battle(self) -> None:
         with self.gate.admit(self):
@@ -233,6 +245,7 @@ class GameService:
 
     async def _turn(self, answer: Answer, state: AnyGame) -> None:
         turn = Turn.begin(self.engine, state, answer, self.rng)
+        before = self.engine.narrator_view(state)
         self.turn = turn
         try:
             with self.working("master"):
@@ -242,7 +255,7 @@ class GameService:
             if turn.narrates:
                 with self.working("narrator"):
                     lines = await self._narrated(
-                        turn.draft, tuple(turn.facts), turn.words, landed=turn.landed
+                        turn.draft, turn.told, turn.words, landed=turn.landed, before=before
                     )
             state = turn.finish(lines)
         finally:
@@ -278,24 +291,45 @@ class GameService:
             landed = self.engine.record(draft, (), failure, words=words, cause=cause)
             grown = False
         self.save(landed)
+        if (character := self.engine.grown_character(self.state)) is not None:
+            self._write_back(character)
         self.present()
         return grown
+
+    def _write_back(self, character: AnyCharacter) -> None:
+        try:
+            self.library.rewrite_character(character)
+        except Refusal as refused:
+            LOGGER.warning("the grown sheet was not written back: %s", refused)
+            return
+        self.character = character
 
     async def _land(
         self, draft: AnyGame, resolution: Resolution, *, words: str, cause: Cause | None
     ) -> AnyGame:
         if resolution.narrator_cue is None:
-            return self.engine.accept(draft)
+            if not resolution.facts:
+                return self.engine.accept(draft)
+            # The words that asked for it open the turn that follows, which shows them.
+            return self.engine.record(draft, (), resolution.facts, cause="story")
         with self.working("narrator"):
             lines = await self._narrated(draft, resolution.facts, resolution.narrator_cue)
         return self.engine.record(draft, lines, resolution.facts, words=words, cause=cause)
 
     async def _narrated(
-        self, draft: AnyGame, facts: tuple[Fact, ...], cue: str, *, landed: bool = True
+        self,
+        draft: AnyGame,
+        facts: tuple[Fact, ...],
+        cue: str,
+        *,
+        landed: bool = True,
+        before: NarratorView | None = None,
     ) -> tuple[SpokenLine, ...]:
         """No landed fact means nothing to save, so the player hears why and keeps the words."""
         try:
-            return await run_narrator(self.spawner, self.engine, draft, facts, cue, self._hear)
+            return await run_narrator(
+                self.spawner, self.engine, draft, facts, cue, self._hear, before
+            )
         except Refusal as failed:
             if not landed:
                 raise

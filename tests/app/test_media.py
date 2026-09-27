@@ -18,7 +18,7 @@ from rulehall.config import MediaConfig, ProviderConfig
 from rulehall.core.io import FileStore
 from rulehall.core.views import NarratorView
 from rulehall.engines.engine import AnyEngine
-from rulehall.engines.loner3e.world import Loner3eEntity, Loner3eGame
+from rulehall.engines.loner4e.world import Loner4eEntity, Loner4eGame
 
 STYLE = "Painterly fantasy illustration, muted colours, no text or lettering."
 
@@ -34,10 +34,10 @@ def _illustrator(saves: Path, icon_dirs: tuple[Path, ...] = ()) -> Illustrator:
     )
 
 
-def _placed(state: Loner3eGame, name: str, *, known: bool) -> Loner3eGame:
+def _placed(state: Loner4eGame, name: str, *, known: bool) -> Loner4eGame:
     return with_entity(
         state,
-        Loner3eEntity(
+        Loner4eEntity(
             id=name.lower().replace(" ", "-"),
             name=name,
             brief=f"A {name.lower()}.",
@@ -47,7 +47,7 @@ def _placed(state: Loner3eGame, name: str, *, known: bool) -> Loner3eGame:
     )
 
 
-def _scene(engine: AnyEngine, state: Loner3eGame) -> NarratorView:
+def _scene(engine: AnyEngine, state: Loner4eGame) -> NarratorView:
     return engine.narrator_view(state)
 
 

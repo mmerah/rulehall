@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 from support.game import character, initialized, scenario
-from support.table import ENGINES_BUILT, LONER3E, NO_SHIPPED, SCENARIO_MODELS, updated
+from support.table import ENGINES_BUILT, LONER4E, NO_SHIPPED, SCENARIO_MODELS, updated
 
 from rulehall.core.facts import Fact
 from rulehall.core.io import ENCODING, FileStore, Library, partial_lines, publish, write_text
@@ -47,7 +47,7 @@ def test_storage_rejects_unsafe_slugs(tmp_path: Path, slug: str) -> None:
 
 
 def test_content_paths_reject_an_unsafe_id(tmp_path: Path) -> None:
-    engine = ENGINES_BUILT[LONER3E]
+    engine = ENGINES_BUILT[LONER4E]
     library = Library(tmp_path, tmp_path, NO_SHIPPED)
     with pytest.raises(Refusal, match="invalid content id"):
         library.read_scenario("../escape", SCENARIO_MODELS)
@@ -82,7 +82,7 @@ def test_read_scenarios_skips_a_world_that_fails_to_validate(tmp_path: Path) -> 
 
 
 def test_shipped_content_is_read_only_and_wins_an_id_over_player_content(tmp_path: Path) -> None:
-    engine = ENGINES_BUILT[LONER3E]
+    engine = ENGINES_BUILT[LONER4E]
     shipped = Library(tmp_path / "scenarios", tmp_path / "characters", NO_SHIPPED)
     shipped.write_scenario("vault", scenario())
     shipped.write_character(character())
@@ -105,7 +105,7 @@ def test_shipped_content_is_read_only_and_wins_an_id_over_player_content(tmp_pat
 
 
 def test_a_character_written_for_a_second_engine_must_keep_its_name(tmp_path: Path) -> None:
-    engine = ENGINES_BUILT[LONER3E]
+    engine = ENGINES_BUILT[LONER4E]
     filed = character()
     library = Library(tmp_path, tmp_path, NO_SHIPPED)
     library.write_character(filed)
@@ -116,6 +116,21 @@ def test_a_character_written_for_a_second_engine_must_keep_its_name(tmp_path: Pa
 
     library.write_character(updated(filed, engine_id=MIRROR))
     assert library.read_character("kael", engine.id, engine.character).sheet.name == "Kael"
+
+
+def test_rewrite_character_overwrites_a_player_sheet_and_refuses_a_shipped_one(
+    tmp_path: Path,
+) -> None:
+    engine = ENGINES_BUILT[LONER4E]
+    player = Library(tmp_path, tmp_path / "characters", NO_SHIPPED)
+    player.write_character(character())
+    grown = updated(character(), sheet=updated(character().sheet, concept="A wiser thief"))
+
+    player.rewrite_character(grown)
+
+    assert player.read_character("kael", engine.id, engine.character) == grown
+    with pytest.raises(Refusal, match="ships with the game"):
+        Library(tmp_path, tmp_path / "characters", tmp_path).rewrite_character(grown)
 
 
 def test_a_save_that_cannot_be_written_refuses_without_leaking_the_path(tmp_path: Path) -> None:

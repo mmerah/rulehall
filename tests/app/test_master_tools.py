@@ -1,17 +1,13 @@
 import asyncio
 import json
 from pathlib import Path
-from random import Random
 
 import pytest
-from pydantic import Field, JsonValue
-from support.game import open_game
+from pydantic import Field
+from support.game import TOMAS, open_game
 from support.table import (
     narrated,
     offline_settings,
-    play_turn,
-    the_way_on,
-    tool_call,
     updated,
 )
 
@@ -22,8 +18,6 @@ from rulehall.core.prompt import Prompt
 from rulehall.core.tools import schema_of
 from rulehall.core.validation import Frozen, Refusal, Slug
 from rulehall.engines.args import ACTOR
-from rulehall.engines.entities import PLAYER_ID
-from rulehall.engines.scenes.engine import MOVE_ON, WAY_UNWRITTEN
 
 
 class _SchemaProbe(Frozen):
@@ -45,36 +39,6 @@ def test_schema_of_drops_noise_and_collapses_a_nullable() -> None:
     assert actor_id["type"] == ["string", "null"]
 
 
-VAULT_MAP = "vault-map"
-PURSUIT = "Out into the cloister walk."
-LEFT = tool_call("next_scene", pursuit=PURSUIT)
-MARA = "mara"
-A_CONFLICT: dict[str, JsonValue] = {
-    "what": "Wrest the ledger from her",
-    "actor_id": PLAYER_ID,
-    "question": "Does he wrest the ledger out of her hands?",
-    "target_id": MARA,
-}
-ARC = "Farther in, the chapter house still holds what Mara came for, and has not yet been found."
-A_SCENE = {
-    "place_id": "cloister-walk",
-    "title": "The Cloister Walk",
-    "situation": "Rain drums the open arcade and the flagstones run black with it, and Mara waits "
-    "at the far end with the lantern shuttered to a slit.",
-    "present": ["mara"],
-    "hidden": ["tomas"],
-    "arc": ARC,
-}
-RECAP = (
-    "The player left the abbot's study behind, lantern shuttered, and made for the cloister "
-    "walk with Mara close behind them."
-)
-
-
-def _scene(**changes: object) -> str:
-    return json.dumps(A_SCENE | {"recap": RECAP} | changes)
-
-
 async def test_a_change_lands_on_the_draft_as_it_is_made_and_on_disk_at_the_end(
     tmp_path: Path,
 ) -> None:
@@ -83,125 +47,21 @@ async def test_a_change_lands_on_the_draft_as_it_is_made_and_on_disk_at_the_end(
     table = open_game(tmp_path)
 
     def script() -> None:
-        _ = table.call("reveal", {"target_id": VAULT_MAP, "junk": 1})
-        _ = table.call("reveal", {"target_id": VAULT_MAP})
+        _ = table.call("enter", {"target_id": "Not An Id"})
+        _ = table.call("enter", {"target_id": TOMAS})
         turn = table.service.turn
         assert turn is not None
         counts.append(len(turn.facts))
 
     table.spawner.turns.append(script)
-    table.spawner.answers["narrator"] = [narrated("A chart, under the stone.")]
-    await table.service.play(Answer(text="I lever up the flagstone."))
+    table.spawner.answers["narrator"] = [narrated("A monk steps in from the cold.")]
+    await table.service.play(Answer(text="I wait for whoever comes."))
 
-    assert "not permitted" in table.refusals[0]
+    assert "target_id" in table.refusals[0]
     assert counts == [1]
     saved = table.saved()
-    assert saved.world.require(VAULT_MAP).known
+    assert TOMAS in saved.world.scene.here
     assert len(saved.exchanges()[-1].facts) == 1
-
-
-async def test_an_open_decision_blocks_every_other_tool_until_the_player_answers(
-    tmp_path: Path,
-) -> None:
-    """An unfinished conflict: nothing else lands until the player's next message answers it."""
-    table = open_game(tmp_path, rng=Random(0))
-
-    state = await play_turn(
-        table,
-        "I grab for the ledger in her hands.",
-        ("roll", A_CONFLICT),
-        tool_call("reveal", target_id=VAULT_MAP),
-        narration="She holds on.",
-    )
-
-    assert state.pending is not None
-    assert any("waiting on the player" in answer for answer in table.answers)
-    assert not state.world.require(VAULT_MAP).known
-
-    state = await play_turn(table, "I let it be.", narration="You step back.")
-    assert state.pending is None
-
-
-async def test_next_scene_asks_the_player_and_writes_nothing_yet(tmp_path: Path) -> None:
-    table = open_game(tmp_path)
-
-    state = await play_turn(
-        table,
-        "I have what I came for.",
-        the_way_on(),
-        narration="The flagstone settles back.",
-    )
-
-    assert len(state.exchanges()) == 1
-    # An offer, not a decision: nothing waits on the player and the scene is still playable.
-    assert state.pending is None
-    assert state.world.scene.way_offered
-    assert not any(role == "worldsmith" for role, _ in table.spawner.prompts)
-
-
-async def test_a_departure_crosses_after_the_leaving_turn_and_keeps_the_notes(
-    tmp_path: Path,
-) -> None:
-    """One adjudication: the master played the leaving, so the crossing needs no second turn."""
-    table = open_game(tmp_path)
-    table.spawner.answers["worldsmith"] = [_scene()]
-    table.service.save(updated(table.state, notes=["the adventure's end applies"]))
-
-    state = await play_turn(table, "I go.", LEFT, arrival="The cold meets you.")
-
-    assert [role for role, _ in table.spawner.prompts] == [
-        "master",
-        "narrator",
-        "worldsmith",
-        "narrator",
-    ]
-    assert state.notes == []
-    assert state.log[-2].exchanges[-1].words == "I go."
-    assert state.world.scene.title == "The Cloister Walk"
-    assert not state.world.scene.way_offered
-
-
-async def test_the_way_on_is_offered_once_and_a_departure_consumes_it(tmp_path: Path) -> None:
-    table = open_game(tmp_path)
-    table.spawner.answers["worldsmith"] = [_scene()]
-
-    _ = await play_turn(table, "I go.", the_way_on())
-    _ = await play_turn(table, "I linger.", the_way_on())
-    assert "already offers" in table.refusals[-1]
-
-    state = await play_turn(table, PURSUIT, LEFT, way_on=MOVE_ON.id, arrival="Rain.")
-
-    assert state.world.scene.title == "The Cloister Walk"
-    assert not state.world.scene.way_offered
-
-
-async def test_a_scene_the_world_has_outgrown_is_dropped_and_the_offer_kept(
-    tmp_path: Path,
-) -> None:
-    """The bar sees the turn's own changes; a failed write leaves the way on as it was."""
-    table = open_game(tmp_path)
-    table.spawner.answers["worldsmith"] = [_scene(), _scene()]
-
-    _ = await play_turn(table, "I have what I came for.", the_way_on())
-    state = await play_turn(table, PURSUIT, tool_call("enter", target_id="tomas"), LEFT)
-
-    unwritten = state.exchanges()[-1]
-    assert unwritten.cause == "story"
-    assert unwritten.facts[0] == WAY_UNWRITTEN
-    assert state.world.scene.title == "The Abbot's Study"
-    assert state.world.scene.way_offered
-    assert state.request is None
-
-
-async def test_a_worldsmith_that_fails_leaves_the_scene_unchanged_and_says_why(
-    tmp_path: Path,
-) -> None:
-    table = open_game(tmp_path)
-
-    state = await play_turn(table, "I go.", LEFT)
-
-    assert state.exchanges()[-1].facts[0] == WAY_UNWRITTEN
-    assert table.service.state.world.scene.title == "The Abbot's Study"
 
 
 async def test_abandoning_a_spawn_kills_the_process_group_it_started(

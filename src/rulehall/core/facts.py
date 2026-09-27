@@ -69,16 +69,16 @@ def roll(
         raise ValueError("a dice pool rolls at least one die")
     drawn = tuple(rng.randint(1, face) for face in faces)
     highlight = (drawn.index(max(drawn)),) if highlight_kept and len(faces) > 1 else ()
-    notation = _notation(faces)
+    shown_faces = notation(faces)
     event = DiceEvent(
-        label=label or notation, faces=tuple(faces), rolled=drawn, highlight=highlight
+        label=label or shown_faces, faces=tuple(faces), rolled=drawn, highlight=highlight
     )
     shown = ", ".join(str(die) for die in drawn)
-    fact = Fact(trace=f"{reason}: {notation} [{shown}]")
+    fact = Fact(trace=f"{reason}: {shown_faces} [{shown}]")
     return Rolled(event=event, fact=fact)
 
 
-def _notation(faces: Sequence[int]) -> str:
+def notation(faces: Sequence[int]) -> str:
     if len(faces) == 1:
         return f"d{faces[0]}"
     if len(set(faces)) == 1:

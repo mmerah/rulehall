@@ -17,7 +17,15 @@ from rulehall.engines.engine import AnyEngine
 PAUSED_TO_ASK = 'The rules paused play to ask the player: "{prompt}" '
 RULES_WAIT = "the rules now wait on the player's decision"
 REQUEST_WAIT = "the worldsmith writes what you asked for once this turn ends. Stop here and exit."
-DIRECTED_WAIT = "the narrator has your direction and the turn ends there. Stop here and exit."
+DIRECTED_ONCE = "the turn already has its direction: `direct` runs once per turn"
+HELD = (
+    "Fixed before this turn, and told with it: never tell, roll or change them again. "
+    "Interpret only the player's answer.\n{traces}"
+)
+UNDIRECTED = (
+    "The turn has no `direct`, and no tool ended it. Call `direct` now with the notes for the "
+    "narrator."
+)
 ANSWERED_BY_OPTION = (
     "The player chose the option above and the rules applied the option. Tell what the option "
     "caused. Do not decide the option again."
@@ -27,6 +35,7 @@ BATTLE_WAIT = "a battle starts once this turn ends. Stop here and exit."
 BATTLE_ON = "A battle is on. Finish it on the battle screen."
 GAME_OVER = "The game is over. The player restarts from the page."
 RESTART = "The game continues only after a restart."
+DIRECT = "direct"
 
 
 @dataclass(slots=True, kw_only=True)
@@ -35,23 +44,30 @@ class Turn:
     draft: AnyGame
     rng: Random
     facts: list[Fact] = field(default_factory=list)
+    held: list[Fact] = field(default_factory=list)
     refused: list[Refused] = field(default_factory=list)
     words: str = ""
+    by_option: bool = False
     # What the master reads as PLAYER ACTION: the words, or the marker for a chosen option.
     master_input: str = ""
     notes: list[str] = field(default_factory=list)
     # Whether the master plays: an answer that re-suspended leaves every tool refused.
     played: bool = True
+    # The direction stays the last told fact, even under a call made after it in its round.
+    direction: Fact | None = None
 
     @classmethod
     def begin(cls, engine: AnyEngine, state: AnyGame, answer: Answer, rng: Random) -> Self:
         turn = cls(engine=engine, draft=state.draft(), rng=deepcopy(rng))
         turn.draft.directed = False
+        turn.held, turn.draft.unnarrated = turn.draft.unnarrated, []
         turn._consume(answer)
-        turn.played = turn.draft.pending is None
-        # Notes are read once; a note a tool writes after this steers the next turn.
+        # An option that hands to the worldsmith leaves the master nothing to play.
+        turn.played = turn.draft.pending is None and turn.draft.request is None
+        # Notes are read once; a tool's own note is shown in its answer.
         if turn.played:
-            turn.notes, turn.draft.notes = turn.draft.notes, []
+            held = [HELD.format(traces=traced(turn.held))] if turn.held else []
+            turn.notes, turn.draft.notes = [*held, *turn.draft.notes], []
         return turn
 
     def _consume(self, answer: Answer) -> None:
@@ -86,15 +102,32 @@ class Turn:
             + f"They chose: {option.name}. Already resolved:\n{traces}"
         )
         self.words, self.master_input = option.name, ANSWERED_BY_OPTION
+        self.by_option = True
+
+    @property
+    def told(self) -> tuple[Fact, ...]:
+        return tuple(fact for fact in (*self.held, *self.facts) if fact.told)
 
     @property
     def narrates(self) -> bool:
-        """A hand-over that told the player nothing gets no prose."""
+        """A waiting decision holds the prose, so nothing preempts the player's choice; a
+        hand-over that told the player nothing gets none."""
         draft = self.draft
-        waiting = (
-            draft.pending is not None or draft.request is not None or self.engine.in_battle(draft)
+        if draft.pending is not None:
+            return False
+        return bool(self.told) or (draft.request is None and not self.engine.in_battle(draft))
+
+    @property
+    def over(self) -> bool:
+        """`direct` or a hand-over ended the turn: the master has nothing left to call."""
+        draft, engine = self.draft, self.engine
+        return (
+            draft.directed
+            or draft.pending is not None
+            or draft.request is not None
+            or engine.in_battle(draft)
+            or engine.ending(draft) is not None
         )
-        return any(fact.told for fact in self.facts) or not waiting
 
     @property
     def landed(self) -> bool:
@@ -113,8 +146,11 @@ class Turn:
         if (ended := self.engine.ending(self.draft)) is not None:
             raise Refusal(f"{ended} {GAME_OVER}")
         found = self.engine.require_tool(name)
+        if self.draft.directed and name == DIRECT:
+            raise Refusal(DIRECTED_ONCE)
         pending = self.draft.pending
-        if pending is not None:
+        # The direction for the paused result is kept: the turn that answers it tells both.
+        if pending is not None and name != DIRECT:
             # A plain answer, not a refusal: a retry prompt would tell the model to try again.
             return (
                 f"the rules are waiting on the player: {pending.prompt}\n"
@@ -124,24 +160,34 @@ class Turn:
             return REQUEST_WAIT
         if self.engine.in_battle(self.draft):
             return BATTLE_WAIT
-        if self.draft.directed:
-            return DIRECTED_WAIT
-        notes_before = len(self.draft.notes)
         facts = self.apply(lambda draft, rng: found.call(draft, raw, rng))
-        lines = [f"- {fact.trace}" for fact in facts]
-        lines.extend(f"- {note}" for note in self.draft.notes[notes_before:])
+        if name == DIRECT:
+            self.direction = facts[-1]
+        elif self.direction is not None:
+            self.facts.remove(self.direction)
+            self.facts.append(self.direction)
+        # `begin` took the notes before any call: a note here is this call's, shown once.
+        notes, self.draft.notes = self.draft.notes, []
+        lines = [f"- {line}" for line in (*(fact.trace for fact in facts), *notes)]
         if self.draft.pending is not None:
             lines.append(f"- {RULES_WAIT}")
         return "\n".join(lines) or NOTHING
 
     def published_tools(self) -> tuple[MasterTool, ...]:
-        return tuple(self.engine.tools.values())
+        return self.engine.published(self.draft)
 
     def finish(self, lines: tuple[SpokenLine, ...]) -> AnyGame:
-        if self.played and self.facts:
-            self.engine.count_turn(self.draft)
+        if not self.narrates:
+            self.draft.unnarrated = list(self.told)
+        if self.played:
+            self.engine.end_turn(self.draft, acted=bool(self.facts))
         return self.engine.record(
-            self.draft, lines, tuple(self.facts), words=self.words, refused=tuple(self.refused)
+            self.draft,
+            lines,
+            tuple(self.facts),
+            words=self.words,
+            by_option=self.by_option,
+            refused=tuple(self.refused),
         )
 
     def apply(self, play: Callable[[AnyGame, Random], tuple[Fact, ...]]) -> tuple[Fact, ...]:

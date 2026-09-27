@@ -1,4 +1,5 @@
 import logging
+from asyncio import timeout
 from collections.abc import Callable
 from typing import Literal
 
@@ -6,7 +7,7 @@ from httpx import HTTPError, HTTPStatusError
 from pydantic import BaseModel, ConfigDict, JsonValue
 
 from rulehall.app.providers import post_bearer, stream_bearer
-from rulehall.app.turn import Turn
+from rulehall.app.turn import UNDIRECTED, Turn
 from rulehall.config import ProviderConfig, Role, RoleConfig
 from rulehall.core.io import decode
 from rulehall.core.prompt import Prompt
@@ -14,6 +15,8 @@ from rulehall.core.tools import MasterTool, schema_of
 from rulehall.core.validation import Loose, Refusal, parse_json
 
 LOGGER = logging.getLogger(__name__)
+# A round may take this share of the run's time limit, so a stalled one is asked once more.
+ROUND_SHARE = 3
 
 
 class _Echoed(BaseModel):
@@ -123,16 +126,22 @@ async def _converse(
     turn: Turn,
 ) -> str:
     published: list[JsonValue] = [_declared(tool) for tool in turn.published_tools()]
+    retried = False
     for rounds in range(1, config.max_rounds + 1):
-        said = await _complete(config, provider, messages, published)
+        said = await _round(role, config, provider, messages, published)
         messages.append(said.model_dump(mode="json", exclude_none=True))
-        if not said.tool_calls:
-            LOGGER.info("the %s ended its turn after %d rounds", role, rounds)
-            return said.content or ""
         messages.extend(
             {"role": "tool", "tool_call_id": call.id, "content": _answer(turn, call)}
-            for call in said.tool_calls
+            for call in said.tool_calls or ()
         )
+        if turn.over:
+            LOGGER.info("the %s ended its turn after %d rounds", role, rounds)
+            return said.content or ""
+        if not said.tool_calls:
+            if retried:
+                raise Refusal(f"the {role} stopped with no `direct`, twice")
+            retried = True
+            messages.append({"role": "user", "content": UNDIRECTED})
     raise Refusal(
         f"the {role} made {config.max_rounds} rounds of tool calls without ending the turn"
     )
@@ -144,6 +153,22 @@ def _answer(turn: Turn, call: _ToolCall) -> str:
         return turn.call(call.function.name, decode(call.function.arguments))
     except Refusal as refused:
         return str(refused)
+
+
+async def _round(
+    role: Role,
+    config: RoleConfig,
+    provider: ProviderConfig,
+    messages: list[JsonValue],
+    tools: list[JsonValue],
+) -> _Said:
+    for attempt in range(2):
+        try:
+            async with timeout(config.timeout / ROUND_SHARE):
+                return await _complete(config, provider, messages, tools)
+        except TimeoutError:
+            LOGGER.warning("the %s stalled on a round, attempt %d", role, attempt + 1)
+    raise Refusal(f"the {role} stalled on one round twice")
 
 
 async def _complete(

@@ -90,7 +90,8 @@ class Snapshot:
             or now.refused_count != before.refused_count
             or now.intent != before.intent
             or now.live != before.live
-            or self.view.way_on != drawn.view.way_on
+            or self.view.composer_option != drawn.view.composer_option
+            or self.view.composer_only != drawn.view.composer_only
             or self.view.ending != drawn.view.ending
         )
 
@@ -178,8 +179,8 @@ class GamePage:
         self.new_activity: ui.button
         self.box: ui.input
         self.send_button: ui.button
-        self.way_on: Banner
-        self.way_on_button: ui.button
+        self.composer_banner: Banner
+        self.composer_button: ui.button
         self.ending: ui.label
         self.restart_item: ui.menu_item
         self.rewind_button: ui.button
@@ -263,13 +264,14 @@ class GamePage:
     def sync_controls(self, now: Snapshot) -> None:
         blocked, idle = now.blocker, now.progress.working_role is None
         typing = not now.held_elsewhere and blocked in (None, "answer")
-        for widget in (self.box, self.send_button, self.way_on_button):
+        for widget in (self.box, self.send_button, self.composer_button):
             widget.set_enabled(typing)
         self.box.props(f'placeholder="{transcript.PLACEHOLDERS[blocked]}"')
-        way_on, ending = now.view.way_on, now.view.ending
-        self.way_on.set_visibility(way_on is not None)
-        self.way_on_button.set_text("" if way_on is None else way_on.name)
-        self.way_on.text.set_text("" if way_on is None else way_on.brief)
+        option, ending = now.view.composer_option, now.view.ending
+        self.composer_banner.set_visibility(option is not None)
+        self.composer_button.set_text("" if option is None else option.name)
+        self.composer_banner.text.set_text("" if option is None else option.brief)
+        self.send_button.set_visibility(not now.view.composer_only)
         self.ending.set_text(ending or "")
         self.ending.set_visibility(ending is not None)
         self.restart_item.set_enabled(idle)
@@ -307,12 +309,12 @@ class GamePage:
             self.new_activity.classes("game-activity")
             self.show_activity(visible=False)
             self.decision.build(now)
-            self.way_on = Banner("sym_r_explore", "way on")
-            with self.way_on.actions:
-                self.way_on_button = (
-                    ui.button(on_click=self.take_way_on)
+            self.composer_banner = Banner("sym_r_explore", "next", kind="game-offer")
+            with self.composer_banner.actions:
+                self.composer_button = (
+                    ui.button(on_click=self.use_composer_option)
                     .props(f"outline icon-right={ARROW_ICON}")
-                    .classes("game-way-on")
+                    .classes("game-composer-option")
                 )
             if self.battle_panel is not None:
                 self.battle_panel.build_banner()
@@ -389,20 +391,26 @@ class GamePage:
         return await self._run(lambda: self.session.play(answer))
 
     async def submit(self) -> None:
+        if self.drawn.view.composer_only:
+            await self.use_composer_option()
+            return
         words = typed(self.box)
         if not words:
             return
         if await self.play(Answer(text=words)):
             self._set_box()
 
-    async def take_way_on(self) -> None:
-        way_on = self.drawn.view.way_on
-        if way_on is None:
-            warn("The way on has changed.")
+    async def use_composer_option(self) -> None:
+        option = self.drawn.view.composer_option
+        if option is None:
+            warn("The page has changed.")
             return
         words = typed(self.box)
+        if not words:
+            warn(f"Type your words, then press {option.name}.")
+            return
         self.own_move = True
-        if await self._run(lambda: self.session.take_way_on(way_on.id, words)):
+        if await self._run(lambda: self.session.use_composer_option(option, words)):
             self._set_box()
 
     async def rewind(self) -> None:
@@ -526,7 +534,7 @@ class GamePage:
 
     async def _run(self, playing: Callable[[], Awaitable[None]]) -> bool:
         # The composer greys at once, not at the next tick: a second Enter has nothing to hit.
-        for widget in (self.box, self.send_button, self.way_on_button):
+        for widget in (self.box, self.send_button, self.composer_button):
             widget.set_enabled(False)
         try:
             await playing()

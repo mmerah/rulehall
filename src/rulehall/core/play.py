@@ -87,6 +87,8 @@ class PendingOption(DecisionOption):
     group: str = ""
     # Why it cannot be used now; empty when it can. It shows greyed and never runs.
     refusal: str = ""
+    # A panel option whose result the master tells in a turn of its own.
+    told_in_turn: bool = False
 
 
 class PendingDecision(Frozen):
@@ -126,6 +128,8 @@ class Refused(Frozen):
 
 class Exchange(Frozen):
     words: str
+    # The words are an option's name, not the player's own.
+    by_option: bool = False
     cause: Cause | None = None
     lines: tuple[SpokenLine, ...]
     # Every fact, told or not; `cards` picks the ones the player may see.

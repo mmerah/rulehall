@@ -57,7 +57,7 @@ reportUnannotatedClassAttribute = false # pydantic's `model_config` is unannotat
 
 [tool.ruff]
 line-length = 100
-extend-exclude = [".agents"]
+extend-exclude = [".agents", "PLAN.md"]  # the plan's code blocks are sketches, not code
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "TID252", "N", "ARG", "SIM", "RUF", "C4", "RET", "PERF", "FBT"]

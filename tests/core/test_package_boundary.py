@@ -5,7 +5,7 @@ import pytest
 
 SOURCE = Path(__file__).parents[2] / "src" / "rulehall"
 ENGINES = (
-    "rulehall.engines.loner3e",
+    "rulehall.engines.loner4e",
     "rulehall.engines.tunnelgoons",
     "rulehall.engines.twentyfourxx",
     "rulehall.engines.pokemon",

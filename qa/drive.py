@@ -162,16 +162,20 @@ def working(page: Page) -> Locator:
 
 
 def wait_idle(page: Page, timeout: float = 30) -> None:
-    """The composer is enabled again and no role is working."""
+    """The composer is enabled again, or a decision waits on the player, and no role works."""
     deadline = time.time() + timeout
     while time.time() < deadline:
         spinning = working(page).count() > 0
         disabled = composer(page).is_disabled() if composer(page).count() else True
-        if not spinning and not disabled:
+        if not spinning and (not disabled or decision(page).count()):
             page.wait_for_timeout(300)
             return
         page.wait_for_timeout(200)
     raise TimeoutError("the page never went idle")
+
+
+def decision(page: Page) -> Locator:
+    return page.locator(".game-decision:visible")
 
 
 def wait_working(page: Page, timeout: float = 5) -> bool:
@@ -206,6 +210,51 @@ def bubbles(page: Page) -> list[str]:
         t.strip()
         for t in page.locator(".game-transcript .q-message-text-content").all_inner_texts()
     ]
+
+
+def reach_breather(page: Page, tries: int = 8) -> bool:
+    """Close Loner scenes until the transition rolls a quiet one; the dice are seeded per game."""
+    if page.locator(".game-banner button", has_text="Take the breather").count():
+        return True
+    return bool(close_until(page, "quiet", tries))
+
+
+def close_until(page: Page, wanted: str, tries: int = 12) -> str:
+    """Close Loner scenes until the close card names `wanted`, taking each breather on the way."""
+    for attempt in range(tries):
+        if page.locator(".game-banner button", has_text="Take the breather").count():
+            take_breather(page, f'I rest ({attempt}).\n!direct text="He rests."')
+        submit(page, f'Onward ({attempt}).\n!close_scene reason=resolved\n!direct text="On."')
+        wait_idle(page, timeout=60)
+        closed = [c for c in cards(page) if "Scene closes:" in c][-1]
+        if wanted in closed:
+            return closed
+    return ""
+
+
+def use_row_option(page: Page, row: str, option: str) -> None:
+    """A drawer row with options opens a dialog of them; the pick starts no master turn."""
+    open_drawer(page)
+    page.locator(".game-drawer .game-opens", has_text=row).first.click()
+    page.wait_for_timeout(800)
+    page.locator(".q-dialog button.game-choice", has_text=option).click()
+    wait_working(page, timeout=2)
+    wait_idle(page, timeout=60)
+
+
+def take_breather(page: Page, words: str) -> None:
+    composer(page).fill(words)
+    page.locator(".game-banner button", has_text="Take the breather").click()
+    wait_working(page)
+    # The quiet scene's write and the aim's own turn run back to back: wait for the aim's turn.
+    aim = words.splitlines()[0]
+    deadline = time.time() + 60
+    while (
+        not any(f"[narration] {aim}" in bubble for bubble in bubbles(page))
+        and time.time() < deadline
+    ):
+        page.wait_for_timeout(200)
+    wait_idle(page, timeout=60)
 
 
 def cards(page: Page) -> list[str]:

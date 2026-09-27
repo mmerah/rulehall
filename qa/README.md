@@ -33,11 +33,11 @@ The master reads PLAYER ACTION from its prompt. Lines starting with `!` are scri
 
 | Script | Effect |
 | --- | --- |
-| `!roll what="Try the door" actor_id=player question="Does it give?"` | calls that tool (values parse as JSON, else strings; quote lists: `item_ids='["torch"]'`) |
+| `!ask question="Does the door give?" action=true helps='["Quiet Hands"]'` | calls that tool (values parse as JSON, else strings; quote lists: `item_ids='["torch"]'`) |
 | `!none` | no tool call |
 | `!crash` / `!refuse` | the master fails with `OSError` / `Refusal` |
 | `!fail narrator`, `!bad worldsmith`, `!slow narrator` | that role's next ask fails (its retry too), answers garbage once so the retry lands, or stalls 6 s |
 
-Plain words with no script get one roll. The narrator echoes its prompt as `[narration]` and `[happened]` lines, so a screenshot shows what the page was told; `[say <id> "words"]` adds a spoken line. The worldsmith answers every request with a small valid draft.
+Plain words with no script get one roll; a Loner question sent with **Ask the oracle** is rolled as `ask(question: null)`. The narrator echoes its prompt as `[narration]` and `[happened]` lines, so a screenshot shows what the page was told; `[say <id> "words"]` adds a spoken line. The worldsmith answers every request with a small valid draft.
 
 Each role reads its prompt by section, and a section is a `# NAME` heading in the prompt the app renders. A prompt that stops naming its sections that way drops every script silently.

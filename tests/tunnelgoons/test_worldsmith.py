@@ -199,9 +199,9 @@ def test_a_region_reusing_an_id_already_in_the_world_is_refused() -> None:
 
 def test_more_map_is_offered_only_once_every_place_is_known() -> None:
     state = small_world()
-    assert ENGINE.player_view(state).way_on is None
+    assert ENGINE.player_view(state).composer_option is None
 
     draft = state.draft()
     for place in draft.world.places.values():
         place.known = True
-    assert ENGINE.player_view(draft.commit()).way_on == MORE_MAP
+    assert ENGINE.player_view(draft.commit()).composer_option == MORE_MAP

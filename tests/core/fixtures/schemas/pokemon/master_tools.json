@@ -1,22 +1,5 @@
 [
   {
-    "name": "reveal",
-    "description": "Make a hidden entity here known to the player.",
-    "parameters": {
-      "additionalProperties": false,
-      "properties": {
-        "target_id": {
-          "description": "Exact id of something hidden here.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "target_id"
-      ],
-      "type": "object"
-    }
-  },
-  {
     "name": "kill",
     "description": "Kill someone here.",
     "parameters": {
@@ -52,7 +35,7 @@
   },
   {
     "name": "direct",
-    "description": "Call this last, once per turn. It ends the turn and gives notes to the narrator. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Use reveal first for hidden entities. Apply world changes through the other tools before calling direct.",
+    "description": "Call this last, once per turn. It ends the turn and gives notes to the narrator. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Apply world changes through the other tools before calling direct.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -63,6 +46,23 @@
       },
       "required": [
         "text"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "reveal",
+    "description": "Make a hidden entity here known to the player. HIDDEN HERE lists what the player has not found: call this before you tell a hidden thing.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of something hidden here.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
       ],
       "type": "object"
     }

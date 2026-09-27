@@ -29,7 +29,10 @@ The Harbour Road[harbour-road] — Tall grass grows beside a road that runs abov
 ids in use: gull-cove, harbour-road, ines, mira, pokemon-center, rook, tern-gym, tern-harbour, wren
 
 # SCENES SO FAR
-(the game has not started yet)
+## Scene: The Harbour Road
+place: The Harbour Road
+
+> I head deeper in.
 
 # THE PLAYER
 - Kael[player] — A quiet trainer from Tern Harbour who wants to see every island.

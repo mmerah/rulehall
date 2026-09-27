@@ -63,11 +63,13 @@ class Hiring[W: World[Any], K: Pack, P: Person, A: BaseModel](Engine[W, K]):
         work, also someone who already travels with the player: the worldsmith writes their sheet
         at the end of the turn, and nothing more happens this turn. Leave `terms` empty for
         someone who only comes along."""
-        if not args.terms:
-            return draft.world.join_party(args.target_id)
-        person = require_hireable(draft.world, args.target_id)
+        filed = self.file_stranger(draft, args.target_id)
+        person = draft.world.require_person_here(args.target_id)
+        # A member let go keeps their sheet, so hiring them again only brings them back.
+        if not args.terms or person.hired:
+            return [*filed, *draft.world.join(person)]
         draft.request = WorldsmithRequest(kind=HIRE, detail=args.terms, target_id=person.id)
-        return [Fact(trace=HIRE_PENDING.format(name=person.name, terms=args.terms))]
+        return [*filed, Fact(trace=HIRE_PENDING.format(name=person.name, terms=args.terms))]
 
     def request_handlers(self) -> Mapping[Slug, RequestHandler[W]]:
         return {**super().request_handlers(), HIRE: RequestHandler(self.write_hire, HIRE_UNWRITTEN)}
@@ -87,15 +89,13 @@ class Hiring[W: World[Any], K: Pack, P: Person, A: BaseModel](Engine[W, K]):
             answer_model=self.hire_model,
         )
         answer = await worldsmith(prompt, self.hire_model, self.hire_check(draft))
-        summary = self.sign_on(person, answer)
+        summary = self.sign_on(draft, person, answer)
         facts = world.join(person) if person.id not in world.party else []
-        facts.append(
-            person.fact(
-                SIGNS_ON.format(who=person.mention, summary=summary),
-                card=SIGNS_ON.format(who=person.name, summary=summary),
-            )
-        )
+        facts.append(signed_on(person, summary))
         return Resolution(tuple(facts), SIGNED_ON.format(name=person.name))
+
+    def file_stranger(self, _draft: Game[W], _target_id: Slug, /) -> list[Fact]:
+        return []
 
     def hire_check(self, _draft: Game[W], /) -> Check[A]:
         return lambda _answer: None
@@ -103,8 +103,15 @@ class Hiring[W: World[Any], K: Pack, P: Person, A: BaseModel](Engine[W, K]):
     @abstractmethod
     def hire_guidance(self, draft: Game[W], /) -> str: ...
     @abstractmethod
-    def sign_on(self, person: P, answer: A, /) -> str:
+    def sign_on(self, draft: Game[W], person: P, answer: A, /) -> str:
         """Write the answer onto the hired person's sheet; return the summary."""
+
+
+def signed_on(person: Person, summary: str) -> Fact:
+    return person.fact(
+        SIGNS_ON.format(who=person.mention, summary=summary),
+        card=SIGNS_ON.format(who=person.name, summary=summary),
+    )
 
 
 def require_hireable[M: Person](world: World[M], entity_id: Slug) -> M:

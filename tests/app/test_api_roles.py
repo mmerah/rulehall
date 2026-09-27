@@ -9,17 +9,19 @@ import pytest
 from httpx import HTTPStatusError, Request, Response
 from pydantic import JsonValue
 from support.game import initialized
-from support.table import ENGINES_BUILT, LONER3E, offline_settings, updated
+from support.table import ENGINES_BUILT, LONER4E, offline_settings, updated
 
 from rulehall.app.spawn import RoleRunner
-from rulehall.app.turn import Turn
+from rulehall.app.turn import UNDIRECTED, Turn
 from rulehall.config import RoleConfig, RoleSettings, Settings
 from rulehall.core.prompt import Prompt
 from rulehall.core.tools import MasterTool, schema_of
 from rulehall.core.validation import Refusal
 
-CHANGE_TAGS = ENGINES_BUILT[LONER3E].tools["change_tags"]
+CHANGE_TAGS = ENGINES_BUILT[LONER4E].tools["change_tags"]
+DIRECT = ENGINES_BUILT[LONER4E].tools["direct"]
 TRACE = "- the player Kael[player] gained the tag Listening"
+DIRECTED = json.dumps({"text": "He listens."})
 FENCED = '```json\n{"lines": []}\n```'
 _, STATE = initialized()
 
@@ -29,18 +31,19 @@ class _Tools(Turn):
     calls: list[tuple[str, JsonValue]] = field(default_factory=list)
 
     def published_tools(self) -> tuple[MasterTool, ...]:
-        return (CHANGE_TAGS,)
+        return (CHANGE_TAGS, DIRECT)
 
     def call(self, name: str, raw: JsonValue) -> str:
-        if name != CHANGE_TAGS.name:
-            raise Refusal(f"{name!r} is not a tool of the 'loner3e' engine.")
-        _ = CHANGE_TAGS.call(self.draft, raw, Random(0))
+        found = {tool.name: tool for tool in self.published_tools()}.get(name)
+        if found is None:
+            raise Refusal(f"{name!r} is not a tool of the 'loner4e' engine.")
+        _ = found.call(self.draft, raw, Random(0))
         self.calls.append((name, raw))
         return TRACE
 
 
 def _tools() -> _Tools:
-    return _Tools(engine=ENGINES_BUILT[LONER3E], draft=STATE.draft(), rng=Random(0))
+    return _Tools(engine=ENGINES_BUILT[LONER4E], draft=STATE.draft(), rng=Random(0))
 
 
 def _settings(**roles: RoleConfig) -> Settings:
@@ -129,7 +132,7 @@ async def test_the_master_plays_its_tools_in_process_and_echoes_each_reply_whole
         _call("c", "next_scene", "{}"),
         reasoning_details=[{"type": "reasoning.text", "text": "thinking"}],
     )
-    sent = _post(monkeypatch, first, _said("Done."))
+    sent = _post(monkeypatch, first, _said("Done.", _call("d", "direct", DIRECTED)))
     tools = _tools()
 
     spoken = await RoleRunner(_settings(master=RoleConfig(provider="local", model="m"))).run(
@@ -137,16 +140,17 @@ async def test_the_master_plays_its_tools_in_process_and_echoes_each_reply_whole
     )
 
     assert spoken.text == "Done."
-    assert tools.calls == [("change_tags", change)]
+    assert tools.calls == [("change_tags", change), ("direct", {"text": "He listens."})]
     assert sent[0]["tools"] == [
         {
             "type": "function",
             "function": {
-                "name": "change_tags",
-                "description": CHANGE_TAGS.description,
-                "parameters": schema_of(CHANGE_TAGS.args),
+                "name": tool.name,
+                "description": tool.description,
+                "parameters": schema_of(tool.args),
             },
         }
+        for tool in (CHANGE_TAGS, DIRECT)
     ]
     system, user, echoed, *answers = _messages(sent[1])
     assert system == {"role": "system", "content": "BE THE MASTER"}
@@ -168,7 +172,7 @@ async def test_the_master_plays_its_tools_in_process_and_echoes_each_reply_whole
     assert answers[2] == {
         "role": "tool",
         "tool_call_id": "c",
-        "content": "'next_scene' is not a tool of the 'loner3e' engine.",
+        "content": "'next_scene' is not a tool of the 'loner4e' engine.",
     }
 
 
@@ -201,6 +205,19 @@ async def test_a_master_still_calling_tools_past_the_cap_is_cut_off(
     with pytest.raises(Refusal, match="3 rounds"):
         _ = await RoleRunner(_settings(master=master)).run("master", prompt, None, _tools())
     assert len(sent) == 3
+
+
+async def test_a_master_that_stops_undirected_is_told_once_and_its_direct_ends_the_rounds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sent = _post(monkeypatch, _said("Done."), _said(None, _call("d", "direct", DIRECTED)))
+    prompt = Prompt(system="", user="PLAY")
+    master = RoleConfig(provider="local", model="m")
+
+    _ = await RoleRunner(_settings(master=master)).run("master", prompt, None, _tools())
+
+    assert len(sent) == 2
+    assert _messages(sent[1])[-1] == {"role": "user", "content": UNDIRECTED}
 
 
 @pytest.mark.parametrize(

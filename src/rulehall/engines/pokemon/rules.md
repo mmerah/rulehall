@@ -9,7 +9,7 @@ a bargain. Pick the skill that the attempt uses. Pick the difficulty: easy is DC
 A team Pokemon can help. Give its id in `helper_id` and say how it helps in `reason`, such as
 "Geodude breaks the rock". A fainted Pokemon cannot help. The engine rolls d20, adds twice the
 skill rank, and adds 2 for the helper. A natural 20 always succeeds, and a natural 1 always
-fails. You decide what a failure costs.
+fails.
 
 ## The team, the box and the bag
 

@@ -19,7 +19,7 @@ from rulehall.config import ProviderConfig, Providers, Role, Settings
 from rulehall.core.facts import Fact
 from rulehall.core.io import Library
 from rulehall.core.model import AnyGame, Check, RoleAnswer
-from rulehall.core.play import Answer
+from rulehall.core.play import Answer, PendingOption
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.engines.engine import AnyEngine
@@ -43,7 +43,7 @@ NO_PACKS = REPOSITORY_ROOT / "tests" / "no-packs"
 # never exists: a test names every root it reads
 NO_SHIPPED = REPOSITORY_ROOT / "tests" / "no-shipped"
 LIBRARY = Library(SCENARIOS, CHARACTERS, NO_SHIPPED)
-LONER3E = EngineId("loner3e")
+LONER4E = EngineId("loner4e")
 TUNNELGOONS = EngineId("tunnelgoons")
 TWENTYFOURXX = EngineId("twentyfourxx")
 POKEMON = EngineId("pokemon")
@@ -95,10 +95,6 @@ def refused(engine: AnyEngine, draft: AnyGame, name: str, /, **args: JsonValue) 
 
 def tool_call(name: str, **args: JsonValue) -> Scripted:
     return name, args
-
-
-def the_way_on() -> Scripted:
-    return "next_scene", {}
 
 
 def narrated(body: str, speaker_id: str | None = None) -> str:
@@ -227,6 +223,7 @@ def open_table[G: AnyGame](
     rng: Random | None = None,
     settings: Settings | None = None,
     engine: AnyEngine | None = None,
+    character_id: Slug = "kael",
 ) -> Table[G]:
     settings = settings or offline_settings(saves)
     spawner = ScriptedSpawner()
@@ -234,7 +231,7 @@ def open_table[G: AnyGame](
     selected_engine = ENGINES_BUILT[engine_id] if engine is None else engine
     runtime.engines[engine_id] = selected_engine
     scenario_id = scenario_for(engine_id)
-    service = runtime.session(LaunchTarget(scenario_id=scenario_id, character_id="kael"))
+    service = runtime.session(LaunchTarget(scenario_id=scenario_id, character_id=character_id))
     if rng is not None:
         service.rng = rng
     return Table(runtime=runtime, service=service, spawner=spawner, state_type=state_type)
@@ -246,7 +243,7 @@ async def play_turn[G: AnyGame](
     *calls: Scripted,
     narration: str = "You wait.",
     arrival: str | None = None,
-    way_on: Slug | None = None,
+    composer: PendingOption | None = None,
     then: Sequence[str] = (),
 ) -> G:
     """`then` queues answers for a spawn after the turn, such as the battle-end narration."""
@@ -257,9 +254,9 @@ async def play_turn[G: AnyGame](
     if arrival is not None:
         canned.append(narrated(arrival))
     canned.extend(then)
-    if way_on is not None:
+    if composer is not None:
         assert isinstance(prompt, str)
-        await table.service.take_way_on(way_on, prompt)
+        await table.service.use_composer_option(composer, prompt)
     else:
         answer = Answer(text=prompt) if isinstance(prompt, str) else prompt
         await table.service.play(answer)

@@ -1,11 +1,10 @@
 from collections.abc import Sequence
-from random import Random
 
 import pytest
 from support.table import (
     ENGINES_BUILT,
     LIBRARY,
-    LONER3E,
+    LONER4E,
     SCENARIO_MODELS,
     game,
     narrowed,
@@ -15,11 +14,9 @@ from support.table import (
 from rulehall.core.model import WorldsmithRequest
 from rulehall.core.validation import Refusal, Slug
 from rulehall.engines.entities import PLAYER_ID, Person
-from rulehall.engines.loner3e.engine import Loner3eEngine
-from rulehall.engines.loner3e.world import Loner3eEntity, Loner3eGame
-from rulehall.engines.scenes.engine import MOVE_ON
+from rulehall.engines.loner4e.world import Loner4eGame
 from rulehall.engines.scenes.world import NextProposal, Scene, SceneProposal, SceneWorld
-from rulehall.engines.scenes.worldsmith import MEANWHILE_NUDGE, check_next, check_opening
+from rulehall.engines.scenes.worldsmith import check_next, check_opening
 
 PLAYER = Person(id=PLAYER_ID, name="Player", brief="", known=True)
 MARA = "mara"
@@ -48,11 +45,12 @@ def _travelling() -> SceneWorld[Person]:
     return _world(_scene("a1", "A1", here=[MARA]), cast={MARA: mara}, party=[MARA])
 
 
-def test_a_party_member_leaves_the_scene_only_through_leave_party() -> None:
+def test_only_leave_party_takes_a_member_out_and_an_unknown_leave_is_nothing() -> None:
     world = _travelling()
     with pytest.raises(Refusal, match="leaves through `leave_party`"):
         _ = world.leave(MARA)
     assert world.present() == [MARA]
+    assert world.leave("nobody-filed") == []
 
 
 def test_killing_a_party_member_drops_them_from_the_party() -> None:
@@ -63,29 +61,14 @@ def test_killing_a_party_member_drops_them_from_the_party() -> None:
     assert any(fact.card == "Mara is dead" for fact in facts)
 
 
-def test_render_next_carries_the_meanwhile_nudge_only_when_armed_and_install_clears_it() -> None:
-    engine, state = game(LONER3E)
-    assert isinstance(engine, Loner3eEngine)
-    draft = narrowed(state, Loner3eGame).draft()
-
-    assert MEANWHILE_NUDGE not in engine.render_next(draft, "Down the stair.").text
-
-    draft.world.meanwhile_due = True
-    assert MEANWHILE_NUDGE in engine.render_next(draft, "Down the stair.").text
-
-    scene = NextProposal[Loner3eEntity](place_id="a2", title="A2", situation=SITUATION, recap=RECAP)
-    engine.install(draft, scene)
-
-    assert draft.world.meanwhile_due is False
-
-
-def test_entering_someone_hidden_is_refused_reveal_makes_them_present() -> None:
+def test_entering_someone_hidden_is_refused_and_entering_them_once_revealed_is_nothing() -> None:
     mara = Person(id=MARA, name="Mara", brief="A guide", known=False)
     world = _world(_scene("a1", "A1", here=[MARA]), cast={MARA: mara})
-    with pytest.raises(Refusal, match="already here"):
+    with pytest.raises(Refusal, match="hidden here"):
         _ = world.enter(MARA)
     _ = world.reveal_hidden(MARA)
     assert MARA in world.present()
+    assert world.enter(MARA) == []
 
 
 def test_a_next_proposal_naming_no_one_but_the_player_passes_and_installs() -> None:
@@ -97,21 +80,19 @@ def test_a_next_proposal_naming_no_one_but_the_player_passes_and_installs() -> N
         recap=RECAP,
     )
 
-    check_next(proposal, world, moving=True)
+    check_next(proposal, world)
 
     world.apply_scene(proposal)
 
     assert world.scenes[-1].title == "A2"
 
 
-def test_a_scene_keeps_its_location_until_a_departure_names_a_new_one() -> None:
+def test_a_scene_keeps_its_location_until_a_next_scene_names_a_new_one() -> None:
     world = _world(_scene("a1", "A1"))
     stays = NextProposal[Person](place_id="a2", title="A2", situation=SITUATION, recap=RECAP)
     travels = stays.model_copy(update={"location": "The village"})
 
-    with pytest.raises(Refusal, match="a complication happens where the player is"):
-        check_next(travels, world, moving=False)
-    check_next(travels, world, moving=True)
+    check_next(travels, world)
     world.apply_scene(stays)
     world.apply_scene(travels)
 
@@ -135,47 +116,26 @@ def test_a_next_draft_whose_recap_names_a_hidden_entity_is_refused() -> None:
     )
 
     with pytest.raises(Refusal, match="does not name what the player has not met"):
-        check_next(proposal, world, moving=True)
-
-
-def test_a_departure_over_an_offer_requests_the_crossing_and_leaves_the_offer() -> None:
-    engine, state = game(LONER3E)
-    draft = narrowed(state, Loner3eGame).draft()
-    _ = engine.tools["next_scene"].call(draft, {}, Random(0))
-
-    _ = engine.tools["next_scene"].call(draft, {"pursuit": "Down the stair."}, Random(0))
-
-    assert draft.request is not None
-    assert draft.request.detail == "Down the stair."
+        check_next(proposal, world)
 
 
 def test_a_scene_engine_refuses_a_request_kind_not_its_own() -> None:
-    engine, state = game(LONER3E)
-    draft = narrowed(state, Loner3eGame).draft()
+    engine, state = game(LONER4E)
+    draft = narrowed(state, Loner4eGame).draft()
     draft.request = WorldsmithRequest(kind="hire", detail="Hire a fixer.")
 
     with pytest.raises(Refusal, match="writes no 'hire'"):
         engine.validate(draft)
 
 
-def test_an_action_the_scene_no_longer_offers_is_refused_and_notes_nothing() -> None:
-    engine, state = game(LONER3E)
-    draft = narrowed(state, Loner3eGame).draft()
-
-    with pytest.raises(Refusal, match="the way on has changed"):
-        engine.take_way_on(draft, MOVE_ON.id, "Down the stair.")
-
-    assert draft.notes == []
-
-
 def test_beginning_the_game_does_not_mutate_the_authored_scenario() -> None:
-    engine = ENGINES_BUILT[LONER3E]
-    scenario_id = scenario_for(LONER3E)
+    engine = ENGINES_BUILT[LONER4E]
+    scenario_id = scenario_for(LONER4E)
     scenario = LIBRARY.read_scenario(scenario_id, SCENARIO_MODELS)
     before = scenario.opening.model_dump()
     character = LIBRARY.read_character("kael", engine.id, engine.character)
     draft = engine.begin(scenario_id, scenario, character)
-    world = narrowed(draft, Loner3eGame).world
+    world = narrowed(draft, Loner4eGame).world
 
     world.cast[MARA].name = "Someone else"
 

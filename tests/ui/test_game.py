@@ -38,7 +38,6 @@ def _view(decision: PendingDecision | None = None, ending: str | None = None) ->
         situation="Rain drums the arcade.",
         panels=(),
         decision=decision,
-        way_on=None,
         ending=ending,
     )
 

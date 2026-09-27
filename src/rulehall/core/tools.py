@@ -11,7 +11,7 @@ from pydantic import BaseModel, JsonValue
 
 from rulehall.core.facts import Fact
 from rulehall.core.model import AnyGame
-from rulehall.core.validation import Frozen, parse_json
+from rulehall.core.validation import Frozen, parse_mended
 
 type Call = Callable[[AnyGame, JsonValue, Random], tuple[Fact, ...]]
 type Marks = dict[Callable[..., object], type[BaseModel]]
@@ -115,7 +115,7 @@ def _call_of(engine: object, name: str, args: type[BaseModel], check_unnamed: Ch
     bound: Callable[[AnyGame, BaseModel, Random], Sequence[Fact]] = getattr(engine, name)
 
     def call(draft: AnyGame, raw: JsonValue, rng: Random) -> tuple[Fact, ...]:
-        parsed = parse_json(args, json.dumps(raw))
+        parsed = parse_mended(args, raw)
         if texts := tuple(_told_texts(parsed, type(parsed))):
             check_unnamed(draft, texts)
         return tuple(bound(draft, parsed, rng))

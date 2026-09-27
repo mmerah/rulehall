@@ -27,6 +27,10 @@ def test_a_step_takes_exactly_one_offered_answer() -> None:
         check_picks((STEP,), {"supplements": "three"})
 
 
+def test_an_optional_step_accepts_a_blank_answer() -> None:
+    check_picks((CreationStep(id="goal", name="What do you want?", optional=True),), {"goal": ""})
+
+
 def test_a_constrained_step_still_loses_an_answer_it_no_longer_offers() -> None:
     engine = ENGINES_BUILT[TWENTYFOURXX]
     picks = dict(ANDROID) | {"body": "not-on-offer"}

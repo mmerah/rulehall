@@ -4,13 +4,13 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 from support.game import character, initialized, loner_sheet, scenario
-from support.table import ENGINES_BUILT, LONER3E, NO_SHIPPED, SCENARIO_MODELS, SCENARIOS, updated
+from support.table import ENGINES_BUILT, LONER4E, NO_SHIPPED, SCENARIO_MODELS, SCENARIOS, updated
 
 from rulehall.core.io import Library
 from rulehall.core.validation import EngineId, Refusal
 from rulehall.engines.entities import PLAYER_ID
-from rulehall.engines.loner3e.rules import LUCK_MAX
-from rulehall.engines.loner3e.world import Loner3eGame, Loner3eWorld
+from rulehall.engines.loner4e.rules import LUCK_MAX
+from rulehall.engines.loner4e.world import Loner4eGame, Loner4eWorld
 
 MARA = "mara"
 OTHER = EngineId("ruleless")
@@ -40,7 +40,7 @@ def test_a_doubled_key_in_a_character_file_is_refused(tmp_path: Path) -> None:
     _ = (folder / f"{filed.engine_id}.json").write_text(doubled, encoding="utf-8")
     with pytest.raises(Refusal, match="duplicate keys"):
         _ = Library(tmp_path, tmp_path, NO_SHIPPED).read_character(
-            filed.id, filed.engine_id, ENGINES_BUILT[LONER3E].character
+            filed.id, filed.engine_id, ENGINES_BUILT[LONER4E].character
         )
 
 
@@ -58,7 +58,7 @@ def test_the_scene_world_rejects_state_it_cannot_stand_on() -> None:
         _ = _with_scene(world, here=["ghost"])
 
 
-def _with_scene(world: Loner3eWorld, **changes: object) -> Loner3eWorld:
+def _with_scene(world: Loner4eWorld, **changes: object) -> Loner4eWorld:
     return updated(world, scenes=[world.scene.model_dump(round_trip=True) | changes])
 
 
@@ -101,7 +101,7 @@ def test_entity_and_scene_ids_use_one_grammar() -> None:
 
 
 def test_a_game_is_refused_a_scenario_or_a_character_from_another_engine() -> None:
-    engine = ENGINES_BUILT[LONER3E]
+    engine = ENGINES_BUILT[LONER4E]
     with pytest.raises(Refusal, match="authored for the 'ruleless' rules"):
         _ = engine.begin("whispering-vault", updated(scenario(), engine_id=OTHER), character())
     with pytest.raises(Refusal, match="written for the 'ruleless' rules"):
@@ -112,18 +112,18 @@ def test_a_character_file_belongs_to_its_folder_and_its_engine(tmp_path: Path) -
     text = character().model_dump_json()
     foreign = json.dumps(json.loads(text) | {"engine_id": OTHER})
     (tmp_path / "kael").mkdir()
-    _ = (tmp_path / "kael" / f"{LONER3E}.json").write_text(foreign, encoding="utf-8")
+    _ = (tmp_path / "kael" / f"{LONER4E}.json").write_text(foreign, encoding="utf-8")
     (tmp_path / "mira").mkdir()
-    _ = (tmp_path / "mira" / f"{LONER3E}.json").write_text(text, encoding="utf-8")
+    _ = (tmp_path / "mira" / f"{LONER4E}.json").write_text(text, encoding="utf-8")
 
-    library, engine = Library(tmp_path, tmp_path, NO_SHIPPED), ENGINES_BUILT[LONER3E]
-    with pytest.raises(Refusal, match="plays 'ruleless', not 'loner3e'"):
+    library, engine = Library(tmp_path, tmp_path, NO_SHIPPED), ENGINES_BUILT[LONER4E]
+    with pytest.raises(Refusal, match="plays 'ruleless', not 'loner4e'"):
         _ = library.read_character("kael", engine.id, engine.character)
     with pytest.raises(Refusal, match="'kael' is filed under 'mira'"):
         _ = library.read_character("mira", engine.id, engine.character)
 
 
-def _luck(state: Loner3eGame) -> int:
+def _luck(state: Loner4eGame) -> int:
     return loner_sheet(state, PLAYER_ID).luck.current
 
 
@@ -157,5 +157,5 @@ def test_a_save_naming_a_pack_no_longer_installed_is_refused() -> None:
 def test_a_save_from_other_rules_is_refused_before_it_is_read() -> None:
     engine, state = initialized()
     foreign = json.dumps(state.model_dump(mode="json") | {"engine_id": OTHER})
-    with pytest.raises(Refusal, match="the save plays 'ruleless', not 'loner3e'"):
+    with pytest.raises(Refusal, match="the save plays 'ruleless', not 'loner4e'"):
         _ = engine.restore(foreign)

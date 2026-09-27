@@ -10,12 +10,12 @@ from rulehall.app.spawn import Spawner
 from rulehall.app.turn import Turn
 from rulehall.config import Role
 from rulehall.core.facts import Fact, traced
-from rulehall.core.io import parse_text, partial_lines, read_cached_text
+from rulehall.core.io import decode, partial_lines, read_cached_text
 from rulehall.core.model import AnyGame, Check, RoleAnswer
 from rulehall.core.play import Debrief, Narration, SpokenLine
 from rulehall.core.prompt import Prompt, Sections, lines_of, render_history, section_if, sections
 from rulehall.core.tools import schema_text
-from rulehall.core.validation import Refusal
+from rulehall.core.validation import Refusal, parse_mended
 from rulehall.core.views import NarratorView
 from rulehall.engines.engine import AnyEngine
 
@@ -79,12 +79,14 @@ async def run_narrator(
     facts: tuple[Fact, ...],
     prompt: str,
     heard: Callable[[tuple[SpokenLine, ...]], None],
+    before: NarratorView | None = None,
 ) -> tuple[SpokenLine, ...]:
     view = engine.narrator_view(draft)
+    if before is not None:
+        view = view.after(before)
 
     def overheard(text: str) -> None:
-        here = (None, *view.speakers)
-        heard(view.spoken([line for line in partial_lines(text) if line.speaker_id in here]))
+        heard(view.spoken(partial_lines(text)))
 
     told = [fact for fact in facts if fact.told]
     evidence = traced(told) if told else f"- {UNSETTLED}"
@@ -129,7 +131,7 @@ async def ask[T: BaseModel](
         try:
             spoken = await spawner.run(role, asked, conversation, heard=heard)
             conversation = spoken.conversation
-            answer = parse_text(model, spoken.text)
+            answer = parse_mended(model, decode(spoken.text))
             check(answer)
         except Refusal as invalid:
             refused = str(invalid)

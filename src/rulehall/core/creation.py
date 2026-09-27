@@ -15,6 +15,7 @@ class CreationStep(Frozen):
     options: tuple[DecisionOption, ...] = ()
     hint: str = ""
     allows_text: bool = False
+    optional: bool = False
 
     @property
     def constrains(self) -> bool:
@@ -36,6 +37,8 @@ def check_picks(steps: Sequence[CreationStep], picks: Picks) -> None:
     for step in steps:
         answer = picked(picks, step.id)
         if not answer.strip():
+            if step.optional:
+                continue
             raise Refusal(f"{step.id!r} is unanswered")
         if len(answer) > ANSWER_MAX:
             raise Refusal(f"{step.id!r} takes at most {ANSWER_MAX} characters")
@@ -51,7 +54,7 @@ def drop_stale(steps: Sequence[CreationStep], picks: dict[Slug, str]) -> None:
 
 
 def other_than(options: Sequence[DecisionOption], taken: str) -> tuple[DecisionOption, ...]:
-    return tuple(option for option in options if option.id != taken)
+    return tuple(option for option in options if taken not in (option.id, option.name))
 
 
 def option_of[T: DecisionOption](options: Sequence[T], chosen: str) -> T | None:

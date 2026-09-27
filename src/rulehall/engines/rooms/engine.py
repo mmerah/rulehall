@@ -12,12 +12,13 @@ from rulehall.core.model import (
     RoleAnswer,
     WorldsmithRequest,
 )
-from rulehall.core.play import DecisionOption
+from rulehall.core.play import PendingOption
 from rulehall.core.prompt import Sections, lines_of, render_history, section_if
 from rulehall.core.tools import action, tool
 from rulehall.core.validation import Refusal, Slug
 from rulehall.core.views import NarratorView, PlayerView
-from rulehall.engines.engine import Engine, RequestHandler, Resolution
+from rulehall.engines.args import Words
+from rulehall.engines.engine import Engine, RequestHandler, Resolution, Revealing
 from rulehall.engines.entities import ARC_TITLE, HIDDEN_TITLE, party_section
 from rulehall.engines.packs import Pack
 from rulehall.engines.panels import character_panel, here_panel, party_panel
@@ -37,8 +38,11 @@ from rulehall.engines.rooms.world import Dweller, MapProposal, Prop, RegionPropo
 from rulehall.engines.rooms.worldsmith import MAP_ASK, OPENING_SECTIONS, check_map, check_next_map
 
 EXTEND: Slug = "extend"
-MORE_MAP = DecisionOption(
-    id=EXTEND, name="More map", brief="The map runs out here: say where you push on."
+MORE_MAP = PendingOption(
+    id=EXTEND,
+    name="More map",
+    brief="The map runs out here: say where you push on.",
+    action_name="extend",
 )
 MAP_UNWRITTEN = Fact(
     told=True,
@@ -48,7 +52,7 @@ MAP_UNWRITTEN = Fact(
 
 
 # Generic over its dweller: the family cannot import the one engine that names it.
-class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Engine[W, K]):
+class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Revealing, Engine[W, K]):
     family_dir = Path(__file__).parent
     opening_sections = OPENING_SECTIONS
     opening_intent = MAP_ASK
@@ -57,6 +61,8 @@ class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Engine[W, K]):
 
     def __init__(self, player_packs: Path) -> None:
         super().__init__(player_packs)
+        if (every := self.world.meanwhile_every) < 2:
+            raise ValueError(f"the {self.id!r} engine runs the meanwhile every {every} turns")
         self.character = Character[self.person]
 
     def player_of(self, character: AnyCharacter) -> N:
@@ -74,7 +80,7 @@ class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Engine[W, K]):
         return ()
 
     def request_handlers(self) -> Mapping[Slug, RequestHandler[W]]:
-        return {EXTEND: RequestHandler(self.extend, MAP_UNWRITTEN)}
+        return {EXTEND: RequestHandler(self.write_region, MAP_UNWRITTEN)}
 
     def worldsmith_sections(self, draft: Game[W]) -> Sections:
         world = draft.world
@@ -137,9 +143,9 @@ class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Engine[W, K]):
                 ways_panel(world),
             ),
             decision=state.pending,
-            way_on=MORE_MAP if world.frontier() == 0 else None,
             ending=self.ending(state),
             map=map_view(world),
+            composer_option=MORE_MAP if world.frontier() == 0 else None,
         )
 
     @action
@@ -182,15 +188,17 @@ class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Engine[W, K]):
             start = world.require_place(args.shut_from_id)
             facts.append(world.shut_way(start, world.require_place(args.shut_to_id)))
         facts.append(Fact(trace=MOVES_OFFSCREEN, told=True, card=MOVED_CARD))
-        world.clear_meanwhile()
+        world.meanwhile_due = False
         return facts
 
-    def take_way_on(self, draft: Game[W], way_on_id: Slug, words: str) -> None:
-        if way_on_id != EXTEND or draft.world.frontier():
-            raise Refusal("the map still has ways to walk; the page was drawn before them")
-        if not words:
-            raise Refusal("say where you push on")
-        draft.request = WorldsmithRequest(kind=EXTEND, detail=words)
+    @action
+    def extend(self, draft: Game[W], args: Words, _rng: Random) -> list[Fact]:
+        draft.request = WorldsmithRequest(kind=EXTEND, detail=args.words)
+        return []
+
+    def end_turn(self, draft: Game[W], /, *, acted: bool) -> None:
+        if acted:
+            draft.world.count_turn()
 
     def check_next(self, draft: Game[W], proposal: RegionProposal[N]) -> None:
         check_next_map(proposal, draft.world)
@@ -215,7 +223,7 @@ class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Engine[W, K]):
         draft.log[-1].recap = proposal.recap
         self.open_chapter(draft)
 
-    async def extend(
+    async def write_region(
         self, draft: Game[W], request: WorldsmithRequest, worldsmith: RoleAnswer
     ) -> Resolution:
         self.install(draft, await self.write_next(draft, request.detail, worldsmith))

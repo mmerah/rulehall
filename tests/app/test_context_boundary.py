@@ -1,5 +1,4 @@
-from support.game import initialized, with_entity
-from support.table import ENGINES_BUILT, LONER3E, refused
+from support.table import ENGINES_BUILT, TWENTYFOURXX, game, narrowed, refused
 
 from rulehall.app.roles import render_master, render_narrator
 from rulehall.app.turn import ANSWERED_BY_OPTION
@@ -7,30 +6,30 @@ from rulehall.core.play import Chapter, Exchange, SpokenLine
 from rulehall.core.prompt import Prompt
 from rulehall.core.views import NarratorView
 from rulehall.engines.engine import AnyEngine
-from rulehall.engines.loner3e.world import Loner3eEntity, Loner3eGame
+from rulehall.engines.twentyfourxx.world import Crewmate, TwentyFourXXGame
 
 SECRET = "hidden-actor"
 UNREVEALED = "Unrevealed canon."
 
 
-def _state() -> Loner3eGame:
+def _state() -> TwentyFourXXGame:
     """An unmet character and a known one, both here, so both leak paths are open at once."""
-    _, state = initialized()
-    state = with_entity(
-        state,
-        Loner3eEntity(id=SECRET, name="The Secret", brief=UNREVEALED, concept="A Watcher"),
-    )
-    return with_entity(
-        state,
-        Loner3eEntity(id="ledger", name="a ledger", brief="Mara's notes.", known=True),
-    )
+    _, begun = game(TWENTYFOURXX)
+    draft = narrowed(begun, TwentyFourXXGame).draft()
+    for entity in (
+        Crewmate(id=SECRET, name="The Secret", brief=UNREVEALED),
+        Crewmate(id="ledger", name="a ledger", brief="Vessa's notes.", known=True),
+    ):
+        draft.world.cast[entity.id] = entity
+        draft.world.scene.here.append(entity.id)
+    return draft.commit()
 
 
 def _engine() -> AnyEngine:
-    return ENGINES_BUILT[LONER3E]
+    return ENGINES_BUILT[TWENTYFOURXX]
 
 
-def _master_prompt(state: Loner3eGame, prompt: str, *, notes: tuple[str, ...] = ()) -> Prompt:
+def _master_prompt(state: TwentyFourXXGame, prompt: str, *, notes: tuple[str, ...] = ()) -> Prompt:
     return render_master(
         _engine().instructions,
         _engine().master_sections(state),
@@ -53,6 +52,7 @@ def test_the_narrators_view_has_no_field_that_could_hold_unrevealed_canon() -> N
         "speakers",
         "party",
         "sheet",
+        "departed",
     }
     dumped = str(narrator.model_dump())
     assert "The Secret" not in dumped
@@ -76,10 +76,10 @@ def test_the_narrator_prompt_carries_only_what_the_player_has_met() -> None:
         _engine().narrator_view(state),
         state,
         evidence="- the map was found",
-        prompt="What does Mara say?",
+        prompt="What does Vessa say?",
     ).text
 
-    assert "Mara" in prompt
+    assert "Vessa Rune" in prompt
     assert "The Secret" not in prompt
     assert "hidden-actor" not in prompt
     assert UNREVEALED not in prompt
@@ -93,7 +93,7 @@ def test_the_narrator_prompt_carries_the_id_of_each_subject_here() -> None:
     ).text
 
     who_is_here = prompt.split("# WHO IS HERE\n", 1)[1].split("\n\n", 1)[0]
-    assert "a ledger[ledger] — Mara's notes." in who_is_here
+    assert "a ledger[ledger] — Vessa's notes." in who_is_here
 
 
 def test_the_narrator_prompt_carries_only_what_the_player_has_read() -> None:
@@ -108,7 +108,7 @@ def test_the_narrator_prompt_carries_only_what_the_player_has_read() -> None:
         _engine().narrator_view(state),
         state,
         evidence="- the map was found",
-        prompt="What does Mara say?",
+        prompt="What does Vessa say?",
     ).text
 
     assert "Water drips." in prompt

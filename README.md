@@ -19,7 +19,7 @@ Python code owns the rules. It rolls the dice, checks every change the game mast
 
 Four rule sets ship with the app:
 
-- **Loner 3e** plays in scenes. An oracle answers yes or no, sometimes with a twist, and you decide where the story goes next.
+- **Loner 4e** plays in scenes. An oracle answers yes or no, sometimes with a twist, and you decide where the story goes next.
 - **Tunnel Goons** is a dungeon crawl on a map. You walk, fight and rest, and the map grows whenever you reach its edge.
 - **24XX** is science fiction in scenes: one skill die, three outcome bands, and gear that breaks to soften a hit.
 - **Pokemon** is a whole region on a map. Skill checks roll a d20, and battles play out in the Pokemon Showdown simulator and its battle view.
@@ -150,13 +150,13 @@ docker run -d -p 8080:8080 \
 - The [releases](https://github.com/mmerah/rulehall/releases) say what changed in each version.
 - [CONTRIBUTING.md](CONTRIBUTING.md) explains how to report a bug, suggest an idea or send a change.
 - [SECURITY.md](SECURITY.md) explains how to report a vulnerability.
-- The notes for [Loner 3e](docs/LONER-3E.md), [Tunnel Goons](docs/TUNNEL-GOONS.md) and [24XX](docs/24XX.md) cover sources, license, attribution, and where the app differs from the published rules. The [Pokemon notes](docs/POKEMON.md) cover sources, licenses, and the rules we chose.
+- The notes for [Loner 4e](docs/LONER-4E.md), [Tunnel Goons](docs/TUNNEL-GOONS.md) and [24XX](docs/24XX.md) cover sources, license, attribution, and where the app differs from the published rules. The [Pokemon notes](docs/POKEMON.md) cover sources, licenses, and the rules we chose.
 
 ## License
 
 The code is MIT, © 2026 Mounir Merah. Read [LICENSE](LICENSE). The rule sets below keep their own licenses.
 
-Loner v.3.0 © 2025 Roberto Bisceglie, CC BY-SA 4.0 — attribution in the [Loner notes](docs/LONER-3E.md).
+Loner 4e: Core Rules © 2026 Roberto Bisceglie. Licensed under CC BY-SA 4.0 — attribution in the [Loner notes](docs/LONER-4E.md).
 
 Tunnel Goons is © Nate Treme, released under a Creative Commons 4.0 International License — attribution in the [Tunnel Goons notes](docs/TUNNEL-GOONS.md).
 

@@ -1,12 +1,12 @@
 from pathlib import Path
 
 import pytest
-from support.table import ENGINES_BUILT, LONER3E
+from support.table import ENGINES_BUILT, LONER4E
 
 from rulehall.core.io import ENCODING
 from rulehall.core.play import DecisionOption
 from rulehall.core.validation import EngineId, Refusal, parse
-from rulehall.engines.loner3e.pack import Loner3ePack
+from rulehall.engines.loner4e.pack import Loner4ePack
 from rulehall.engines.packs import SRD_PACK, Names, Pack, PackSet, read_packs
 from rulehall.engines.twentyfourxx.pack import (
     OriginProposal,
@@ -18,8 +18,8 @@ from rulehall.engines.twentyfourxx.pack import (
 TEST_ENGINE = EngineId("test")
 
 
-def _loner3e_pack(name: str) -> Loner3ePack:
-    return Loner3ePack(
+def _loner4e_pack(name: str) -> Loner4ePack:
+    return Loner4ePack(
         name=name,
         source="",
         license="",
@@ -31,10 +31,10 @@ def _loner3e_pack(name: str) -> Loner3ePack:
 
 
 def test_read_packs_lists_a_written_pack_alongside_the_shipped_ones(tmp_path: Path) -> None:
-    shipped = ENGINES_BUILT[LONER3E].directory / "packs"
-    (tmp_path / "mine.json").write_text(_loner3e_pack("Mine").model_dump_json(), encoding=ENCODING)
+    shipped = ENGINES_BUILT[LONER4E].directory / "packs"
+    (tmp_path / "mine.json").write_text(_loner4e_pack("Mine").model_dump_json(), encoding=ENCODING)
 
-    packs = read_packs(LONER3E, shipped, tmp_path, Loner3ePack)
+    packs = read_packs(LONER4E, shipped, tmp_path, Loner4ePack)
 
     assert "mine" in packs.written
     assert "mine" in packs.installed
@@ -42,12 +42,12 @@ def test_read_packs_lists_a_written_pack_alongside_the_shipped_ones(tmp_path: Pa
 
 
 def test_read_packs_skips_a_written_pack_that_shadows_a_shipped_id(tmp_path: Path) -> None:
-    shipped = ENGINES_BUILT[LONER3E].directory / "packs"
+    shipped = ENGINES_BUILT[LONER4E].directory / "packs"
     (tmp_path / "srd.json").write_text(
-        _loner3e_pack("Fake SRD").model_dump_json(), encoding=ENCODING
+        _loner4e_pack("Fake SRD").model_dump_json(), encoding=ENCODING
     )
 
-    packs = read_packs(LONER3E, shipped, tmp_path, Loner3ePack)
+    packs = read_packs(LONER4E, shipped, tmp_path, Loner4ePack)
 
     assert packs.written == {}
     assert packs.installed[SRD_PACK] == packs.shipped[SRD_PACK]

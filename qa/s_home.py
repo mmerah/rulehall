@@ -29,7 +29,7 @@ def body(s: Session) -> None:
     page.keyboard.press("Escape")
     pick(page, "Scenario", "The Whispering Vault")
     text = clean(page.inner_text("body"))
-    s.check("LONER 3E" in text, "rules badge did not follow the scenario")
+    s.check("LONER 4E" in text, "rules badge did not follow the scenario")
     s.check("Kael — A scarred" in text, "character not re-paired for the new rules")
     s.shot(page, "home-loner")
     # A bad route: the page function raises a Refusal; what does the player see?

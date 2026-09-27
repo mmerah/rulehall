@@ -1,3 +1,4 @@
+import json
 from collections.abc import Callable
 from functools import partial
 
@@ -28,7 +29,7 @@ def _one_exchange(state: AnyGame, words: str, said: str) -> AnyGame:
     return draft.commit()
 
 
-def _loner3e_behind(state: AnyGame) -> AnyGame:
+def _loner4e_behind(state: AnyGame) -> AnyGame:
     """One turn in the scene before this one: RECENT PLAY groups by scene, not title."""
     draft = state.draft()
     context = draft.log[-1].context
@@ -69,19 +70,30 @@ def _loner3e_behind(state: AnyGame) -> AnyGame:
     return draft.commit()
 
 
-_LONER3E_SCRIPT: tuple[Scripted, ...] = (
-    tool_call("reveal", target_id="vault-map"),
+_LONER4E_SCRIPT: tuple[Scripted, ...] = (
     tool_call(
-        "roll",
-        what="Listen at the vault door",
-        actor_id="player",
+        "ask",
         question="Does he hear what waits past the vault door without being heard?",
-        position="advantage",
-        edge="Quiet Hands",
+        helps=["Quiet Hands"],
     ),
     LISTENING,
+    tool_call("close_scene", reason="resolved"),
     tool_call("direct", text="what waits past the door has weight, and it knows he is there"),
 )
+
+# The Loner script closes the scene, so the worldsmith writes the next one after the turn.
+ARRIVALS: dict[EngineId, str] = {
+    EngineId("loner4e"): json.dumps(
+        {
+            "place_id": "vault-door",
+            "title": "The Vault Door",
+            "situation": "An iron door at the foot of the stair, its seal crusted with old wax.",
+            "recap": "He listened at the vault door and heard something waiting.",
+            "goal": "Get past the vault door",
+            "details": ["Crusted Wax Seal", "Cold Iron"],
+        }
+    )
+}
 
 _TUNNELGOONS_SCRIPT: tuple[Scripted, ...] = (
     tool_call("move", to_id="cellar"),
@@ -99,7 +111,9 @@ _TUNNELGOONS_SCRIPT: tuple[Scripted, ...] = (
 _TWENTYFOURXX_SCRIPT: tuple[Scripted, ...] = (
     tool_call("join_party", target_id="vessa-rune"),
     tool_call("reveal", target_id="warden-six"),
-    tool_call("roll", what="Slip along the dark gantry", skill="Stealth", risk="a fall"),
+    tool_call(
+        "roll", what="Slip along the dark gantry", skill="Stealth", risk="a fall", committed=True
+    ),
     tool_call("spend", amount=1, why="Harl's docking logs"),
     tool_call("direct", text="the gantry holds, but the watch above is turning their way"),
 )
@@ -115,7 +129,7 @@ _POKEMON_SCRIPT: tuple[Scripted, ...] = (
 )
 
 SCRIPTS: dict[EngineId, tuple[tuple[Scripted, ...], Callable[[AnyGame], AnyGame]]] = {
-    EngineId("loner3e"): (_LONER3E_SCRIPT, _loner3e_behind),
+    EngineId("loner4e"): (_LONER4E_SCRIPT, _loner4e_behind),
     EngineId("tunnelgoons"): (
         _TUNNELGOONS_SCRIPT,
         partial(

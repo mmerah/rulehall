@@ -4,7 +4,17 @@ from pathlib import Path
 from playwright.sync_api import Page
 
 sys.path.insert(0, str(Path(__file__).parent))
-from drive import BASE, Device, Session, open_drawer, run, submit, wait_idle
+from drive import (
+    BASE,
+    Device,
+    Session,
+    open_drawer,
+    reach_breather,
+    run,
+    submit,
+    take_breather,
+    wait_idle,
+)
 
 GAME = BASE + "/game/whispering-vault/kael"
 DESKTOP: Device = {
@@ -59,18 +69,16 @@ def body(s: Session) -> None:
         page.wait_for_timeout(2600)
         s.shot(page, f"{name}-game")
         _no_sideways(s, page, f"{name} game")
-        submit(
-            page, 'I fight.\n!roll what="Strike" actor_id=player question="Land it?" target_id=mara'
-        )
+        submit(page, 'I fight.\n!ask question="Do I land it?" against_id=mara')
         wait_idle(page)
         page.wait_for_timeout(2600)
-        s.shot(page, f"{name}-decision")
-        submit(page, "I break off.\n!none")
+        s.shot(page, f"{name}-conflict")
+        submit(page, "I break off.\n!withdraw")
         wait_idle(page)
-        submit(page, "Done here.\n!next_scene")
-        wait_idle(page)
+        reach_breather(page)
         page.wait_for_timeout(600)
-        s.shot(page, f"{name}-way-on")
+        s.shot(page, f"{name}-composer")
+        take_breather(page, 'I rest.\n!direct text="He rests."')
         open_drawer(page)
         page.wait_for_timeout(500)
         s.shot(page, f"{name}-drawer")

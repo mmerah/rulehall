@@ -83,10 +83,6 @@
               "default": false,
               "type": "boolean"
             },
-            "alive": {
-              "default": true,
-              "type": "boolean"
-            },
             "place_id": {
               "type": "string"
             },

@@ -4,10 +4,11 @@ from random import Random
 import pytest
 from pydantic import BaseModel
 from support.golden import FIXTURES, golden, golden_json, golden_schema, masked, masked_master
-from support.golden_turn import NARRATION, SCRIPTS
+from support.golden_turn import ARRIVALS, NARRATION, SCRIPTS
 from support.table import ENGINE_IDS, ENGINES_BUILT, game, open_table, play_turn
 
 from rulehall.core.model import Check, Game, WorldsmithRequest
+from rulehall.core.play import Exchange
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import EngineId, Refusal
 from rulehall.engines.hiring import HIRE
@@ -29,7 +30,10 @@ async def test_a_scripted_turn_renders_and_records_unchanged(
     script, behind = SCRIPTS[engine_id]
     table.service.save(behind(table.state))
 
-    await play_turn(table, PROMPT, *script, narration=NARRATION)
+    arrival = ARRIVALS.get(engine_id)
+    table.spawner.answers["worldsmith"] = [] if arrival is None else [arrival]
+    arrived = None if arrival is None else NARRATION
+    await play_turn(table, PROMPT, *script, narration=NARRATION, arrival=arrived)
 
     engine = table.service.engine
     golden(
@@ -61,7 +65,9 @@ async def test_a_worldsmith_request_renders_unchanged(engine_id: EngineId) -> No
     # The family's own write, not the seam's `hire`: the detail is a place to go.
     kind = next(kind for kind in engine.request_handlers() if kind != HIRE)
     request = WorldsmithRequest(kind=kind, detail="Deeper in, toward the sound.")
+    draft = state.draft()
+    draft.log[-1].exchanges.append(Exchange(words="I head deeper in.", lines=()))
     with pytest.raises(Refusal, match="recorded"):
-        await engine.request_handlers()[kind].write(state.draft(), request, recording)
+        await engine.request_handlers()[kind].write(draft, request, recording)
     golden(FIXTURES / "prompts" / engine_id / "worldsmith.txt", masked(prompts[0]))
     golden_schema(FIXTURES / "schemas" / engine_id / "worldsmith_answer.json", models[0])

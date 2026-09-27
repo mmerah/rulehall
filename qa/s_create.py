@@ -31,7 +31,7 @@ def body(s: Session) -> None:
     page.goto(BASE + "/create")
     page.wait_for_timeout(1000)
     s.shot(page, "create")
-    s.check("LONER 3E" in clean(page.inner_text("body")), "default rules not shown")
+    s.check("LONER 4E" in clean(page.inner_text("body")), "default rules not shown")
 
     # Tunnel Goons: the abilities and three items.
     select(page, "Rules", "TUNNEL GOONS")
@@ -94,7 +94,10 @@ def body(s: Session) -> None:
     s.shot(page, "loner-pack")
     text(page, "Write a one-line concept", "A quiet scout")
     text(page, "What does your character want?", "Out")
-    text(page, "Why do they want it?", "Debt")
+    s.check(
+        page.get_by_placeholder("Leave empty to let play decide").count() == 3,
+        "goal, motive and nemesis do not say they may stay empty",
+    )
     select(page, "Choose skill 1", "Quiet Hands")
     page.locator(".q-select", has_text="Choose skill 2").first.click()
     page.wait_for_timeout(200)
@@ -164,7 +167,7 @@ def body(s: Session) -> None:
         any("A title, a backdrop, a scope" in n for n in notifications(page)),
         f"scenario guard: {notifications(page)}",
     )
-    select(page, "Rules", "LONER 3E")
+    select(page, "Rules", "LONER 4E")
     text(page, "Title", "The Sunken Bell")
     text(page, "Backdrop", "A drowned coast of bells and ferries.")
     text(page, "Premise", "The tide took the lower town.")
@@ -214,7 +217,7 @@ def body(s: Session) -> None:
     s.shot(page, "home-saves")
     home = clean(page.inner_text("body"))
     s.check("The Sunken Bell" in home and "turn 1" in home, f"saves list: {home[-600:]}")
-    select(page, "Scenario", "The Sunken Bell · LONER 3E")
+    select(page, "Scenario", "The Sunken Bell · LONER 4E")
     s.check(
         page.get_by_role("button", name="Continue game").count() == 1,
         "Continue game label missing for a started game",

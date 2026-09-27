@@ -34,7 +34,7 @@ def body(s: Session) -> None:
     tabs = [clean(t).lower() for t in page.locator(".q-tab").all_inner_texts()]
     s.note(f"tabs: {tabs}")
     s.check(
-        tabs == ["providers", "roles", "media", "battle", "server"],
+        tabs == ["providers", "roles", "media", "battle", "transcript", "server"],
         f"unexpected tabs: {tabs}",
     )
     page.get_by_role("button", name="Save").click()

@@ -13,6 +13,7 @@ from rulehall.core.facts import Fact
 from rulehall.core.io import decode, read_cached_text, read_model
 from rulehall.core.model import (
     AnyCharacter,
+    AnyGame,
     AnyScenario,
     EngineHeader,
     Game,
@@ -71,6 +72,14 @@ class RequestHandler[W: World[Any]]:
     failure_fact: Fact
 
 
+class Revealing:
+    @tool
+    def reveal(self, draft: AnyGame, args: Reveal, _rng: Random) -> list[Fact]:
+        """Make a hidden entity here known to the player. HIDDEN HERE lists what the player has
+        not found: call this before you tell a hidden thing."""
+        return draft.world.reveal_hidden(args.target_id)
+
+
 class Engine[W: World[Any], K: Pack](ABC):
     # Declared, not `ClassVar`: `type[W]` cannot be one.
     id: EngineId
@@ -106,17 +115,10 @@ class Engine[W: World[Any], K: Pack](ABC):
             f"{read_cached_text(self.family_dir / 'rules.md')}"
         )
         self.look = read_model(self.directory / "look.json", Look)
-        if (every := self.world.meanwhile_every) < 2:
-            raise ValueError(f"the {self.id!r} engine runs the meanwhile every {every} turns")
         self.tools = tools_of(self, lambda draft, texts: draft.world.check_unnamed(*texts))
         self.actions = actions_of(self)
         self.worldsmith_role = read_cached_text(self.family_dir / "worldsmith.md")
         self.scenario = Scenario[self.opening]
-
-    @tool
-    def reveal(self, draft: Game[W], args: Reveal, _rng: Random) -> list[Fact]:
-        """Make a hidden entity here known to the player."""
-        return draft.world.reveal_hidden(args.target_id)
 
     @tool
     def kill(self, draft: Game[W], args: Kill, _rng: Random) -> list[Fact]:
@@ -132,7 +134,7 @@ class Engine[W: World[Any], K: Pack](ABC):
     def direct(self, draft: Game[W], args: Direct, _rng: Random) -> list[Fact]:
         """Call this last, once per turn. It ends the turn and gives notes to the narrator.
         Include the answer or result, its known reason, and facts needed for the next choice.
-        Share only facts the player can know now. Use reveal first for hidden entities.
+        Share only facts the player can know now.
         Apply world changes through the other tools before calling direct."""
         draft.directed = True
         return [Fact(trace=f"the game master directs: {args.text}", told=True)]
@@ -163,6 +165,9 @@ class Engine[W: World[Any], K: Pack](ABC):
         if found is None:
             raise Refusal(f"{name!r} is not a tool of the {self.id!r} engine.")
         return found
+
+    def published(self, _state: Game[W], /) -> tuple[MasterTool, ...]:
+        return tuple(self.tools.values())
 
     def play_option(self, draft: Game[W], chosen: PendingOption, rng: Random) -> tuple[Fact, ...]:
         if chosen.refusal:
@@ -285,11 +290,13 @@ class Engine[W: World[Any], K: Pack](ABC):
         facts: tuple[Fact, ...],
         *,
         words: str = "",
+        by_option: bool = False,
         cause: Cause | None = None,
         refused: tuple[Refused, ...] = (),
     ) -> Game[W]:
         exchange = Exchange(
             words=words,
+            by_option=by_option,
             cause=cause,
             lines=lines,
             facts=facts,
@@ -298,6 +305,7 @@ class Engine[W: World[Any], K: Pack](ABC):
             context=self.context_lines(draft),
         )
         draft.log[-1].exchanges.append(exchange)
+        draft.world.hear(*(line.text for line in lines))
         return self.accept(draft)
 
     def open_chapter(self, draft: Game[W]) -> None:
@@ -311,8 +319,8 @@ class Engine[W: World[Any], K: Pack](ABC):
         self.validate(draft)
         return draft.commit()
 
-    def count_turn(self, draft: Game[W]) -> None:
-        draft.world.count_turn()
+    def end_turn(self, draft: Game[W], /, *, acted: bool) -> None:  # noqa: B027
+        pass
 
     def begin(self, scenario_id: Slug, scenario: AnyScenario, character: AnyCharacter) -> Game[W]:
         if scenario.engine_id != self.id:
@@ -351,6 +359,9 @@ class Engine[W: World[Any], K: Pack](ABC):
     def ending(self, state: Game[W]) -> str | None:
         return "You died." if not state.world.player.alive else None
 
+    def grown_character(self, _state: Game[W], /) -> AnyCharacter | None:
+        return None
+
     def create_character(self, name: str, brief: str, pack_id: Slug, picks: Picks) -> AnyCharacter:
         check_picks(self.creation_steps(pack_id, picks), picks)
         return self.build_character(name, brief, pack_id, picks)
@@ -383,9 +394,6 @@ class Engine[W: World[Any], K: Pack](ABC):
     def context_lines(self, state: Game[W], /) -> str: ...
     @abstractmethod
     def player_view(self, state: Game[W]) -> PlayerView: ...
-    @abstractmethod
-    def take_way_on(self, draft: Game[W], way_on_id: Slug, words: str, /) -> None:
-        """The way-on button against the state now: refuse it stale, else request or note."""
 
     def request_handlers(self) -> Mapping[Slug, RequestHandler[W]]:
         return {}

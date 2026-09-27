@@ -142,6 +142,7 @@ class Runtime:
             engine=engine,
             spawner=self.spawner,
             store=self.store,
+            library=self.library,
             state=state,
             gate=self.gate,
             battle_config=self.settings.battle,

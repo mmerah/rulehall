@@ -62,7 +62,7 @@ class TunnelGoonsEngine(
     def hire_guidance(self, _draft: TunnelGoonsGame) -> str:
         return HIRE_GUIDANCE
 
-    def sign_on(self, person: Goon, answer: AbilitiesProposal) -> str:
+    def sign_on(self, _draft: TunnelGoonsGame, person: Goon, answer: AbilitiesProposal) -> str:
         return person.sign_on(answer.abilities)
 
     @tool

@@ -69,9 +69,11 @@ class Confirm(ui.dialog):
 
 
 class Banner(ui.column):
-    def __init__(self, icon: str, label: str, text: str = "") -> None:
+    def __init__(
+        self, icon: str, label: str, text: str = "", *, kind: str = "game-decision"
+    ) -> None:
         super().__init__()
-        self.classes("game-card game-decision game-banner w-full game-gap-lg")
+        self.classes(f"game-card {kind} game-banner w-full game-gap-lg")
         with self, ui.row().classes("w-full items-center no-wrap game-banner-head game-gap-xl"):
             ui.icon(icon).classes("game-card-icon")
             with ui.column().classes("game-banner-text game-gap-3xs"):

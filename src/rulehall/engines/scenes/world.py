@@ -23,14 +23,15 @@ from rulehall.engines.entities import (
     check_filing,
 )
 
-WAY_OFFERED = Fact(
-    trace=(
-        "this scene offers a way on. Ask the player what they want to pursue next. Ask in "
-        "the fiction, and name what the scene left open. Never ask with a list of choices. The "
-        "player can also stay and keep playing here, so ask; do not push the player out"
-    ),
-    told=True,
-)
+SETTLED_SHOWN = 12
+
+
+class Settled(Frozen):
+    question: str
+    answer: str
+
+    def line(self) -> str:
+        return f"{self.question} — {self.answer}"
 
 
 class Scene(Mutable):
@@ -40,7 +41,7 @@ class Scene(Mutable):
     title: str
     situation: str = Field(min_length=1)
     here: list[Slug] = Field(default_factory=list)
-    way_offered: bool = False
+    settled: list[Settled] = Field(default_factory=list)
 
 
 class SceneProposal[C: Person](Frozen, OpeningProposal):
@@ -73,10 +74,18 @@ class SceneProposal[C: Person](Frozen, OpeningProposal):
     )
     arc: str = Field(
         default="",
-        description="The long game that spans the scenes: pressures, motives, secrets, and what "
-        "can come later. Never what is true in this scene now. The player never reads it. Put "
-        "here what ties one hidden thing to another.",
+        description="The long game that spans the scenes: pressure, intent and what can come "
+        "later. Never restate or change what happened, and never what is true in this scene "
+        "now. The player never reads it.",
     )
+
+    @model_validator(mode="after")
+    def _hidden_unmet(self) -> Self:
+        """A new entry the scene hides is one the player has not met, whatever `known` says."""
+        for key in self.hidden:
+            if (entry := self.cast.get(key)) is not None:
+                entry.known = False
+        return self
 
     def premise(self) -> str:
         return self.situation
@@ -91,8 +100,6 @@ class NextProposal[C: Person](SceneProposal[C]):
 
 
 class SceneWorld[C: Person](World[C]):
-    meanwhile_every = 6
-
     scenes: list[Scene] = Field(min_length=1)
     cast: dict[Slug, C] = Field(default_factory=dict)
     arc: str = ""
@@ -113,7 +120,7 @@ class SceneWorld[C: Person](World[C]):
     @classmethod
     def opening(cls, proposal: SceneProposal[C], player: C) -> Self:
         """The player is added by code and never authored, so no scenario can claim their id."""
-        cast, scene = settled(proposal, player, dict(proposal.cast), (), proposal.location)
+        cast, scene = built_scene(proposal, player, dict(proposal.cast), (), proposal.location)
         return parse(cls, {"player": player, "cast": cast, "scenes": [scene], "arc": proposal.arc})
 
     @property
@@ -174,9 +181,9 @@ class SceneWorld[C: Person](World[C]):
             raise Refusal("the player is not a party member")
         return self.require_living_here(entity_id)
 
-    def unmet(self) -> Iterable[C]:
-        """The whole cast, not this scene's hidden list: a sheet row outlives its scene."""
-        return (entry for entry in self.cast.values() if not entry.known)
+    def people(self) -> Iterable[C]:
+        """The whole cast, not this scene's: a sheet row outlives its scene."""
+        return (self.player, *self.cast.values())
 
     def others(self) -> Iterator[C]:
         return (self.cast[entity_id] for entity_id in self.present() if entity_id not in self.party)
@@ -185,15 +192,15 @@ class SceneWorld[C: Person](World[C]):
         return lines_of(other.line() for other in self.others())
 
     def hidden_lines(self) -> str:
-        return lines_of(self.require(entity_id).line() for entity_id in self.hidden())
+        return "\n".join(self.require(entity_id).line() for entity_id in self.hidden())
 
     def scene_lines(self) -> str:
         scene = self.scene
         present = ", ".join(self.cast[entity_id].tag for entity_id in self.present())
         hidden = ", ".join(self.cast[entity_id].tag for entity_id in self.hidden())
         return (
-            f"{scene.title} [{scene.place_id}]\nlocation: {scene.location}\n{scene.situation}\n"
-            f"present: {present or '(nobody)'}\nhidden: {hidden or '(nothing)'}"
+            f"{scene.title} [{scene.place_id}]\nlocation: {scene.location}\n{scene.situation}"
+            f"\npresent: {present or '(nobody)'}" + (f"\nhidden: {hidden}" if hidden else "")
         )
 
     def player_line(self) -> str:
@@ -210,6 +217,16 @@ class SceneWorld[C: Person](World[C]):
             )
         return "\n".join(lines)
 
+    def settle(self, question: str, answer: str) -> None:
+        self.scene.settled.append(Settled(question=question, answer=answer))
+
+    def settled_lines(self) -> str:
+        shown = self.scene.settled[-SETTLED_SHOWN:]
+        start = len(self.scene.settled) - len(shown) + 1
+        return "\n".join(
+            f"{number}. {entry.line()}" for number, entry in enumerate(shown, start=start)
+        )
+
     def reveal_hidden(self, entity_id: Slug) -> list[Fact]:
         entity = self.require(entity_id)
         if entity_id not in self.scene.here or entity.known:
@@ -221,7 +238,9 @@ class SceneWorld[C: Person](World[C]):
             raise Refusal("the player is in every scene; move the story on instead")
         entity = self.require(entity_id)
         if entity.id in self.scene.here:
-            raise Refusal(f"{entity.name} is already here")
+            if not entity.known:
+                raise Refusal(f"{entity.name} is hidden here: `reveal` them")
+            return []
         if not entity.alive:
             raise Refusal(IS_DEAD.format(name=entity.name))
         self.scene.here.append(entity.id)
@@ -234,6 +253,9 @@ class SceneWorld[C: Person](World[C]):
     def leave(self, entity_id: Slug) -> list[Fact]:
         if entity_id == self.player.id:
             raise Refusal("the player is in every scene; move the story on instead")
+        # A body stays where it fell.
+        if entity_id not in self.cast or not self.cast[entity_id].alive:
+            return []
         entity = self.require_living_here(entity_id)
         if entity.id in self.party:
             raise Refusal(f"{entity.name} travels with the player and leaves through `leave_party`")
@@ -244,12 +266,6 @@ class SceneWorld[C: Person](World[C]):
     def kill(self, entity_id: Slug) -> list[Fact]:
         entity = self.require_here(entity_id)
         return [entity.fact(f"{entity.mention} is dead", card=self.die(entity))]
-
-    def offer_way_on(self) -> list[Fact]:
-        if self.scene.way_offered:
-            raise Refusal("this scene already offers the way on; play on, or send them off")
-        self.scene.way_offered = True
-        return [WAY_OFFERED]
 
     def merged_cast(self, cast: Mapping[Slug, C]) -> dict[Slug, C]:
         return {
@@ -263,7 +279,7 @@ class SceneWorld[C: Person](World[C]):
         }
 
     def apply_scene(self, proposal: SceneProposal[C]) -> None:
-        self.cast, scene = settled(
+        self.cast, scene = built_scene(
             proposal,
             self.player,
             self.merged_cast(proposal.cast),
@@ -274,7 +290,7 @@ class SceneWorld[C: Person](World[C]):
         self.scenes.append(scene)
 
 
-def settled[C: Person](
+def built_scene[C: Person](
     proposal: SceneProposal[C],
     player: Person,
     cast: dict[Slug, C],
@@ -283,8 +299,12 @@ def settled[C: Person](
 ) -> tuple[dict[Slug, C], Scene]:
     """The world may not exist yet, so this takes the cast and the party as arguments."""
     everyone: Mapping[Slug, Thing] = {player.id: player, **cast}
-    present = resolved_ids(proposal.present, everyone, "present")
-    hidden = resolved_ids(proposal.hidden, everyone, "hidden")
+    # Code places the player and the party, so a worldsmith that lists them is not followed.
+    placed = {player.id, *party}
+    present = [
+        who for who in resolved_ids(proposal.present, everyone, "present") if who not in placed
+    ]
+    hidden = [who for who in resolved_ids(proposal.hidden, everyone, "hidden") if who not in placed]
     for entity_id in present:
         cast[entity_id].known = True
     scene = Scene(

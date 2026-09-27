@@ -2,23 +2,16 @@ from collections.abc import Callable
 
 import pytest
 from pydantic import ValidationError
-from support.game import MARA, initialized, with_entity
+from support.game import MARA, initialized
 from support.tunnelgoons import ENGINE as TUNNELGOONS_ENGINE
 from support.tunnelgoons import MIRA as TUNNELGOONS_MIRA
 from support.tunnelgoons import small_world as tunnelgoons_world
 
 from rulehall.core.validation import Slug
 from rulehall.core.views import NarratorView, Subject
-from rulehall.engines.loner3e.world import Loner3eEntity
+from rulehall.engines.loner4e.world import Loner4eEntity
 
-SECRET = Loner3eEntity(
-    id="hidden-actor",
-    name="The Secret",
-    brief="Unrevealed canon.",
-    concept="A Watcher",
-)
-
-OBJECT = Loner3eEntity(
+OBJECT = Loner4eEntity(
     id="a-locked-chest",
     name="A Locked Chest",
     brief="Iron-bound, and shut fast.",
@@ -26,32 +19,12 @@ OBJECT = Loner3eEntity(
 )
 
 
-def _loner3e_hidden_shown() -> str:
-    engine, state = initialized()
-    return str(engine.narrator_view(with_entity(state, SECRET)).model_dump())
+def test_the_narrator_view_names_nobody_the_player_has_not_met() -> None:
+    shown = str(TUNNELGOONS_ENGINE.narrator_view(tunnelgoons_world()).model_dump())
+    assert "Robo Mantis" not in shown
 
 
-def _tunnelgoons_hidden_shown() -> str:
-    return str(TUNNELGOONS_ENGINE.narrator_view(tunnelgoons_world()).model_dump())
-
-
-@pytest.mark.parametrize(
-    ("shown_of", "hidden"),
-    [
-        (_loner3e_hidden_shown, ("The Secret", "vault map")),
-        (_tunnelgoons_hidden_shown, ("Robo Mantis",)),
-    ],
-    ids=["loner3e", "tunnelgoons"],
-)
-def test_the_narrator_view_names_nobody_the_player_has_not_met(
-    shown_of: Callable[[], str], hidden: tuple[str, ...]
-) -> None:
-    shown = shown_of()
-    for label in hidden:
-        assert label not in shown
-
-
-def _loner3e_dead_view() -> tuple[NarratorView, Slug]:
+def _loner4e_dead_view() -> tuple[NarratorView, Slug]:
     engine, state = initialized()
     draft = state.draft()
     _ = draft.world.kill(MARA)
@@ -65,7 +38,7 @@ def _tunnelgoons_dead_view() -> tuple[NarratorView, Slug]:
 
 
 @pytest.mark.parametrize(
-    "build", [_loner3e_dead_view, _tunnelgoons_dead_view], ids=["loner3e", "tunnelgoons"]
+    "build", [_loner4e_dead_view, _tunnelgoons_dead_view], ids=["loner4e", "tunnelgoons"]
 )
 def test_the_dead_stay_in_the_scene_but_do_not_speak(
     build: Callable[[], tuple[NarratorView, Slug]],
@@ -92,12 +65,10 @@ def test_a_narrator_view_naming_a_speaker_who_is_not_a_subject_is_refused() -> N
 def test_the_player_view_panels_carry_icon_ids_for_who_else_is_here() -> None:
     engine, state = initialized()
 
-    view = engine.player_view(with_entity(state, SECRET))
+    view = engine.player_view(state)
 
     here = next(panel for panel in view.panels if panel.title == "Also here")
-    icon_ids = {row.icon_id for row in here.rows}
-    assert "mara" in icon_ids
-    assert all(row.name != "The Secret" for panel in view.panels for row in panel.rows)
+    assert "mara" in {row.icon_id for row in here.rows}
 
 
 def test_the_also_here_panel_shows_a_dead_other_as_not_alive() -> None:

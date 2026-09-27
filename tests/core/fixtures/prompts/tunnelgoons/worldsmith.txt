@@ -29,7 +29,10 @@ The Collapsed Archway[entrance] — A collapsed archway lets grey light down int
 ids in use: cellar, corridor, crawler, entrance, grix, lurker, pry-bar-melee-weapon, rope, rope-coil, sealed-cell, storeroom, tarnished-flask, torch
 
 # SCENES SO FAR
-(the game has not started yet)
+## Scene: The Collapsed Archway
+place: The Collapsed Archway
+
+> I head deeper in.
 
 # THE PLAYER
 - Kael[player] — A scarred relic-hunter who comes wherever something old lies sealed, and does not leave it shut.

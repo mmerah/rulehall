@@ -1,7 +1,7 @@
 import re
 from abc import abstractmethod
 from collections.abc import Iterable, Mapping, Sequence
-from typing import ClassVar, Self
+from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
@@ -18,6 +18,8 @@ UNKNOWN_ID = "unknown id {entity_id!r}. Use only the ids you were shown."
 IS_DEAD = "{name} is dead and takes no further part."
 NO_SHEET = "{name} carries no sheet"
 NOT_AN_ACTOR = "{name} is not the player or a hired party member"
+NAME_WORD_LETTERS = 4
+ARTICLES = ("the", "a", "an")
 
 
 class OpeningProposal(BaseModel):
@@ -112,7 +114,8 @@ class Thing(Mutable):
 
 
 class Person(Thing):
-    alive: bool = True
+    # A new cast member is alive: the worldsmith never writes this.
+    alive: SkipJsonSchema[bool] = True
 
     @property
     def headline(self) -> str:
@@ -128,16 +131,6 @@ class Person(Thing):
     def required(self) -> str:
         """What a new cast member must be for the worldsmith to write it; empty when nothing."""
         return "" if self.alive else "alive"
-
-    def changed_tags(
-        self, kind: str, current: Sequence[str], gained: Sequence[str], lost: Sequence[str]
-    ) -> list[str]:
-        check_unique(f"{kind} tags", (*gained, *lost))
-        if carried := [tag for tag in gained if tag in current]:
-            raise Refusal(f"{self.name} already carries the {kind} {carried[0]!r}")
-        if missing := [tag for tag in lost if tag not in current]:
-            raise Refusal(f"{self.name} carries no {kind} {missing[0]!r}")
-        return [tag for tag in (*current, *gained) if tag not in lost]
 
 
 class Sheeted[S: Mutable](Person):
@@ -157,12 +150,8 @@ class Sheeted[S: Mutable](Person):
 
 
 class World[M: Person](Mutable):
-    meanwhile_every: ClassVar[int]  # counted turns between two firings of the meanwhile clock
-
     player: M
     party: list[Slug] = Field(default_factory=list)
-    turns_since_meanwhile: int = Field(default=0, ge=0)  # counted turns since the last fire
-    meanwhile_due: bool = False  # the clock has fired and nothing has spent it yet
 
     @model_validator(mode="after")
     def _player_and_party(self) -> Self:
@@ -194,7 +183,11 @@ class World[M: Person](Mutable):
     @abstractmethod
     def kill(self, entity_id: Slug) -> list[Fact]: ...
     @abstractmethod
-    def unmet(self) -> Iterable[Thing]: ...
+    def people(self) -> Iterable[M]:
+        """The player and everyone the world files."""
+
+    def unmet(self) -> list[M]:
+        return [person for person in self.people() if not person.known]
 
     def hired_party_members(self) -> list[M]:
         return [member for member in self.party_members() if member.hired]
@@ -218,20 +211,17 @@ class World[M: Person](Mutable):
         return [member.fact(trace, card=f"{member.name} leaves your party")]
 
     def check_unnamed(self, *texts: str) -> None:
-        if leaked := sorted(set(named_unmet("\n".join(texts), self.unmet()))):
+        if leaked := sorted({person.name for person in self.unmet_named(*texts)}):
             raise Refusal(f"this names what the player has not met: {leaked}. Say it another way.")
+
+    def hear(self, *texts: str) -> None:
+        """The player read these texts; by default the world learns nothing from them."""
+
+    def unmet_named(self, *texts: str) -> list[M]:
+        return named_people("\n".join(texts), self.people())
 
     def absorb(self, proposal: OpeningProposal) -> None:
         """Take the engine's own extra fields of an installed proposal; none by default."""
-
-    def count_turn(self) -> None:
-        self.turns_since_meanwhile += 1
-        if self.turns_since_meanwhile >= self.meanwhile_every:
-            self.turns_since_meanwhile = 0
-            self.meanwhile_due = True
-
-    def clear_meanwhile(self) -> None:
-        self.meanwhile_due = False
 
     def die(self, person: M) -> str:
         if not person.alive:
@@ -261,6 +251,33 @@ def party_section(members: Sequence[Thing]) -> Sections:
     return (("THE PARTY (led by the player)", "\n".join(member.line() for member in members)),)
 
 
+def changed_tags(
+    owner: str, kind: str, current: Sequence[str], gained: Sequence[str], lost: Sequence[str]
+) -> list[str]:
+    check_unique(f"{kind} tags", (tag.casefold() for tag in (*gained, *lost)))
+    carried = {tag.casefold() for tag in current}
+    if already := [tag for tag in gained if tag.casefold() in carried]:
+        raise Refusal(f"{owner} already carries the {kind} {already[0]!r}")
+    if missing := [tag for tag in lost if tag.casefold() not in carried]:
+        carried_now = ", ".join(map(repr, current)) or "none"
+        raise Refusal(f"{owner} carries no {kind} {missing[0]!r}; it carries: {carried_now}")
+    dropped = {tag.casefold() for tag in lost}
+    return [tag for tag in (*current, *gained) if tag.casefold() not in dropped]
+
+
+def tag_delta(gained: Sequence[str], lost: Sequence[str]) -> str:
+    return ", ".join((*(f"+{tag}" for tag in gained), *(f"-{tag}" for tag in lost)))
+
+
+def tag_card(
+    gained: Sequence[str], lost: Sequence[str], now: str, gone: str, *, joiner: str = "; "
+) -> str:
+    parts = [f"{now}{', '.join(gained)}"] if gained else []
+    if lost:
+        parts.append(f"{gone}{', '.join(lost)}")
+    return joiner.join(parts)
+
+
 def joined(*parts: str) -> str:
     return ", ".join(part for part in parts if part)
 
@@ -281,12 +298,30 @@ def required_needs(pool: Mapping[Slug, Person], filed: Iterable[Slug]) -> list[s
 
 
 def named_unmet(text: str, entities: Iterable[Thing]) -> list[str]:
-    folded = text.casefold()
+    return [entity.name for entity in entities if _mentions(text, entity.name)]
+
+
+def named_people[P: Person](text: str, people: Iterable[P]) -> list[P]:
+    """The unmet people a text names by full name or a name word."""
+    everyone = list(people)
+    unmet = [person for person in everyone if not person.known]
+    met = [person for person in everyone if person.known]
+    named = {*named_unmet(text, unmet), *named_by_word(text, unmet, met)}
+    return [person for person in unmet if person.name in named]
+
+
+def named_by_word(text: str, people: Iterable[Person], met: Iterable[Person]) -> list[str]:
+    """`Orlov's rank` names Collector Orlov: a word of a name, capitalised as a name is written.
+    A word a met name shares is a title or a place, so it does not count."""
+    shared = {word for person in met for word in _capitalised(person.name)}
     return [
-        entity.name
-        for entity in entities
-        if (name := entity.name.strip().casefold())
-        and re.search(rf"(?<!\w){re.escape(name)}(?!\w)", folded) is not None
+        person.name
+        for person in people
+        if any(
+            re.search(rf"(?<!\w){word}(?!\w)", text) is not None
+            for word in _name_words(person.name)
+            if word not in shared
+        )
     ]
 
 
@@ -297,3 +332,25 @@ def leaked_names(read: str, things: Iterable[Thing], hidden: Sequence[Thing]) ->
         text = "\n".join((thing.brief, *(value for _, value in thing.rows())))
         leaked.update(named_unmet(text, (other for other in hidden if other.id != thing.id)))
     return leaked
+
+
+def _mentions(text: str, name: str) -> bool:
+    folded = name.strip().casefold()
+    return (
+        bool(folded)
+        and re.search(rf"(?<!\w){re.escape(folded)}(?!\w)", text.casefold()) is not None
+    )
+
+
+def _words(name: str) -> list[str]:
+    return re.findall(r"[^\W\d_]+", name)
+
+
+def _capitalised(name: str) -> list[str]:
+    return [word for word in _words(name) if word[0].isupper() and len(word) >= NAME_WORD_LETTERS]
+
+
+def _name_words(name: str) -> list[str]:
+    """A name led by an article is a description, so none of its words is a name."""
+    words = _words(name)
+    return [] if not words or words[0].casefold() in ARTICLES else _capitalised(name)

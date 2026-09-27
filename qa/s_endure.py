@@ -28,14 +28,14 @@ LONG_TURNS = 30
 
 RUNS: dict[str, tuple[str, ...]] = {
     "whispering-vault": (
-        '!roll what="Listen at the door" actor_id=player question="Is anyone there?"',
-        "!reveal target_id=vault-map",
+        '!ask question="Does he hear anyone past the door?" helps=\'["Quiet Hands"]\'',
+        "!enter target_id=tomas",
         '!drive actor_id=mara goal="Finish the catalogue"',
         "!change_tags actor_id=player kind=condition gained='[\"winded\"]'",
-        "!restore_luck actor_id=player",
-        '!roll what="Force the lid" actor_id=player question="Does it lift?"',
+        '!drive actor_id=player motive="Curiosity"',
+        '!ask question="Does the lid lift?" helps=\'["Pry Bar"]\'',
         "!change_tags actor_id=player kind=condition lost='[\"winded\"]'",
-        '!roll what="Read the seal" actor_id=player question="Does it name a year?"',
+        '!ask question="Does the seal name a year?"',
     ),
     "buried-keep": (
         "!move to_id=corridor",
@@ -48,14 +48,13 @@ RUNS: dict[str, tuple[str, ...]] = {
         "!move to_id=entrance",
     ),
     "silent-relay": (
-        '!roll what="Slip the hatch" skill="Stealth"',
+        '!roll what="Slip the hatch" skill="Stealth" risk="a jammed hand"',
         '!gain_item name="Cutting torch"',
-        '!roll what="Cut the lock" skill="Stealth"',
+        '!roll what="Cut the lock" skill="Stealth" risk="a burn"',
         '!drop_item item_id="cutting-torch"',
         '!spend amount=2 why="Docking fees"',
         "!change_hindrances gained='[\"Bruised\"]'",
-        '!ask_world question="Are the relays still warm?"',
-        '!roll what="Run the board" skill="Stealth"',
+        '!roll what="Run the board" skill="Stealth" risk="an alarm"',
     ),
 }
 
@@ -129,8 +128,8 @@ def play(
             )
     s.check(
         not composer(page).is_disabled()
-        or page.locator(".game-decision").count() > 0
-        or "over" in clean(page.inner_text("body")).lower(),
+        or page.locator(".game-decision:visible").count() > 0
+        or page.locator(".game-over:visible").count() > 0,
         f"{name} left the composer shut with no decision and no ending",
     )
     s.note(f"{name}: {len(bubbles(page))} bubbles after {len(scripts)} turns")

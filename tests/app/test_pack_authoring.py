@@ -3,11 +3,11 @@ from pathlib import Path
 
 import pytest
 from pydantic import JsonValue
-from support.table import LONER3E, ScriptedSpawner, narrowed, offline_settings
+from support.table import LONER4E, ScriptedSpawner, narrowed, offline_settings
 
 from rulehall.app.runtime import Runtime
 from rulehall.core.validation import Refusal
-from rulehall.engines.loner3e.pack import Loner3ePack
+from rulehall.engines.loner4e.pack import Loner4ePack
 
 PREMISE = "A drowned coast where the lower town is under water and the bells still ring."
 SKILLS: list[JsonValue] = [
@@ -79,11 +79,11 @@ _BODY: dict[str, JsonValue] = {
 async def test_a_written_pack_lands_on_disk_and_in_the_running_engine(tmp_path: Path) -> None:
     runtime, _ = _runtime(tmp_path, [_head(), _body()])
 
-    pack_id = await runtime.new_pack(LONER3E, "Salt and Ash", PREMISE, None, "")
+    pack_id = await runtime.new_pack(LONER4E, "Salt and Ash", PREMISE, None, "")
 
     assert pack_id == "salt-and-ash"
-    assert (tmp_path / "packs" / "loner3e" / "salt-and-ash.json").is_file()
-    pack = narrowed(runtime.engines[LONER3E].packs.written[pack_id], Loner3ePack)
+    assert (tmp_path / "packs" / "loner4e" / "salt-and-ash.json").is_file()
+    pack = narrowed(runtime.engines[LONER4E].packs.written[pack_id], Loner4ePack)
     assert [option.id for option in pack.skills[:2]] == ["reads-the-tide", "holds-their-breath"]
     assert pack.source.startswith("written in this app")
 
@@ -94,10 +94,10 @@ async def test_a_head_whose_label_makes_no_id_is_re_prompted_with_the_reason(
     unnamed = _head(skills=[{"name": "???"}, *SKILLS[1:]])
     runtime, spawner = _runtime(tmp_path, [unnamed, _head(), _body()])
 
-    pack_id = await runtime.new_pack(LONER3E, "Salt and Ash", PREMISE, None, "")
+    pack_id = await runtime.new_pack(LONER4E, "Salt and Ash", PREMISE, None, "")
 
     assert "makes no id" in spawner.prompts[1][1]
-    assert pack_id in runtime.engines[LONER3E].packs.written
+    assert pack_id in runtime.engines[LONER4E].packs.written
 
 
 async def test_a_body_that_never_lands_leaves_no_pack_written(tmp_path: Path) -> None:
@@ -105,10 +105,10 @@ async def test_a_body_that_never_lands_leaves_no_pack_written(tmp_path: Path) ->
     runtime, _ = _runtime(tmp_path, [_head(), thin, thin])
 
     with pytest.raises(Refusal, match="the worldsmith answered nothing usable"):
-        _ = await runtime.new_pack(LONER3E, "Salt and Ash", PREMISE, None, "")
+        _ = await runtime.new_pack(LONER4E, "Salt and Ash", PREMISE, None, "")
 
     assert not (tmp_path / "packs").exists()
-    assert runtime.engines[LONER3E].packs.written == {}
+    assert runtime.engines[LONER4E].packs.written == {}
 
 
 def _runtime(tmp_path: Path, answers: list[str]) -> tuple[Runtime, ScriptedSpawner]:

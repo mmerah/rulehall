@@ -12,7 +12,7 @@ from nicegui.events import UploadEventArguments, ValueChangeEventArguments
 
 from rulehall.app.launch import LauncherCatalog, LaunchTarget
 from rulehall.app.runtime import Runtime
-from rulehall.core.creation import CreationStep, drop_stale, picked
+from rulehall.core.creation import CreationStep, drop_stale, option_of, picked
 from rulehall.core.io import SOURCE_SUFFIXES
 from rulehall.core.model import ScenarioMeta
 from rulehall.core.play import DecisionOption
@@ -147,6 +147,10 @@ class CharacterForm:
             )
             for option in step.options
         }
+        if step.allows_text and given:
+            offered = option_of(step.options, given)
+            given = given if offered is None else offered.name
+            _ = options.setdefault(given, given)
         chosen = ui.select(
             options=options,
             value=given or None,

@@ -1,10 +1,11 @@
 """Scripted stand-ins for the three AI roles, driven from the player's own words.
 
 The master reads PLAYER ACTION from its prompt like the real one. A line that starts with `!` is
-a script: `!roll what="Try the door" actor_id=player question="Does it give?"` calls that tool,
+a script: `!ask question="Does the door give?"` calls that tool,
 `!crash` and `!refuse` fail the spawn, `!fail narrator` fails another role's next ask (its retry
 too), `!bad worldsmith` makes one answer garbage so the retry lands.
-Plain words with no script get one engine-appropriate roll, so dice show up in the page.
+Plain words with no script get one engine-appropriate roll, so dice show up in the page; a
+Loner question the player asks is rolled as `ask(question: null)`.
 
 The narrator echoes what it was given, so every screenshot shows what the page was told. The
 worldsmith answers each request shape with a small valid draft.
@@ -35,14 +36,7 @@ LOGGER = logging.getLogger("qa.agents")
 type Fault = Literal["fail", "bad", "slow"]
 
 DEFAULT_ROLLS: dict[str, tuple[str, dict[str, JsonValue]]] = {
-    "loner3e": (
-        "roll",
-        {
-            "what": "Try it",
-            "actor_id": "player",
-            "question": "Does the player get what they want?",
-        },
-    ),
+    "loner4e": ("ask", {"question": "Does the player get what they want?"}),
     "pokemon": ("check", {"what": "Try it", "skill": "athletics", "difficulty": "easy"}),
     "tunnelgoons": ("roll", {"what": "Try it", "ability": "skulker", "difficulty": 8}),
     "twentyfourxx": ("roll", {"what": "Try it", "skill": "Stealth"}),
@@ -118,6 +112,9 @@ class ScriptedAgents:
         if not scripts:
             if "The player chose the option above" in action:
                 return
+            if _section(prompt, "THE PLAYER ASKS"):
+                await self._call("ask", {"question": None}, spoken)
+                return
             name, args = DEFAULT_ROLLS[self._engine_id()]
             await self._call(name, args, spoken)
             return
@@ -162,6 +159,16 @@ class ScriptedAgents:
     def _worldsmith(self, prompt: str) -> str:
         schema = _section(prompt, "ANSWER WITH")
         number = next(self.scenes)
+        if '"ally"' in schema:
+            return self._meanwhile(prompt, schema, number)
+        if '"events"' in schema:
+            return json.dumps(
+                {
+                    "people": [{"entity_id": "player", "line": f"People line {number}."}],
+                    "places": [f"Places line {number}."],
+                    "events": [f"Events line {number}."],
+                }
+            )
         # A scene draft nests its cast sheet, so its schema also carries the hire probes below.
         if '"situation"' in schema:
             opening = _section(prompt, "THE SCENE NOW") == "(none yet)"
@@ -202,15 +209,17 @@ class ScriptedAgents:
             )
         if '"abilities"' in schema:
             return json.dumps({"abilities": {"brute": 1, "skulker": 1, "erudite": 1}})
-        if '"specialty"' in schema:
+        sheet: dict[str, JsonValue] = {
+            "specialty": "Medic",
+            "origin": "Human",
+            "increases": ["Medicine", "Piloting", "Labor"],
+        }
+        if '"sheet"' in schema:
             return json.dumps(
-                {
-                    "specialty": "Medic",
-                    "skills": {"Medicine": 8},
-                    "items": ["Med kit"],
-                    "hindrances": [],
-                }
+                {"name": f"QA Newcomer {number}", "brief": "A test operator.", "sheet": sheet}
             )
+        if '"specialty"' in schema:
+            return json.dumps(sheet)
         raise Refusal(f"scripted: no worldsmith answer for this schema: {schema[:200]}")
 
     def _scene(self, schema: str, number: int, *, opening: bool) -> str:
@@ -233,7 +242,28 @@ class ScriptedAgents:
             scene["location"] = "QA Harbour" if opening else ""
         if '"recap"' in schema:
             scene["recap"] = f"Recap of the scene before {number}."
+        if '"details"' in schema:
+            scene["goal"] = f"Get through scene {number}"
+            scene["details"] = ["Scripted Fog", "Loose Stones"]
         return json.dumps(scene)
+
+    def _meanwhile(self, prompt: str, schema: str, number: int) -> str:
+        """Moves the first cast entry off screen as the ally on a yes, and the second as the
+        power."""
+        away: list[str] = []
+        for block in re.split(r"^- ", _section(prompt, "THE WHOLE CAST"), flags=re.M)[1:]:
+            entity_id = re.search(r"\[([a-z0-9-]+)\]", block)
+            if entity_id is None or entity_id.group(1) == "player" or "travels with" in block:
+                continue
+            away.append(entity_id.group(1))
+        updates: list[JsonValue] = [
+            {"entity_id": entity_id, "kind": "condition", "gained": [f"Qa Moved {number}"]}
+            for entity_id in away[:2]
+        ]
+        ally = updates.pop(0) if updates and 'The oracle said "yes' in prompt else None
+        dramatic = "write the next scene in `scene`" in prompt
+        scene = json.loads(self._scene(schema, number, opening=False)) if dramatic else None
+        return json.dumps({"power": updates, "ally": ally, "scene": scene})
 
     def _runtime(self) -> Runtime:
         assert self.runtime is not None

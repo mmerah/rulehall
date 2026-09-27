@@ -1,5 +1,5 @@
 from random import Random
-from typing import Literal
+from typing import Annotated, Literal
 
 import pytest
 from pydantic import Field, JsonValue
@@ -7,13 +7,30 @@ from pydantic import Field, JsonValue
 from rulehall.core.facts import Fact
 from rulehall.core.model import AnyGame, Game, ScenarioMeta
 from rulehall.core.tools import Told, action, actions_of, tool, tools_of
-from rulehall.core.validation import EngineId, Frozen, Refusal
+from rulehall.core.validation import EngineId, Frozen, Refusal, Slug, parse_mended
 
 type Kind = Literal["gear", "condition"]
+Tag = Annotated[str, Field(max_length=12)]
 
 
 class Word(Frozen):
     word: str = Field(description="One word the master fills in.")
+
+
+class Slips(Frozen):
+    target_id: Slug | None = None
+    tags: tuple[Tag, ...] = ()
+    tag: Tag = ""
+    words: tuple[Word, ...] = ()
+
+
+class Filed(Frozen):
+    tags: dict[Kind, list[Tag]] = Field(default_factory=dict)
+
+
+class Cast(Frozen):
+    cast: dict[Slug, Filed] = Field(default_factory=dict)
+    details: tuple[Tag, ...] = Field(default=(), max_length=2)
 
 
 class Marking:
@@ -141,3 +158,27 @@ def _trusting(_draft: AnyGame, _texts: tuple[str, ...]) -> None:
 def _refusing_vex(_draft: AnyGame, texts: tuple[str, ...]) -> None:
     if any("Vex" in text for text in texts):
         raise Refusal(f"this names Vex: {texts}")
+
+
+def test_a_harmless_slip_is_mended_before_validation_and_a_real_error_still_refused() -> None:
+    mended = parse_mended(
+        Slips, {"target_id": "null", "tags": "Cold Air", "words": [{"word": "fine"}]}
+    )
+
+    assert mended == Slips(tags=("Cold Air",), words=(Word(word="fine"),))
+    assert parse_mended(Slips, {"target_id": "None"}).target_id is None
+    with pytest.raises(Refusal, match="target_id"):
+        _ = parse_mended(Slips, {"target_id": "Not An Id"})
+    with pytest.raises(Refusal, match="tag"):
+        _ = parse_mended(Slips, {"tag": "Rats in a Barrel"})
+
+
+def test_a_field_no_schema_names_is_dropped_at_every_depth_and_a_cast_key_is_kept() -> None:
+    mended = parse_mended(
+        Cast,
+        {"cast": {"rats": {"tags": {}, "alive": False}}, "details": [], "harm": True},
+    )
+
+    assert mended == Cast(cast={"rats": Filed()})
+    with pytest.raises(Refusal, match="Rats"):
+        _ = parse_mended(Cast, {"cast": {"Rats": {}}})

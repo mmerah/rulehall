@@ -85,22 +85,30 @@ def body(s: Session) -> None:
     s.check(after == 0, f"a stale request ran the worldsmith {after} times on the next turn")
     s.shot(page, "crash-after-request")
 
-    # 4. Loner 3e: a complication at the same place, then a call after it.
+    # 4. Loner 4e: after close_scene only `direct` lands in the same turn; the engine hands the
+    # scene over after the turn: the worldsmith writes a dramatic scene, or the breather opens.
     page.goto(BASE + "/game/whispering-vault/kael")
     wait_idle(page)
     submit(
         page,
-        'I hold position.\n!next_scene complication="Sirens open up"\n!reveal target_id=vault-map',
+        "I have what I came for.\n!close_scene reason=resolved\n!enter target_id=tomas\n"
+        '!direct text="He has it."',
     )
     wait_idle(page, timeout=60)
     calls = last_calls()
-    s.note(f"loner complication calls: {[(n, a[:70]) for n, _, a in calls]}")
+    s.note(f"loner close calls: {[(n, a[:70]) for n, _, a in calls]}")
+    refusals = ["REFUSED" in answer for _, _, answer in calls]
     s.check(
-        len(calls) > 1 and "worldsmith writes what you asked for" in calls[-1][2],
-        f"the call after a complication was not waited: {[a for _, _, a in calls]}",
+        refusals == [False, True, False] and "Call `direct` now" in calls[1][2],
+        f"after close_scene, enter landed or direct did not: {[a for _, _, a in calls]}",
     )
-    s.check("QA Scene" in clean(page.inner_text("body")), "the complication installed no scene")
-    s.shot(page, "loner-complication")
+    closed = [card for card in cards(page) if "Scene closes" in card]
+    s.check(bool(closed), f"no close card: {cards(page)[-3:]}")
+    handed = "QA Scene" in clean(page.inner_text(".game-scene")) or (
+        page.locator(".game-banner button", has_text="Take the breather").count() == 1
+    )
+    s.check(handed, f"the close handed over nothing: {closed}")
+    s.shot(page, "loner-close")
 
     # 5. Tunnel Goons: walk the authored map out, unlock the last cell, then push on for more.
     page.goto(BASE + "/game/buried-keep/kael")
@@ -120,7 +128,7 @@ def body(s: Session) -> None:
     s.check("Internal Server Error" not in clean(page.inner_text("body")), "the goons walk errored")
     s.note(f"goons trail: {clean(page.inner_text('.game-drawer'))[-200:]}")
 
-    # The whole authored map is walked: the way on is offered, and pushing on asks the worldsmith.
+    # The whole authored map is walked: More map is offered, and pushing on asks the worldsmith.
     text = clean(page.inner_text("body"))
     offered = page.locator(".game-banner button", has_text="More map")
     labels = [clean(t) for t in page.locator(".game-banner button").all_inner_texts()]

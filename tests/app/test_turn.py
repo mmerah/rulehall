@@ -4,24 +4,28 @@ from pathlib import Path
 from random import Random
 
 import pytest
-from support.game import initialized, loner_sheet, open_game
+from support.game import MARA, TOMAS, initialized, loner_sheet, open_game
 from support.table import Table, narrated, play_turn, tool_call
+from support.twentyfourxx import open_crew
 
 from rulehall.app.roles import UNSETTLED
-from rulehall.app.turn import DIRECTED_WAIT, REQUEST_WAIT, Turn
+from rulehall.app.turn import DIRECTED_ONCE, REQUEST_WAIT, Turn
 from rulehall.core.facts import NOTHING, Fact, cards
 from rulehall.core.model import AnyGame
 from rulehall.core.play import Answer
 from rulehall.core.validation import Refusal
 from rulehall.engines.entities import PLAYER_ID
-from rulehall.engines.loner3e.rules import outcome_for
-from rulehall.engines.loner3e.world import Loner3eGame
-from rulehall.engines.scenes.engine import WAY_UNWRITTEN
+from rulehall.engines.loner4e.args import SCENE_UNWRITTEN
+from rulehall.engines.loner4e.rules import outcome_for
+from rulehall.engines.loner4e.world import Loner4eGame
 
-MAP = "vault-map"
-FOUND = tool_call("reveal", target_id="vault-map")
+FOUND = tool_call("enter", target_id=TOMAS)
+NOWHERE = tool_call("leave_party", target_id="nowhere")
+WARDEN = "warden-six"
+# The transition die reads 2: a closed scene hands over to a dramatic one.
+DRAMATIC_SEED = 1
 TAKEN = tool_call("change_tags", actor_id=PLAYER_ID, kind="gear", gained=["the vault map"])
-ASKED = tool_call("roll", what="Try the door", actor_id=PLAYER_ID, question="Does the door give?")
+ASKED = tool_call("ask", question="Does the door give?")
 DIRECTION = "the cold off the stone reaches him and the quiet begins to press"
 DIRECTED = tool_call("direct", text=DIRECTION)
 
@@ -35,11 +39,12 @@ def _scene(**changes: object) -> str:
             "at the far end with the lantern shuttered to a slit."
         ),
         "present": ["mara"],
-        "hidden": [],
         "recap": "The player left the abbot's study behind, lantern shuttered, and made for the "
         "cloister walk with Mara close behind them.",
         "arc": "Farther in, the chapter house still holds what Mara came for, and has not yet "
         "been found.",
+        "goal": "Follow Mara to the chapter house",
+        "details": ["Driving Rain", "Black Flagstones"],
     }
     return json.dumps(scene | changes)
 
@@ -76,7 +81,7 @@ async def test_the_turn_holds_its_facts_in_resolver_order(tmp_path: Path) -> Non
         tool_call("change_tags", actor_id="player", kind="condition", gained=["Listening"]),
     )
 
-    expected = ["The vault map discovered", "Took the vault map", "Now: Listening"]
+    expected = ["Brother Tomas arrives", "Took the vault map", "Now: Listening"]
     exchange = state.exchanges()[-1]
     assert [fact.card for fact in cards(table.facts)] == expected
     assert [fact.card for fact in cards(exchange.facts)] == expected
@@ -86,12 +91,10 @@ async def test_the_turn_holds_its_facts_in_resolver_order(tmp_path: Path) -> Non
 async def test_the_exchange_keeps_each_refused_call_where_it_happened(tmp_path: Path) -> None:
     table = open_game(tmp_path)
 
-    state = await play_turn(
-        table, "I search beneath the desk.", tool_call("reveal", target_id="nowhere"), FOUND
-    )
+    state = await play_turn(table, "I search beneath the desk.", NOWHERE, FOUND)
 
     (refused,) = state.exchanges()[-1].refused
-    assert (refused.tool, refused.after_facts) == ("reveal", 0)
+    assert (refused.tool, refused.after_facts) == ("leave_party", 0)
     assert refused.reason == table.refusals[0]
 
 
@@ -125,12 +128,7 @@ async def test_the_engine_rolls_the_outcome_the_facts_then_record(tmp_path: Path
     state = await play_turn(
         table,
         "I plead with the door.",
-        tool_call(
-            "roll",
-            what="Try the door",
-            actor_id="player",
-            question="Does the door give before the whispering finds him?",
-        ),
+        tool_call("ask", question="Does the door give before the whispering finds him?"),
         narration="You falter.",
     )
 
@@ -140,7 +138,8 @@ async def test_the_engine_rolls_the_outcome_the_facts_then_record(tmp_path: Path
     rolled = [fact.trace for fact in fired[:2]]
     for die, trace in zip(answer.dice, rolled, strict=True):
         assert trace.endswith(f"[{', '.join(str(v) for v in die.rolled)}]")
-    assert answer.card.endswith(f": {outcome_for(max(chance.rolled), max(risk.rolled)).wording}")
+    wording = outcome_for(max(chance.rolled), max(risk.rolled)).wording
+    assert answer.card.splitlines()[1] == wording
     table.service.engine.validate(state)
     assert not any(fact.told for fact in fired[:2])
 
@@ -148,9 +147,9 @@ async def test_the_engine_rolls_the_outcome_the_facts_then_record(tmp_path: Path
 async def test_an_illegal_tool_call_is_refused_with_the_reason(tmp_path: Path) -> None:
     table = open_game(tmp_path)
 
-    state = await play_turn(table, "I wait.", tool_call("reveal", target_id="nowhere"), FOUND)
+    state = await play_turn(table, "I wait.", NOWHERE, FOUND)
 
-    assert state.world.require(MAP).known
+    assert state.world.require(TOMAS).known
     assert any("unknown id 'nowhere'" in refusal for refusal in table.refusals)
 
 
@@ -159,46 +158,52 @@ async def test_a_later_call_in_one_turn_sees_the_earlier_calls_draft(
 ) -> None:
     table = open_game(tmp_path)
 
-    state = await play_turn(
-        table, "I close the book.", tool_call("next_scene"), tool_call("next_scene")
-    )
+    wants = tool_call("drive", actor_id=TOMAS, goal="Guard the vault")
+    state = await play_turn(table, "I wait for the knock.", FOUND, wants)
 
-    assert state.world.scene.way_offered
-    assert any("already offers" in refusal for refusal in table.refusals)
+    assert state.world.require(TOMAS).goal == "Guard the vault"
+    assert table.refusals == []
 
 
 async def test_a_call_after_the_ask_answers_handoff_wait_and_changes_nothing(
     tmp_path: Path,
 ) -> None:
-    table = open_game(tmp_path)
-    complication = "A second crew breaches the study door."
+    table = open_crew(tmp_path)
+    complication = "A second crew breaches the airlock."
 
     state = await play_turn(
-        table, "I keep watch.", tool_call("next_scene", complication=complication), FOUND
+        table,
+        "I keep watch.",
+        tool_call("next_scene", complication=complication),
+        tool_call("enter", target_id=WARDEN),
     )
 
     assert table.answers[1] == REQUEST_WAIT
-    assert not state.world.require(MAP).known
+    assert not state.world.require(WARDEN).known
 
 
-async def test_a_line_spoken_by_someone_not_here_is_re_prompted_with_the_id(
+async def test_a_voice_not_here_is_narration_and_one_who_left_this_turn_still_speaks(
     tmp_path: Path,
 ) -> None:
     table = open_game(tmp_path)
-    table.spawner.answers["narrator"] = [
-        narrated("You should not be here.", "elena"),
-        narrated("The door settles."),
+    lines = [
+        {"speaker_id": "elena", "text": "You should not be here."},
+        {"speaker_id": MARA, "text": "Keep the lamp."},
     ]
-    table.spawner.turns.append(table.plays(()))
+    table.spawner.answers["narrator"] = [json.dumps({"lines": lines})]
+    table.spawner.turns.append(table.plays((tool_call("leave", target_id=MARA),)))
 
     await table.service.play(Answer(text="I wait."))
 
-    assert any("elena" in prompt for role, prompt in table.spawner.prompts if role == "narrator")
+    assert [role for role, _ in table.spawner.prompts] == ["master", "narrator"]
     newest = table.service.state.exchanges()[-1]
-    assert [line.text for line in newest.lines] == ["The door settles."]
+    assert [(line.speaker_id, line.text) for line in newest.lines] == [
+        (None, "You should not be here."),
+        (MARA, "Keep the lamp."),
+    ]
 
 
-def _exploding_after_the_find(table: Table[Loner3eGame]) -> Callable[[], None]:
+def _exploding_after_the_find(table: Table[Loner4eGame]) -> Callable[[], None]:
     def crash() -> None:
         _ = table.call(*FOUND)
         raise Refusal("the game master exploded")
@@ -221,7 +226,7 @@ async def test_a_master_that_crashes_after_applying_still_commits_what_it_applie
     await table.service.play(Answer(text="I take the map and read it."))
 
     assert len(table.service.state.exchanges()) == 1
-    assert table.service.state.world.require(MAP).known
+    assert table.service.state.world.require(TOMAS).known
 
 
 async def test_a_master_that_crashed_after_a_tool_landed_is_not_spawned_again(
@@ -280,7 +285,7 @@ async def test_a_re_filed_cast_member_takes_the_new_brief_and_keeps_their_name_a
     tmp_path: Path,
 ) -> None:
     """The brief is the worldsmith's between scenes; the name and the sheet are the rules'."""
-    table = open_game(tmp_path)
+    table = open_game(tmp_path, rng=Random(DRAMATIC_SEED))
     before = loner_sheet(table.state, "mara")
     table.spawner.answers["worldsmith"] = [
         _scene(
@@ -297,7 +302,7 @@ async def test_a_re_filed_cast_member_takes_the_new_brief_and_keeps_their_name_a
     state = await play_turn(
         table,
         "Out into the cloister walk.",
-        tool_call("next_scene", pursuit="Out into the cloister walk."),
+        tool_call("close_scene", reason="resolved"),
         arrival="Rain takes the arcade.",
     )
 
@@ -306,17 +311,25 @@ async def test_a_re_filed_cast_member_takes_the_new_brief_and_keeps_their_name_a
     assert mara.name == "Mara"
     assert mara.brief == "Waiting under the arcade with the lantern shuttered."
     assert (mara.concept, mara.tags) == (before.concept, before.tags)
-    assert WAY_UNWRITTEN not in state.exchanges()[-1].facts
+    assert SCENE_UNWRITTEN not in state.exchanges()[-1].facts
 
 
-async def test_the_clock_counts_only_a_turn_that_played_and_landed_facts(tmp_path: Path) -> None:
+def test_a_played_turn_with_no_facts_still_ends(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     table = open_game(tmp_path)
+    engine = table.service.engine
+    ended: list[bool] = []
 
-    state = await play_turn(table, "I search beneath the desk.", FOUND)
-    assert state.world.turns_since_meanwhile == 1
+    def end_turn(_draft: AnyGame, /, *, acted: bool) -> None:
+        ended.append(acted)
 
-    state = await play_turn(table, "I wait.")
-    assert state.world.turns_since_meanwhile == 1
+    monkeypatch.setattr(engine, "end_turn", end_turn)
+    turn = Turn.begin(engine, table.state, Answer(text="I wait."), Random())
+
+    _ = turn.finish(())
+
+    assert ended == [False]
 
 
 async def test_a_turn_whose_only_call_directs_lands_and_hands_the_narrator_the_direction(
@@ -335,7 +348,7 @@ async def test_a_turn_whose_only_call_directs_lands_and_hands_the_narrator_the_d
     assert NOTHING not in narrator
 
 
-async def test_a_call_after_the_direction_answers_the_wait_and_changes_nothing(
+async def test_a_call_after_the_direction_lands_and_the_direction_is_told_last(
     tmp_path: Path,
 ) -> None:
     table = open_game(tmp_path)
@@ -343,9 +356,12 @@ async def test_a_call_after_the_direction_answers_the_wait_and_changes_nothing(
 
     state = await play_turn(table, "I keep watch.", DIRECTED, again, FOUND)
 
-    assert table.answers[1:] == [DIRECTED_WAIT, DIRECTED_WAIT]
-    assert not state.world.require(MAP).known
-    assert "the rain has stopped" not in table.spawner.prompt("narrator")
+    assert table.answers[1] == DIRECTED_ONCE
+    assert TOMAS in state.world.scene.here
+    assert table.facts[-1].trace.endswith(DIRECTION)
+    narrator = table.spawner.prompt("narrator")
+    assert "the rain has stopped" not in narrator
+    assert narrator.index("[tomas] arrives") < narrator.index(DIRECTION)
 
 
 async def test_a_turn_after_a_directed_one_plays_its_tools(tmp_path: Path) -> None:
@@ -354,7 +370,7 @@ async def test_a_turn_after_a_directed_one_plays_its_tools(tmp_path: Path) -> No
 
     state = await play_turn(table, "I search beneath the desk.", FOUND)
 
-    assert state.world.require(MAP).known
+    assert state.world.require(TOMAS).known
 
 
 async def test_a_turn_with_no_tool_call_gives_the_narrator_the_beat_line(tmp_path: Path) -> None:
