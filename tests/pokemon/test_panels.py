@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from support.pokemon import ENGINE, started
 
 from rulehall.core.views import Meter, Sprite
+from rulehall.engines.pokemon.battle.models import LEVEL_MAX
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.panels import ICON_SHEET, item_text, mon_row
 from rulehall.engines.pokemon.rules import ITEMS, TIMES
@@ -29,7 +30,7 @@ def test_a_team_row_shows_types_hp_and_stats_as_tags_and_meters() -> None:
     mon.hp.current = 8
     mon.status = "brn"
 
-    row = mon_row(mon)
+    row = mon_row(mon, LEVEL_MAX)
     stats = mon.stats()[1:]
 
     assert tuple(tag.name for tag in row.tags) == ("Lv5", "Fire", "BRN", "Jolly", "♥ 70")
@@ -44,7 +45,7 @@ def test_a_team_row_shows_types_hp_and_stats_as_tags_and_meters() -> None:
     assert row.meters[1].hint == f"base 52 · IV {mon.ivs[1]} · EV 0"
     assert row.meters[5].hint == f"base 65 · IV {mon.ivs[5]} · EV 0 · Jolly +10%"
     mon.hp.current = 0
-    assert mon_row(mon).tags[2].name == "FNT"
+    assert mon_row(mon, LEVEL_MAX).tags[2].name == "FNT"
 
 
 def test_a_trainer_class_outside_the_list_is_refused() -> None:
@@ -103,7 +104,7 @@ def test_the_summary_shows_the_held_item_the_nature_arrows_and_the_moves() -> No
     mon = started().world.player.require_sheet().require_mon("charmander")
     mon.item_id = "charcoal"
 
-    about, stats, moves = mon_row(mon).detail
+    about, stats, moves = mon_row(mon, LEVEL_MAX).detail
 
     assert (about.rows[0].icon_id, about.rows[0].brief) == ("charcoal", dex().items["charcoal"])
     assert (about.rows[1].tags[0].name, about.rows[1].brief) == ("Blaze", dex().abilities["Blaze"])

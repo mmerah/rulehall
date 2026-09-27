@@ -1,14 +1,15 @@
 import operator
-from collections.abc import Callable
+from collections.abc import Callable, Collection, Iterable, Sequence
 from typing import Annotated, Literal
 
 from pydantic import AfterValidator, WithJsonSchema
 
 from rulehall.core.validation import Frozen, Slug
-from rulehall.engines.pokemon.battle.models import Battler
+from rulehall.engines.pokemon.battle.models import MOVES_MAX, Battler
 from rulehall.engines.pokemon.dex import Move, Species, Stats, dex
 
 type Skill = Literal["athletics", "stealth", "perception", "nature", "lore", "charm"]
+type Challenge = Literal["relaxed", "hard", "nuzlocke"]
 # Lambdas: the checks sit below the models, and a direct reference fails basedpyright.
 type ItemId = Annotated[str, AfterValidator(lambda item_id: _check_item(item_id))]
 type TmId = Annotated[str, AfterValidator(lambda item_id: _check_tm(item_id))]
@@ -20,6 +21,11 @@ SKILL_USES: dict[Skill, str] = {
     "nature": "survive outdoors, read the behavior of wild Pokemon",
     "lore": "know facts, use machines, give first aid",
     "charm": "persuade, lie, calm, bargain",
+}
+CHALLENGES: dict[Challenge, str] = {
+    "relaxed": "the journey as it is",
+    "hard": "level caps at each gym",
+    "nuzlocke": "level caps; a Pokemon that faints is gone; one catch per place",
 }
 RANK_MAX = 3
 RANKS_AT_CREATION = 4
@@ -40,6 +46,29 @@ FRIENDSHIP_PER_LEVEL = 5
 FRIENDSHIP_EVOLVE = 160
 EXP_PER_LEVEL = 20
 PRIZE_PER_LEVEL = 50
+BADGE_LEVELS = (12, 18, 24, 30, 36, 42, 48, 54)
+LEVEL_SPREAD = 2
+ACE_BELOW_TABLE = 2
+BELOW_ACE = 2
+REGULAR_TRAINERS_MAX = 3
+NICKNAME_MAX = 12
+NICKNAME_MARKS = " '-"
+# Moves that fail, recharge, take two turns, faint the user, strike later or change type in
+# Showdown.
+SIGNATURE_EXCLUDED = frozenset(
+    (
+        *("hyperbeam", "gigaimpact", "lastresort", "focuspunch", "selfdestruct", "explosion"),
+        *("futuresight", "doomdesire", "dreameater", "hiddenpower", "round", "snore", "fling"),
+        *("beatup", "naturalgift", "belch", "synchronoise", "steelbeam", "mindblown"),
+        *("blastburn", "frenzyplant", "hydrocannon", "rockwrecker", "solarbeam", "solarblade"),
+        *("skyattack", "skullbash", "meteorbeam", "beakblast", "mistyexplosion", "memento"),
+        *("healingwish", "finalgambit", "fakeout", "firstimpression", "suckerpunch"),
+        *("poltergeist", "shelltrap", "spitup", "counter", "mirrorcoat", "metalburst"),
+        *("comeuppance", "bide", "weatherball", "terablast", "multiattack", "revelationdance"),
+        *("burnup", "doubleshock", "steelroller", "skydrop", "electroshot", "shadowforce"),
+        *("fly", "dig", "dive", "bounce", "phantomforce", "geomancy"),
+    )
+)
 SEED_LIMIT = 0x10000
 CATCH_BASE = 80
 CATCH_PER_LEVEL = 2
@@ -154,6 +183,26 @@ ITEMS: dict[str, Item] = {
     "razor-claw": Item(name="Razor Claw", price=3000, kind="held"),
     "razor-fang": Item(name="Razor Fang", price=3000, kind="held"),
 }
+TYPE_BOOSTERS: dict[str, ItemId] = {
+    "Normal": "silk-scarf",
+    "Fire": "charcoal",
+    "Water": "mystic-water",
+    "Grass": "miracle-seed",
+    "Electric": "magnet",
+    "Ice": "never-melt-ice",
+    "Fighting": "black-belt",
+    "Poison": "poison-barb",
+    "Ground": "soft-sand",
+    "Flying": "sharp-beak",
+    "Psychic": "twisted-spoon",
+    "Bug": "silver-powder",
+    "Rock": "hard-stone",
+    "Ghost": "spell-tag",
+    "Dragon": "dragon-fang",
+    "Dark": "black-glasses",
+    "Steel": "metal-coat",
+    "Fairy": "fairy-feather",
+}
 type BagId = Annotated[
     ItemId | TmId,
     WithJsonSchema({"anyOf": [{"enum": list(ITEMS), "type": "string"}, {"type": "string"}]}),
@@ -213,6 +262,90 @@ def catch_rate(foe: Battler, ball_bonus: int) -> int:
     )
 
 
+def level_for(badges: int) -> int:
+    return BADGE_LEVELS[min(badges, len(BADGE_LEVELS) - 1)]
+
+
+def evolved(species_id: Slug, level: int, pool: Collection[Slug]) -> Slug:
+    species = dex().species
+    while steps := sorted(
+        evo_id
+        for evo_id in species[species_id].evos
+        if evo_id in pool and _levels_into(species[evo_id], level)
+    ):
+        species_id = steps[0]
+    return species_id
+
+
+def attacks_physically(species: Species) -> bool:
+    return species.base_stats[1] >= species.base_stats[3]
+
+
+def signature_moves(species: Species, level: int) -> tuple[Slug, ...]:
+    moves = dex().moves
+    learned: dict[Slug, int] = {}
+    for learned_at, move_id in species.levelup:
+        if learned_at <= level:
+            learned[move_id] = max(learned_at, learned.get(move_id, 0))
+    machines = (move_id for move_id in species.machines if 0 < moves[move_id].power <= 5 * level)
+    candidates = sorted({*learned, *machines} - SIGNATURE_EXCLUDED)
+    physical = attacks_physically(species)
+
+    def score(move_id: Slug) -> int:
+        move = moves[move_id]
+        value = move.power * (move.accuracy or 100)
+        return value if (move.category == "Physical") == physical else value // 2
+
+    damaging = sorted(
+        (move_id for move_id in candidates if moves[move_id].power > 0),
+        key=lambda move_id: (-score(move_id), move_id),
+    )
+    same_type = [move_id for move_id in damaging if moves[move_id].type in species.types]
+    other_type = [move_id for move_id in damaging if moves[move_id].type not in species.types]
+    status = sorted(
+        (move_id for move_id in candidates if move_id in learned and moves[move_id].power == 0),
+        key=lambda move_id: (-learned[move_id], move_id),
+    )
+    picked = [first for group in (same_type, other_type, status) for first in group[:1]]
+    picked += [move_id for move_id in damaging if move_id not in picked]
+    return tuple(picked[:MOVES_MAX]) or latest_moves(species, level)
+
+
+def latest_moves(species: Species, level: int) -> tuple[Slug, ...]:
+    learned = [move_id for learned_at, move_id in species.levelup if learned_at <= level]
+    return tuple(reversed(list(dict.fromkeys(reversed(learned)))[:MOVES_MAX]))
+
+
+def counter_pick(pool: Iterable[Slug], target_types: Sequence[str], level: int) -> Slug:
+    species = dex().species
+    moves = dex().moves
+    candidates = [
+        species_id
+        for species_id in pool
+        if not LEGENDARY_TAGS.intersection(species[species_id].tags)
+        and species[species_id].evo_type is None
+        and (species[species_id].evo_level or 0) <= level
+    ]
+
+    def rank(species_id: Slug) -> tuple[int, bool, int, Slug]:
+        candidate = species[species_id]
+        attacks = {
+            moves[move_id].type
+            for learned_at, move_id in candidate.levelup
+            if learned_at <= level
+            and moves[move_id].power > 0
+            and moves[move_id].type in candidate.types
+        }
+        hit = sum(
+            any(_effectiveness(attack, (target,)) > 1 for attack in attacks)
+            for target in target_types
+        )
+        weak = any(_effectiveness(attack, candidate.types) > 1 for attack in target_types)
+        return (-hit, weak, -sum(candidate.base_stats), species_id)
+
+    return min(candidates, key=rank)
+
+
 def check_species(species_id: Slug) -> None:
     if species_id not in dex().species:
         raise ValueError(f"{species_id!r} is no species id from SPECIES")
@@ -245,3 +378,21 @@ def _hp_bonus(hp: int, maximum: int) -> int:
     if 4 * hp <= 3 * maximum:
         return -15
     return -30
+
+
+def _effectiveness(attack: str, defender_types: Sequence[str]) -> float:
+    matchups = dex().type_chart[attack]
+    factor = 1.0
+    for defender in defender_types:
+        if defender in matchups.none:
+            return 0.0
+        if defender in matchups.strong:
+            factor *= 2
+        elif defender in matchups.weak:
+            factor /= 2
+    return factor
+
+
+def _levels_into(evolution: Species, level: int) -> bool:
+    reached = evolution.evo_level is not None and evolution.evo_level <= level
+    return evolution.evo_type is None and reached

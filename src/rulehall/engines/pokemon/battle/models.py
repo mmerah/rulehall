@@ -8,6 +8,7 @@ from rulehall.core.validation import Frozen, Mutable, Slug
 from rulehall.engines.pokemon.dex import Stats
 
 type BattleKind = Literal["trainer", "wild"]
+type Policy = Literal["random", "greedy", "model"]
 type Outcome = Literal["won", "lost", "fled", "caught"]
 type Status = Literal["", "brn", "frz", "par", "psn", "tox", "slp"]
 type Gender = Literal["M", "F", "N"]
@@ -51,6 +52,8 @@ class Ball(Frozen):
 
 class BattleSetup(Frozen):
     kind: BattleKind
+    policy: Policy
+    foe_style: str
     foe_id: Slug | None
     player_name: str = Field(min_length=1)
     foe_name: str = Field(min_length=1)
@@ -71,6 +74,8 @@ class BattleSetup(Frozen):
             raise ValueError("a wild battle has one foe")
         if (self.kind == "trainer") != (self.foe_avatar_id is not None):
             raise ValueError("a trainer battle, and only a trainer battle, has a foe_avatar_id")
+        if (self.kind == "wild") != (self.policy == "random"):
+            raise ValueError("a wild battle, and only a wild battle, picks at random")
         # Showdown's `sethp` lifts 0 HP to 1, so a fainted Pokemon would fight again.
         if any(battler.hp == 0 for battler in (*self.team, *self.foes)):
             raise ValueError("a fainted Pokemon cannot enter a battle")

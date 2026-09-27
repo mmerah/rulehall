@@ -261,10 +261,32 @@
   },
   {
     "name": "heal_team",
-    "description": "Heal the whole team and the box: HP, PP and status. Call this at a Pokemon Center.",
+    "description": "Heal the whole team and the box: HP, PP and status. Only at a Pokemon Center: the engine refuses anywhere else.",
     "parameters": {
       "additionalProperties": false,
       "properties": {},
+      "type": "object"
+    }
+  },
+  {
+    "name": "nickname",
+    "description": "The player names a Pokemon of the team or the box.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "mon_id": {
+          "description": "Exact id of the team or box Pokemon the player names.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The nickname: 1 to 12 letters, digits, spaces, ' or -. Not a species name, and not the name of another of the player's Pokemon.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mon_id",
+        "name"
+      ],
       "type": "object"
     }
   },
@@ -534,7 +556,7 @@
   },
   {
     "name": "start_battle",
-    "description": "Call this when a trainer here and the player agree to battle. The battle screen plays the fight, and the engine applies the result. Call it last: it ends your turn. A trainer battles once per visit. A gym leader never battles again once beaten.",
+    "description": "Call this when a trainer here and the player agree to battle. The battle screen plays the fight, and the engine applies the result. Call it last: it ends your turn. A trainer battles once per visit. A gym leader never battles again once beaten. The rival battles once before the first badge, then once after each badge.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -551,7 +573,7 @@
   },
   {
     "name": "start_wild_battle",
-    "description": "Call this when the player meets a wild Pokemon at this place, such as in tall grass. Set `species_id` to one from WILD HERE, or leave it null to roll on the table. Call it last: it ends your turn.",
+    "description": "Call this when the player meets a wild Pokemon at this place, such as in tall grass. Set `species_id` to one from WILD HERE, or leave it null to roll on the table; in a Nuzlocke, always leave it null. Call it last: it ends your turn.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -561,7 +583,7 @@
             "null"
           ],
           "default": null,
-          "description": "A species id from WILD HERE. Null lets the engine roll on the table."
+          "description": "A species id from WILD HERE. Null lets the engine roll on the table. Always null in a Nuzlocke."
         }
       },
       "type": "object"

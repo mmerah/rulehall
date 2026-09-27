@@ -3,27 +3,10 @@
 import sys
 from pathlib import Path
 
-from playwright.sync_api import Page
-
 sys.path.insert(0, str(Path(__file__).parent))
-from drive import BASE, Session, clean, notifications, run, wait_idle
+from drive import BASE, Session, clean, notifications, run, select, text, wait_idle
 
 SOURCE = Path(__file__).parents[1] / "tests/core/fixtures/source/drowned-road.md"
-
-
-def select(page: Page, label: str, option: str) -> None:
-    field = page.locator(f".q-select:has(.q-field__label:text-is('{label}'))").first
-    field.click()
-    page.wait_for_timeout(200)
-    page.locator(".q-menu .q-item", has_text=option).first.click()
-    page.wait_for_timeout(400)
-
-
-def text(page: Page, label: str, value: str) -> None:
-    box = page.locator(".q-field", has_text=label).first.locator("input, textarea").first
-    box.fill(value)
-    box.blur()
-    page.wait_for_timeout(400)
 
 
 def body(s: Session) -> None:

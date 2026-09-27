@@ -25,8 +25,8 @@ Play runs island by island, and no ending is written for it.
 # MAP SO FAR
 The Harbour Road[harbour-road] — Tall grass grows beside a road that runs above the ferry dock.
   known ways out: Tern Harbour
-  here: Professor Mira[mira] (met), Rook[rook] (met)
-ids in use: gull-cove, harbour-road, ines, mira, pokemon-center, rook, tern-gym, tern-harbour, wren
+  here: Professor Mira[mira] (met), Rook[rook] (met), Tamsin[tamsin] (met)
+ids in use: gull-cove, harbour-road, ines, mira, pokemon-center, rook, tamsin, tern-gym, tern-harbour, wren
 
 # SCENES SO FAR
 ## Scene: The Harbour Road
@@ -36,14 +36,14 @@ place: The Harbour Road
 
 # THE PLAYER
 - Kael[player] — A quiet trainer from Tern Harbour who wants to see every island.
-  skills: Athletics 1 · Perception 1 · Nature 2; money: ₽3000; badges: none; team: Charmander L5, 20/20 HP
+  skills: Athletics 1 · Perception 1 · Nature 2; money: ₽3000; badges: none; team: Charmander L5, 20/20 HP, Jolly; your first Pokemon
 
 # WHAT COMES NEXT
 Deeper in, toward the sound.
 
 # ENGINE GUIDANCE
 POKEMON AUTHORING
-A place is one town, route, cave, gym or building of the region. `wild` gives the wild table of each new place: species ids from SPECIES, the lowest level, the highest level and a weight. A route, a cave or a shore has a table. A town or a building has none. A person who battles has a `roster` of one to six species ids with levels. A gym leader also has a `badge`, such as 'Tide Badge'. A person who does not battle has no `roster`. Every person has an `avatar_id` from TRAINER CLASSES: the look that fits them, such as 'hiker' or 'nurse'. Early routes hold levels 2 to 6. The first gym holds levels 10 to 14. A locked way can be a thin tree that Cut clears, or a closed gym door. Never write `sheet`, `beaten`, `team` or `last_battle_visit`. Code writes the player's team.
+A place is one town, route, cave, gym or building of the region. `wild` gives the wild table of each new place: species ids from SPECIES, the lowest level, the highest level and a weight. A route, a cave or a shore has a table. A town or a building has none. Every town has a Pokemon Center, a place of its own that `centers` lists: the team heals only there, so the opening map has one. A person who battles has a `roster` of one to six species ids with levels. A gym leader also has a `badge`, such as 'Tide Badge'. The ace of a gym leader, the highest level of the roster, follows the badge table: the first gym's ace is level 12, the second's 18, the third's 24, then 30, 36, 42, 48 and 54, each give or take 2. Write a few meaningful trainers: at most 3 people without a badge battle in one map. A person who does not battle has no `roster`. Every gym leader and the rival has a `style`, a `win_line` and a `lose_line`. The opening map holds one rival, with `rival` true and no `roster`: code builds the rival's team. A later map adds no rival. Every person has an `avatar_id` from TRAINER CLASSES: the look that fits them, such as 'hiker' or 'nurse'. Early routes hold levels 2 to 6. A locked way can be a thin tree that Cut clears, or a closed gym door. Never write `sheet`, `beaten`, `team` or `last_battle_visit`. Code writes the player's team.
 
 PACK: Kanto Dex
 

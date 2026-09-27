@@ -70,10 +70,15 @@
             "current": 20,
             "maximum": 20
           },
-          "status": ""
+          "status": "",
+          "met": "your first Pokemon"
         }
       ],
-      "box": []
+      "box": [],
+      "challenge": "relaxed",
+      "caught_species": [
+        "charmander"
+      ]
     }
   }
 }

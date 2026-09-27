@@ -146,7 +146,22 @@
           }
         ],
         "badge": "Tide Badge",
+        "style": "sets up behind her Horsea, then sweeps with Staryu",
+        "win_line": "The tide turns for everyone. Come back when you can ride it.",
+        "lose_line": "You rode the tide well. The Tide Badge is yours.",
         "avatar_id": "acetrainerf"
+      },
+      "tamsin": {
+        "id": "tamsin",
+        "name": "Tamsin",
+        "brief": "A trainer from Tern Harbour who got a first Pokemon on the same day as the player: the player's rival.",
+        "known": true,
+        "place_id": "harbour-road",
+        "style": "attacks from the first turn and never switches out",
+        "win_line": "Ha! Told you I'd win. Try to keep up.",
+        "lose_line": "Fine, you win this one. I'll be stronger next time.",
+        "rival": true,
+        "avatar_id": "lass"
       }
     },
     "items": {},
@@ -193,6 +208,9 @@
         }
       ]
     },
+    "centers": [
+      "pokemon-center"
+    ],
     "start_id": "harbour-road"
   }
 }

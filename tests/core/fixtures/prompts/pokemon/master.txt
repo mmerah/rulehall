@@ -34,7 +34,7 @@ Tall grass grows beside a road that runs above the ferry dock.
 
 # YOU PLAY FOR
 - Kael[player] — A quiet trainer from Tern Harbour who wants to see every island.
-  skills: Athletics 1 · Perception 1 · Nature 2; money: ₽3000; badges: none; team: Charmander L5, 20/20 HP
+  skills: Athletics 1 · Perception 1 · Nature 2; money: ₽3000; badges: none; team: Charmander L5, 20/20 HP, Jolly; your first Pokemon
 
 # CARRYING
 - (none)
@@ -43,6 +43,8 @@ Tall grass grows beside a road that runs above the ferry dock.
 - Professor Mira[mira] — The professor who gave the player a first Pokemon.
 - Rook[rook] — A camper who battles every new trainer on this road.
   team: Pidgey L4, Rattata L3
+- Tamsin[tamsin] — A trainer from Tern Harbour who got a first Pokemon on the same day as the player: the player's rival.
+  style: attacks from the first turn and never switches out
 
 # HIDDEN HERE (the player has not found these)
 - (none)
@@ -50,6 +52,12 @@ Tall grass grows beside a road that runs above the ferry dock.
 # WAYS OUT
 - Tern Harbour[tern-harbour] — known
 - Gull Cove[gull-cove] — unknown; locked
+
+# CHALLENGE
+relaxed
+
+# THE RIVAL
+Tamsin[tamsin]; style: attacks from the first turn and never switches out
 
 # TYPE CHART
 - Bug: strong vs Dark, Grass, Psychic; weak vs Fairy, Fighting, Fire, Flying, Ghost, Poison, Steel

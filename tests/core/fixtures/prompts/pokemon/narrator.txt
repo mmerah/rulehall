@@ -46,6 +46,7 @@ Tall grass grows beside a road that runs above the ferry dock.
 # WHO IS HERE
 - Professor Mira[mira] — The professor who gave the player a first Pokemon.
 - Rook[rook] — A camper who battles every new trainer on this road.
+- Tamsin[tamsin] — A trainer from Tern Harbour who got a first Pokemon on the same day as the player: the player's rival.
 
 # YOUR PARTY
 you are Kael[player] — A quiet trainer from Tern Harbour who wants to see every island.
@@ -55,7 +56,7 @@ nobody travels with you
 - Skills: Athletics 1 · Perception 1 · Nature 2
 - Money: ₽3000
 - Badges: none
-- Team: Charmander L5, 20/20 HP
+- Team: Charmander L5, 20/20 HP, Jolly; your first Pokemon
 - Carrying: nothing
 
 # WHAT THE PLAYER HAS READ

@@ -6,7 +6,14 @@ from support.table import change, refused
 
 from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.dex import Stats, dex
-from rulehall.engines.pokemon.rules import stats, succeeds
+from rulehall.engines.pokemon.rules import (
+    SIGNATURE_EXCLUDED,
+    STARTER_LEVEL,
+    counter_pick,
+    signature_moves,
+    stats,
+    succeeds,
+)
 from rulehall.engines.pokemon.world import Mon
 
 TWO_NATURE_RANKS = {
@@ -65,6 +72,30 @@ def test_a_new_pokemon_knows_its_last_four_level_up_moves() -> None:
 
     assert [slot.move_id for slot in mon.moves] == ["tackle", "vinewhip", "growth", "leechseed"]
     assert all(slot.pp == slot.move.pp for slot in mon.moves)
+
+
+def test_signature_moves_lead_with_a_same_type_move_then_coverage_and_skip_the_excluded() -> None:
+    charizard = dex().species["charizard"]
+
+    picked = signature_moves(charizard, 36)
+
+    first, second = (dex().moves[move_id] for move_id in picked[:2])
+    assert first.type in charizard.types and first.power > 0
+    assert second.type not in charizard.types and second.power > 0
+    assert not SIGNATURE_EXCLUDED.intersection(picked)
+
+
+def test_a_species_with_only_excluded_moves_is_built_with_its_latest_level_up_move() -> None:
+    unown = Mon.built("unown", 20, (), ace=True)
+
+    assert [slot.move_id for slot in unown.moves] == ["hiddenpower"]
+
+
+def test_the_rival_counter_picks_squirtle_against_charmander() -> None:
+    charmander = dex().species["charmander"]
+
+    assert counter_pick(("bulbasaur", "squirtle"), charmander.types, STARTER_LEVEL) == "squirtle"
+    assert started().world.rival_starter_id == "squirtle"
 
 
 def test_creation_refuses_a_third_rank_in_one_skill() -> None:

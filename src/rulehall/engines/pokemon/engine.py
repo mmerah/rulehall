@@ -21,6 +21,7 @@ from rulehall.engines.pokemon.args import (
     HoldItem,
     ItemCount,
     LearnMove,
+    Nickname,
     RaiseSkill,
     RelearnMove,
     SkillCheck,
@@ -36,10 +37,13 @@ from rulehall.engines.pokemon.dex import avatars, dex
 from rulehall.engines.pokemon.pack import WORLDSMITH_GUIDANCE, PokemonHead, PokemonPack
 from rulehall.engines.pokemon.panels import item_sprite, mon_sprite, team_panels, trainer_sprite
 from rulehall.engines.pokemon.rules import (
+    CHALLENGES,
     HELP_BONUS,
     ITEMS,
+    LEVEL_SPREAD,
     RANKS_AT_CREATION,
     RANKS_PER_SKILL_AT_CREATION,
+    REGULAR_TRAINERS_MAX,
     SKILL_BONUS,
     SKILL_USES,
     SKILLS,
@@ -47,9 +51,12 @@ from rulehall.engines.pokemon.rules import (
     START_MONEY,
     STARTER_LEVEL,
     TIMES,
+    Challenge,
     Skill,
     catch_rate,
+    counter_pick,
     item_of,
+    level_for,
     succeeds,
 )
 from rulehall.engines.pokemon.world import (
@@ -62,6 +69,7 @@ from rulehall.engines.pokemon.world import (
     TrainerSheet,
     unknown_wild_places,
 )
+from rulehall.engines.rooms.args import Move
 from rulehall.engines.rooms.engine import RoomEngine
 from rulehall.engines.rooms.world import RegionProposal
 
@@ -79,7 +87,10 @@ ASSETS_HINT = (
     "'Pokemon art and sound: ready' in its log."
 )
 STARTER = "starter"
+CHALLENGE = "challenge"
 AVATAR = "avatar"
+FIRST_MET = "your first Pokemon"
+TEAM_FALLEN = "Your whole team has fallen. The journey ends."
 BATTLE_OVER = (
     "The battle is over. Tell how it ended from WHAT HAPPENED, in a few sentences. The player "
     "watched every move, so do not tell the fight again. Settle nothing else."
@@ -120,6 +131,10 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
             DecisionOption(id=species_id, name=dex().require(species_id).name)
             for species_id in self.packs.require(pack_id).starters
         )
+        challenges = tuple(
+            DecisionOption(id=challenge, name=challenge.title(), brief=brief)
+            for challenge, brief in CHALLENGES.items()
+        )
         looks = tuple(
             DecisionOption(
                 id=avatar_id, name=avatar_id.title(), sprite=str(trainer_sprite(avatar_id).path)
@@ -129,6 +144,7 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
         return (
             *rank_steps,
             CreationStep(id=STARTER, name="Starter", options=starters),
+            CreationStep(id=CHALLENGE, name="Challenge", options=challenges),
             CreationStep(id=AVATAR, name="Look", options=looks),
         )
 
@@ -138,6 +154,8 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
         ranks = _rank_picks(picks)
         skills: dict[Skill, int] = {skill: ranks.count(skill) for skill in SKILLS}
         starter = Mon.new(picked(picks, STARTER), STARTER_LEVEL, Random(name), ())
+        starter.met = FIRST_MET
+        challenge: Challenge = next(key for key in CHALLENGES if key == picked(picks, CHALLENGE))
         player = Trainer(
             id=PLAYER_ID,
             name=name,
@@ -146,20 +164,33 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
             place_id=PLAYER_ID,
             avatar_id=picked(picks, AVATAR),
             sheet=TrainerSheet(
-                skills=skills, money=START_MONEY, bag=dict(START_BAG), team=[starter]
+                skills=skills,
+                money=START_MONEY,
+                bag=dict(START_BAG),
+                team=[starter],
+                challenge=challenge,
+                caught_species=[starter.species_id],
             ),
         )
         return self.sheet_character(name, player)
 
     def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> PokemonWorld:
         world = super().new_game(scenario, character)
-        self._check_wild_and_species(scenario.pack_id, scenario.opening)
+        self._check_proposal(scenario.pack_id, scenario.opening, gyms_before=0, opening=True)
+        pack = self.packs.require(scenario.pack_id)
+        starter_id = world.player.require_sheet().caught_species[0]
+        others = [species_id for species_id in pack.starters if species_id != starter_id]
+        world.rival_starter_id = counter_pick(
+            others or pack.species, dex().species[starter_id].types, STARTER_LEVEL
+        )
         return world
 
     def check_next(self, draft: PokemonGame, proposal: RegionProposal[Trainer]) -> None:
         super().check_next(draft, proposal)
+        gyms = sum(1 for npc in draft.world.npcs.values() if npc.badge)
         # Safe: the engine's `next_proposal` makes every region a PokemonRegion.
-        self._check_wild_and_species(draft.pack_id, cast(PokemonRegion, proposal))
+        region = cast(PokemonRegion, proposal)
+        self._check_proposal(draft.pack_id, region, gyms_before=gyms, opening=False)
 
     def sprite(self, state: PokemonGame, entity_id: Slug) -> Sprite | None:
         world = state.world
@@ -169,17 +200,47 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
         sheet = world.player.require_sheet()
         if entity_id in sheet.bag or entity_id in ITEMS:
             return item_sprite(entity_id)
-        mon = next((mon for mon in (*sheet.team, *sheet.box) if mon.mon_id == entity_id), None)
+        mon = next((mon for mon in sheet.owned() if mon.mon_id == entity_id), None)
         return None if mon is None else mon_sprite(mon.species)
 
-    def _check_wild_and_species(self, pack_id: Slug, proposal: PokemonMap) -> None:
+    def _check_proposal(
+        self, pack_id: Slug, proposal: PokemonMap, *, gyms_before: int, opening: bool
+    ) -> None:
         if strays := unknown_wild_places(proposal.wild, proposal.places):
             raise Refusal(f"wild tables for places this map does not add: {strays}")
+        if strays := sorted(set(proposal.centers) - set(proposal.places)):
+            raise Refusal(f"Pokemon Centers that this map does not add: {strays}")
+        if opening and not proposal.centers:
+            raise Refusal("the opening map needs a Pokemon Center in `centers`")
+        trainers = list(proposal.npcs.values())
         used = {slot.species_id for rows in proposal.wild.values() for slot in rows} | {
-            slot.species_id for npc in proposal.npcs.values() for slot in npc.roster
+            slot.species_id for npc in trainers for slot in npc.roster
         }
         if strays := sorted(used - set(self._species_pool(pack_id))):
             raise Refusal(f"species outside this region: {strays}. Use only ids from SPECIES")
+        if mute := [
+            npc.id
+            for npc in trainers
+            if npc.is_key() and not (npc.style and npc.win_line and npc.lose_line)
+        ]:
+            raise Refusal(
+                f"a gym leader or a rival needs a style, a win_line and a lose_line: {mute}"
+            )
+        for index, leader in enumerate((npc for npc in trainers if npc.badge), gyms_before):
+            _check_ace(leader, index)
+        regulars = [npc.id for npc in trainers if npc.roster and not npc.is_key()]
+        if len(regulars) > REGULAR_TRAINERS_MAX:
+            raise Refusal(
+                f"at most {REGULAR_TRAINERS_MAX} people without a badge battle in one map, not "
+                f"{len(regulars)}: {regulars}. Give the others no roster"
+            )
+        rivals = [npc for npc in trainers if npc.rival]
+        if opening and len(rivals) != 1:
+            raise Refusal(f"the opening map needs exactly one rival, not {len(rivals)}")
+        if not opening and rivals:
+            raise Refusal("the rival stands in the opening map; a new region adds no rival")
+        if any(rival.roster for rival in rivals):
+            raise Refusal("the rival has no roster: code builds their team")
 
     def _species_pool(self, pack_id: Slug) -> tuple[Slug, ...]:
         return self.packs.require(pack_id).species
@@ -195,6 +256,9 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
         )
         return (
             *super().master_sections(state),
+            ("CHALLENGE", sheet.challenge_line()),
+            *section_if("POKEMON CENTERS", world.centers_line()),
+            *_rival_section(world),
             ("TYPE CHART", pokedex.type_chart_text()),
             ("THE TEAM", lines_of(mon.line() for mon in sheet.team)),
             ("THE BOX", lines_of(mon.line() for mon in sheet.box)),
@@ -212,6 +276,12 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
         view = super().player_view(state)
         panels = team_panels(state.world.player.require_sheet(), self._species_pool(state.pack_id))
         return view.model_copy(update={"panels": (*view.panels, *panels)})
+
+    def ending(self, state: PokemonGame) -> str | None:
+        sheet = state.world.player.require_sheet()
+        if sheet.challenge == "nuzlocke" and not sheet.able():
+            return TEAM_FALLEN
+        return super().ending(state)
 
     def accept(self, draft: PokemonGame) -> PokemonGame:
         draft.pending = draft.world.next_decision()
@@ -234,7 +304,9 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
         return await ShowdownRun.start(draft, transport, self, opponent)
 
     def end_battle(self, draft: PokemonGame, result: BattleResult) -> Resolution:
-        facts = draft.world.settle_battle(result, self._species_pool(draft.pack_id))
+        facts, notes = draft.world.settle_battle(result, self._species_pool(draft.pack_id))
+        for note in notes:
+            draft.note(note)
         return Resolution(tuple(facts), BATTLE_OVER)
 
     def throw_ball(self, draft: PokemonGame, ball_id: Slug, foe: Battler, rng: Random) -> Throw:
@@ -272,7 +344,7 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
         sheet = player.require_sheet()
         helper = None if args.helper_id is None else sheet.require_mon(args.helper_id)
         if helper is not None and helper.fainted:
-            raise Refusal(f"{helper.species_name} has fainted and cannot help")
+            raise Refusal(f"{helper.name} has fainted and cannot help")
         dc = DIFFICULTY[args.difficulty]
         rolled = roll((20,), f"{args.what} — {args.skill}", rng)
         total = (
@@ -283,17 +355,21 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
         outcome = "success" if succeeds(rolled.total, total, dc) else "failure"
         line = (
             f"{args.what} — {args.skill.title()} {total} vs DC {dc}"
-            + ("" if helper is None else f", helped by {helper.species_name} ({args.reason})")
+            + ("" if helper is None else f", helped by {helper.name} ({args.reason})")
             + f" → {outcome}"
         )
         return [rolled.fact, player.card_fact(line, (rolled.event,))]
 
     @tool
     def heal_team(self, draft: PokemonGame, _args: NoArgs, _rng: Random) -> list[Fact]:
-        """Heal the whole team and the box: HP, PP and status. Call this at a Pokemon Center."""
-        player = draft.world.player
-        player.require_sheet().heal_team()
-        return [player.card_fact("Team healed")]
+        """Heal the whole team and the box: HP, PP and status. Only at a Pokemon Center: the
+        engine refuses anywhere else."""
+        return draft.world.heal_team()
+
+    @tool
+    def nickname(self, draft: PokemonGame, args: Nickname, _rng: Random) -> list[Fact]:
+        """The player names a Pokemon of the team or the box."""
+        return draft.world.nickname(args.mon_id, args.name)
 
     @tool
     def buy(self, draft: PokemonGame, args: ItemCount, _rng: Random) -> list[Fact]:
@@ -361,25 +437,32 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
         return draft.world.lead_mon(args.mon_id)
 
     @tool
+    def move(self, draft: PokemonGame, args: Move, rng: Random) -> list[Fact]:
+        """Move the player through an unlocked way out of this place."""
+        facts = super().move(draft, args, rng)
+        placed, notes = draft.world.place_rival()
+        for note in notes:
+            draft.note(note)
+        return facts + placed
+
+    @tool
     def start_battle(self, draft: PokemonGame, args: StartBattle, rng: Random) -> list[Fact]:
         """Call this when a trainer here and the player agree to battle. The battle screen plays
         the fight, and the engine applies the result. Call it last: it ends your turn. A trainer
-        battles once per visit. A gym leader never battles again once beaten."""
+        battles once per visit. A gym leader never battles again once beaten. The rival battles
+        once before the first badge, then once after each badge."""
         world = draft.world
         trainer = world.require_person_here(args.trainer_id)
-        if not trainer.roster:
+        if not trainer.roster and not trainer.rival:
             raise Refusal(f"{trainer.name} has no team and does not battle")
         if trainer.badge and trainer.beaten:
             raise Refusal(f"{trainer.name} is beaten and gives no rematch")
+        if trainer.rival and world.rival_fought_at == len(world.player.require_sheet().badges):
+            raise Refusal(f"{trainer.name} will battle you again after your next badge")
         if trainer.last_battle_visit == len(world.visits):
             raise Refusal(f"{trainer.name} already battled you on this visit; come back later")
-        if not trainer.team:
-            for slot in trainer.roster:
-                trainer.team.append(
-                    Mon.new(slot.species_id, slot.level, rng, [mon.mon_id for mon in trainer.team])
-                )
-        foes = tuple(mon.battler() for mon in trainer.team)
-        world.setup_battle(trainer, foes, rng)
+        team = world.trainer_team(trainer, self._species_pool(draft.pack_id), rng)
+        world.setup_battle(trainer, tuple(mon.battler() for mon in team), rng)
         return [trainer.card_fact(f"{trainer.name} challenges you to a battle")]
 
     @tool
@@ -387,16 +470,10 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
         self, draft: PokemonGame, args: StartWildBattle, rng: Random
     ) -> list[Fact]:
         """Call this when the player meets a wild Pokemon at this place, such as in tall grass.
-        Set `species_id` to one from WILD HERE, or leave it null to roll on the table. Call it
-        last: it ends your turn."""
+        Set `species_id` to one from WILD HERE, or leave it null to roll on the table; in a
+        Nuzlocke, always leave it null. Call it last: it ends your turn."""
         world = draft.world
-        rows = world.wild.get(world.current.id, ())
-        if not rows:
-            raise Refusal(f"{world.current.name} has no wild Pokemon")
-        if args.species_id is not None:
-            rows = tuple(row for row in rows if row.species_id == args.species_id)
-            if not rows:
-                raise Refusal(f"{args.species_id!r} is not in WILD HERE")
+        rows = world.wild_rows(args.species_id)
         row = rng.choices(rows, weights=[row.weight for row in rows])[0]
         level = rng.randint(row.lowest, row.highest)
         foe = Mon.new(row.species_id, level, rng, world.player.require_sheet().mon_ids())
@@ -414,6 +491,26 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
     @action
     def raise_skill(self, draft: PokemonGame, args: RaiseSkill, _rng: Random) -> list[Fact]:
         return draft.world.raise_skill(args.skill)
+
+
+def _check_ace(leader: Trainer, index: int) -> None:
+    if not leader.roster:
+        raise Refusal(f"{leader.name} gives a badge, so they need a roster")
+    table = level_for(index)
+    ace = max(slot.level for slot in leader.roster)
+    if abs(ace - table) > LEVEL_SPREAD:
+        raise Refusal(
+            f"{leader.name}'s ace is L{ace}; the ace of gym {index + 1} is "
+            f"L{table - LEVEL_SPREAD} to L{table + LEVEL_SPREAD}"
+        )
+
+
+def _rival_section(world: PokemonWorld) -> Sections:
+    rival = world.rival()
+    if rival is None:
+        return ()
+    ledger = (f"- {line}" for line in world.rival_ledger)
+    return (("THE RIVAL", "\n".join((f"{rival.tag}; style: {rival.style}", *ledger))),)
 
 
 def _rank_picks(picks: Picks) -> list[str]:

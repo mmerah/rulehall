@@ -44,6 +44,8 @@ RATTATA = Battler(
 )
 WILD_SETUP = BattleSetup(
     kind="wild",
+    policy="random",
+    foe_style="",
     foe_id=None,
     player_name="Kael",
     foe_name="Wild Rattata",
@@ -127,14 +129,15 @@ def _dumped_mon(slot: int, battler: Battler, hp: int, *, out: int) -> dict[str, 
 
 def _asks(setup: BattleSetup, *, moving: bool) -> list[Block]:
     return [
-        ("sideupdate", side, f"|request|{json.dumps(_request(battlers, moving=moving))}")
+        ("sideupdate", side, f"|request|{json.dumps(_request(side, battlers, moving=moving))}")
         for side, battlers in (("p1", setup.team), ("p2", setup.foes))
     ]
 
 
-def _request(battlers: Sequence[Battler], *, moving: bool) -> dict[str, object]:
+def _request(side: str, battlers: Sequence[Battler], *, moving: bool) -> dict[str, object]:
     pokemon = [
         {
+            "ident": f"{side}: {battler.name}",
             "details": f"{battler.name}, L{battler.level}",
             "condition": f"{battler.hp}/{battler.hp}",
             "active": slot == 0,

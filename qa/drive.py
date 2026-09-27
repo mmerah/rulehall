@@ -232,6 +232,21 @@ def close_until(page: Page, wanted: str, tries: int = 12) -> str:
     return ""
 
 
+def select(page: Page, label: str, option: str) -> None:
+    field = page.locator(f".q-select:has(.q-field__label:text-is('{label}'))").first
+    field.click()
+    page.wait_for_timeout(200)
+    page.locator(".q-menu .q-item", has_text=option).first.click()
+    page.wait_for_timeout(400)
+
+
+def text(page: Page, label: str, value: str) -> None:
+    box = page.locator(".q-field", has_text=label).first.locator("input, textarea").first
+    box.fill(value)
+    box.blur()
+    page.wait_for_timeout(400)
+
+
 def use_row_option(page: Page, row: str, option: str) -> None:
     """A drawer row with options opens a dialog of them; the pick starts no master turn."""
     open_drawer(page)

@@ -116,7 +116,7 @@ def test_a_tool_that_decides_nothing_keeps_an_open_badge_rank_decision() -> None
     assert opened.pending.kind == "badge-rank"
 
     draft = opened.draft()
-    _ = change(ENGINE, draft, "heal_team")
+    _ = change(ENGINE, draft, "gain_money", amount=1)
 
     assert ENGINE.accept(draft).pending == opened.pending
 

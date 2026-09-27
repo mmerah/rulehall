@@ -73,8 +73,9 @@ def render_opponent(
     team = lines_of(_own_line(mon, target_name) for mon in assessment.team)
     foes = lines_of(_seen_line(mon) for mon in assessment.foes)
     offered = lines_of(f"- {choice.command}: {choice.name}" for choice in choices)
+    role = ROLE.format(foe=setup.foe_name, player=setup.player_name)
     return Prompt(
-        system=ROLE.format(foe=setup.foe_name, player=setup.player_name),
+        system=f"{role} Your style: {setup.foe_style}" if setup.foe_style else role,
         user=sections(
             (
                 ("YOUR POKEMON", team),
@@ -90,6 +91,32 @@ def check_command(choices: Sequence[Choice], answer: OpponentAnswer) -> None:
     offered = [choice.command for choice in choices]
     if answer.command not in offered:
         raise Refusal(f"{answer.command!r} is not a choice; pick one of: {', '.join(offered)}")
+
+
+def greedy_choice(assessment: Assessment, choices: Sequence[Choice]) -> str:
+    offered = [choice.command for choice in choices if not choice.refusal]
+    team = {mon.slot: mon for mon in assessment.team}
+    active = next((mon for mon in assessment.team if mon.active), None)
+    target = next((mon for mon in assessment.foes if mon.active), None)
+    lows = {
+        command: low
+        for number, command in _numbered(offered, "move").items()
+        if active is not None and (low := _low(active, number)) > 0
+    }
+    bench = {
+        command: low
+        for number, command in _numbered(offered, "switch").items()
+        if (low := _best_low(team[number])) > 0
+    }
+    knockouts = [
+        command for command, low in lows.items() if target is not None and low >= target.percent
+    ]
+    if knockouts:
+        return knockouts[0]
+    best = max(lows, key=lows.__getitem__, default=None) or max(
+        bench, key=bench.__getitem__, default=None
+    )
+    return best or offered[0]
 
 
 def _own_line(mon: OwnMon, target_name: str) -> str:
@@ -145,6 +172,24 @@ def _move_text(move: OwnMove, target_name: str) -> str:
         f"{text} {_range(move.damage)} HP{hits} to {target_name} "
         f"({_range(move.percent)}% of its full HP)"
     )
+
+
+def _numbered(commands: Sequence[str], verb: str) -> dict[int, str]:
+    found: dict[int, str] = {}
+    for command in commands:
+        head, _, number = command.partition(" ")
+        if head == verb:
+            found[int(number)] = command
+    return found
+
+
+def _low(mon: OwnMon, number: int) -> int:
+    percent = mon.moves[number - 1].percent if number <= len(mon.moves) else None
+    return 0 if percent is None else percent[0]
+
+
+def _best_low(mon: OwnMon) -> int:
+    return max((move.percent[0] for move in mon.moves if move.percent is not None), default=0)
 
 
 def _range(pair: tuple[int, int]) -> str:

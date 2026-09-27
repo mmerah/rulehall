@@ -37,12 +37,13 @@ Only the pack's species live in the region, and a Pokemon evolves only into a sp
 
 ## The tools
 
-The map tools of Tunnel Goons stay: `move`, `move_item`, `unlock_way`, `meanwhile`, `reveal`, `kill`, `join_party`, `leave_party` and `direct`. A locked way can be a Cut tree or a gym door.
+The map tools of Tunnel Goons stay: `move`, `move_item`, `unlock_way`, `meanwhile`, `reveal`, `kill`, `join_party`, `leave_party` and `direct`. A locked way can be a Cut tree or a gym door. `move` also places the rival after a badge, and `kill` and `join_party` refuse a gym leader or the rival.
 
 - `check`: a d20 trainer check, with one team Pokemon as a helper.
-- `start_battle`: fight a trainer who is here. It ends the master's turn.
-- `start_wild_battle`: fight a species from the wild table of this place, or a random one.
-- `heal_team`: a Pokemon Center heals the team and the box.
+- `start_battle`: fight a trainer who is here. It ends the master's turn. The rival battles once before the first badge, then once after each badge.
+- `start_wild_battle`: fight a species from the wild table of this place, or a random one. In a Nuzlocke the table always decides.
+- `heal_team`: heal the team and the box, only at a Pokemon Center.
+- `nickname`: name a team or box Pokemon.
 - `buy`, `gain_item`, `gain_money`: the bag and the wallet.
 - `use_item`: a potion, a revive, a Rare Candy, a stone or another evolution item.
 - `swap_mon`: swap a team Pokemon with a box Pokemon.
@@ -54,10 +55,16 @@ The player also acts without the master, from the Team tab and from decisions: h
 - Six trainer skills, ranked 0 to 3: Athletics, Stealth, Perception, Nature, Lore, Charm. A check is d20 + 2 × rank, +2 with a helper, against DC 10, 15 or 20. Each badge gives one rank.
 - EXP is `20 × foe level` per fainted foe, 1.5 times for a trainer's Pokemon. One growth curve for every species: `level³`. Showdown has no EXP data, so these rules stay simple.
 - Stats use the formulas of gen 3 and later, and match Showdown's for the same IVs, EVs and nature.
-- HP, status and PP carry over between battles. When the whole team faints, the player blacks out and loses half their money.
+- HP, status and PP carry over between battles. When the whole team faints outside a Nuzlocke, the player blacks out, loses half their money and heals where they stand.
 - In a wild battle, the player can throw one ball a turn for free, then still picks a move.
+- The badge table sets the levels: the ace of the first gym is level 12, then 18, 24, 30, 36, 42, 48 and 54. The worldsmith writes each gym leader's ace within 2 of it, and at most three other trainers per map.
+- Key trainers, the gym leaders and the rival, battle with teams code builds fresh at each battle: the roster's species and levels, the ace last with its type's booster, the others with a Sitrus Berry, perfect IVs, a fitting nature and EVs, and four moves picked from the level-up and TM moves. Each has a style, a line on a win and a line on a loss, which the battle's end speaks. The opponent role plays them, with every damage range; without the role, and for every other trainer, a scripted opponent picks the move that deals the most damage, a knock-out first. A wild Pokemon picks at random.
+- The rival starts in the opening map with the starter that beats the player's. After each badge, the rival waits at the next place the player walks to and battles once; the rival's team grows from the wild Pokemon of the places the player has seen, its ace 2 levels below the next gym's. The master and the narrator read every rival battle.
+- The challenge, picked at creation: Relaxed is the journey as it is; Hard caps levels at the ace level of the next gym, so EXP stops and a Rare Candy fails there; Nuzlocke keeps the caps, sends a Pokemon that faints to the memorial for good, offers balls only at the first wild battle of a place (whose roll skips species already caught, unless none would be left), and ends the journey when the whole team faints.
+- A Pokemon Center heals, and only there. Every town has one.
+- A Pokemon can carry a nickname of up to 12 letters, digits, spaces, apostrophes or hyphens, which the battle screen shows. It keeps a record: where it was met, and each gym leader or rival it beat.
 
-Left out: double battles, Terastallization, Mega Evolution, Dynamax, items in battle other than balls, trades, breeding, eggs, shiny Pokemon and nicknames.
+Left out: double battles, Terastallization, Mega Evolution, Dynamax, items in battle other than balls, trades, breeding, eggs and shiny Pokemon.
 
 ## Where the rules live
 

@@ -10,7 +10,7 @@ from rulehall.core.model import Check
 from rulehall.core.prompt import Prompt
 from rulehall.engines.entities import Gauge
 from rulehall.engines.pokemon.battle.models import Battle, BattleResult, BattleSetup
-from rulehall.engines.pokemon.world import Mon, PokemonGame
+from rulehall.engines.pokemon.world import Mon, PokemonGame, Trainer
 
 
 async def test_a_wild_battle_gets_no_model_opponent() -> None:
@@ -95,6 +95,33 @@ def test_a_gym_leader_never_rematches() -> None:
     assert "gives no rematch" in refused(ENGINE, draft, "start_battle", trainer_id="rook")
 
 
+def test_a_gym_leader_battles_with_a_team_built_for_it_ace_last() -> None:
+    draft = started().draft()
+    ines = _ines_here(draft)
+
+    setup = _trainer_battle(draft, "ines")
+
+    assert setup.policy == "model"
+    assert [(foe.species_id, foe.level, foe.item_id) for foe in setup.foes] == [
+        ("horsea", 11, "sitrus-berry"),
+        ("staryu", 12, "mystic-water"),
+    ]
+    assert all(foe.ivs == (31,) * 6 for foe in setup.foes)
+    assert not ines.team
+
+
+def test_after_a_badge_the_next_move_places_the_rival_and_notes_it() -> None:
+    draft = started().draft()
+    _ = _ines_here(draft)
+    _ = ENGINE.end_battle(draft, _won(_trainer_battle(draft, "ines")))
+
+    _ = change(ENGINE, draft, "move", to_id="tern-harbour")
+
+    assert draft.world.npcs["tamsin"].place_id == "tern-harbour"
+    assert draft.notes[-1].startswith("Your rival Tamsin waits here to battle.")
+    assert not draft.world.rival_due
+
+
 def test_a_blackout_halves_the_money_and_heals_the_team() -> None:
     draft = started().draft()
     setup = _wild(draft)
@@ -110,16 +137,83 @@ def test_a_blackout_halves_the_money_and_heals_the_team() -> None:
     assert charmander.hp.current == charmander.hp.maximum
 
 
+def test_exp_stops_at_the_level_cap_and_a_rare_candy_is_refused_there() -> None:
+    draft = started().draft()
+    sheet = draft.world.player.require_sheet()
+    sheet.challenge = "hard"
+    charmander = sheet.require_mon("charmander")
+    charmander.level, charmander.exp = 11, 11**3
+    setup = _wild(draft)
+    strong = setup.foes[0].model_copy(update={"level": 50})
+
+    _ = ENGINE.end_battle(draft, _won(setup).model_copy(update={"fainted_foes": (strong,)}))
+
+    assert (charmander.level, charmander.exp) == (12, 12**3)
+    _ = change(ENGINE, draft, "gain_item", item_id="rare-candy")
+    assert refused(ENGINE, draft, "use_item", item_id="rare-candy", mon_id="charmander") == (
+        "Charmander is at the level cap (L12)"
+    )
+
+
+def test_a_nuzlocke_buries_a_fainted_pokemon_and_a_wipe_ends_the_journey() -> None:
+    draft = started().draft()
+    sheet = draft.world.player.require_sheet()
+    sheet.challenge = "nuzlocke"
+    squirtle = Mon.new("squirtle", 5, Random(0), sheet.mon_ids())
+    squirtle.nickname = "Shelly"
+    sheet.team.append(squirtle)
+    setup = _trainer_battle(draft)
+    fallen = setup.team[1].model_copy(update={"hp": 0})
+
+    _ = ENGINE.end_battle(draft, _won(setup).model_copy(update={"team": (setup.team[0], fallen)}))
+
+    assert sheet.mon_ids() == ["charmander"]
+    assert sheet.memorial == ["Shelly the Squirtle, fell to Rook"]
+    assert ENGINE.ending(draft) is None
+    wild = _rolled_wild(draft)
+    wiped = wild.team[0].model_copy(update={"hp": 0})
+    _ = ENGINE.end_battle(
+        draft, BattleResult(outcome="lost", team=(wiped,), fainted_foes=(), on_field=())
+    )
+    assert sheet.mon_ids() == ["charmander"]
+    assert ENGINE.ending(draft) == "Your whole team has fallen. The journey ends."
+
+
+def test_a_nuzlocke_offers_balls_only_at_the_first_wild_battle_of_a_place() -> None:
+    draft = started().draft()
+    draft.world.player.require_sheet().challenge = "nuzlocke"
+    first = _rolled_wild(draft)
+    assert first.balls
+    _ = ENGINE.end_battle(
+        draft, BattleResult(outcome="fled", team=first.team, fainted_foes=(), on_field=())
+    )
+
+    assert _rolled_wild(draft).balls == ()
+
+
 def _wild(draft: PokemonGame) -> BattleSetup:
     _ = change(ENGINE, draft, "start_wild_battle", species_id="pidgey")
     assert draft.world.battle is not None
     return draft.world.battle.setup
 
 
-def _trainer_battle(draft: PokemonGame) -> BattleSetup:
-    _ = change(ENGINE, draft, "start_battle", trainer_id="rook")
+def _rolled_wild(draft: PokemonGame) -> BattleSetup:
+    _ = change(ENGINE, draft, "start_wild_battle")
     assert draft.world.battle is not None
     return draft.world.battle.setup
+
+
+def _trainer_battle(draft: PokemonGame, trainer_id: str = "rook") -> BattleSetup:
+    _ = change(ENGINE, draft, "start_battle", trainer_id=trainer_id)
+    assert draft.world.battle is not None
+    return draft.world.battle.setup
+
+
+def _ines_here(draft: PokemonGame) -> Trainer:
+    ines = draft.world.npcs["ines"]
+    ines.place_id = draft.world.current.id
+    ines.known = True
+    return ines
 
 
 def _won(setup: BattleSetup) -> BattleResult:

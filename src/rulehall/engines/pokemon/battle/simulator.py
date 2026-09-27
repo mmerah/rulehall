@@ -22,12 +22,14 @@ from rulehall.engines.pokemon.battle.models import (
     BattleResult,
     BattleSetup,
     Outcome,
+    Policy,
     Throw,
 )
 from rulehall.engines.pokemon.battle.opponent import (
     Assessment,
     OpponentAnswer,
     check_command,
+    greedy_choice,
     render_opponent,
 )
 from rulehall.engines.pokemon.dex import dex
@@ -88,7 +90,7 @@ class ActiveRequest(Loose):
 
 
 class SideMon(Loose):
-    details: str
+    ident: str
     condition: str
     active: bool
 
@@ -98,7 +100,7 @@ class SideMon(Loose):
 
     @property
     def name(self) -> str:
-        return self.details.partition(",")[0]
+        return self.ident.partition(": ")[2]
 
 
 class Side(Loose):
@@ -140,6 +142,7 @@ class ShowdownRun:
     battle: Battle
     transport: Transport
     rules: Rules
+    policy: Policy
     opponent: RoleAnswer | None = None
     inputs: list[str] = field(default_factory=list)
     log: list[str] = field(default_factory=list)
@@ -162,12 +165,15 @@ class ShowdownRun:
     ) -> Self:
         battle = draft.world.battle
         assert battle is not None
+        policy = battle.setup.policy
+        if policy == "model" and opponent is None:
+            policy = "greedy"
         run = cls(
             battle=battle,
             transport=transport,
             rules=rules,
-            # A wild Pokemon has no trainer: it picks at random, as in the games.
-            opponent=opponent if battle.setup.kind == "trainer" else None,
+            policy=policy,
+            opponent=opponent if policy == "model" else None,
             facts=[throw.fact for throw in battle.throws],
         )
         await transport.send(start_lines(battle.setup))
@@ -253,11 +259,19 @@ class ShowdownRun:
         choices = tuple(choice for choice in choices_of(ask, self.setup.foes) if not choice.refusal)
         if len(choices) == 1:
             return None
+        prompt = render_opponent(self.setup, await self._assess(), choices)
+        return create_task(self.opponent(prompt, OpponentAnswer, partial(check_command, choices)))
+
+    async def _scripted(self, ask: SideRequest) -> str:
+        if self.policy == "greedy" and not ask.team_preview:
+            return greedy_choice(await self._assess(), choices_of(ask, self.setup.foes))
+        return opponent_choice(ask, Random(f"{self.setup.seed} {len(self.inputs)}"))
+
+    async def _assess(self) -> Assessment:
         await self.transport.send([assess_line()])
         self._read(await self._block())
         assert self.dump is not None and self.dump.assessment is not None
-        prompt = render_opponent(self.setup, self.dump.assessment, choices)
-        return create_task(self.opponent(prompt, OpponentAnswer, partial(check_command, choices)))
+        return self.dump.assessment
 
     async def _play(self, queue: list[str]) -> None:
         while self.result is None:
@@ -278,8 +292,7 @@ class ShowdownRun:
                         self.side_request = None
                         lines.append(f">p2 {(await thinking).command}")
                     else:
-                        rng = Random(f"{self.setup.seed} {len(self.inputs)}")
-                        lines.append(f">p2 {opponent_choice(ask, rng)}")
+                        lines.append(f">p2 {await self._scripted(ask)}")
                 self.inputs.extend(lines)
                 self.asks.clear()
                 self.side_request = None

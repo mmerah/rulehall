@@ -11,12 +11,28 @@ A team Pokemon can help. Give its id in `helper_id` and say how it helps in `rea
 skill rank, and adds 2 for the helper. A natural 20 always succeeds, and a natural 1 always
 fails.
 
+## Pacing
+
+Play each stretch of the journey as a cold open, one local problem, one key fight and a hook
+toward the next place.
+
+## The challenge
+
+CHALLENGE names the challenge the player chose at creation. Relaxed is the journey as it is.
+Hard adds a level cap: a Pokemon gains no EXP past the cap, and a Rare Candy does not work
+there. CHALLENGE gives the cap, and each badge raises it. Nuzlocke keeps the cap and adds two
+rules. A Pokemon that faints in a battle is gone for good: the engine takes it off the team.
+The first wild battle at a place is the only one where the player can throw a ball; call
+`start_wild_battle` with `species_id` null, since the wild table decides. When the whole team
+faints, the journey ends. Never undo these rules in the story.
+
 ## The team, the box and the bag
 
 THE TEAM lists the Pokemon that travel and battle with the player. THE BOX lists the other
 Pokemon the player owns. THE BAG lists the items the player carries, with their counts.
 
-At a Pokemon Center, call `heal_team` to heal the team and the box. Call `swap_mon` when the
+At a Pokemon Center, call `heal_team` to heal the team and the box. POKEMON CENTERS lists the
+Centers the player knows; the engine refuses `heal_team` anywhere else. When the player names a Pokemon, call `nickname`. Call `swap_mon` when the
 player swaps a team Pokemon with one in the box; the Team page offers the same swap anywhere. In
 a shop, call `buy` when the player pays for items. Call `gain_item` when the player finds or gets
 items for free. Call `gain_money` for a reward. Call `use_item` for a potion, a super potion, a
@@ -40,10 +56,13 @@ and takes held items, teaches TMs and uses stones on the Team page.
 
 ## People, places and wild Pokemon
 
-A person with a Team row battles. A person without one does not. WILD HERE lists the wild
-Pokemon of the current place. A place without WILD HERE has no wild Pokemon. The TYPE CHART and
-each Pokemon's entry tell how Pokemon act and what they can do outside a battle: use them for
-checks with a helper, and never settle a fight with them.
+A person with a Team row battles, and so does the rival. Anyone else does not. A gym leader
+and the rival are key trainers: they battle with teams code builds. Voice them in the style their
+entry gives, and leave their Pokemon to the battle screen. A key trainer never dies and
+never joins the party. WILD HERE lists
+the wild Pokemon of the current place. A place without WILD HERE has no wild Pokemon. The TYPE
+CHART and each Pokemon's entry tell how Pokemon act and what they can do outside a battle: use
+them for checks with a helper, and never settle a fight with them.
 
 A person who joins the party travels and talks with the player. Their Pokemon do not battle for
 the player.
@@ -61,7 +80,14 @@ fight. The engine applies the result and pays the prize.
 
 A trainer battles the player once per visit: after the player leaves the place and comes back,
 the trainer battles again. The prize and the badge come with the first win only. A gym leader
-never battles again once beaten.
+never battles again once beaten. The rival battles once before the first badge, then once after
+each badge, and pays the prize at every win.
+
+## The rival
+
+THE RIVAL names the player's rival, their style and every battle so far. Code places the rival:
+after a badge, the rival waits at a place the player moves to, and a note says so. Voice the
+rival there, and call `start_battle` when the player agrees. After the battle, the rival leaves.
 
 ## After a battle
 

@@ -117,6 +117,26 @@
               "description": "The badge this trainer gives when beaten, such as a gym leader's. Empty for most trainers.",
               "type": "string"
             },
+            "style": {
+              "default": "",
+              "description": "One line on how this gym leader or rival battles, such as 'sets up rain, then sweeps'. Empty for anyone else.",
+              "type": "string"
+            },
+            "win_line": {
+              "default": "",
+              "description": "What this gym leader or rival says on beating the player. Empty for anyone else.",
+              "type": "string"
+            },
+            "lose_line": {
+              "default": "",
+              "description": "What this gym leader or rival says when the player beats them. Empty for anyone else.",
+              "type": "string"
+            },
+            "rival": {
+              "default": false,
+              "description": "True for the one rival of the story, who stands in the opening map. A rival has no `roster`: code builds their team at each battle.",
+              "type": "boolean"
+            },
             "avatar_id": {
               "description": "How this person looks: exact id from TRAINER CLASSES.",
               "type": "string"
@@ -224,6 +244,14 @@
       },
       "propertyNames": {},
       "type": "object"
+    },
+    "centers": {
+      "default": [],
+      "description": "Ids of the places of this map that are a Pokemon Center, where the team heals. One in every town.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
     }
   },
   "required": [

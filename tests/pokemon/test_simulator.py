@@ -109,6 +109,7 @@ async def test_the_model_opponent_thinks_at_the_request_and_its_choice_is_record
         {
             **WILD_SETUP.model_dump(),
             "kind": "trainer",
+            "policy": "model",
             "foe_id": "rook",
             "foe_name": "Rook",
             "foe_avatar_id": "camper",
@@ -306,7 +307,12 @@ def _request(request: JsonValue) -> SideRequest:
 def _side(*pokemon: tuple[str, bool]) -> JsonValue:
     return {
         "pokemon": [
-            {"details": f"Rattata, L{level}", "condition": condition, "active": active}
+            {
+                "ident": "p2: Rattata",
+                "details": f"Rattata, L{level}",
+                "condition": condition,
+                "active": active,
+            }
             for level, (condition, active) in enumerate(pokemon, 1)
         ]
     }

@@ -94,24 +94,26 @@ def type_tag(kind: str) -> Tag:
 def team_panels(sheet: TrainerSheet, species_pool: Collection[Slug]) -> tuple[Panel, ...]:
     bag = sorted(sheet.bag, key=_pocket_key)
     usable = [item_id for item_id in bag if item_of(item_id).kind != "ball"]
+    cap = sheet.level_cap()
     return (
         Panel(
             title="Team",
             rows=tuple(
-                mon_row(mon, mon_options(mon, sheet, usable, species_pool)) for mon in sheet.team
+                mon_row(mon, cap, mon_options(mon, sheet, usable, species_pool, cap))
+                for mon in sheet.team
             ),
             tab="Team",
         ),
         Panel(
             title="Box",
-            rows=tuple(mon_row(mon, box_options(mon, sheet)) for mon in sheet.box),
+            rows=tuple(mon_row(mon, cap, box_options(mon, sheet)) for mon in sheet.box),
             tab="Team",
         ),
         Panel(
             title="Bag",
             rows=(
                 *(
-                    bag_row(item_id, sheet.bag[item_id], sheet.team, species_pool)
+                    bag_row(item_id, sheet.bag[item_id], sheet.team, species_pool, cap)
                     for item_id in bag
                 ),
                 PanelRow(name="Money", brief=f"₽{sheet.money}"),
@@ -122,7 +124,7 @@ def team_panels(sheet: TrainerSheet, species_pool: Collection[Slug]) -> tuple[Pa
     )
 
 
-def mon_row(mon: Mon, options: tuple[PendingOption, ...] = ()) -> PanelRow:
+def mon_row(mon: Mon, cap: int, options: tuple[PendingOption, ...] = ()) -> PanelRow:
     stat_lines = _stat_lines(mon)
     lines = stat_lines[1:]
     top = max(value for _, value, _ in lines)
@@ -130,11 +132,12 @@ def mon_row(mon: Mon, options: tuple[PendingOption, ...] = ()) -> PanelRow:
     share = mon.hp.current / mon.hp.maximum
     hp_colour = "#48d040" if share > 0.5 else "#f8d030" if share > 0.2 else "#f05030"
     return PanelRow(
-        name=f"{mon.species_name} {GENDER_SIGNS[mon.gender]}".rstrip(),
+        name=f"{mon.label()} {GENDER_SIGNS[mon.gender]}".rstrip(),
         brief=" · ".join(f"{slot.move.name} {slot.pp}/{slot.move.pp}" for slot in mon.moves),
         icon_id=mon.mon_id,
         tags=(
             Tag(name=f"Lv{mon.level}"),
+            *((Tag(name="Cap", hint=f"At the level cap, L{cap}"),) if mon.level >= cap else ()),
             *(type_tag(kind) for kind in mon.species.types),
             *((Tag(name=status.upper(), colour=STATUS_COLOURS[status]),) if status else ()),
             nature_tag(mon.nature),
@@ -165,7 +168,7 @@ def move_row(slot: MoveSlot) -> PanelRow:
 
 
 def bag_row(
-    item_id: BagId, count: int, team: list[Mon], species_pool: Collection[Slug]
+    item_id: BagId, count: int, team: list[Mon], species_pool: Collection[Slug], cap: int
 ) -> PanelRow:
     item = item_of(item_id)
     return PanelRow(
@@ -175,7 +178,7 @@ def bag_row(
         tags=(Tag(name=f"{TIMES}{count}"), Tag(name=POCKETS[item.kind])),
         options=()
         if item.kind == "ball"
-        else tuple(item_option(mon, item_id, species_pool) for mon in team),
+        else tuple(item_option(mon, item_id, species_pool, cap) for mon in team),
     )
 
 
@@ -208,9 +211,9 @@ def nature_arrows(nature: str) -> dict[int, str]:
 
 
 def mon_options(
-    mon: Mon, sheet: TrainerSheet, bag: list[BagId], species_pool: Collection[Slug]
+    mon: Mon, sheet: TrainerSheet, bag: list[BagId], species_pool: Collection[Slug], cap: int
 ) -> tuple[PendingOption, ...]:
-    name = mon.species_name
+    name = mon.name
     take = (
         ()
         if mon.item_id is None
@@ -236,7 +239,7 @@ def mon_options(
     )
     return (
         *take,
-        *(item_option(mon, item_id, species_pool) for item_id in bag),
+        *(item_option(mon, item_id, species_pool, cap) for item_id in bag),
         *remembered,
         PendingOption(
             id=f"store-mon-{mon.mon_id}",
@@ -258,7 +261,7 @@ def mon_options(
 
 
 def box_options(boxed: Mon, sheet: TrainerSheet) -> tuple[PendingOption, ...]:
-    name = boxed.species_name
+    name = boxed.name
     return (
         PendingOption(
             id=f"withdraw-mon-{boxed.mon_id}",
@@ -271,7 +274,7 @@ def box_options(boxed: Mon, sheet: TrainerSheet) -> tuple[PendingOption, ...]:
         *(
             PendingOption(
                 id=f"swap-{mate.mon_id}",
-                name=f"Swap with {mate.species_name}",
+                name=f"Swap with {mate.name}",
                 action_name="swap_mon",
                 args={"team_mon_id": mate.mon_id, "box_mon_id": boxed.mon_id},
                 group=TEAM_GROUP,
@@ -281,9 +284,11 @@ def box_options(boxed: Mon, sheet: TrainerSheet) -> tuple[PendingOption, ...]:
     )
 
 
-def item_option(mon: Mon, item_id: BagId, species_pool: Collection[Slug]) -> PendingOption:
+def item_option(
+    mon: Mon, item_id: BagId, species_pool: Collection[Slug], cap: int
+) -> PendingOption:
     item = item_of(item_id)
-    name = mon.species_name
+    name = mon.name
     match item.kind:
         case "held":
             label, action_name, group = f"Give the {item.name} to {name}", "hold_item", ITEMS_GROUP
@@ -298,7 +303,7 @@ def item_option(mon: Mon, item_id: BagId, species_pool: Collection[Slug]) -> Pen
         action_name=action_name,
         args={"mon_id": mon.mon_id, "item_id": item_id},
         group=group,
-        refusal=mon.item_refusal(item_id, species_pool),
+        refusal=mon.item_refusal(item_id, species_pool, cap),
     )
 
 

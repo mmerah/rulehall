@@ -5,7 +5,7 @@ from pydantic import Field, model_validator
 from rulehall.core.tools import Told
 from rulehall.core.validation import Frozen, Slug
 from rulehall.engines.args import Attempt
-from rulehall.engines.pokemon.rules import BagId, ItemId, Skill, TmId
+from rulehall.engines.pokemon.rules import NICKNAME_MAX, BagId, ItemId, Skill, TmId
 
 type Difficulty = Literal["easy", "hard", "very-hard"]
 DIFFICULTY: dict[Difficulty, int] = {"easy": 10, "hard": 15, "very-hard": 20}
@@ -54,6 +54,14 @@ class SwapMon(Frozen):
     box_mon_id: Slug = Field(description="Exact id of the box Pokemon that joins the team.")
 
 
+class Nickname(Frozen):
+    mon_id: Slug = Field(description="Exact id of the team or box Pokemon the player names.")
+    name: str = Field(
+        description=f"The nickname: 1 to {NICKNAME_MAX} letters, digits, spaces, ' or -. Not a "
+        "species name, and not the name of another of the player's Pokemon."
+    )
+
+
 class ChosenMon(Frozen):
     mon_id: Slug
 
@@ -80,7 +88,8 @@ class StartBattle(Frozen):
 class StartWildBattle(Frozen):
     species_id: Slug | None = Field(
         default=None,
-        description="A species id from WILD HERE. Null lets the engine roll on the table.",
+        description="A species id from WILD HERE. Null lets the engine roll on the table. Always "
+        "null in a Nuzlocke.",
     )
 
 

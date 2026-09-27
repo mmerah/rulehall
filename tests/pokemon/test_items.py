@@ -30,8 +30,8 @@ def test_a_stone_or_the_linking_cord_evolves_the_pokemon_it_fits() -> None:
     sheet = draft.world.player.require_sheet()
     pikachu = Mon.new("pikachu", 20, Random(0), sheet.mon_ids())
     kadabra = Mon.new("kadabra", 20, Random(0), [*sheet.mon_ids(), pikachu.mon_id])
-    _ = sheet.receive(pikachu)
-    _ = sheet.receive(kadabra)
+    _ = sheet.catch(pikachu)
+    _ = sheet.catch(kadabra)
     for item_id in ("fire-stone", "thunder-stone", "linking-cord"):
         _ = change(ENGINE, draft, "gain_item", item_id=item_id)
 
@@ -65,8 +65,35 @@ def test_a_box_row_swaps_with_any_team_pokemon() -> None:
     _ = ENGINE.play_option(draft, option, Random(0))
     assert sheet.mon_ids() == [pidgey.mon_id, "charmander"]
 
+    _ = draft.world.move("tern-harbour", ())
+    _ = draft.world.move("pokemon-center", ())
     _ = change(ENGINE, draft, "heal_team")
     assert all(mon.hp.current == mon.hp.maximum for mon in (*sheet.team, *sheet.box))
+
+
+def test_only_a_pokemon_center_heals_the_team() -> None:
+    draft = started().draft()
+    charmander = draft.world.player.require_sheet().require_mon("charmander")
+    charmander.hp.current = 1
+
+    assert refused(ENGINE, draft, "heal_team") == "No open Pokemon Center here"
+    _ = draft.world.move("tern-harbour", ())
+    _ = draft.world.move("pokemon-center", ())
+    _ = change(ENGINE, draft, "heal_team")
+
+    assert charmander.hp.current == charmander.hp.maximum
+
+
+def test_a_nickname_another_pokemon_has_is_refused() -> None:
+    draft = started().draft()
+    sheet = draft.world.player.require_sheet()
+    sheet.box.append(Mon.new("squirtle", 5, Random(0), sheet.mon_ids()))
+    _ = change(ENGINE, draft, "nickname", mon_id="charmander", name="Blaze")
+
+    assert refused(ENGINE, draft, "nickname", mon_id="squirtle", name="blaze") == (
+        "Another Pokemon of the player is already called blaze"
+    )
+    assert sheet.require_boxed("squirtle").name == "Squirtle"
 
 
 def test_the_team_sends_to_the_box_withdraws_and_sets_the_lead() -> None:

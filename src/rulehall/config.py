@@ -77,10 +77,11 @@ class BattleConfig(Configured):
         description="The battle sprites: 2d is the gen 5 pixel art, 3d the animated models.",
     )
     music: bool = Field(default=True, description="Battle music and the cry of each Pokemon.")
-    opponent: Literal["random", "model"] = Field(
-        default="random",
-        description="Who plays a trainer's side: random picks any legal choice, model asks the "
-        "opponent role with every damage range.",
+    opponent: Literal["scripted", "model"] = Field(
+        default="model",
+        description="Who plays a gym leader's or the rival's side: scripted picks the move that "
+        "deals the most damage, model asks the opponent role with every damage range. Other "
+        "trainers always play scripted, and a wild Pokemon picks at random.",
     )
 
 
