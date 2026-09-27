@@ -119,17 +119,17 @@
             },
             "style": {
               "default": "",
-              "description": "One line on how this gym leader or rival battles, such as 'sets up rain, then sweeps'. Empty for anyone else.",
+              "description": "One line on how this key trainer (a gym leader, the rival, an operation's leader or the team's boss) battles, such as 'sets up rain, then sweeps'. Empty for anyone else.",
               "type": "string"
             },
             "win_line": {
               "default": "",
-              "description": "What this gym leader or rival says on beating the player. Empty for anyone else.",
+              "description": "What this key trainer (a gym leader, the rival, an operation's leader or the team's boss) says on beating the player. Empty for anyone else.",
               "type": "string"
             },
             "lose_line": {
               "default": "",
-              "description": "What this gym leader or rival says when the player beats them. Empty for anyone else.",
+              "description": "What this key trainer (a gym leader, the rival, an operation's leader or the team's boss) says when the player beats them. Empty for anyone else.",
               "type": "string"
             },
             "rival": {
@@ -252,6 +252,59 @@
         "type": "string"
       },
       "type": "array"
+    },
+    "operation": {
+      "additionalProperties": false,
+      "properties": {
+        "place_id": {
+          "description": "Exact id of the place of this map where the team works. The map's start reaches it without a lock.",
+          "type": "string"
+        },
+        "leader_id": {
+          "description": "Exact id of its leader: a person of this map with a roster and no badge, or an earlier leader that THE SCHEME names.",
+          "type": "string"
+        },
+        "goal": {
+          "description": "What the team does there.",
+          "type": "string"
+        },
+        "consequence": {
+          "description": "What changes when it succeeds. shut_way: grunts hold the way from `place_id` to `shut_to_id` for good. close_center: a Pokemon Center closes.",
+          "enum": [
+            "shut_way",
+            "close_center"
+          ],
+          "type": "string"
+        },
+        "shut_to_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "shut_way only: exact id of a place that an unlocked way from `place_id` leads to. Every place of the map stays reachable from its start without that way. Null for close_center."
+        }
+      },
+      "required": [
+        "place_id",
+        "leader_id",
+        "goal",
+        "consequence"
+      ],
+      "type": [
+        "object",
+        "null"
+      ],
+      "default": null,
+      "description": "The evil team's operation in this map. Write it only when the request asks for it; else null."
+    },
+    "boss_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null,
+      "description": "Exact id of the evil team's boss, a person of this map. Write it only when the request asks for the lair; else null."
     }
   },
   "required": [

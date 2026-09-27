@@ -8,7 +8,8 @@ Plain words with no script get one engine-appropriate roll, so dice show up in t
 Loner question the player asks is rolled as `ask(question: null)`.
 
 The narrator echoes what it was given, so every screenshot shows what the page was told. The
-worldsmith answers each request shape with a small valid draft.
+worldsmith answers each request shape with a small valid draft; a Pokemon region carries the evil
+team's operation or its lair when the request asks. The opponent takes its first choice.
 """
 
 import json
@@ -104,6 +105,8 @@ class ScriptedAgents:
             return "done"
         if role == "narrator":
             return self._narrator(prompt)
+        if role == "opponent":
+            return self._opponent(prompt)
         return self._worldsmith(prompt)
 
     async def _master(self, prompt: str, spoken: Spoken) -> None:
@@ -156,9 +159,17 @@ class ScriptedAgents:
             lines.append({"speaker_id": speak.group(1), "text": speak.group(2)})
         return json.dumps({"lines": lines})
 
+    def _opponent(self, prompt: str) -> str:
+        first = re.search(r"^- (\w+ \d+):", _section(prompt, "THE CHOICES"), re.M)
+        if first is None:
+            raise Refusal("scripted: the opponent was offered no choice")
+        return json.dumps({"command": first.group(1)})
+
     def _worldsmith(self, prompt: str) -> str:
         schema = _section(prompt, "ANSWER WITH")
         number = next(self.scenes)
+        if '"boss_id"' in schema:
+            return self._pokemon_region(_section(prompt, "WHAT COMES NEXT"), number)
         if '"ally"' in schema:
             return self._meanwhile(prompt, schema, number)
         if '"events"' in schema:
@@ -221,6 +232,49 @@ class ScriptedAgents:
         if '"specialty"' in schema:
             return json.dumps(sheet)
         raise Refusal(f"scripted: no worldsmith answer for this schema: {schema[:200]}")
+
+    def _pokemon_region(self, asked: str, number: int) -> str:
+        room, person = f"qa-room-{number}", f"qa-chief-{number}"
+        lair = "`boss_id`" in asked
+        region: dict[str, JsonValue] = {
+            "recap": f"Recap of the region before {number}.",
+            "start_id": room,
+            "places": {
+                room: {
+                    "id": room,
+                    "name": f"QA Room {number}",
+                    "brief": "A test room.",
+                    "known": False,
+                    "description": f"Room {number}, written by the scripted worldsmith.",
+                }
+            },
+            "ways": {},
+            "npcs": {
+                person: {
+                    "id": person,
+                    "name": f"QA {'Boss' if lair else 'Chief'} {number}",
+                    "brief": "A test member of the team.",
+                    "known": False,
+                    "place_id": room,
+                    "roster": [{"species_id": "zubat", "level": 10}],
+                    "style": "attacks at once",
+                    "win_line": f"Win line {number}.",
+                    "lose_line": f"Lose line {number}.",
+                    "avatar_id": "roughneck",
+                }
+            },
+            "items": {},
+        }
+        if "write `operation`" in asked:
+            region["operation"] = {
+                "place_id": room,
+                "leader_id": person,
+                "goal": f"Grunts dig under room {number}.",
+                "consequence": "close_center",
+            }
+        if lair:
+            region["boss_id"] = person
+        return json.dumps(region)
 
     def _scene(self, schema: str, number: int, *, opening: bool) -> str:
         scene: dict[str, JsonValue] = {

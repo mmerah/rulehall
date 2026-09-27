@@ -1,11 +1,11 @@
 import operator
 from collections.abc import Callable, Collection, Iterable, Sequence
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
-from pydantic import AfterValidator, WithJsonSchema
+from pydantic import AfterValidator, Field, WithJsonSchema, model_validator
 
 from rulehall.core.validation import Frozen, Slug
-from rulehall.engines.pokemon.battle.models import MOVES_MAX, Battler
+from rulehall.engines.pokemon.battle.models import LEVEL_MAX, MOVES_MAX, Battler
 from rulehall.engines.pokemon.dex import Move, Species, Stats, dex
 
 type Skill = Literal["athletics", "stealth", "perception", "nature", "lore", "charm"]
@@ -51,6 +51,10 @@ LEVEL_SPREAD = 2
 ACE_BELOW_TABLE = 2
 BELOW_ACE = 2
 REGULAR_TRAINERS_MAX = 3
+LEVEL_FLOOR = 2
+BOSS_RISE = 2
+LEGENDARY_AT = 3
+SPECIES_ID = "A species id from SPECIES."
 NICKNAME_MAX = 12
 NICKNAME_MARKS = " '-"
 # Moves that fail, recharge, take two turns, faint the user, strike later or change type in
@@ -101,6 +105,19 @@ class Item(Frozen):
     heal: int = 0
     # Only where the dex has no text for the item.
     text: str = ""
+
+
+class RosterSlot(Frozen):
+    species_id: Slug = Field(description=SPECIES_ID)
+    level: int = Field(ge=1, le=LEVEL_MAX, description="Its level.")
+
+    @model_validator(mode="after")
+    def _a_species(self) -> Self:
+        check_species(self.species_id)
+        return self
+
+    def text(self) -> str:
+        return f"{dex().species[self.species_id].name} L{self.level}"
 
 
 ITEMS: dict[str, Item] = {
@@ -257,7 +274,7 @@ def catch_rate(foe: Battler, ball_bonus: int) -> int:
         + _hp_bonus(foe.hp, maximum)
         + (STATUS_BONUS if foe.status else 0)
         + EVOLUTION_BONUS[min(species.evolutions_left, 2)]
-        + (LEGENDARY_MALUS if LEGENDARY_TAGS.intersection(species.tags) else 0)
+        + (LEGENDARY_MALUS if is_legendary(species) else 0)
         + ball_bonus
     )
 
@@ -275,6 +292,17 @@ def evolved(species_id: Slug, level: int, pool: Collection[Slug]) -> Slug:
     ):
         species_id = steps[0]
     return species_id
+
+
+def rescaled(
+    roster: Sequence[RosterSlot], ace_level: int, pool: Collection[Slug]
+) -> tuple[RosterSlot, ...]:
+    shift = ace_level - max(slot.level for slot in roster)
+    slots: list[RosterSlot] = []
+    for slot in roster:
+        level = max(slot.level + shift, LEVEL_FLOOR)
+        slots.append(RosterSlot(species_id=evolved(slot.species_id, level, pool), level=level))
+    return tuple(slots)
 
 
 def attacks_physically(species: Species) -> bool:
@@ -322,7 +350,7 @@ def counter_pick(pool: Iterable[Slug], target_types: Sequence[str], level: int) 
     candidates = [
         species_id
         for species_id in pool
-        if not LEGENDARY_TAGS.intersection(species[species_id].tags)
+        if not is_legendary(species[species_id])
         and species[species_id].evo_type is None
         and (species[species_id].evo_level or 0) <= level
     ]
@@ -344,6 +372,10 @@ def counter_pick(pool: Iterable[Slug], target_types: Sequence[str], level: int) 
         return (-hit, weak, -sum(candidate.base_stats), species_id)
 
     return min(candidates, key=rank)
+
+
+def is_legendary(species: Species) -> bool:
+    return bool(LEGENDARY_TAGS.intersection(species.tags))
 
 
 def check_species(species_id: Slug) -> None:

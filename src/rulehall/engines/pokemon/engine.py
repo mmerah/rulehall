@@ -1,3 +1,4 @@
+from collections.abc import Collection
 from pathlib import Path
 from random import Random
 from typing import cast
@@ -35,7 +36,13 @@ from rulehall.engines.pokemon.battle.models import Battler, BattleResult, Throw
 from rulehall.engines.pokemon.battle.simulator import SHOWDOWN, ShowdownRun
 from rulehall.engines.pokemon.dex import avatars, dex
 from rulehall.engines.pokemon.pack import WORLDSMITH_GUIDANCE, PokemonHead, PokemonPack
-from rulehall.engines.pokemon.panels import item_sprite, mon_sprite, team_panels, trainer_sprite
+from rulehall.engines.pokemon.panels import (
+    item_sprite,
+    mon_sprite,
+    scheme_panels,
+    team_panels,
+    trainer_sprite,
+)
 from rulehall.engines.pokemon.rules import (
     CHALLENGES,
     HELP_BONUS,
@@ -55,18 +62,25 @@ from rulehall.engines.pokemon.rules import (
     Skill,
     catch_rate,
     counter_pick,
+    is_legendary,
     item_of,
     level_for,
     succeeds,
 )
 from rulehall.engines.pokemon.world import (
+    KEY_TRAINER,
     Mon,
+    Operation,
+    Owed,
     PokemonGame,
     PokemonMap,
+    PokemonOpening,
     PokemonRegion,
     PokemonWorld,
+    Scheme,
     Trainer,
     TrainerSheet,
+    reached,
     unknown_wild_places,
 )
 from rulehall.engines.rooms.args import Move
@@ -86,11 +100,23 @@ ASSETS_HINT = (
     "In Docker, the container fetches them on its first start: wait for "
     "'Pokemon art and sound: ready' in its log."
 )
+SCHEME = "THE SCHEME"
 STARTER = "starter"
 CHALLENGE = "challenge"
 AVATAR = "avatar"
 FIRST_MET = "your first Pokemon"
 TEAM_FALLEN = "Your whole team has fallen. The journey ends."
+TEAM_BEATEN = "The team is beaten. Your journey is complete."
+BOSS_BEATEN = (
+    "The boss is beaten. Tell how it ended from WHAT HAPPENED, then close the story in a short "
+    "epilogue."
+)
+NOT_DUE = "Leave `{field}` null: this request does not ask for it."
+OWED_ASKS: dict[Owed, str] = {
+    "operation": "This region carries the team's next operation: write `operation`.",
+    "lair": "This region holds the team's lair: write the boss as an npc of this region with a "
+    "roster, no badge and the three key lines, and name it in `boss_id`.",
+}
 BATTLE_OVER = (
     "The battle is over. Tell how it ended from WHAT HAPPENED, in a few sentences. The player "
     "watched every move, so do not tell the fight again. Settle nothing else."
@@ -110,7 +136,7 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
     head = PokemonHead
     world = PokemonWorld
     person = Trainer
-    opening = PokemonMap
+    opening = PokemonOpening
     next_proposal = PokemonRegion
 
     def creation_steps(self, pack_id: Slug, picks: Picks) -> tuple[CreationStep, ...]:
@@ -175,9 +201,19 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
         return self.sheet_character(name, player)
 
     def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> PokemonWorld:
-        world = super().new_game(scenario, character)
-        self._check_proposal(scenario.pack_id, scenario.opening, gyms_before=0, opening=True)
+        opening: PokemonOpening = scenario.opening
         pack = self.packs.require(scenario.pack_id)
+        self._check_proposal(
+            scenario.pack_id,
+            opening,
+            gyms_before=0,
+            opening=True,
+            operation=opening.operation,
+            leader_ids=(),
+            boss_id=None,
+        )
+        _check_scheme(opening.scheme, pack.species)
+        world = super().new_game(scenario, character)
         starter_id = world.player.require_sheet().caught_species[0]
         others = [species_id for species_id in pack.starters if species_id != starter_id]
         world.rival_starter_id = counter_pick(
@@ -187,10 +223,38 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
 
     def check_next(self, draft: PokemonGame, proposal: RegionProposal[Trainer]) -> None:
         super().check_next(draft, proposal)
-        gyms = sum(1 for npc in draft.world.npcs.values() if npc.badge)
+        world = draft.world
+        gyms = sum(1 for npc in world.npcs.values() if npc.badge)
         # Safe: the engine's `next_proposal` makes every region a PokemonRegion.
         region = cast(PokemonRegion, proposal)
-        self._check_proposal(draft.pack_id, region, gyms_before=gyms, opening=False)
+        owed = world.owed()
+        operation_due, lair_due = owed == "operation", owed == "lair"
+        if (region.operation is not None) != operation_due:
+            raise Refusal(
+                OWED_ASKS["operation"] if operation_due else NOT_DUE.format(field="operation")
+            )
+        if (region.boss_id is not None) != lair_due:
+            raise Refusal(OWED_ASKS["lair"] if lair_due else NOT_DUE.format(field="boss_id"))
+        self._check_proposal(
+            draft.pack_id,
+            region,
+            gyms_before=gyms,
+            opening=False,
+            operation=region.operation,
+            leader_ids=world.leader_ids,
+            boss_id=region.boss_id,
+        )
+
+    async def write_next(
+        self, draft: PokemonGame, intent: str, worldsmith: RoleAnswer
+    ) -> RegionProposal[Trainer]:
+        owed = draft.world.owed()
+        asked = intent if owed is None else f"{intent}\n\n{OWED_ASKS[owed]}"
+        return await super().write_next(draft, asked, worldsmith)
+
+    def worldsmith_sections(self, draft: PokemonGame) -> Sections:
+        scheme = draft.world.scheme_lines(worldsmith=True)
+        return (*super().worldsmith_sections(draft), *section_if(SCHEME, scheme))
 
     def sprite(self, state: PokemonGame, entity_id: Slug) -> Sprite | None:
         world = state.world
@@ -204,7 +268,15 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
         return None if mon is None else mon_sprite(mon.species)
 
     def _check_proposal(
-        self, pack_id: Slug, proposal: PokemonMap, *, gyms_before: int, opening: bool
+        self,
+        pack_id: Slug,
+        proposal: PokemonMap,
+        *,
+        gyms_before: int,
+        opening: bool,
+        operation: Operation | None,
+        leader_ids: Collection[Slug],
+        boss_id: Slug | None,
     ) -> None:
         if strays := unknown_wild_places(proposal.wild, proposal.places):
             raise Refusal(f"wild tables for places this map does not add: {strays}")
@@ -218,21 +290,21 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
         }
         if strays := sorted(used - set(self._species_pool(pack_id))):
             raise Refusal(f"species outside this region: {strays}. Use only ids from SPECIES")
+        leader_id = None if operation is None else operation.leader_id
+        named = [key_id for key_id in (leader_id, boss_id) if key_id is not None]
         if mute := [
             npc.id
             for npc in trainers
-            if npc.is_key() and not (npc.style and npc.win_line and npc.lose_line)
+            if npc.is_key(named) and not (npc.style and npc.win_line and npc.lose_line)
         ]:
-            raise Refusal(
-                f"a gym leader or a rival needs a style, a win_line and a lose_line: {mute}"
-            )
+            raise Refusal(f"each {KEY_TRAINER} needs a style, a win_line and a lose_line: {mute}")
         for index, leader in enumerate((npc for npc in trainers if npc.badge), gyms_before):
             _check_ace(leader, index)
-        regulars = [npc.id for npc in trainers if npc.roster and not npc.is_key()]
+        regulars = [npc.id for npc in trainers if npc.roster and not npc.is_key(named)]
         if len(regulars) > REGULAR_TRAINERS_MAX:
             raise Refusal(
-                f"at most {REGULAR_TRAINERS_MAX} people without a badge battle in one map, not "
-                f"{len(regulars)}: {regulars}. Give the others no roster"
+                f"at most {REGULAR_TRAINERS_MAX} people besides the key trainers battle in one "
+                f"map, not {len(regulars)}: {regulars}. Give the others no roster"
             )
         rivals = [npc for npc in trainers if npc.rival]
         if opening and len(rivals) != 1:
@@ -241,6 +313,11 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
             raise Refusal("the rival stands in the opening map; a new region adds no rival")
         if any(rival.roster for rival in rivals):
             raise Refusal("the rival has no roster: code builds their team")
+        if operation is not None:
+            _check_operation(proposal, operation, leader_ids)
+        boss = None if boss_id is None else proposal.npcs.get(boss_id)
+        if boss_id is not None and (boss is None or not boss.roster or boss.badge):
+            raise Refusal(f"the boss {boss_id!r} is a person of this map with a roster, no badge")
 
     def _species_pool(self, pack_id: Slug) -> tuple[Slug, ...]:
         return self.packs.require(pack_id).species
@@ -259,6 +336,7 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
             ("CHALLENGE", sheet.challenge_line()),
             *section_if("POKEMON CENTERS", world.centers_line()),
             *_rival_section(world),
+            *section_if(SCHEME, world.scheme_lines(worldsmith=False)),
             ("TYPE CHART", pokedex.type_chart_text()),
             ("THE TEAM", lines_of(mon.line() for mon in sheet.team)),
             ("THE BOX", lines_of(mon.line() for mon in sheet.box)),
@@ -274,10 +352,13 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
 
     def player_view(self, state: PokemonGame) -> PlayerView:
         view = super().player_view(state)
-        panels = team_panels(state.world.player.require_sheet(), self._species_pool(state.pack_id))
-        return view.model_copy(update={"panels": (*view.panels, *panels)})
+        world = state.world
+        panels = team_panels(world.player.require_sheet(), self._species_pool(state.pack_id))
+        return view.model_copy(update={"panels": (*view.panels, *scheme_panels(world), *panels)})
 
     def ending(self, state: PokemonGame) -> str | None:
+        if state.world.boss_beaten:
+            return TEAM_BEATEN
         sheet = state.world.player.require_sheet()
         if sheet.challenge == "nuzlocke" and not sheet.able():
             return TEAM_FALLEN
@@ -307,7 +388,7 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack]):
         facts, notes = draft.world.settle_battle(result, self._species_pool(draft.pack_id))
         for note in notes:
             draft.note(note)
-        return Resolution(tuple(facts), BATTLE_OVER)
+        return Resolution(tuple(facts), BOSS_BEATEN if draft.world.boss_beaten else BATTLE_OVER)
 
     def throw_ball(self, draft: PokemonGame, ball_id: Slug, foe: Battler, rng: Random) -> Throw:
         battle = draft.world.battle
@@ -502,6 +583,45 @@ def _check_ace(leader: Trainer, index: int) -> None:
         raise Refusal(
             f"{leader.name}'s ace is L{ace}; the ace of gym {index + 1} is "
             f"L{table - LEVEL_SPREAD} to L{table + LEVEL_SPREAD}"
+        )
+
+
+def _check_scheme(scheme: Scheme, species_pool: Collection[Slug]) -> None:
+    legendary_id = scheme.legendary_id
+    if legendary_id is not None and (
+        legendary_id not in species_pool or not is_legendary(dex().species[legendary_id])
+    ):
+        raise Refusal(f"`legendary_id` {legendary_id!r} is no legendary species of SPECIES")
+
+
+def _check_operation(
+    proposal: PokemonMap, operation: Operation, leader_ids: Collection[Slug]
+) -> None:
+    start_id, to_id = operation.place_id, operation.shut_to_id
+    if start_id not in proposal.reachable(proposal.start_id):
+        raise Refusal(
+            f"the operation's place {start_id!r} is a place of this map that its start reaches "
+            "without a lock"
+        )
+    leader = proposal.npcs.get(operation.leader_id)
+    if (leader is None or not leader.roster or leader.badge) and (
+        operation.leader_id not in leader_ids
+    ):
+        raise Refusal(
+            f"the operation's leader {operation.leader_id!r} is a person of this map with a "
+            f"roster and no badge, or an earlier leader: {list(leader_ids)}"
+        )
+    if (to_id is None) == (operation.consequence == "shut_way"):
+        raise Refusal("`shut_to_id` is set for shut_way, and null for close_center")
+    if to_id is None:
+        return
+    way = proposal.way(start_id, to_id)
+    if way is None or way.locked:
+        raise Refusal(f"no unlocked way leads from {start_id!r} to {to_id!r} for shut_way")
+    if reached(proposal, proposal.start_id, [(start_id, to_id)]) != set(proposal.places):
+        raise Refusal(
+            f"the way from {start_id!r} to {to_id!r} is the only way to some places; shut_way "
+            "needs a way the map can do without"
         )
 
 

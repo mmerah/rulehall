@@ -15,7 +15,13 @@ from rulehall.engines.pokemon.rules import (
     nature_effect,
     tm_move,
 )
-from rulehall.engines.pokemon.world import Mon, MoveSlot, TrainerSheet
+from rulehall.engines.pokemon.world import (
+    SCHEME_STAGES,
+    Mon,
+    MoveSlot,
+    PokemonWorld,
+    TrainerSheet,
+)
 
 type StatLine = tuple[str, int, str]
 ICON_SHEET = Path("sprites/pokemonicons-sheet.png")
@@ -122,6 +128,20 @@ def team_panels(sheet: TrainerSheet, species_pool: Collection[Slug]) -> tuple[Pa
             tab="Team",
         ),
     )
+
+
+def scheme_panels(world: PokemonWorld) -> tuple[Panel, ...]:
+    scheme = world.scheme
+    if scheme is None or not any(world.npcs[leader_id].known for leader_id in world.leader_ids):
+        return ()
+    operation = world.operation
+    rows = (
+        PanelRow(name="Stage", brief=f"{world.stage()}/{SCHEME_STAGES}"),
+        PanelRow(name="Foiled", brief=str(world.foiled)),
+        PanelRow(name="Succeeded", brief=str(world.succeeded)),
+        *(() if operation is None else (PanelRow(name="Now", brief=operation.goal),)),
+    )
+    return (Panel(title=scheme.name, rows=rows),)
 
 
 def mon_row(mon: Mon, cap: int, options: tuple[PendingOption, ...] = ()) -> PanelRow:

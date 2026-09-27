@@ -20,13 +20,13 @@ Answer with one JSON object and nothing else, in the shape ANSWER WITH gives.
 Small green islands lie in a warm sea, and ferries join them. People live, work and battle beside Pokemon. Every island has a Pokemon Center, a shop and a gym.
 
 # THE SCOPE OF PLAY
-Play runs island by island, and no ending is written for it.
+Play runs island by island, until Team Undertow falls.
 
 # MAP SO FAR
 The Harbour Road[harbour-road] — Tall grass grows beside a road that runs above the ferry dock.
   known ways out: Tern Harbour
   here: Professor Mira[mira] (met), Rook[rook] (met), Tamsin[tamsin] (met)
-ids in use: gull-cove, harbour-road, ines, mira, pokemon-center, rook, tamsin, tern-gym, tern-harbour, wren
+ids in use: gull-cove, harbour-road, ines, mira, pokemon-center, rook, tamsin, tern-gym, tern-harbour, vesper, wren
 
 # SCENES SO FAR
 ## Scene: The Harbour Road
@@ -38,12 +38,21 @@ place: The Harbour Road
 - Kael[player] — A quiet trainer from Tern Harbour who wants to see every island.
   skills: Athletics 1 · Perception 1 · Nature 2; money: ₽3000; badges: none; team: Charmander L5, 20/20 HP, Jolly; your first Pokemon
 
+# THE SCHEME
+Team Undertow. Goal: Wake Articuno in the sea caves under the isles and freeze the ferry lanes, so every island must pay Team Undertow to cross.
+stage 0/4, foiled 0, succeeded 0
+- stage 1: Team Undertow opens the old sea caves that run under the isles.
+leaders: Admin Vesper[vesper]
+open operation at Gull Cove[gull-cove], led by Admin Vesper[vesper]: Grunts drain the tide pools of Gull Cove to open an old sea cave.
+if it succeeds: Grunts hold the way from Gull Cove to The Harbour Road. It succeeds when the player earns a badge or loses to its leader; it is foiled when the player beats its leader.
+final terms so far: the boss's ace is the next gym's level +0
+
 # WHAT COMES NEXT
 Deeper in, toward the sound.
 
 # ENGINE GUIDANCE
 POKEMON AUTHORING
-A place is one town, route, cave, gym or building of the region. `wild` gives the wild table of each new place: species ids from SPECIES, the lowest level, the highest level and a weight. A route, a cave or a shore has a table. A town or a building has none. Every town has a Pokemon Center, a place of its own that `centers` lists: the team heals only there, so the opening map has one. A person who battles has a `roster` of one to six species ids with levels. A gym leader also has a `badge`, such as 'Tide Badge'. The ace of a gym leader, the highest level of the roster, follows the badge table: the first gym's ace is level 12, the second's 18, the third's 24, then 30, 36, 42, 48 and 54, each give or take 2. Write a few meaningful trainers: at most 3 people without a badge battle in one map. A person who does not battle has no `roster`. Every gym leader and the rival has a `style`, a `win_line` and a `lose_line`. The opening map holds one rival, with `rival` true and no `roster`: code builds the rival's team. A later map adds no rival. Every person has an `avatar_id` from TRAINER CLASSES: the look that fits them, such as 'hiker' or 'nurse'. Early routes hold levels 2 to 6. A locked way can be a thin tree that Cut clears, or a closed gym door. Never write `sheet`, `beaten`, `team` or `last_battle_visit`. Code writes the player's team.
+A place is one town, route, cave, gym or building of the region. `wild` gives the wild table of each new place: species ids from SPECIES, the lowest level, the highest level and a weight. A route, a cave or a shore has a table. A town or a building has none. Every town has a Pokemon Center, a place of its own that `centers` lists: the team heals only there, so the opening map has one. A person who battles has a `roster` of one to six species ids with levels. A gym leader also has a `badge`, such as 'Tide Badge'. The ace of a gym leader, the highest level of the roster, follows the badge table: the first gym's ace is level 12, the second's 18, the third's 24, then 30, 36, 42, 48 and 54, each give or take 2. Write a few meaningful trainers: at most 3 people besides the key trainers battle in one map. A person who does not battle has no `roster`. Every key trainer, a gym leader, the rival, a leader of the evil team or its boss, has a `style`, a `win_line` and a `lose_line`. The opening map holds one rival, with `rival` true and no `roster`: code builds the rival's team. A later map adds no rival. The opening map also writes the evil team's `scheme`: a name, the boss's goal, four `stages` the player learns as its four operations end, and a `legendary_id` it is after, or null. The opening map holds its first `operation`; a later map writes one, or the lair and its boss, only when the request asks. An operation is the one problem of its map: a place the map's start reaches without a lock, a leader with a roster and no badge (or an earlier leader), a goal, and what changes if it succeeds: `shut_way` holds a way out of that place that the map can do without, and `close_center` closes a Pokemon Center. THE SCHEME's goal and its stages not yet told are hidden: never write them into a place, a person or the recap. Every person has an `avatar_id` from TRAINER CLASSES: the look that fits them, such as 'hiker' or 'nurse'. Early routes hold levels 2 to 6. A locked way can be a thin tree that Cut clears, or a closed gym door. Never write `sheet`, `beaten`, `team` or `last_battle_visit`. Code writes the player's team.
 
 PACK: Kanto Dex
 

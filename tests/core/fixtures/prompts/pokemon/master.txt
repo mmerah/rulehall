@@ -26,7 +26,7 @@ Stop when the next step needs a new choice from the player. A new goal, a retrea
 Small green islands lie in a warm sea, and ferries join them. People live, work and battle beside Pokemon. Every island has a Pokemon Center, a shop and a gym.
 
 # THE SCOPE OF PLAY
-Play runs island by island, and no ending is written for it.
+Play runs island by island, until Team Undertow falls.
 
 # CURRENT PLACE
 The Harbour Road[harbour-road]
@@ -51,13 +51,21 @@ Tall grass grows beside a road that runs above the ferry dock.
 
 # WAYS OUT
 - Tern Harbour[tern-harbour] — known
-- Gull Cove[gull-cove] — unknown; locked
+- Gull Cove[gull-cove] — unknown
 
 # CHALLENGE
 relaxed
 
 # THE RIVAL
 Tamsin[tamsin]; style: attacks from the first turn and never switches out
+
+# THE SCHEME
+Team Undertow. Goal: Wake Articuno in the sea caves under the isles and freeze the ferry lanes, so every island must pay Team Undertow to cross.
+stage 0/4, foiled 0, succeeded 0
+leaders: Admin Vesper[vesper]
+open operation at Gull Cove[gull-cove], led by Admin Vesper[vesper]: Grunts drain the tide pools of Gull Cove to open an old sea cave.
+if it succeeds: Grunts hold the way from Gull Cove to The Harbour Road. It succeeds when the player earns a badge or loses to its leader; it is foiled when the player beats its leader.
+final terms so far: the boss's ace is the next gym's level +0
 
 # TYPE CHART
 - Bug: strong vs Dark, Grass, Psychic; weak vs Fairy, Fighting, Fire, Flying, Ghost, Poison, Steel

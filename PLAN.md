@@ -269,3 +269,4 @@ class Operation(Frozen):
 
 - 2026-09-27: Plan written from `docs/POKEMON-IDEA.md`, Part 1.
 - 2026-09-27: Adversarial review folded. Rejected: splitting phase 1 into two phases (the user asked for as few phases as possible; `/phase 1` splits it between implementers instead).
+- 2026-09-27: Phase 1 done (`aac580d`). Phase 2 done. Off-plan decisions are in `PROGRESS.md`.

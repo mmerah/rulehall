@@ -128,6 +128,9 @@ def run(name: str, body: Callable[[Session], None]) -> None:
         session = Session(browser=browser, shots=shots)
         try:
             body(session)
+        except Exception as crashed:
+            session.issues.append(f"crash: {type(crashed).__name__}: {crashed}")
+            raise
         finally:
             browser.close()
             report = shots / "report.json"

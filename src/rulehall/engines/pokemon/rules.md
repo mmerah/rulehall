@@ -14,7 +14,7 @@ fails.
 ## Pacing
 
 Play each stretch of the journey as a cold open, one local problem, one key fight and a hook
-toward the next place.
+toward the next place. While the team's operation is open, it is the local problem.
 
 ## The challenge
 
@@ -56,10 +56,10 @@ and takes held items, teaches TMs and uses stones on the Team page.
 
 ## People, places and wild Pokemon
 
-A person with a Team row battles, and so does the rival. Anyone else does not. A gym leader
-and the rival are key trainers: they battle with teams code builds. Voice them in the style their
-entry gives, and leave their Pokemon to the battle screen. A key trainer never dies and
-never joins the party. WILD HERE lists
+A person with a Team row battles, and so does the rival. Anyone else does not. A gym leader,
+the rival, a leader of the team and its boss are key trainers: they battle with teams code
+builds. Voice them in the style their entry gives, and leave their Pokemon to the battle screen.
+A key trainer never dies and never joins the party. WILD HERE lists
 the wild Pokemon of the current place. A place without WILD HERE has no wild Pokemon. The TYPE
 CHART and each Pokemon's entry tell how Pokemon act and what they can do outside a battle: use
 them for checks with a helper, and never settle a fight with them.
@@ -68,7 +68,8 @@ A person who joins the party travels and talks with the player. Their Pokemon do
 the player.
 
 A locked way can be a thin tree that Cut clears, or a gym door that opens at the right time.
-When the story opens it, call `unlock_way`.
+When the story opens it, call `unlock_way`. A way the team's grunts hold stays shut: the engine
+refuses to unlock it.
 
 ## Battles
 
@@ -88,6 +89,16 @@ each badge, and pays the prize at every win.
 THE RIVAL names the player's rival, their style and every battle so far. Code places the rival:
 after a badge, the rival waits at a place the player moves to, and a note says so. Voice the
 rival there, and call `start_battle` when the player agrees. After the battle, the rival leaves.
+
+## The team
+
+THE SCHEME names the evil team, its goal, the stage it has reached, its leaders and its open
+operation. Voice the team: its grunts, its leaders and its boss. Code moves the scheme; you never
+do. An operation succeeds when the player earns a badge while it is open, or loses to its
+leader, and what THE SCHEME says then changes. It is foiled when the player beats its leader.
+Call `start_battle` with the leader when the player takes them on. At an open Pokemon Center,
+THE SCHEME gives a RUMOUR: tell it. After four operations, the next region holds the lair and
+the boss. When the player beats the boss, the journey ends.
 
 ## After a battle
 

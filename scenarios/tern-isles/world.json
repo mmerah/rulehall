@@ -3,7 +3,7 @@
     "title": "The Tern Isles",
     "premise": "A new trainer leaves Tern Harbour with a first Pokemon, to earn the badges of the isles.",
     "backdrop": "Small green islands lie in a warm sea, and ferries join them. People live, work and battle beside Pokemon. Every island has a Pokemon Center, a shop and a gym.",
-    "scope": "Play runs island by island, and no ending is written for it."
+    "scope": "Play runs island by island, until Team Undertow falls."
   },
   "engine_id": "pokemon",
   "pack_id": "srd",
@@ -54,8 +54,7 @@
         },
         {
           "to_id": "gull-cove",
-          "known": false,
-          "locked": true
+          "known": false
         }
       ],
       "tern-harbour": [
@@ -65,6 +64,10 @@
         },
         {
           "to_id": "pokemon-center",
+          "known": false
+        },
+        {
+          "to_id": "gull-cove",
           "known": false
         },
         {
@@ -89,8 +92,11 @@
       "gull-cove": [
         {
           "to_id": "harbour-road",
-          "known": false,
-          "locked": true
+          "known": false
+        },
+        {
+          "to_id": "tern-harbour",
+          "known": false
         }
       ]
     },
@@ -162,10 +168,31 @@
         "lose_line": "Fine, you win this one. I'll be stronger next time.",
         "rival": true,
         "avatar_id": "lass"
+      },
+      "vesper": {
+        "id": "vesper",
+        "name": "Admin Vesper",
+        "brief": "An admin of Team Undertow, who leads the grunts at Gull Cove.",
+        "known": false,
+        "place_id": "gull-cove",
+        "roster": [
+          {
+            "species_id": "zubat",
+            "level": 9
+          },
+          {
+            "species_id": "grimer",
+            "level": 10
+          }
+        ],
+        "style": "poisons first, then waits behind Grimer's bulk",
+        "win_line": "The tide belongs to Team Undertow. Stay out of the water, child.",
+        "lose_line": "A setback. The boss will hear of you, and so will the sea.",
+        "avatar_id": "roughneck"
       }
     },
     "items": {},
-    "arc": "Captain Ines waits at the harbour gym, and Rook wants to beat the player first.",
+    "arc": "Captain Ines waits at the harbour gym, and Rook wants to beat the player first. Team Undertow works in secret at Gull Cove.",
     "wild": {
       "harbour-road": [
         {
@@ -211,6 +238,24 @@
     "centers": [
       "pokemon-center"
     ],
+    "operation": {
+      "place_id": "gull-cove",
+      "leader_id": "vesper",
+      "goal": "Grunts drain the tide pools of Gull Cove to open an old sea cave.",
+      "consequence": "shut_way",
+      "shut_to_id": "harbour-road"
+    },
+    "scheme": {
+      "name": "Team Undertow",
+      "goal": "Wake Articuno in the sea caves under the isles and freeze the ferry lanes, so every island must pay Team Undertow to cross.",
+      "stages": [
+        "Team Undertow opens the old sea caves that run under the isles.",
+        "Deep in the caves lies a frozen shrine, and a legendary bird sleeps in it.",
+        "Team Undertow means to wake Articuno and turn the sea lanes to ice.",
+        "The boss of Team Undertow waits in a lair under the last isle, ready to seize the ferries."
+      ],
+      "legendary_id": "articuno"
+    },
     "start_id": "harbour-road"
   }
 }
