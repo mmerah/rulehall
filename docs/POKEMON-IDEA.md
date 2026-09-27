@@ -1,102 +1,130 @@
 # Pokemon ideas
 
-Nothing here is decided. This file collects ideas from one brainstorm, so that a later session can pick, cut and order them. The file has two parts:
+This file has two parts:
 
-1. Ideas to make the current Pokemon engine more fun.
-2. A separate game: a Pokemon Champions roguelite. It lives in its own project, not in Rulehall.
+1. Changes that make the current Pokemon engine more fun. **Part 1 is decided.** Three advisers (player experience, architecture and cost, AI roles) reviewed the first brainstorm in three rounds on 2026-09-27. The decisions below are what they agreed on, with the few splits settled.
+2. A separate game: a Pokemon Champions roguelite. It lives in its own project, not in Rulehall. Part 2 is still open.
 
 ## Part 1: the current engine
 
 ### Why it feels flat
 
-- **Nothing pushes back.** The scope of play says the journey runs island by island with no written ending. No one works against the player, and nothing runs out of time. The rooms engine has a hidden `arc` and a `meanwhile` tool, but no rule ties them to a threat that grows.
-- **Battles have low stakes.** Early fights take one button. A blackout costs half the money, and a Pokemon Center undoes everything else.
-- **Progress is only numbers.** Levels and badges go up. The world does not change because of what the player did.
+The first brainstorm named three causes: nothing pushes back, battles have low stakes, and progress is only numbers. The review found the causes in the code:
 
-The ideas below each answer one of these problems. They are not in a fixed order. The brainstorm leaned toward the evil team first, then the rival, the challenge settings and double battles.
+- **Trainers play badly.** The default `battle.opponent` setting is `random` (`config.py:80`), so a trainer picks any legal move.
+- **Trainers are built badly.** `Mon.new` gives every trainer Pokemon its last four level-up moves, a random nature, no item and no EVs (`world.py:181`). A gym leader plays like a wild Pokemon with a name.
+- **The master has no reason to push.** `master.md` says "your notes never decide or script" a choice. `rooms/rules.md` says the arc "never says what must come". The scope says "no ending is written". Nothing in code adds pressure instead.
+- **The master gets no turn after a battle.** The narrator tells the result. The master sees it only as a card in RECENT PLAY, one player turn later, with no reason to act on it.
+- **Healing is free.** `heal_team` works anywhere (`engine.py:291`), so HP and PP never matter between fights.
+- **Pokemon have no personality on the page.** The narrator sees "Charmander L5, 20/20 HP". It never sees a nature, a bond, or what a Pokemon has done.
 
-### Idea: an evil team
+### Already done
 
-An evil team that grows toward a world-ending danger, with people who come back again and again. The key choice: **code tracks the team's progress, not prose.** Then the master cannot forget the plot or stall it.
+- **Shared EXP.** A Pokemon that did not fight gets half the EXP (`TrainerSheet.exp_shares`, `world.py:441`).
+- **Set mode.** Showdown singles gives no free switch after a knock-out. Only the side whose Pokemon fainted switches.
 
-- **The scheme track.** The team has one goal, such as waking a legendary, draining the sea or stopping the ferries. The goal has 4 to 6 stages.
-  - The track moves forward when the player leaves an operation alone for N visits, or loses to the team.
-  - It moves back when the player foils an operation.
-  - Code owns the track. The master sees the current stage and the next step. The narrator sees only what the player has uncovered.
-- **Operations.** A new region from the worldsmith can carry one operation: a place, a goal and a deadline counted in visits.
-  - An operation the player ignores changes the world: a Pokemon Center shuts, grunts hold a route, a gym leader goes missing, someone's Pokemon is stolen.
-  - `meanwhile` gets a real job here: it moves admins and grunts offscreen.
-- **A recurring cast.** Grunts, two or three admins and a boss. Each is a lasting trainer who remembers the player.
-- **Counter-picks.** When an admin loses, code adds a Pokemon to their roster that the type chart picks against the player's lead or strongest Pokemon. They come back having learned. The pick is deterministic, so a test can cover it offline.
-- **A race for the legendary.** The team and the player chase the same legendary. The player finds clues through Lore checks and hidden facts.
-- **The climax.** A final battle against the boss, possibly a double battle. Then the legendary itself, as a fight the player can win or a catch.
-- **An ending.** Beating the boss ends the game, or at least the chapter.
+### Decision 1: foes that fight
 
-Open questions:
+- **The badge table.** One table in `rules.py` gives the level of the gym ace for each badge count, for example 12, 18, 24, 30, 36, 42. Four things read it: the worldsmith guidance, the level caps, the rival and the boss.
+- **Key trainers.** A gym leader, an admin, the rival and the boss are key trainers. The worldsmith writes each one with species, levels, an `ace` flag, one `style` line ("sets up rain, then sweeps"), an `on_win` line and an `on_loss` line.
+- **Code builds key teams.** A pure `build_set(species, level)` picks strong same-type moves and coverage from the level-up moves and the TMs, a nature, fixed EVs and a held item. The ace goes last. The worldsmith never writes moves: illegal sets would spend its one retry. Regular trainers keep `Mon.new`.
+- **Gym levels are checked.** A new gym's index is the count of badge trainers already in the world plus its order in the proposal. The check refuses a gym ace more than 2 levels away from the table.
+- **Fewer trainers.** The guidance asks for a few meaningful fights. A check caps the regular trainers of one region.
+- **Opponent policy by trainer.** The engine writes a `policy` into `BattleSetup`:
+  - a wild Pokemon: random, as now;
+  - a regular trainer: greedy;
+  - a key trainer: the model, when the app passes an opponent role, else greedy.
+- **Greedy.** A pure function of the `Assessment` and the offered choices: a move that knocks out, else the move with the most damage, else the best switch. A test runs it on the recorded fixture.
+- **The setting.** `battle.opponent` becomes `scripted | model`, default `model`. Only the app reads it: it passes the opponent role or none. A saved battle with the `model` policy falls back to greedy when no role is passed.
+- **The model's persona.** The opponent prompt adds the trainer's `style` line.
+- **Trainer lines.** `end_battle` adds the `on_win` or `on_loss` line as a fact from the trainer, so the narrator speaks it at the end of the battle. A `Game.note` for the master carries only what the master must act on ("Vex fled north").
 
-- What moves the track: visits, badges, or both?
-- Can the team win? If the track reaches its end, is that a game over, or a harder final act?
-- Does the worldsmith write the team at the start of play, or does the pack hold a template for it?
-- The brainstorm leaned toward keeping the track in the Pokemon world. Other engines could use a threat track too. By CLAUDE.md, it stays in Pokemon until a second engine needs one.
+### Decision 2: stakes and attachment
 
-### Idea: a rival
+- **A challenge step at character creation.** The pick is stored on `TrainerSheet`. It never changes during a game. It is not a live setting, because only the app and the UI read the settings.
+  - `relaxed`: the game as it is today.
+  - `hard`: level caps.
+  - `nuzlocke`: level caps and the Nuzlocke rules.
+- **Level caps.** The cap is the table level for the player's badge count. At the cap, EXP stops, a card says so, and a Rare Candy is refused. The Team page marks a capped Pokemon. Nothing is banked, so a raised cap never floods the player with level-ups, moves and evolutions.
+- **Nuzlocke.** It starts at once, since the starting bag holds five Poke Balls.
+  - A Pokemon that faints goes to the memorial. If the whole team faints, the team stays and the game ends.
+  - Only the first wild battle at a place with WILD HERE offers balls.
+  - `start_wild_battle` refuses a chosen species: the table decides.
+  - The dupes clause: the roll skips a species the player has already caught. `caught_species` on the sheet tracks it.
+- **Pokemon Centers.** `PokemonMap.centers` marks the places that heal. `heal_team` works only at an open Center. An opening map without a Center is refused. The guidance puts a Center in every town.
+- **Nicknames.** A Team page action. A nickname is unique on the team and in the box, because the battle view keys its tags by name. Showdown shows the nickname.
+- **A record of each Pokemon.** Code writes where the Pokemon was met and its wins against key trainers.
+- **YOUR POKEMON for the narrator.** It holds the nickname, the species, a nature word, a friendship band (wary, warm, devoted), where the Pokemon was met and its key wins. A MEMORIAL section adds each fallen Pokemon and who it fell to. The narrator only gets facts the player already knows.
 
-A classic Pokemon rival.
+### Decision 3: the rival
 
-- The rival starts with the starter that beats the player's.
-- Code scales the rival's team to the level of the player's strongest Pokemon. The master does not choose it.
-- The rival appears at milestones: after each badge, and before the climax.
-- The rival can turn into an ally and fight beside the player against the team. That needs double battles.
+- **Written once.** The worldsmith writes the rival in the opening map: one trainer marked `rival`, with `style`, `on_win` and `on_loss`, and no roster.
+- **Its starter.** A pure `counter_pick(pool, target, level)` in `rules.py` picks the starter that beats the player's. It scores the super-effective same-type moves a species learns by that level, prefers species the target does not hit hard, and breaks ties by base stat total, then by id. A test covers it offline with `dex.json`.
+- **Its team.** Code builds it at battle start, on the badge table: the ace at the table level, the rest a little lower. The ace is the starter line, evolved at its levels. The rest come from the wild tables of the places the player has visited. The team grows by one per badge, up to six. It never scales to the player's strongest Pokemon, which would punish training.
+- **When it appears.** After each badge, code places the rival on the player's next move into a route or town with no gym and no open operation. A note tells the master. After the battle, the rival leaves.
+- **The ledger.** One line per battle: the place, the badge count and who won. The master sees it. The narrator sees it too, since each line is a told fact.
 
-### Idea: challenge settings
+### Decision 4: the evil team
 
-Settings for a player who wants stakes. The relaxed journey stays the default.
+- **The team.** The worldsmith writes it once, in the opening map: a name, a goal, four stage lines, a boss, two admins, and an optional `legendary_id` from SPECIES that must carry a legendary tag.
+- **Operations.** One operation is open at a time. The opening map holds the first. While the track runs and no operation is open, code tells the extension request "this region carries the next operation", and the check requires one. Otherwise the check forbids it. An operation has:
+  - `place_id` in the new region, reachable without a gate;
+  - `leader_id`, an admin or a grunt with a roster;
+  - `goal`;
+  - `consequence`: `shut_way` or `close_center`.
+- **Code moves the admin** to the operation's place when the operation opens.
+- **An operation ends in one of two ways.** Either way, the stage goes up by one.
+  - **Foiled:** the player beats its leader. A reveal fact tells a stage line.
+  - **Succeeded:** the player earns a badge while it is open, or loses to its leader. The consequence applies. A loss to a grunt costs only money, as now.
+  - Badges are the player's clock: "they strike when you earn your next badge". The player can see the clock and chooses when to beat it. An operation the player never touches stays open until the next badge.
+- **Consequences.** `shut_way` never shuts the way at the player's place and never cuts a place off. When it cannot apply, it closes a Center instead. `close_center` shuts the nearest open Center. Both last until the boss falls.
+- **Admins learn.** When an admin loses, code adds a `counter_pick` against the player's lead to the admin's roster, up to six.
+- **The Center rumour.** At an open Center, the master's section shows the open operation's place and goal as a rumour to tell.
+- **The climax.** After four operations, the next region must hold the lair and the boss. The boss's ace sits at the table level plus 2 for each operation that succeeded. With three or more succeeded, the legendary joins the boss's team. The boss uses `build_set` and the model. Reaching the end of the track is not a game over.
+- **The ending.** When the player beats the boss, `end_battle` gives an epilogue cue and sets `boss_beaten`. `ending()` then ends the game. A post-game can come later.
+- **Who sees what.**
+  - **The page**, after the player first meets the team: its name, stage n/4, a tally of foiled and succeeded operations, and the goal of the open operation.
+  - **The master:** the section THE SCHEME, with the goal, the stage, the open operation (place, leader, goal), its consequence if it succeeds, the trigger line and the final-act terms so far. The master owns no lifecycle call. It voices grunts and admins and calls `start_battle`.
+  - **The narrator:** only told facts. It never sees the goal, the next stage, a consequence before it applies, or the final-act terms.
+- **Tern Isles.** Rewrite the scenario by hand: its Centers, a small team, one admin, the first operation near Gull Cove with `shut_way`, and the boss offstage. It is the scenario people play first, and it gives the tests a scheme with no worldsmith call.
 
-- **Nuzlocke.** A Pokemon that faints is gone for good. It goes to a memorial, and the narrator can mourn it. The player may catch only the first wild Pokemon they meet in each place, and places already have wild tables. The rules are small and all in code.
-- **Level caps.** Each badge sets a cap, at the level of the next gym leader's strongest Pokemon. The player cannot grind past a fight, so gym leaders become real tests.
-- **Set mode.** No free switch after the player knocks out a foe.
+### Pacing
 
-Open question: code applies a setting, and CLAUDE.md says only the app and the UI read the settings. So the choice probably belongs in character creation or in the new game, not in a live setting.
+Pacing lives in `rules.md` and the worldsmith guidance: a cold open, one local problem, one key fight, a hook. While the track runs, the open operation is the region's one problem. There is no `local_problem` tool: it would be a tool with no rule behind it.
 
-### Idea: double battles
+### Phases
 
-Doubles makes new fights possible:
+Each phase ships a game that plays end to end.
 
-- gyms that battle in doubles
-- two admins against the player
-- **tag battles:** a party member's Pokemon fights beside the player's. Today's rule, "their Pokemon do not battle for the player", would change.
-- the climax as a double battle
+| Phase | What ships | About |
+|---|---|---|
+| 1. Foes that fight | The badge table, key trainers, `build_set`, policies and greedy, the setting, the persona line, trainer lines, gym level check, trainer cap | 230 lines |
+| 2. Stakes and attachment | The challenge step, level caps, Nuzlocke and the memorial, Centers (and Centers in Tern Isles), nicknames, the record, YOUR POKEMON | 300 lines |
+| 3. The rival | `counter_pick`, the rival, its team, placement, the ledger | 130 lines |
+| 4. The evil team | The scheme, operations, consequences, admins who learn, the rumour, the page, the climax, the legendary, the ending, Tern Isles rewritten, pacing text | 320 lines |
 
-Cost: the largest on this list.
+Phase 1 comes first because every later phase ends in a fight. Phase 4 reuses the pieces of phases 1 to 3: key trainers, Centers and `counter_pick`.
 
-- The simulator driver, the choice buttons, the battle models and the opponent prompt all assume one active Pokemon a side.
-- `assess.js` looks only at `active[0]`.
-- Targeting needs its own buttons and its own opponent answer.
+### Later
 
-The separate Champions game needs the same doubles work. Doing it here first teaches the lessons once.
+- Gates by field move: a way that opens when a team Pokemon knows Cut, Surf, Strength, Rock Smash or Flash. The dex has these moves.
+- A dex goal: counts of seen and caught species, and rewards from the professor.
+- Auto-resolve for lopsided wild battles, with greedy on both sides.
+- Speed and knock-out flags in `assess.js`. They need a new recorded fixture.
+- The race for the legendary: clues, and a catch after the climax.
+- A gym leader taken by the team. The idea failed review: once its operation has succeeded, nothing can free the leader.
+- Double battles: the rival as an ally, tag battles, a double-battle climax. The cost is 300 lines for a lite form and 600 or more for full doubles. Do them only if the climax needs them. The Champions project does not justify them.
+- A strong bond that keeps a Pokemon at 1 HP. It needs a Showdown patch.
+- A post-game after the ending.
 
-### Idea: less busywork
+### Cut
 
-- **Auto-resolve.** A button that lets Showdown play out a lopsided wild or trainer battle for both sides, and shows only the result.
-- **Fewer, stronger trainers.** The worldsmith is told that three meaningful fights on a route beat ten filler ones.
-- **Shared EXP.** The whole team gets some EXP, so the player spends less time on grinding.
-
-### Idea: exploration gated by the team
-
-Cut already gates some ways. This idea makes the gates a rule:
-
-- Surf to reach an island.
-- Rock Smash for a cave.
-- Strength for a boulder.
-- Flash for a dark tunnel.
-
-The worldsmith places gates, and a gate opens for a team Pokemon that knows the move or has the type. The Pokemon the player catches then decide where the player can go. The d20 checks with a helper get a reason to happen.
-
-### Other approaches
-
-- **Episode pacing.** Each session plays like an anime episode: a cold open, one local problem, one battle at the peak, a hook for next time. This is mostly guidance in the master prompt.
-- **A campaign that ends.** Four islands, one evil team, one legendary, and an ending. A game the player can finish is often more fun than one that never ends.
-- **A bond with Pokemon.** Friendship already exists. The narrator could show personality from nature and friendship. A high bond could matter in battle, like in the games: a Pokemon holds on at 1 HP. Showdown would need a small change for that. Keep it low on the list.
+- A countdown in visits or moves for the team. It punishes exploring.
+- Movesets written by the worldsmith.
+- A pack template for the evil team. Ten packs would each need their own.
+- Rival scaling to the player's strongest Pokemon.
+- A `local_problem` tool.
+- A banked EXP pool at the level cap.
 
 ## Part 2: a Pokemon Champions roguelite
 
