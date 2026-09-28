@@ -13,7 +13,7 @@
     "location": "QV-9 relay station",
     "title": "The Docking Ring",
     "situation": "QV-9's docking ring hums with full power, yet every comm panel down the corridor sits dark and silent. Vessa Rune waits at the airlock with her override key already drawn, and Harl Odum's salvage skiff sits clamped to the outer berth, its hatch cycling open before anyone has hailed it.",
-    "present": [
+    "present_ids": [
       "vessa-rune",
       "harl-odum"
     ],

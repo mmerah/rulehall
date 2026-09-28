@@ -10,10 +10,10 @@ from typing import Literal, Protocol, Self
 from pydantic import Field
 
 from rulehall.core.facts import Fact
-from rulehall.core.io import read_cached_text
-from rulehall.core.model import RoleAnswer
+from rulehall.core.game import RoleAnswer
+from rulehall.core.stores import read_cached_text
 from rulehall.core.validation import Loose, Slug, parse_json
-from rulehall.core.views import Choice
+from rulehall.core.views import BattleChoice
 from rulehall.engines.engine import Resolution, Transport
 from rulehall.engines.pokemon.battle.models import (
     STATUSES,
@@ -167,7 +167,7 @@ class ShowdownRun:
         assert battle is not None
         policy = battle.setup.policy
         if policy == "model" and opponent is None:
-            policy = "greedy"
+            policy = "scripted"
         run = cls(
             battle=battle,
             transport=transport,
@@ -190,13 +190,13 @@ class ShowdownRun:
     def props(self) -> Mapping[str, str | bool]:
         return {"wild": self.setup.kind == "wild"}
 
-    def choices(self) -> tuple[Choice, ...]:
+    def choices(self) -> tuple[BattleChoice, ...]:
         request = self.side_request
         if request is None:
             return ()
         refusal = self._ball_refusal(request)
         balls = tuple(
-            Choice(
+            BattleChoice(
                 command=f"{BALL}{ball.item_id}",
                 name=f"{ball.name} {TIMES}{ball.count}",
                 group=BALLS,
@@ -204,7 +204,7 @@ class ShowdownRun:
             )
             for ball in self.battle.balls_left()
         )
-        leave = Choice(command=LEAVE, name="Run" if self.setup.kind == "wild" else "Forfeit")
+        leave = BattleChoice(command=LEAVE, name="Run" if self.setup.kind == "wild" else "Forfeit")
         return (*choices_of(request, self.setup.team), *balls, leave)
 
     async def choose(self, draft: PokemonGame, command: str, rng: Random) -> None:
@@ -262,7 +262,7 @@ class ShowdownRun:
         return create_task(self.opponent(prompt, OpponentAnswer, partial(check_command, choices)))
 
     async def _scripted(self, ask: SideRequest) -> str:
-        if self.policy == "greedy" and not ask.team_preview:
+        if self.policy == "scripted" and not ask.team_preview:
             return greedy_choice(await self._assess(), choices_of(ask, self.setup.foes))
         return opponent_choice(ask, Random(f"{self.setup.seed} {len(self.inputs)}"))
 
@@ -388,7 +388,7 @@ def assess_line() -> str:
     return f">eval JSON.stringify({{...{SNAPSHOT}, assessment: {code}}})"
 
 
-def choices_of(request: SideRequest, battlers: Sequence[Battler]) -> tuple[Choice, ...]:
+def choices_of(request: SideRequest, battlers: Sequence[Battler]) -> tuple[BattleChoice, ...]:
     team = request.side.pokemon
     tags = {
         battler.name: tuple(type_tag(kind) for kind in dex().species[battler.species_id].types)
@@ -397,7 +397,7 @@ def choices_of(request: SideRequest, battlers: Sequence[Battler]) -> tuple[Choic
     if request.team_preview:
         # The preview request comes before RESTORE: its conditions are all full HP.
         return tuple(
-            Choice(
+            BattleChoice(
                 command=f"team {number}",
                 name=mon.name,
                 brief=f"HP {battler.hp}/{max_hp(battler)} {battler.status}".rstrip(),
@@ -406,7 +406,7 @@ def choices_of(request: SideRequest, battlers: Sequence[Battler]) -> tuple[Choic
             for number, (mon, battler) in enumerate(zip(team, battlers, strict=True), 1)
         )
     switches = tuple(
-        Choice(
+        BattleChoice(
             command=f"switch {number}",
             name=mon.name,
             brief=f"HP {mon.condition}",
@@ -421,7 +421,7 @@ def choices_of(request: SideRequest, battlers: Sequence[Battler]) -> tuple[Choic
         return switches
     move_types = {move.move_id: move.type for battler in battlers for move in battler.moves}
     moves = tuple(
-        Choice(
+        BattleChoice(
             command=f"move {number}",
             name=move.move,
             brief="" if move.pp is None else f"{move.pp}/{move.maxpp} PP",

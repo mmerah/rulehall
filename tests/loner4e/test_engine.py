@@ -3,14 +3,14 @@ from random import Random
 from support.game import ENGINE, MARA, initialized, loner_sheet
 
 from rulehall.core.views import Panel
-from rulehall.engines.entities import PLAYER_ID
 from rulehall.engines.loner4e.args import Ask, SpendLuck
 from rulehall.engines.loner4e.engine import BROKE_AWAY, DEFEATED
 from rulehall.engines.loner4e.panels import BREAK_AWAY, MOVE_ON
 from rulehall.engines.loner4e.rules import DOUBLES_PER_TWIST, LUCK_MAX, outcome_for
 from rulehall.engines.loner4e.world import Loner4eGame
+from rulehall.engines.sheet import PLAYER_ID
 
-DUEL = Ask(question="Does he force her back from the door?", against_id=MARA)
+DUEL = Ask(question="Does he force her back from the door?", opponent_id=MARA)
 
 
 def _panel(state: Loner4eGame, title: str) -> Panel:
@@ -128,7 +128,7 @@ def test_an_exchange_against_a_new_id_brings_that_opponent_in() -> None:
     _, state = initialized()
     draft = state.draft()
 
-    _ = ENGINE.ask(draft, Ask(question="Does he shove past?", against_id="dock-guard"), Random(0))
+    _ = ENGINE.ask(draft, Ask(question="Does he shove past?", opponent_id="dock-guard"), Random(0))
 
     guard = loner_sheet(draft, "dock-guard")
     assert (guard.name, guard.known, guard.luck.maximum) == ("Dock Guard", True, LUCK_MAX)

@@ -2,11 +2,11 @@ import json
 from collections.abc import Callable
 from functools import partial
 
-from rulehall.core.model import AnyGame
-from rulehall.core.play import Chapter, Exchange, SpokenLine
+from rulehall.core.game import AnyGame
+from rulehall.core.log import Chapter, LogEntry, SpokenLine
 from rulehall.core.validation import EngineId
-from rulehall.engines.entities import PLAYER_ID
 from rulehall.engines.scenes.world import Scene
+from rulehall.engines.sheet import PLAYER_ID
 from support.table import Scripted, tool_call
 
 NARRATION = "The flagstone lifts. Beyond the door, something shifts its weight and waits."
@@ -22,17 +22,17 @@ LISTENING = tool_call(
 def _one_exchange(state: AnyGame, words: str, said: str) -> AnyGame:
     """One prior exchange at the starting scene: RECENT PLAY has to render it."""
     draft = state.draft()
-    chapter = draft.log[0]
-    chapter.exchanges.append(
-        Exchange(words=words, lines=(SpokenLine(text=said),), context=chapter.context)
+    chapter = draft.chapters[0]
+    chapter.entries.append(
+        LogEntry(words=words, lines=(SpokenLine(text=said),), context=chapter.context)
     )
-    return draft.commit()
+    return draft.validated()
 
 
 def _loner4e_behind(state: AnyGame) -> AnyGame:
     """One turn in the scene before this one: RECENT PLAY groups by scene, not title."""
     draft = state.draft()
-    context = draft.log[-1].context
+    context = draft.chapters[-1].context
     draft.world.scenes.insert(
         0,
         Scene(
@@ -43,16 +43,16 @@ def _loner4e_behind(state: AnyGame) -> AnyGame:
                 "A short flight of steps ends at an iron door, sealed, "
                 "the abbey's dust undisturbed on its sill."
             ),
-            here=[PLAYER_ID],
+            here_ids=[PLAYER_ID],
         ),
     )
-    draft.log.insert(
+    draft.chapters.insert(
         0,
         Chapter(
             title="The Vault Stair",
             context=context,
-            exchanges=[
-                Exchange(
+            entries=[
+                LogEntry(
                     words="I try the vault door.",
                     lines=(SpokenLine(text="The iron handle does not turn."),),
                     context=context,
@@ -60,14 +60,14 @@ def _loner4e_behind(state: AnyGame) -> AnyGame:
             ],
         ),
     )
-    draft.log[-1].exchanges = [
-        Exchange(
+    draft.chapters[-1].entries = [
+        LogEntry(
             words="I look for another way in.",
             lines=(SpokenLine(text="A flagstone by the wall sits proud of its neighbours."),),
             context=context,
         )
     ]
-    return draft.commit()
+    return draft.validated()
 
 
 _LONER4E_SCRIPT: tuple[Scripted, ...] = (

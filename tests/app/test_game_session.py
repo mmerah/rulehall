@@ -4,11 +4,11 @@ from asyncio import Event, create_task, sleep
 from pathlib import Path
 
 import pytest
-from support.game import TARGET, open_game, session, with_entity
+from support.game import KEY, open_game, session, with_entity
 from support.table import (
     POKEMON,
     TWENTYFOURXX,
-    ScriptedSpawner,
+    ScriptedRoles,
     narrated,
     offline_settings,
     open_table,
@@ -19,40 +19,40 @@ from support.table import (
 )
 from support.twentyfourxx import open_crew
 
-from rulehall.app.launch import LaunchTarget
+from rulehall.app.catalog import SavedGameKey
+from rulehall.app.game_session import IN_FLIGHT_ELSEWHERE, NOTHING_TO_REWIND
 from rulehall.app.runtime import Runtime
-from rulehall.app.session import IN_FLIGHT_ELSEWHERE, NOTHING_TO_REWIND
 from rulehall.config import Role
+from rulehall.core.decisions import PlayerInput
 from rulehall.core.facts import Fact
-from rulehall.core.io import FileStore
-from rulehall.core.model import AnyGame, ScenarioDescription, WorldsmithRequest
-from rulehall.core.play import Answer
+from rulehall.core.game import AnyGame, ScenarioDescription, WorldsmithRequest
+from rulehall.core.stores import SaveStore
 from rulehall.core.validation import Refusal
-from rulehall.engines.entities import PLAYER_ID
 from rulehall.engines.loner4e.panels import TAKE_BREATHER
 from rulehall.engines.loner4e.sheet import Loner4eEntity
 from rulehall.engines.pokemon.world import PokemonGame
+from rulehall.engines.sheet import PLAYER_ID
 
 
-class _UnsavableStore(FileStore):
-    """Overrides `save` alone: `FileStore` is frozen and slotted, so this cannot monkeypatch it."""
+class _UnsavableStore(SaveStore):
+    """Overrides `save` alone: `SaveStore` is frozen and slotted, so this cannot monkeypatch it."""
 
     def write(self, _save_id: str, _state: AnyGame, /) -> None:
         raise OSError("disk is gone")
 
 
 async def test_opening_does_not_save_and_restart_discards_durable_state(tmp_path: Path) -> None:
-    store = FileStore(tmp_path)
+    store = SaveStore(tmp_path)
     game = session(tmp_path)
     assert store.save_ids() == ()
 
-    store.write(TARGET.save_id, game.state.model_copy(update={"notes": ["kept"]}).commit())
+    store.write(KEY.save_id, game.state.model_copy(update={"notes": ["kept"]}).validated())
     assert session(tmp_path).state.notes == ["kept"]
 
     game = session(tmp_path)
     await game.restart()
     assert game.state.notes == []
-    assert store.read(TARGET.save_id) is None
+    assert store.read(KEY.save_id) is None
 
 
 def test_the_player_view_is_built_once_per_saved_state(tmp_path: Path) -> None:
@@ -73,7 +73,7 @@ async def test_rewind_restores_the_state_before_the_last_turn_and_the_saved_file
     state = await play_turn(table, "I wait.", narration="Nothing stirs.")
     assert state != before
 
-    words = await table.service.rewind()
+    words = await table.session.rewind()
 
     assert words == "I wait."
     assert table.state == before
@@ -85,10 +85,10 @@ async def test_a_second_rewind_right_after_the_first_finds_nothing_to_rewind(
 ) -> None:
     table = open_game(tmp_path)
     _ = await play_turn(table, "I wait.", narration="Nothing stirs.")
-    _ = await table.service.rewind()
+    _ = await table.session.rewind()
 
     with pytest.raises(Refusal, match=re.escape(NOTHING_TO_REWIND)):
-        await table.service.rewind()
+        await table.session.rewind()
 
 
 async def test_a_refused_input_leaves_the_rewind_on_the_turn_it_already_held(
@@ -99,10 +99,10 @@ async def test_a_refused_input_leaves_the_rewind_on_the_turn_it_already_held(
     played = await play_turn(table, "I wait.", narration="Nothing stirs.")
 
     with pytest.raises(Refusal):
-        await table.service.play(Answer(option_id="no-such-option"))
+        await table.session.play(PlayerInput(option_id="no-such-option"))
     assert table.state == played
 
-    assert await table.service.rewind() == "I wait."
+    assert await table.session.rewind() == "I wait."
     assert table.state == before
 
 
@@ -110,7 +110,7 @@ async def test_rewind_before_any_turn_finds_nothing_to_rewind(tmp_path: Path) ->
     table = open_game(tmp_path)
 
     with pytest.raises(Refusal, match=re.escape(NOTHING_TO_REWIND)):
-        await table.service.rewind()
+        await table.session.rewind()
 
 
 @pytest.mark.parametrize(
@@ -135,41 +135,41 @@ def test_resume_refuses_a_save_that_is_not_this_game(
     tmp_path: Path, change: dict[str, object], message: str
 ) -> None:
     game = session(tmp_path)
-    FileStore(tmp_path).write(TARGET.save_id, game.state.model_copy(update=change).commit())
+    SaveStore(tmp_path).write(KEY.save_id, game.state.model_copy(update=change).validated())
 
     with pytest.raises(Refusal, match=message):
         session(tmp_path)
 
 
 def test_one_open_game_per_slug(tmp_path: Path) -> None:
-    runtime = Runtime(updated(offline_settings(), saves_dir=tmp_path), spawner=ScriptedSpawner())
-    opened = runtime.session(TARGET)
+    runtime = Runtime(updated(offline_settings(), saves_dir=tmp_path), roles=ScriptedRoles())
+    opened = runtime.session_for(KEY)
 
-    assert runtime.session(TARGET) is opened
+    assert runtime.session_for(KEY) is opened
 
 
 async def test_the_opening_is_narrated_once_and_costs_a_turn(tmp_path: Path) -> None:
     table = open_game(tmp_path)
-    table.spawner.answers["narrator"] = [narrated("The abbot's study holds its breath.")]
+    table.roles.answers["narrator"] = [narrated("The abbot's study holds its breath.")]
 
-    await table.service.open()
+    await table.session.open()
 
-    history = table.service.state.exchanges()
+    history = table.session.state.log_entries()
     assert [exchange.cause for exchange in history] == ["opening"]
     assert len(history) == 1
 
-    await table.service.open()
-    assert len(table.service.state.exchanges()) == 1
+    await table.session.open()
+    assert len(table.session.state.log_entries()) == 1
 
 
 async def test_a_failed_commit_still_frees_the_game(tmp_path: Path) -> None:
     table = open_game(tmp_path)
-    table.service.store = _UnsavableStore(table.service.store.directory)
+    table.session.store = _UnsavableStore(table.session.store.directory)
 
     with pytest.raises(OSError):
         _ = await play_turn(table, "I take the map.")
 
-    assert (table.service.working_role, table.service.turn) == (None, None)
+    assert (table.session.working_role, table.session.turn) == (None, None)
 
 
 def _scene() -> str:
@@ -179,7 +179,7 @@ def _scene() -> str:
             "title": "The Docking Ring, Breached",
             "situation": "A second crew has forced the airlock, and torchlight swings wild "
             "across the dark comm panels while Vessa flattens herself against the bulkhead.",
-            "present": ["vessa-rune", "harl-odum"],
+            "present_ids": ["vessa-rune", "harl-odum"],
             "recap": "The player was keeping watch on the airlock when a second crew broke in.",
         }
     )
@@ -188,8 +188,8 @@ def _scene() -> str:
 async def test_a_complication_writes_and_installs_at_the_same_place(tmp_path: Path) -> None:
     table = open_crew(tmp_path)
     place = table.state.world.scene.place_id
-    here_before = list(table.state.world.scene.here)
-    table.spawner.answers["worldsmith"] = [_scene()]
+    here_before = list(table.state.world.scene.here_ids)
+    table.roles.answers["worldsmith"] = [_scene()]
 
     state = await play_turn(
         table,
@@ -198,13 +198,13 @@ async def test_a_complication_writes_and_installs_at_the_same_place(tmp_path: Pa
         arrival="Torchlight swings wild across the ledgers.",
     )
 
-    exchanges = state.exchanges()
+    exchanges = state.log_entries()
     assert len(exchanges) == 2
     assert exchanges[0].words == "I keep watch on the airlock."
     assert exchanges[1].cause == "story"
     assert state.world.scene.place_id == place
     assert all(entity_id in state.world.cast for entity_id in here_before)
-    assert [role for role, _ in table.spawner.prompts] == ["master", "worldsmith", "narrator"]
+    assert [role for role, _ in table.roles.prompts] == ["master", "worldsmith", "narrator"]
     assert state.request is None
 
 
@@ -220,7 +220,7 @@ async def test_a_failed_write_after_a_complication_leaves_the_turn_committed(
         tool_call("next_scene", complication="A second crew breaches the airlock."),
     )
 
-    exchange = state.exchanges()[-1]
+    exchange = state.log_entries()[-1]
     assert exchange.cause == "story"
     assert exchange.facts[0].card == (
         "Nothing new came down on this place after all. You are still where you were."
@@ -239,8 +239,8 @@ async def test_no_generation_runs_once_the_game_is_over(tmp_path: Path) -> None:
         tool_call("close_scene", reason="resolved"),
     )
 
-    assert table.service.engine.ending(state) is not None
-    assert not any(role == "worldsmith" for role, _ in table.spawner.prompts)
+    assert table.session.engine.ending(state) is not None
+    assert not any(role == "worldsmith" for role, _ in table.roles.prompts)
     assert len(state.world.scenes) == 1
     assert state.request is None
     assert table.saved().request is None
@@ -250,15 +250,15 @@ def test_a_save_never_carries_a_request(tmp_path: Path) -> None:
     game = session(tmp_path)
     draft = game.state.draft()
     draft.request = WorldsmithRequest(kind="complication", detail="A crew breaks in.")
-    FileStore(tmp_path).write(TARGET.save_id, draft)
+    SaveStore(tmp_path).write(KEY.save_id, draft)
 
-    assert "request" not in json.loads(FileStore(tmp_path).read(TARGET.save_id) or "")
+    assert "request" not in json.loads(SaveStore(tmp_path).read(KEY.save_id) or "")
 
 
 async def test_two_concurrent_plays_on_different_sessions_cannot_both_open_a_turn(
     tmp_path: Path,
 ) -> None:
-    spawner = ScriptedSpawner()
+    roles = ScriptedRoles()
     gate = Event()
 
     async def hold_master(role: Role, prompt: str) -> None:
@@ -266,26 +266,26 @@ async def test_two_concurrent_plays_on_different_sessions_cannot_both_open_a_tur
         if role == "master":
             await gate.wait()
 
-    spawner.hooks.append(hold_master)
-    runtime = Runtime(updated(offline_settings(), saves_dir=tmp_path), spawner=spawner)
-    first = runtime.session(TARGET)
-    second = runtime.session(
-        LaunchTarget(scenario_id=scenario_for(TWENTYFOURXX), character_id="kael")
+    roles.hooks.append(hold_master)
+    runtime = Runtime(updated(offline_settings(), saves_dir=tmp_path), roles=roles)
+    first = runtime.session_for(KEY)
+    second = runtime.session_for(
+        SavedGameKey(scenario_id=scenario_for(TWENTYFOURXX), character_id="kael")
     )
-    spawner.turns.append(lambda: None)
-    spawner.answers["narrator"] = [narrated("You wait.")]
+    roles.turns.append(lambda: None)
+    roles.answers["narrator"] = [narrated("You wait.")]
 
-    first_play = create_task(first.play(Answer(text="I wait.")))
+    first_play = create_task(first.play(PlayerInput(text="I wait.")))
     await sleep(0)
 
     with pytest.raises(Refusal, match=re.escape(IN_FLIGHT_ELSEWHERE)):
-        await second.play(Answer(text="I wait."))
+        await second.play(PlayerInput(text="I wait."))
     assert runtime.gate.status()["busy"]
 
     gate.set()
     await first_play
 
-    assert len(first.state.exchanges()) == 1
+    assert len(first.state.log_entries()) == 1
     assert runtime.gate.status()["busy"] is False
 
 
@@ -294,18 +294,18 @@ async def test_a_composer_option_the_page_no_longer_offers_is_refused(tmp_path: 
     before = table.state
 
     with pytest.raises(Refusal, match="the page changed"):
-        await table.service.use_composer_option(TAKE_BREATHER, "I rest by the fire.")
+        await table.session.use_composer_option(TAKE_BREATHER, "I rest by the fire.")
 
     assert table.state is before
-    assert table.spawner.prompts == []
+    assert table.roles.prompts == []
 
 
 async def test_a_team_page_option_applies_at_once_with_no_turn(tmp_path: Path) -> None:
     table = open_table(tmp_path, engine_id=POKEMON, state_type=PokemonGame)
     draft = table.state.draft()
     draft.world.player.require_sheet().add("oran-berry", 1)
-    table.service.save(draft.commit())
-    panels = table.service.player_view().panels
+    table.session.save(draft.validated())
+    panels = table.session.player_view().panels
     option = next(
         option
         for panel in panels
@@ -314,13 +314,13 @@ async def test_a_team_page_option_applies_at_once_with_no_turn(tmp_path: Path) -
         if option.args == {"mon_id": "charmander", "item_id": "oran-berry"}
     )
 
-    await table.service.use_panel_option(option)
+    await table.session.use_panel_option(option)
 
     sheet = table.state.world.player.require_sheet()
     assert sheet.require_mon("charmander").item_id == "oran-berry"
     assert "oran-berry" not in sheet.bag
-    assert table.state.exchanges()[-1].words == option.name
-    assert table.spawner.prompts == []
+    assert table.state.log_entries()[-1].words == option.name
+    assert table.roles.prompts == []
 
 
 async def test_a_team_page_option_that_opens_a_decision_records_it(tmp_path: Path) -> None:
@@ -330,8 +330,8 @@ async def test_a_team_page_option_that_opens_a_decision_records_it(tmp_path: Pat
     charmander.level = 12
     charmander.exp = 12**3
     charmander.learn("smokescreen")
-    table.service.save(draft.commit())
-    panels = table.service.player_view().panels
+    table.session.save(draft.validated())
+    panels = table.session.player_view().panels
     option = next(
         option
         for panel in panels
@@ -340,17 +340,17 @@ async def test_a_team_page_option_that_opens_a_decision_records_it(tmp_path: Pat
         if option.args == {"mon_id": "charmander", "move_id": "dragonbreath"}
     )
 
-    await table.service.use_panel_option(option)
+    await table.session.use_panel_option(option)
 
     pending = table.state.pending
     assert pending is not None
     assert pending.kind == "new-move"
-    assert table.state.exchanges()[-1].decision == pending.prompt
+    assert table.state.log_entries()[-1].decision == pending.prompt
 
 
 async def test_an_option_with_a_refusal_is_shown_but_never_runs(tmp_path: Path) -> None:
     table = open_table(tmp_path, engine_id=POKEMON, state_type=PokemonGame)
-    panels = table.service.player_view().panels
+    panels = table.session.player_view().panels
     option = next(
         option
         for panel in panels
@@ -361,8 +361,8 @@ async def test_an_option_with_a_refusal_is_shown_but_never_runs(tmp_path: Path) 
     assert option.refusal
 
     with pytest.raises(Refusal):
-        await table.service.use_panel_option(option)
-    assert table.state.exchanges() == ()
+        await table.session.use_panel_option(option)
+    assert table.state.log_entries() == ()
 
 
 async def test_the_debrief_prompt_holds_no_hidden_entity_and_no_untold_fact(
@@ -372,8 +372,8 @@ async def test_the_debrief_prompt_holds_no_hidden_entity_and_no_untold_fact(
     hidden = Loner4eEntity(id="the-lurker", name="The Lurker", brief="It waits.", known=False)
     draft = with_entity(table.state, hidden).draft()
     facts = (Fact(trace="The door creaks.", told=True), Fact(trace="A trap arms below."))
-    table.service.save(table.service.engine.record(draft, (), facts, words="I open the door."))
-    table.spawner.answers["narrator"] = [
+    table.session.save(table.session.engine.record(draft, (), facts, words="I open the door."))
+    table.roles.answers["narrator"] = [
         json.dumps(
             {
                 "story_so_far": "You came to the vault.",
@@ -384,9 +384,9 @@ async def test_the_debrief_prompt_holds_no_hidden_entity_and_no_untold_fact(
         )
     ]
 
-    debrief = await table.service.debrief()
+    debrief = await table.session.debrief()
 
-    prompt = table.spawner.prompt("narrator")
+    prompt = table.roles.prompt("narrator")
     assert "The door creaks." in prompt
     assert "The Lurker" not in prompt
     assert "A trap arms below." not in prompt

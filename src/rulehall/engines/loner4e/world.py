@@ -1,23 +1,15 @@
 from collections.abc import Mapping, Sequence
 from random import Random
-from typing import Annotated, Self, cast
+from typing import Annotated, Self
 
 from pydantic import BeforeValidator, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 from rulehall.core.facts import DiceEvent, Fact, Rolled, roll
-from rulehall.core.model import Game
-from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, listed
+from rulehall.core.game import Game
+from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, as_tuple
 from rulehall.core.views import Rows
 from rulehall.engines.args import BE_SHORT
-from rulehall.engines.entities import (
-    IS_DEAD,
-    Gauge,
-    OpeningProposal,
-    changed_tags,
-    tag_card,
-    tag_delta,
-)
 from rulehall.engines.loner4e.rules import (
     DIE_FACE,
     DOUBLES_PER_TWIST,
@@ -37,11 +29,13 @@ from rulehall.engines.loner4e.rules import (
 )
 from rulehall.engines.loner4e.sheet import Loner4eEntity, StatusTrack, TagName, Tags
 from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
+from rulehall.engines.sheet import Gauge, changed_tags, tag_card, tag_delta
+from rulehall.engines.world import IS_DEAD
 
-SCENE_CLOSED = "the scene has closed: change nothing more in it. Call `direct` now."
+SCENE_CLOSED = "the scene has closed: change nothing more in it; call `direct` now"
 NO_SUCH_TAG = (
-    "no such tag here: {missing}. Cite exact tags from SCENE, the sheet or who is here, or cite "
-    "none."
+    "no such tag here: {missing}; cite exact tags from SCENE, the sheet or who is here, or cite "
+    "none"
 )
 ENDING_ASKS_NOTHING = "the adventure is ending: ask nothing; write the growth"
 FILED = (
@@ -68,17 +62,17 @@ class Framing(Frozen):
         description="Two to four tags on the place, such as `Slick Cobbles` or `Crowded "
         f"Market`. The player reads them. {BE_SHORT}",
     )
-    hidden: SkipJsonSchema[tuple[()]] = ()
+    hidden_ids: SkipJsonSchema[tuple[()]] = ()
 
 
-class Loner4eOpening(Framing, SceneProposal[Loner4eEntity]):
+class Loner4eOpeningProposal(Framing, SceneProposal[Loner4eEntity]):
     @model_validator(mode="after")
     def _scene_id_unfiled(self) -> Self:
         _check_scene_id_unfiled(self.cast)
         return self
 
 
-class Loner4eNext(Framing, NextProposal[Loner4eEntity]):
+class Loner4eNextProposal(Framing, NextProposal[Loner4eEntity]):
     @model_validator(mode="after")
     def _scene_id_unfiled(self) -> Self:
         _check_scene_id_unfiled(self.cast)
@@ -86,7 +80,7 @@ class Loner4eNext(Framing, NextProposal[Loner4eEntity]):
 
 
 class TagChange(Frozen):
-    gained: Annotated[tuple[TagName, ...], BeforeValidator(listed)] = Field(
+    gained: Annotated[tuple[TagName, ...], BeforeValidator(as_tuple)] = Field(
         default=(), description=f"Tags gained, in title case, such as `Rusty Key`. {BE_SHORT}"
     )
     lost: Tags = Field(default=(), description="Exact tags lost, removed, or used up.")
@@ -110,7 +104,7 @@ class CastUpdate(TagChange):
     )
 
 
-class Loner4eMeanwhile(Frozen):
+class Loner4eMeanwhileProposal(Frozen):
     power: tuple[CastUpdate, ...] = Field(
         default=(),
         description="The new tags of whoever holds power over the situation: the antagonist, a "
@@ -121,7 +115,7 @@ class Loner4eMeanwhile(Frozen):
         description="On a yes only: the new tags of the NPC most affected by recent events, an "
         "ally or a wildcard. Null on a no: allies hold."
     )
-    scene: Loner4eNext | None = Field(
+    scene: Loner4eNextProposal | None = Field(
         description="The next scene when the request asks for a dramatic one; null when it asks "
         "for no scene."
     )
@@ -131,7 +125,34 @@ class Loner4eMeanwhile(Frozen):
         return (*self.power, *(() if self.ally is None else (self.ally,)))
 
 
-class Consulted(Frozen):
+class Fate(Frozen):
+    entity_id: Slug = Field(description="Exact id of an NPC the player has met.")
+    line: str = Field(
+        min_length=1,
+        description="How the relationship stands, what they want now, gone or still in play. "
+        "Leave out their name: the engine writes it.",
+    )
+
+
+class LivingWorldProposal(Frozen):
+    people: tuple[Fate, ...] = Field(description="For each NPC who mattered, one entry.")
+    places: tuple[str, ...] = Field(
+        description="For each location that featured, one line: what changed there, and "
+        "whether it stays accessible, dangerous or relevant."
+    )
+    events: tuple[str, ...] = Field(
+        description="For each event, thread or faction that mattered, one line: settled or "
+        "still hanging, and the pressure it keeps on the world."
+    )
+
+    @model_validator(mode="after")
+    def _one_line_at_least(self) -> Self:
+        if not (self.people or self.places or self.events):
+            raise ValueError("write at least one line")
+        return self
+
+
+class OracleRoll(Frozen):
     question: str
     position: Position
     outcome: RollOutcome
@@ -222,15 +243,14 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
     grown: bool = Field(default=False, exclude=True)
 
     @model_validator(mode="after")
-    def _scene_id_reserved(self) -> Self:
-        if SCENE_ID in self.cast:
-            raise ValueError(f"the cast id {SCENE_ID!r} names the scene")
+    def _scene_id_unfiled(self) -> Self:
+        _check_scene_id_unfiled(self.cast)
         return self
 
-    def absorb(self, proposal: OpeningProposal) -> None:
-        # Safe: the engine writes only this proposal type.
-        framing = cast(Framing, proposal)
-        self.frame = Frame(kind=self.frame.coming, goal=framing.goal, details=list(framing.details))
+    def apply_proposal_extras(self, proposal: Framing) -> None:
+        self.frame = Frame(
+            kind=self.frame.coming, goal=proposal.goal, details=list(proposal.details)
+        )
 
     def close(self, reason: ClosedBy, rng: Random) -> list[Fact]:
         frame = self.frame
@@ -279,7 +299,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         rng: Random,
         *,
         settle: bool = True,
-    ) -> Consulted:
+    ) -> OracleRoll:
         if self.end_why:
             raise Refusal(ENDING_ASKS_NOTHING)
         self.require_open()
@@ -287,7 +307,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
 
     def _roll_oracle(
         self, question: str, position: Position, rng: Random, *, settle: bool = True
-    ) -> Consulted:
+    ) -> OracleRoll:
         chance_faces, risk_faces = faces_for(position)
         chance = roll(
             chance_faces, f"{question} — chance", rng, label="Chance", highlight_kept=True
@@ -297,7 +317,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         if settle:
             self.settle(question, outcome.wording)
         counted = outcome.doubles and not self.opponent_ids
-        return Consulted(
+        return OracleRoll(
             question=question,
             position=position,
             outcome=outcome,
@@ -307,7 +327,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         )
 
     def roll_twist(
-        self, consulted: Consulted, rng: Random
+        self, consulted: OracleRoll, rng: Random
     ) -> tuple[tuple[str, str], list[Fact]] | None:
         if not consulted.twist_due:
             return None
@@ -322,16 +342,16 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         )
         return (subject, action), [rolled.fact, card]
 
-    def cut_to(self, update: CastUpdate) -> list[Fact]:
+    def apply_offscreen_update(self, update: CastUpdate) -> list[Fact]:
         entity = self.require(update.entity_id)
-        if entity is self.player or entity.id in self.party:
+        if entity is self.player or entity.id in self.party_ids:
             raise Refusal(f"{entity.name} is the protagonist or travels with them, not off screen")
         if not entity.alive:
             raise Refusal(IS_DEAD.format(name=entity.name))
         return entity.change_tags(update.kind, update.gained, update.lost)
 
-    def cut_away(self, updates: Sequence[CastUpdate]) -> list[Fact]:
-        facts = [fact for update in updates for fact in self.cut_to(update)]
+    def apply_offscreen_updates(self, updates: Sequence[CastUpdate]) -> list[Fact]:
+        facts = [fact for update in updates for fact in self.apply_offscreen_update(update)]
         self.frame.offscreen = "; ".join(fact.card for fact in facts)
         if not facts:
             return []
@@ -359,13 +379,19 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         if missing := [tag for tag in (*helps, *hinders) if tag.casefold() not in carried]:
             raise Refusal(NO_SUCH_TAG.format(missing=missing))
 
-    def take_question(self) -> str:
+    def living_world_lines(self, living_world: LivingWorldProposal) -> tuple[str, ...]:
+        people = (
+            f"{self.require(fate.entity_id).name}: {fate.line}" for fate in living_world.people
+        )
+        return (*people, *living_world.places, *living_world.events)
+
+    def pop_player_question(self) -> str:
         question, self.player_question = self.player_question, ""
         return question
 
-    def met_here(self, entity_id: Slug) -> tuple[Loner4eEntity, list[Fact]]:
-        known = self._known_id(entity_id)
-        if known is not None and (known == self.player.id or known in self.scene.here):
+    def here_or_entering(self, entity_id: Slug) -> tuple[Loner4eEntity, list[Fact]]:
+        known = self._find_known_id(entity_id)
+        if known is not None and (known == self.player.id or known in self.scene.here_ids):
             return self.require_living_here(known), []
         facts = self.enter(entity_id)
         return self.require_living_here(entity_id if known is None else known), facts
@@ -385,7 +411,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         return "\n".join(
             f"- {entry.tag}" + (f" — {entry.concept}" if entry.concept else "")
             for entry in self.cast.values()
-            if entry.alive and entry.id not in self.scene.here
+            if entry.alive and entry.id not in self.scene.here_ids
         )
 
     def sheet_rows(self) -> Rows:
@@ -397,9 +423,9 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         self.twist.current = 0 if reached == DOUBLES_PER_TWIST else reached
         return reached
 
-    def face(self, opponent: Loner4eEntity) -> list[Fact]:
+    def engage(self, opponent: Loner4eEntity) -> list[Fact]:
         if opponent.id in self.opponent_ids:
-            # Last in the list is the one fought last: an `ask` with no `against_id` faces them.
+            # Last in the list is the one fought last: an `ask` with no `opponent_id` engages them.
             self.opponent_ids.remove(opponent.id)
             self.opponent_ids.append(opponent.id)
             return []
@@ -454,7 +480,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
 
     def enter(self, entity_id: Slug) -> list[Fact]:
         self.require_open()
-        known = self._known_id(entity_id)
+        known = self._find_known_id(entity_id)
         if known is not None:
             return super().enter(known)
         others = ", ".join(entry.tag for entry in self.cast.values() if entry.alive)
@@ -464,12 +490,12 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
 
     def leave(self, entity_id: Slug) -> list[Fact]:
         self.require_open()
-        known = self._known_id(entity_id) or entity_id
-        if known not in self.scene.here:
+        known = self._find_known_id(entity_id) or entity_id
+        if known not in self.scene.here_ids:
             return []
         return [*super().leave(known), *self.drop_opponent(known)]
 
-    def _known_id(self, entity_id: Slug) -> Slug | None:
+    def _find_known_id(self, entity_id: Slug) -> Slug | None:
         if entity_id in self.cast or entity_id == self.player.id:
             return entity_id
         found = [key for key in self.cast if f"-{entity_id}-" in f"-{key}-"]

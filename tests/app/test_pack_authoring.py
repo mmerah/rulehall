@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 from pydantic import JsonValue
-from support.table import LONER4E, ScriptedSpawner, narrowed, offline_settings
+from support.table import LONER4E, ScriptedRoles, narrowed, offline_settings
 
 from rulehall.app.runtime import Runtime
 from rulehall.core.validation import Refusal
@@ -83,21 +83,21 @@ async def test_a_written_pack_lands_on_disk_and_in_the_running_engine(tmp_path: 
 
     assert pack_id == "salt-and-ash"
     assert (tmp_path / "packs" / "loner4e" / "salt-and-ash.json").is_file()
-    pack = narrowed(runtime.engines[LONER4E].packs.written[pack_id], Loner4ePack)
+    pack = narrowed(runtime.engines[LONER4E].packs.installed[pack_id], Loner4ePack)
     assert [option.id for option in pack.skills[:2]] == ["reads-the-tide", "holds-their-breath"]
-    assert pack.source.startswith("written in this app")
+    assert pack.origin.startswith("written in this app")
 
 
 async def test_a_head_whose_label_makes_no_id_is_re_prompted_with_the_reason(
     tmp_path: Path,
 ) -> None:
     unnamed = _head(skills=[{"name": "???"}, *SKILLS[1:]])
-    runtime, spawner = _runtime(tmp_path, [unnamed, _head(), _body()])
+    runtime, roles = _runtime(tmp_path, [unnamed, _head(), _body()])
 
     pack_id = await runtime.new_pack(LONER4E, "Salt and Ash", PREMISE, None, "")
 
-    assert "makes no id" in spawner.prompts[1][1]
-    assert pack_id in runtime.engines[LONER4E].packs.written
+    assert "makes no id" in roles.prompts[1][1]
+    assert pack_id in runtime.engines[LONER4E].packs.written_ids
 
 
 async def test_a_body_that_never_lands_leaves_no_pack_written(tmp_path: Path) -> None:
@@ -108,13 +108,13 @@ async def test_a_body_that_never_lands_leaves_no_pack_written(tmp_path: Path) ->
         _ = await runtime.new_pack(LONER4E, "Salt and Ash", PREMISE, None, "")
 
     assert not (tmp_path / "packs").exists()
-    assert runtime.engines[LONER4E].packs.written == {}
+    assert runtime.engines[LONER4E].packs.written_ids == frozenset()
 
 
-def _runtime(tmp_path: Path, answers: list[str]) -> tuple[Runtime, ScriptedSpawner]:
+def _runtime(tmp_path: Path, answers: list[str]) -> tuple[Runtime, ScriptedRoles]:
     settings = offline_settings(tmp_path).model_copy(update={"packs_dir": tmp_path / "packs"})
-    spawner = ScriptedSpawner(answers={"worldsmith": answers})
-    return Runtime(settings, spawner=spawner), spawner
+    roles = ScriptedRoles(answers={"worldsmith": answers})
+    return Runtime(settings, roles=roles), roles
 
 
 def _head(**changes: JsonValue) -> str:

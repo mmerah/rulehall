@@ -1,4 +1,4 @@
-from collections.abc import Collection, Iterable, Iterator
+from collections.abc import Collection, Iterable, Iterator, Mapping
 from typing import ClassVar, Self
 
 from pydantic import Field, model_validator
@@ -6,27 +6,19 @@ from pydantic import Field, model_validator
 from rulehall.core.facts import Fact
 from rulehall.core.prompt import lines_of
 from rulehall.core.validation import Mutable, Refusal, Slug, check_unique, parse
-from rulehall.engines.entities import (
-    IS_DEAD,
-    PLAYER_ID,
-    UNKNOWN_ID,
-    OpeningProposal,
-    Person,
-    Thing,
-    World,
-    check_filing,
-)
+from rulehall.engines.sheet import PLAYER_ID, Entity, Person
+from rulehall.engines.world import IS_DEAD, UNKNOWN_ID, OpeningProposal, World, check_filing
 
 
 class Dweller(Person):
     place_id: Slug
 
 
-class Prop(Thing):
+class Item(Entity):
     holder_id: Slug
 
 
-class Place(Thing):
+class Place(Entity):
     description: str = Field(min_length=1)
 
 
@@ -38,11 +30,11 @@ class Way(Mutable):
     locked: bool = False
 
 
-class Dungeon[N: Dweller](Mutable):
+class RoomMap[P: Dweller](Mutable):
     places: dict[Slug, Place] = Field(default_factory=dict)
     ways: dict[Slug, list[Way]] = Field(default_factory=dict)
-    npcs: dict[Slug, N] = Field(default_factory=dict)
-    items: dict[Slug, Prop] = Field(default_factory=dict)
+    npcs: dict[Slug, P] = Field(default_factory=dict)
+    items: dict[Slug, Item] = Field(default_factory=dict)
     arc: str = Field(
         default="",
         description="The truth behind this map: secrets, what can come, and what ties one "
@@ -79,11 +71,11 @@ class Dungeon[N: Dweller](Mutable):
                     raise ValueError(f"a way from {from_id!r} cannot lead back to itself")
         return self
 
-    def entity(self, entity_id: Slug) -> Person | Prop | Place | None:
+    def find_entity(self, entity_id: Slug) -> Person | Item | Place | None:
         return self.places.get(entity_id) or self.npcs.get(entity_id) or self.items.get(entity_id)
 
-    def require(self, entity_id: Slug) -> Person | Prop | Place:
-        entity = self.entity(entity_id)
+    def require(self, entity_id: Slug) -> Person | Item | Place:
+        entity = self.find_entity(entity_id)
         if entity is None:
             raise Refusal(UNKNOWN_ID.format(entity_id=entity_id))
         return entity
@@ -94,16 +86,16 @@ class Dungeon[N: Dweller](Mutable):
             raise Refusal(f"{entity_id!r} is not a place")
         return entity
 
-    def way(self, from_id: Slug, to_id: Slug) -> Way | None:
+    def find_way(self, from_id: Slug, to_id: Slug) -> Way | None:
         return next((way for way in self.ways.get(from_id, ()) if way.to_id == to_id), None)
 
-    def at(self, place_id: Slug) -> Iterator[N]:
+    def at(self, place_id: Slug) -> Iterator[P]:
         return (npc for npc in self.npcs.values() if npc.place_id == place_id)
 
-    def carried(self, holder_id: Slug) -> Iterator[Prop]:
+    def carried(self, holder_id: Slug) -> Iterator[Item]:
         return (item for item in self.items.values() if item.holder_id == holder_id)
 
-    def things_at(self, place_id: Slug) -> Iterator[N | Prop]:
+    def entities_at(self, place_id: Slug) -> Iterator[P | Item]:
         npcs = list(self.at(place_id))
         yield from npcs
         for holder in (place_id, *(npc.id for npc in npcs)):
@@ -136,7 +128,7 @@ class Dungeon[N: Dweller](Mutable):
         self.ways.setdefault(from_id, []).append(Way(to_id=to_id, known=known))
 
 
-class MapProposal[N: Dweller](Dungeon[N], OpeningProposal):
+class MapProposal[P: Dweller](RoomMap[P], OpeningProposal):
     start_id: Slug = Field(description="Exact id of the place this map starts from.")
 
     def premise(self) -> str:
@@ -144,7 +136,7 @@ class MapProposal[N: Dweller](Dungeon[N], OpeningProposal):
         return "" if start is None else start.description
 
 
-class RegionProposal[N: Dweller](MapProposal[N]):
+class RegionProposal[P: Dweller](MapProposal[P]):
     recap: str = Field(
         min_length=1,
         description="One paragraph on the part of the map the player leaves behind: what the "
@@ -152,28 +144,27 @@ class RegionProposal[N: Dweller](MapProposal[N]):
     )
 
 
-class RoomWorld[N: Dweller](Dungeon[N], World[N]):
+class RoomWorld[P: Dweller](RoomMap[P], World[P]):
     meanwhile_every: ClassVar[int]
 
-    visits: list[Slug] = Field(min_length=1)
+    visited_place_ids: list[Slug] = Field(min_length=1)
     turns_since_meanwhile: int = Field(default=0, ge=0)
     meanwhile_due: bool = False
 
-    def people(self) -> Iterable[N]:
-        return (self.player, *self.npcs.values())
-
     @model_validator(mode="after")
     def _playable(self) -> Self:
-        for place_id in self.visits:
+        for place_id in self.visited_place_ids:
             self.require_place(place_id)
-        for member_id in self.party:
+        for member_id in self.party_ids:
             npc = self.npcs[member_id]
             if npc.place_id != self.current.id:
                 raise ValueError(f"{member_id!r} travels with the player but is not at their place")
         return self
 
     @classmethod
-    def opening(cls, proposal: MapProposal[N], player: N, items: Iterable[Prop]) -> Self:
+    def opening(
+        cls, proposal: MapProposal[P], player: P, items: Iterable[Item], **extra_fields: object
+    ) -> Self:
         return parse(
             cls,
             {
@@ -182,36 +173,35 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
                 "npcs": proposal.npcs,
                 "items": {**proposal.items, **{item.id: item for item in items}},
                 "player": player,
-                "visits": [proposal.start_id],
+                "visited_place_ids": [proposal.start_id],
+                **extra_fields,
             },
         )
 
     @property
     def current(self) -> Place:
-        return self.places[self.visits[-1]]
+        return self.places[self.visited_place_ids[-1]]
 
     def frontier(self) -> int:
         return sum(
             not self.require_place(place_id).known for place_id in self.reachable(self.current.id)
         )
 
-    def entity(self, entity_id: Slug) -> Person | Prop | Place | None:
-        return self.player if entity_id == self.player.id else super().entity(entity_id)
+    def find_entity(self, entity_id: Slug) -> Person | Item | Place | None:
+        return self.player if entity_id == self.player.id else super().find_entity(entity_id)
 
-    def party_members(self) -> list[N]:
-        return [self.npcs[member_id] for member_id in self.party]
+    @property
+    def roster(self) -> Mapping[Slug, P]:
+        return self.npcs
 
-    def person_of(self, person_id: Slug) -> N | None:
-        return self.npcs.get(person_id)
-
-    def here(self) -> Iterator[N]:
+    def here(self) -> Iterator[P]:
         yield self.player
         yield from self.at(self.current.id)
 
     def holders_here(self) -> set[Slug]:
         return {self.current.id, *(entity.id for entity in self.here())}
 
-    def require_dweller(self, entity_id: Slug) -> N:
+    def require_dweller(self, entity_id: Slug) -> P:
         npc = self.npcs.get(entity_id)
         if npc is None:
             raise Refusal(UNKNOWN_ID.format(entity_id=entity_id))
@@ -219,29 +209,29 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
             raise Refusal(IS_DEAD.format(name=npc.name))
         return npc
 
-    def require_prop(self, item_id: Slug) -> Prop:
+    def require_item(self, item_id: Slug) -> Item:
         item = self.items.get(item_id)
         if item is None:
             raise Refusal(UNKNOWN_ID.format(entity_id=item_id))
         return item
 
-    def require_person_here(self, entity_id: Slug) -> N:
+    def require_person_here(self, entity_id: Slug) -> P:
         npc = self.require_dweller(entity_id)
         if npc.place_id != self.current.id or not npc.known:
             raise Refusal(f"{npc.name} is not here with the player")
         return npc
 
-    def require_item_here(self, item_id: Slug) -> Prop:
+    def require_item_here(self, item_id: Slug) -> Item:
         item = self.require(item_id)
-        if not isinstance(item, Prop):
+        if not isinstance(item, Item):
             raise Refusal(f"{item_id!r} is not an item")
         if item.holder_id not in self.holders_here():
             raise Refusal(f"{item.name} is not here with the player")
         return item
 
-    def carried_items(self, holder: Person, item_ids: tuple[Slug, ...]) -> tuple[Prop, ...]:
+    def carried_items(self, holder: Person, item_ids: tuple[Slug, ...]) -> tuple[Item, ...]:
         check_unique("items", item_ids)
-        items: list[Prop] = []
+        items: list[Item] = []
         for item_id in item_ids:
             item = self.items.get(item_id)
             if item is None or item.holder_id != holder.id or not item.known:
@@ -261,13 +251,13 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
 
     def _open_way(self, way: Way, destination: Place) -> None:
         way.known = True
-        if (back := self.way(destination.id, self.current.id)) is not None:
+        if (back := self.find_way(destination.id, self.current.id)) is not None:
             back.known = True
 
     def move(self, to_id: Slug, with_ids: tuple[Slug, ...]) -> list[Fact]:
         here = self.current
         destination = self.require_place(to_id)
-        way = self.way(here.id, destination.id)
+        way = self.find_way(here.id, destination.id)
         if way is None:
             options = ", ".join(
                 self.require_place(other.to_id).name for other in self.ways.get(here.id, ())
@@ -281,12 +271,12 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
         self._open_way(way, destination)
         facts = destination.reveal()
         check_unique("with_ids", with_ids)
-        coming: list[N] = []
+        coming: list[P] = []
         for npc_id in with_ids:
             if npc_id == self.player.id:
                 raise Refusal("the player already comes along")
             npc = self.require_person_here(npc_id)
-            if npc.id in self.party:
+            if npc.id in self.party_ids:
                 raise Refusal(
                     f"{npc.name} travels with the player and comes along without with_ids"
                 )
@@ -294,7 +284,7 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
         travelers = [*self.party_members(), *coming]
         for npc in travelers:
             npc.place_id = destination.id
-        self.visits.append(destination.id)
+        self.visited_place_ids.append(destination.id)
         trace = f"the player arrives at {destination.mention}"
         if travelers:
             names = " and ".join(npc.name for npc in travelers)
@@ -306,14 +296,14 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
     def unlock_way(self, to_id: Slug) -> list[Fact]:
         here = self.current
         destination = self.require_place(to_id)
-        way = self.way(here.id, destination.id)
+        way = self.find_way(here.id, destination.id)
         if way is None:
             raise Refusal(f"no way leads from {here.name} to {destination.name}")
         if not way.locked:
             raise Refusal(f"the way from {here.name} to {destination.name} is not locked")
         way.locked = False
         self._open_way(way, destination)
-        if (back := self.way(destination.id, here.id)) is not None:
+        if (back := self.find_way(destination.id, here.id)) is not None:
             back.locked = False
         trace = f"the way from {here.mention} to {destination.mention} is unlocked"
         card = f"{destination.name} unlocked"
@@ -325,37 +315,41 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
             entity.place_id
             if isinstance(entity, Dweller)
             else entity.holder_id
-            if isinstance(entity, Prop)
+            if isinstance(entity, Item)
             else None
         )
         if location not in self.holders_here():
             raise Refusal(f"{entity.name} is not here with the player")
-        found = "found" if isinstance(entity, Prop) else "discovered"
+        found = "found" if isinstance(entity, Item) else "discovered"
         if entity.known:
             raise Refusal(f"the player has already {found} {entity.name}")
         return entity.reveal(card=f"{entity.name} {found}")
 
-    def move_item(self, item_id: Slug, to_id: Slug) -> list[Fact]:
+    def move_item(self, item_id: Slug, holder_id: Slug) -> list[Fact]:
         item = self.require_item_here(item_id)
-        if to_id != self.player.id and to_id != self.current.id:
-            npc = next((other for other in self.here() if other.id == to_id and other.alive), None)
+        if holder_id != self.player.id and holder_id != self.current.id:
+            npc = next(
+                (other for other in self.here() if other.id == holder_id and other.alive), None
+            )
             if npc is None:
                 raise Refusal(
-                    f"{to_id!r} cannot hold {item.name}; give the player, a living npc here, or "
-                    "this place"
+                    f"{holder_id!r} cannot hold {item.name}; give the player, a living npc here, "
+                    "or this place"
                 )
-        holder = self.require(to_id)
+        holder = self.require(holder_id)
         if not holder.known:
             raise Refusal(f"the player has not met {holder.name}; reveal them first")
-        if item.holder_id == to_id:
+        if item.holder_id == holder_id:
             raise Refusal(f"{item.name} is already there")
         facts = item.reveal()
-        item.holder_id = to_id
-        card = f"Took {item.name}" if to_id == self.player.id else f"{item.name} → {holder.name}"
+        item.holder_id = holder_id
+        card = (
+            f"Took {item.name}" if holder_id == self.player.id else f"{item.name} → {holder.name}"
+        )
         trace = f"{item.mention} moves to {holder.mention}"
         return [*facts, item.fact(trace, card=card)]
 
-    def offscreen_place(self, place_id: Slug) -> Place:
+    def require_offscreen_place(self, place_id: Slug) -> Place:
         away = self.elsewhere()
         found = next((place for place in away if place.id == place_id), None)
         if found is None:
@@ -363,17 +357,17 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
             raise Refusal(f"{place_id!r} is not a place the player has walked away from: {options}")
         return found
 
-    def walk_offscreen(self, npc: N, place: Place) -> Fact:
+    def walk_offscreen(self, npc: P, place: Place) -> Fact:
         if npc.place_id == self.current.id:
             raise Refusal(f"{npc.name} stands with the player; that is not offscreen")
-        walked = self.way(npc.place_id, place.id)
+        walked = self.find_way(npc.place_id, place.id)
         if walked is None or walked.locked:
             origin = self.require_place(npc.place_id).name
             raise Refusal(f"no unlocked way leads from {origin} to {place.name}")
         npc.place_id = place.id
         return Fact(trace=f"{npc.name} walks to {place.name}")
 
-    def drift_item(self, item: Prop, place: Place) -> Fact:
+    def drift_item(self, item: Item, place: Place) -> Fact:
         if item.holder_id in self.holders_here():
             raise Refusal(f"{item.name} is here with the player")
         if item.holder_id == place.id:
@@ -384,7 +378,7 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
     def shut_way(self, start: Place, end: Place) -> Fact:
         if self.current.id in (start.id, end.id):
             raise Refusal("a way at the player's place cannot shut offscreen")
-        shut = self.way(start.id, end.id)
+        shut = self.find_way(start.id, end.id)
         if shut is None:
             raise Refusal(f"no way leads from {start.name} to {end.name}")
         if shut.locked:
@@ -392,12 +386,12 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
         if not shut.known:
             raise Refusal(f"the player has not found the way from {start.name} to {end.name}")
         shut.locked = True
-        if (back := self.way(end.id, start.id)) is not None:
+        if (back := self.find_way(end.id, start.id)) is not None:
             back.locked = True
         return Fact(trace=f"the way from {start.name} to {end.name} shuts")
 
     def kill(self, entity_id: Slug) -> list[Fact]:
-        actor: N = (
+        actor: P = (
             self.player if entity_id == self.player.id else self.require_person_here(entity_id)
         )
         card = self.die(actor)
@@ -411,7 +405,7 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
         facts.append(actor.fact(f"{actor.mention} is dead", card=card))
         return facts
 
-    def attach(self, region: Dungeon[N], start_id: Slug) -> None:
+    def attach(self, region: RoomMap[P], start_id: Slug) -> None:
         """No check runs here: every caller refuses first, so a refused region leaves it alone."""
         anchor_id = self.current.id
         self.places.update(region.places)
@@ -423,17 +417,19 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
         self.add_way(anchor_id, start_id, known=False)
         self.add_way(start_id, anchor_id, known=False)
 
-    def line(self, entity: N | Prop) -> str:
+    def line(self, entity: P | Item) -> str:
         return entity.line(rows=self.sheet_rows()) if entity.id == self.player.id else entity.line()
 
-    def others(self) -> Iterator[N]:
-        return (npc for npc in self.at(self.current.id) if npc.known and npc.id not in self.party)
+    def others(self) -> Iterator[P]:
+        return (
+            npc for npc in self.at(self.current.id) if npc.known and npc.id not in self.party_ids
+        )
 
     def place_lines(self, *, known: bool) -> str:
         return lines_of(
             self.line(entity)
-            for entity in self.things_at(self.current.id)
-            if entity.known == known and entity.id not in self.party
+            for entity in self.entities_at(self.current.id)
+            if entity.known == known and entity.id not in self.party_ids
         )
 
     def ways_lines(self) -> str:
@@ -449,9 +445,9 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
 
     def _offscreen_line(self, place: Place) -> str:
         standing = ", ".join(
-            thing.tag
-            for thing in self.things_at(place.id)
-            if not isinstance(thing, Person) or thing.alive
+            entity.tag
+            for entity in self.entities_at(place.id)
+            if not isinstance(entity, Person) or entity.alive
         )
         ways = ", ".join(
             f"{self.require_place(way.to_id).tag}{'' if way.known else ' (unfound)'}"
@@ -483,7 +479,7 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
 
     def visited_places(self) -> list[Place]:
         seen: dict[Slug, Place] = {}
-        for place_id in self.visits:
+        for place_id in self.visited_place_ids:
             seen.setdefault(place_id, self.require_place(place_id))
         return list(seen.values())
 
@@ -496,7 +492,7 @@ class RoomWorld[N: Dweller](Dungeon[N], World[N]):
                 if way.known
             )
             here = ", ".join(
-                f"{entity.tag} ({entity.met_label})" for entity in self.things_at(place.id)
+                f"{entity.tag} ({entity.met_label})" for entity in self.entities_at(place.id)
             )
             lines.append(
                 f"{place.tag} — {place.description}\n  known ways out: {known_ways or '(none)'}"

@@ -3,22 +3,24 @@ from functools import partial
 from pathlib import Path
 
 from nicegui import ui
+from nicegui.events import EChartPointClickEventArguments
 
-from rulehall.app.session import GameService
-from rulehall.core.play import Exchange
+from rulehall.app.game_session import GameSession, SessionSnapshot
+from rulehall.core.log import LogEntry
 from rulehall.core.validation import Slug
-from rulehall.core.views import SCENE_TAB, MapView, Panel, PanelRow, PlayerView, Sprite, Subject
-from rulehall.ui import transcript
-from rulehall.ui.widgets import (
-    PASS_THROUGH,
-    entity_row,
-    heading,
-    icon_button,
-    labeled_value,
-    map_chart,
-    map_options,
-    section,
+from rulehall.core.views import (
+    SCENE_TAB,
+    Look,
+    MapNode,
+    MapView,
+    Panel,
+    PanelRow,
+    PlayerView,
+    Sprite,
 )
+from rulehall.ui import theme, transcript
+from rulehall.ui.panel_parts import panel_row
+from rulehall.ui.widgets import PASS_THROUGH, heading, icon_button, section
 
 JOURNAL_TAB = "Journal"
 # Not the header's `menu_book`: two buttons with one icon make every icon locator ambiguous.
@@ -27,13 +29,14 @@ PANEL_TAB_ICON = "sym_r_backpack"
 
 
 class SceneMap:
-    def __init__(self, session: GameService, prefill: Callable[[str], None]) -> None:
+    def __init__(self, session: GameSession, prefill: Callable[[str], None]) -> None:
         self.session = session
         self.prefill = prefill
         self.chart: ui.echart | None = None
 
-    def sync(self, map_view: MapView | None, drawn: MapView | None) -> None:
-        if map_view == drawn:
+    def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
+        map_view = now.view.map
+        if map_view == drawn.view.map:
             return
         if map_view is not None and self.chart is not None:
             self.chart.props["options"] = map_options(map_view, self.session.engine.look)
@@ -45,9 +48,9 @@ class SceneMap:
         self.chart = None
         if map_view is not None:
             with section("Map"):
-                self.chart = map_chart(map_view, self.session.engine.look, self.picked)
+                self.chart = map_chart(map_view, self.session.engine.look, self.node_clicked)
 
-    def picked(self, index: int) -> None:
+    def node_clicked(self, index: int) -> None:
         map_view = self.session.player_view().map
         nodes = () if map_view is None else map_view.nodes
         if index < len(nodes) and (words := nodes[index].prefill):
@@ -56,74 +59,67 @@ class SceneMap:
 
 class DrawerTab:
     def __init__(
-        self, session: GameService, name: str, open_row: Callable[[PanelRow], None]
+        self, session: GameSession, name: str, open_row: Callable[[PanelRow], None]
     ) -> None:
         self.session = session
         self.name = name
         self.open_row = open_row
         self.icons: dict[Slug, Sprite | Path | None] = {}
 
-    def sync(self, view: PlayerView, drawn: PlayerView) -> None:
-        if self.contents(view) != self.contents(drawn):
-            self.panels.refresh(view)
+    def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
+        if self.contents(now.view) != self.contents(drawn.view):
+            self.draw_panels.refresh(now.view)
 
     def sync_icons(self, view: PlayerView) -> None:
         if any(self.session.icon(subject_id) != icon for subject_id, icon in self.icons.items()):
-            self.panels.refresh(view)
+            self.draw_panels.refresh(view)
 
-    def contents(self, view: PlayerView) -> tuple[Subject, tuple[Panel, ...]]:
-        return view.player, tuple(panel for panel in view.panels if panel.tab == self.name)
+    def contents(self, view: PlayerView) -> tuple[Panel, ...]:
+        return tuple(panel for panel in view.panels if panel.tab == self.name)
 
     @ui.refreshable_method
-    def panels(self, view: PlayerView) -> None:
+    def draw_panels(self, view: PlayerView) -> None:
         self.icons = {}
-        player, panels = self.contents(view)
-        for panel in panels:
-            with section(panel.title, classes="game-portrait" if panel.portrait else ""):
-                if panel.portrait:
-                    entity_row(
-                        self.drawn_icon(player.id), player.name, player.brief, alive=player.alive
-                    )
+        for panel in self.contents(view):
+            with section(panel.title):
                 if not panel.rows:
                     ui.label("nothing").classes("text-sm opacity-60")
                 for row in panel.rows:
-                    panel_row(row, self.drawn_icon, self.open_row)
+                    panel_row(row, self.recorded_icon, self.open_row)
 
-    def drawn_icon(self, subject_id: Slug) -> Sprite | Path | None:
+    def recorded_icon(self, subject_id: Slug) -> Sprite | Path | None:
         self.icons[subject_id] = icon = self.session.icon(subject_id)
         return icon
 
 
 class Journal:
-    def __init__(self) -> None:
-        self.entries: ui.element
-
-    def build(self, history: tuple[Exchange, ...]) -> None:
+    def __init__(self, now: SessionSnapshot) -> None:
         heading("Chronicle")
         self.entries = ui.element("div").style(PASS_THROUGH)
-        self.redraw(history)
+        self.redraw(now.log_entries)
 
-    def sync(self, history: tuple[Exchange, ...], drawn: tuple[Exchange, ...]) -> None:
-        appended = transcript.appended_since(history, drawn)
+    def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
+        history = now.log_entries
+        appended = transcript.appended_since(history, drawn.log_entries)
         if appended is None:
             self.redraw(history)
             return
         first = len(history) - len(appended) + 1
         with self.entries:
-            for number, exchange in enumerate(appended, start=first):
-                _ = _journal_entry(number, exchange).move(target_index=0)
+            for number, entry in enumerate(appended, start=first):
+                _ = _journal_entry(number, entry).move(target_index=0)
 
-    def redraw(self, history: tuple[Exchange, ...]) -> None:
+    def redraw(self, history: tuple[LogEntry, ...]) -> None:
         self.entries.clear()
         with self.entries:
-            for number, exchange in reversed(list(enumerate(history, start=1))):
-                _ = _journal_entry(number, exchange)
+            for number, entry in reversed(list(enumerate(history, start=1))):
+                _ = _journal_entry(number, entry)
 
 
 class Drawer:
     def __init__(
         self,
-        session: GameService,
+        session: GameSession,
         view: PlayerView,
         open_row: Callable[[PanelRow], None],
         prefill: Callable[[str], None],
@@ -132,7 +128,7 @@ class Drawer:
         self.tabs = tuple(DrawerTab(session, name, open_row) for name in names)
         self.names = (*names, JOURNAL_TAB)
         self.scene_map = SceneMap(session, prefill)
-        self.journal = Journal()
+        self.journal: Journal
         self.rail_buttons: dict[str, ui.button] = {}
         self.side: ui.right_drawer
         self.tab_bar: ui.tabs
@@ -148,7 +144,7 @@ class Drawer:
                 )
         self.mark_rail(SCENE_TAB)
 
-    def build(self, view: PlayerView, history: tuple[Exchange, ...]) -> None:
+    def build(self, now: SessionSnapshot) -> None:
         self.side = ui.right_drawer(value=None).props("width=420").classes("game-drawer")
         with self.side, ui.column().classes("game-panel game-drawer-panel game-gap-0"):
             with ui.row().classes("w-full items-center no-wrap game-drawer-head game-gap-md"):
@@ -168,24 +164,17 @@ class Drawer:
                         ui.column().classes("w-full game-gap-xl"),
                     ):
                         if tab.name == SCENE_TAB:
-                            self.scene_map.draw(view.map)
-                        tab.panels(view)
+                            self.scene_map.draw(now.view.map)
+                        tab.draw_panels(now.view)
                 with ui.tab_panel(JOURNAL_TAB), ui.scroll_area().classes("w-full h-full"):
-                    self.journal.build(history)
+                    self.journal = Journal(now)
 
-    def sync(
-        self,
-        view: PlayerView,
-        history: tuple[Exchange, ...],
-        *,
-        drawn_view: PlayerView,
-        drawn_history: tuple[Exchange, ...],
-    ) -> None:
-        if view is not drawn_view:
-            self.scene_map.sync(view.map, drawn_view.map)
+    def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
+        if now.view is not drawn.view:
+            self.scene_map.sync(now, drawn)
             for tab in self.tabs:
-                tab.sync(view, drawn_view)
-        self.journal.sync(history, drawn_history)
+                tab.sync(now, drawn)
+        self.journal.sync(now, drawn)
 
     def sync_icons(self, view: PlayerView) -> None:
         for tab in self.tabs:
@@ -203,39 +192,69 @@ class Drawer:
             button.classes(add="game-rail-on" if name == active else "", remove="game-rail-on")
 
 
-def panel_row(
-    row: PanelRow,
-    icon_of: Callable[[Slug], Sprite | Path | None],
-    open_row: Callable[[PanelRow], None] | None = None,
-) -> None:
-    if row.icon_id is not None:
-        drawn = entity_row(
-            icon_of(row.icon_id),
-            row.name,
-            row.brief,
-            alive=row.alive,
-            tags=row.tags,
-            meters=row.meters,
-        )
-    elif row.brief or row.tags or row.meters:
-        drawn = labeled_value(row.name, row.brief, tags=row.tags, meters=row.meters)
-    else:
-        drawn = ui.label(row.name).classes("text-sm")
-    if open_row is not None and (row.detail or row.options):
-        opened = partial(open_row, row)
-        drawn.classes("game-opens").props("tabindex=0 role=button")
-        drawn.on("click", opened).on("keydown.enter", opened)
-        drawn.on("keydown.space.prevent", opened)
-        with drawn:
-            ui.icon("sym_r_chevron_right").classes("game-opens-cue")
+def map_chart(view: MapView, look: Look | None, pick: Callable[[int], None]) -> ui.echart:
+    def clicked(event: EChartPointClickEventArguments) -> None:
+        if event.data_type == "node":
+            pick(event.data_index)
+
+    # Inline, not a class: a hidden tab's chart falls back to its inline size, and a zero throws.
+    return ui.echart(map_options(view, look), on_point_click=clicked).style(
+        "width: 100%; height: 16rem"
+    )
 
 
-def _journal_entry(number: int, exchange: Exchange) -> ui.expansion:
+def map_options(view: MapView, look: Look | None) -> dict[str, object]:
+    colours = theme.palette(look)
+    index = {node.id: at for at, node in enumerate(view.nodes)}
+    # NiceGUI's point click reads args['value'] unguarded; every node and link must carry one.
+    nodes = [
+        {
+            "name": node.name,
+            "value": node.id,
+            "symbolSize": 18 if node.id == view.here_id else 12,
+            "itemStyle": _map_style(node, view.here_id, colours),
+            "label": _map_style(node, view.here_id, colours),
+        }
+        for node in view.nodes
+    ]
+    links = [
+        {
+            "source": index[edge.from_id],
+            "target": index[edge.to_id],
+            "value": 0,
+            "lineStyle": {"type": "dashed" if edge.locked else "solid"},
+        }
+        for edge in view.edges
+    ]
+    series = {
+        "type": "graph",
+        "layout": "force",
+        "roam": "move",
+        "force": {
+            "initLayout": "circular",
+            "repulsion": 300,
+            "edgeLength": 100,
+            "layoutAnimation": False,
+        },
+        "label": {"show": True, "position": "right", "fontFamily": colours["game-body"]},
+        "lineStyle": {"color": colours["game-muted"], "opacity": 0.6, "width": 2},
+        "data": nodes,
+        "links": links,
+    }
+    return {"animation": False, "series": [series]}
+
+
+def _map_style(node: MapNode, here_id: Slug, colours: dict[str, str]) -> dict[str, str | float]:
+    fill = "game-accent" if node.id == here_id else "game-text" if node.visited else "game-muted"
+    return {"color": colours[fill], "opacity": 1 if node.visited else 0.5}
+
+
+def _journal_entry(number: int, log_entry: LogEntry) -> ui.expansion:
     title = (
-        transcript.CAUSE_LABELS[exchange.cause] if exchange.cause is not None else exchange.words
+        transcript.CAUSE_LABELS[log_entry.cause] if log_entry.cause is not None else log_entry.words
     )
     with ui.expansion(f"turn {number}: {title}").classes("w-full game-card") as entry:
-        for line in exchange.lines:
+        for line in log_entry.lines:
             if line.speaker_id is None:
                 ui.label(line.text).classes("whitespace-pre-wrap text-sm")
             else:

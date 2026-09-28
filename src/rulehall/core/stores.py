@@ -9,15 +9,15 @@ from tempfile import mkstemp
 
 from pydantic import BaseModel
 
-from rulehall.core.model import AnyCharacter, AnyGame, AnyScenario, CharacterHeader
+from rulehall.core.game import AnyCharacter, AnyGame, AnyScenario, CharacterHeader
 from rulehall.core.validation import (
     EngineId,
     Refusal,
     Slug,
     content_id,
-    decode,
+    for_engine_of,
     parse_json,
-    routed,
+    parse_strict_json,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ SHIPPED_CONTENT = Path(__file__).parents[3]
 
 
 @dataclass(frozen=True, slots=True)
-class FileStore:
+class SaveStore:
     directory: Path
 
     def save_ids(self) -> tuple[str, ...]:
@@ -124,7 +124,7 @@ class Library:
     ) -> AnyScenario:
         path = self.scenario_folder(scenario_id) / WORLD_FILE
         raw = _read_text(path)
-        return parse_json(routed(raw, models), raw)
+        return parse_json(for_engine_of(raw, models), raw)
 
     def read_character(
         self, character_id: Slug, engine_id: EngineId, model: type[AnyCharacter]
@@ -139,7 +139,7 @@ class Library:
             raise Refusal(f"character {character.id!r} already exists")
         sibling = next(path.parent.glob("*.json"), None)
         if sibling is not None:
-            filed, named = read_model(sibling, CharacterHeader).sheet.name, character.sheet.name
+            filed, named = read_model(sibling, CharacterHeader).person.name, character.person.name
             if filed != named:
                 raise Refusal(f"character {character.id!r} is {filed!r}, not {named!r}")
         write_model(path, character)
@@ -206,10 +206,7 @@ def write_model(path: Path, model: BaseModel) -> None:
 
 
 def read_model[T: BaseModel](path: Path, model: type[T]) -> T:
-    raw = _read_text(path)
-    # The decode pass rejects a doubled key, which validation alone would let through.
-    decode(raw)
-    return parse_json(model, raw)
+    return parse_strict_json(model, _read_text(path))
 
 
 def _read_text(path: Path) -> str:

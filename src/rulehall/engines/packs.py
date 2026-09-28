@@ -1,16 +1,16 @@
 import logging
 from abc import abstractmethod
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.io import read_model
-from rulehall.core.play import DecisionOption
+from rulehall.core.decisions import DecisionOption
 from rulehall.core.prompt import Sections, section_if, sections
-from rulehall.core.validation import EngineId, Frozen, Refusal, Slug, content_id, slug
+from rulehall.core.stores import read_model
+from rulehall.core.validation import EngineId, Frozen, Refusal, Slug, content_id
 
 LOGGER = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ SRD_PACK: Slug = "srd"
 NPCS = "People a player could meet and deal with."
 
 
-class Block(Frozen):
+class CastEntry(Frozen):
     @abstractmethod
     def line(self) -> str: ...
 
@@ -48,7 +48,7 @@ class Names(Frozen):
         return self
 
 
-class Named(Frozen):
+class TableEntry(Frozen):
     """One row of a creation table. Code makes the id from the name."""
 
     name: str = Field(min_length=1, max_length=60)
@@ -68,14 +68,14 @@ class Location(Frozen):
     encounters: str = ""
 
     @model_validator(mode="after")
-    def _reads_in_a_block(self) -> Self:
+    def _reads_on_one_line(self) -> Self:
         check_lines("a location", (self.name, self.brief, self.encounters))
         return self
 
 
 class Pack(Frozen):
     name: str = Field(min_length=1)
-    source: str
+    origin: str
     license: str
     backdrop: str = ""
     names: Names = Field(default_factory=Names)
@@ -100,18 +100,18 @@ class Pack(Frozen):
         )
 
 
-class CastPack[B: Block](Pack):
-    factions: tuple[B, ...] = ()
-    npcs: tuple[B, ...] = ()
-    monsters: tuple[B, ...] = ()
+class CastPack[E: CastEntry](Pack):
+    factions: tuple[E, ...] = ()
+    npcs: tuple[E, ...] = ()
+    monsters: tuple[E, ...] = ()
 
     def sections(self, *, opening: bool) -> Sections:
         return (
             *super().sections(opening=opening),
             *self.table_sections(),
-            *bullets("FACTIONS", (block.line() for block in self.factions)),
-            *bullets("PEOPLE", (block.line() for block in self.npcs)),
-            *bullets("MONSTERS", (block.line() for block in self.monsters)),
+            *bullets("FACTIONS", (entry.line() for entry in self.factions)),
+            *bullets("PEOPLE", (entry.line() for entry in self.npcs)),
+            *bullets("MONSTERS", (entry.line() for entry in self.monsters)),
         )
 
     def table_sections(self) -> Sections:
@@ -164,12 +164,8 @@ class PackBody(Frozen):
 @dataclass(frozen=True, slots=True)
 class PackSet[K: Pack]:
     engine_id: EngineId
-    shipped: Mapping[Slug, K]
-    written: Mapping[Slug, K]
-
-    @property
-    def installed(self) -> Mapping[Slug, K]:
-        return {**self.shipped, **self.written}
+    installed: dict[Slug, K]
+    written_ids: frozenset[Slug]
 
     def srd(self) -> K:
         found = self.installed.get(SRD_PACK)
@@ -205,17 +201,8 @@ class PackSet[K: Pack]:
         return ((f"SPECIAL RULES: {pack.name}", pack.rules),) if pack.rules else ()
 
 
-def block_line(name: str, brief: str, *fields: tuple[str, str]) -> str:
+def cast_entry_line(name: str, brief: str, *fields: tuple[str, str]) -> str:
     return "; ".join((f"{name} — {brief}", *(f"{key}: {value}" for key, value in fields if value)))
-
-
-def with_ids(rows: Iterable[Named], taken: list[Slug]) -> tuple[DecisionOption, ...]:
-    """`taken` grows, so the ids stay unique across a pack's tables."""
-    made: list[DecisionOption] = []
-    for entry in rows:
-        made.append(DecisionOption(id=slug(entry.name, taken), name=entry.name, brief=entry.brief))
-        taken.append(made[-1].id)
-    return tuple(made)
 
 
 def unique_options[T: DecisionOption](rows: Iterable[T]) -> tuple[T, ...]:
@@ -242,13 +229,13 @@ def check_items(what: str, values: Iterable[str]) -> None:
             raise ValueError(f'{what} holds "{SEPARATOR}", which parts one item from the next')
 
 
-def read_packs[P: Pack](
-    engine_id: EngineId, shipped: Path, written: Path, model: type[P]
-) -> PackSet[P]:
+def read_packs[K: Pack](
+    engine_id: EngineId, shipped: Path, written: Path, model: type[K]
+) -> PackSet[K]:
     shipped_packs = {
         content_id(path.stem): read_model(path, model) for path in sorted(shipped.glob("*.json"))
     }
-    written_packs: dict[Slug, P] = {}
+    written_packs: dict[Slug, K] = {}
     for path in sorted(written.glob("*.json")):
         try:
             pack_id = content_id(path.stem)
@@ -262,4 +249,4 @@ def read_packs[P: Pack](
             )
             continue
         written_packs[pack_id] = pack
-    return PackSet(engine_id, shipped_packs, written_packs)
+    return PackSet(engine_id, {**shipped_packs, **written_packs}, frozenset(written_packs))

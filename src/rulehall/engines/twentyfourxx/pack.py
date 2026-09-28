@@ -2,81 +2,37 @@ from typing import Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.play import DecisionOption
+from rulehall.core.decisions import DecisionOption
 from rulehall.core.prompt import Sections, section_if
-from rulehall.core.validation import Frozen, Slug, check_unique, slug
-from rulehall.engines.hiring import HIRED, UNWRITTEN_CAST
+from rulehall.core.validation import check_unique, slugs
 from rulehall.engines.packs import (
-    Block,
+    CastEntry,
     CastPack,
-    Named,
     PackBody,
     PackHead,
-    block_line,
+    TableEntry,
     bullets,
+    cast_entry_line,
     check_items,
     check_lines,
 )
 from rulehall.engines.twentyfourxx.rules import SkillDie
 from rulehall.engines.twentyfourxx.sheet import Kit
 
-WORLDSMITH_GUIDANCE = (
-    "24XX AUTHORING\n"
-    f"{UNWRITTEN_CAST}The player is an operator on a job in a hard science-fiction future. "
-    "Write each scene as a work site, a station or a ship. Write the people who control "
-    "these places. People the player left behind move on without them.\n\n"
-    "Code files each `cast` entry under the slug of its name: Bray Kell is `bray-kell`. Name "
-    "entries so in `present` and `hidden`. The crew's ship belongs to the rules: never file it "
-    "in `cast`.\n\n"
-    "A scene is one place. A scene ends when the player leaves the place. WHAT COMES NEXT holds "
-    "the player's own words about where they go and what they are after. Build the scene the "
-    "player asked for. When the player leaves, the new scene is the place they named: never "
-    "short of it, and never back where they left. Only a complication keeps them in the same "
-    "place. Give the player what they went to look for, or the reason they cannot "
-    "have it. Never give the player silence. A complication changes that place. Keep what the "
-    "brief does not move.\n\n"
-    "Put something in `hidden` when the scene has something worth finding. `hidden` is not "
-    "necessary. Never name a hidden entity in `title`, `situation` or `recap`. Never name a "
-    "hidden entity in the `brief` or the sheet of anyone the player can see. The player reads "
-    "all of that text, and a name there gives the player the find. A hidden entity can name "
-    "itself. Write in `arc` what ties one hidden thing to another. THE SCENE NOW names who is "
-    "hidden there. Never put an entry the player has met in `hidden`. A hidden person's `brief` "
-    "is what the player sees on meeting them. Put their secret in `arc`, never in the "
-    "`brief`.\n\n"
-    "Surprise the player. Turn an established fact against the player, or bring back something "
-    "the player has stopped thinking about. Make the surprise from what exists. Never invent "
-    "what the source would not hold."
-)
-COMPLICATING = (
-    "The game master brings a complication into the scene the player is in: {brief}. Write the "
-    "new situation as a new scene. You can keep the same `place_id`, and this is usual. Leave "
-    "`location` empty: the player has not moved. Everyone here stays, unless the brief moves "
-    "them. Change the situation. Do not change the player's answer to it. The player has not "
-    "acted, so settle nothing for the player. Write in `recap` the scene as it was before it "
-    "changed."
-)
-HIRING = (
-    f"{HIRED}Choose the specialty, the origin and their options from ENGINE GUIDANCE for a "
-    "character that a crew can hire for this work."
-)
-NEWCOMING = (
-    "The player's operator is dead and no hired member lives. A new operator joins the crew "
-    "and leads: {who}. They join in THE SCENE NOW, where the dead operator fell, and nowhere "
-    "else. Write them from the player's words, and choose their specialty, "
-    "origin and options from ENGINE GUIDANCE."
-)
-SKILL_COUNT = 17
-
 
 class SkillChoice(DecisionOption):
     skills: dict[str, SkillDie]
+
+
+class Weapon(DecisionOption):
+    kit: Kit
 
 
 class Specialty(DecisionOption):
     skills: dict[str, SkillDie]
     choice: tuple[SkillChoice, ...] = ()
     kit: tuple[Kit, ...] = ()
-    kit_choice: tuple[Kit, ...] = ()
+    kit_choice: tuple[Weapon, ...] = ()
 
     def line(self) -> str:
         parts = [", ".join(f"{skill} d{die}" for skill, die in self.skills.items())]
@@ -85,7 +41,7 @@ class Specialty(DecisionOption):
         if self.kit:
             parts.append(f"takes {', '.join(kit.name for kit in self.kit)}")
         if self.kit_choice:
-            parts.append(f"weapon, one of: {' / '.join(kit.name for kit in self.kit_choice)}")
+            parts.append(f"weapon, one of: {' / '.join(weapon.name for weapon in self.kit_choice)}")
         return f"{self.name}: {'; '.join(part for part in parts if part)}"
 
 
@@ -110,7 +66,7 @@ class Origin(DecisionOption):
         return f"{line} ({'; '.join(gives)})" if gives else line
 
 
-class TwentyFourXXBlock(Block):
+class TwentyFourXXCastEntry(CastEntry):
     name: str = Field(min_length=1)
     brief: str = Field(min_length=1)
     skills: tuple[str, ...] = Field(min_length=1)
@@ -118,13 +74,13 @@ class TwentyFourXXBlock(Block):
     hindrances: tuple[str, ...] = ()
 
     @model_validator(mode="after")
-    def _reads_in_a_block(self) -> Self:
-        check_lines("a block field", (self.name, self.brief))
-        check_items("a block list", (*self.skills, *self.items, *self.hindrances))
+    def _reads_on_one_line(self) -> Self:
+        check_lines("a cast entry field", (self.name, self.brief))
+        check_items("a cast entry list", (*self.skills, *self.items, *self.hindrances))
         return self
 
     def line(self) -> str:
-        return block_line(
+        return cast_entry_line(
             self.name,
             self.brief,
             ("skills", ", ".join(self.skills)),
@@ -133,7 +89,7 @@ class TwentyFourXXBlock(Block):
         )
 
 
-class TwentyFourXXPack(CastPack[TwentyFourXXBlock]):
+class TwentyFourXXPack(CastPack[TwentyFourXXCastEntry]):
     skills: tuple[DecisionOption, ...] = ()
     specialties: tuple[Specialty, ...] = ()
     origins: tuple[Origin, ...] = ()
@@ -156,45 +112,10 @@ class TwentyFourXXPack(CastPack[TwentyFourXXBlock]):
         )
 
 
-class SheetProposal(Frozen):
-    """An operator's creation choices. The engine builds the sheet from them: the specialty's
-    skills and kit, the origin's increases, traits and body, the starting kit and ₡2."""
-
-    specialty: str = Field(description="One of the specialties in ENGINE GUIDANCE.")
-    specialty_skills: str = Field(
-        default="",
-        description="The specialty's skills option, when it offers one. Empty otherwise.",
-    )
-    weapon: str = Field(
-        default="",
-        description="The specialty's weapon option, when it offers one. Empty otherwise.",
-    )
-    origin: str = Field(description="One of the origins in ENGINE GUIDANCE.")
-    traits: tuple[str, ...] = Field(
-        default=(),
-        description="One invented trait for each the origin gives, such as 'wings'. Empty "
-        "otherwise.",
-    )
-    body: str = Field(
-        default="", description="The origin's body option, when it offers one. Empty otherwise."
-    )
-    increases: tuple[str, ...] = Field(
-        default=(),
-        description="One skill for each increase the origin gives: from the skills in ENGINE "
-        "GUIDANCE, or one you invent that fits. A skill named twice rises twice.",
-    )
-
-
-class NewcomerProposal(Frozen):
-    name: str = Field(min_length=1, description="The operator's name, as the player gave it.")
-    brief: str = Field(min_length=1, description="Who they are, in one line.")
-    sheet: SheetProposal
-
-
-class SpecialtyProposal(Named):
+class SpecialtyProposal(TableEntry):
     """A written pack has no pick inside a pick, so a specialty names its own skills."""
 
-    # `default=...` is pydantic for required: a pick's prompt text, which `Named` lets be empty.
+    # `default=...` is pydantic for required: a pick's prompt text, empty in a `TableEntry`.
     brief: str = Field(
         default=...,
         min_length=1,
@@ -222,7 +143,7 @@ class SpecialtyProposal(Named):
         return self
 
 
-class OriginProposal(Named):
+class OriginProposal(TableEntry):
     """Where an operator comes from, and what the origin gives at creation."""
 
     brief: str = Field(
@@ -257,49 +178,40 @@ class TwentyFourXXHead(PackHead):
     )
 
     def pack_fields(self) -> dict[str, object]:
-        taken: list[Slug] = []
-        specialties: list[Specialty] = []
-        for proposal in self.specialties:
-            # Appended as each id is made: two rows sharing a name must not share an id.
-            specialties.append(
-                Specialty(
-                    id=slug(proposal.name, taken),
-                    name=proposal.name,
-                    brief=proposal.brief,
-                    skills=dict.fromkeys(proposal.skills, 8),
-                    kit=tuple(Kit(name=name) for name in proposal.kit),
-                )
+        ids = iter(slugs(proposal.name for proposal in (*self.specialties, *self.origins)))
+        specialties = tuple(
+            Specialty(
+                id=next(ids),
+                name=proposal.name,
+                brief=proposal.brief,
+                skills=dict.fromkeys(proposal.skills, 8),
+                kit=tuple(Kit(name=name) for name in proposal.kit),
             )
-            taken.append(specialties[-1].id)
-        origins: list[Origin] = []
-        for proposal in self.origins:
-            origins.append(
-                Origin(
-                    id=slug(proposal.name, taken),
-                    name=proposal.name,
-                    brief=proposal.brief,
-                    increases=proposal.increases,
-                    invents=proposal.invents,
-                )
+            for proposal in self.specialties
+        )
+        origins = tuple(
+            Origin(
+                id=next(ids),
+                name=proposal.name,
+                brief=proposal.brief,
+                increases=proposal.increases,
+                invents=proposal.invents,
             )
-            taken.append(origins[-1].id)
-        return {
-            **super().pack_fields(),
-            "specialties": tuple(specialties),
-            "origins": tuple(origins),
-        }
+            for proposal in self.origins
+        )
+        return {**super().pack_fields(), "specialties": specialties, "origins": origins}
 
 
 class TwentyFourXXBody(PackBody):
-    factions: tuple[TwentyFourXXBlock, ...] = Field(
+    factions: tuple[TwentyFourXXCastEntry, ...] = Field(
         min_length=1,
         max_length=6,
         description="The powers that control this setting, such as a company, a union or a fleet.",
     )
-    npcs: tuple[TwentyFourXXBlock, ...] = Field(
+    npcs: tuple[TwentyFourXXCastEntry, ...] = Field(
         min_length=1, max_length=6, description="People a player could meet and work with."
     )
-    monsters: tuple[TwentyFourXXBlock, ...] = Field(
+    monsters: tuple[TwentyFourXXCastEntry, ...] = Field(
         min_length=1,
         max_length=6,
         description="What is against the player: a boarding crew, a drone, a thing in the hold.",

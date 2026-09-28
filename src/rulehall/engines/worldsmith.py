@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 from rulehall.core.prompt import Prompt, Sections, section_if, sections
-from rulehall.core.tools import schema_text
+from rulehall.core.tools import render_schema
 
 SOURCELESS = "(none — write from what is below)"
 SCOPELESS = "(none — this is a pack, not a scenario: a genre kit, not one adventure)"
@@ -51,7 +51,7 @@ def render_worldsmith(
                 *world_sections,
                 ("WHAT COMES NEXT", intent),
                 ("ENGINE GUIDANCE", guidance),
-                ("ANSWER WITH", schema_text(answer_model)),
+                ("ANSWER WITH", render_schema(answer_model)),
             )
         ),
     )

@@ -22,11 +22,11 @@ from support.tunnelgoons import (
     small_world,
 )
 
-from rulehall.core.facts import Fact, cards
+from rulehall.core.facts import Fact, told_cards
 from rulehall.core.validation import Refusal
-from rulehall.engines.entities import PLAYER_ID
 from rulehall.engines.rooms.args import MOVED_CARD, MOVES_OFFSCREEN
 from rulehall.engines.rooms.panels import map_view
+from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
 from rulehall.engines.tunnelgoons.world import TunnelGoonsGame, TunnelGoonsWorld
 
@@ -36,11 +36,11 @@ def test_a_member_joins_and_leaves_the_party() -> None:
 
     _ = change(ENGINE, draft, "join_party", target_id=WARDEN)
 
-    assert WARDEN in draft.world.party
+    assert WARDEN in draft.world.party_ids
 
     _ = change(ENGINE, draft, "leave_party", target_id=WARDEN)
 
-    assert draft.world.party == []
+    assert draft.world.party_ids == []
 
 
 def test_killing_the_player_leaves_them_dead_and_a_second_kill_is_refused() -> None:
@@ -73,7 +73,7 @@ def test_a_dead_npc_drops_only_its_known_items_into_the_telling() -> None:
 
 def test_frontier_skips_places_behind_a_locked_way() -> None:
     world = small_world().world
-    world.visits.append(HALL)
+    world.visited_place_ids.append(HALL)
     for way in world.ways[START]:
         way.locked = way.to_id == VAULT
 
@@ -152,7 +152,7 @@ def test_meanwhile_moves_all_three_things_in_one_call() -> None:
     world = draft.world
     assert world.npcs[WARDEN].place_id == YARD
     assert world.items[LANTERN].holder_id == GATE
-    way = world.way(GATE, YARD)
+    way = world.find_way(GATE, YARD)
     assert way is not None
     assert way.locked
     assert not world.meanwhile_due
@@ -171,7 +171,7 @@ def test_meanwhile_never_reaches_the_narrator() -> None:
     for name in ("Warden", "Lantern", "Gate", "Yard"):
         assert name not in only.trace
         assert name not in only.card
-    assert cards(facts) == (only,)
+    assert told_cards(facts) == (only,)
 
 
 def test_the_clock_counts_only_a_turn_that_acted_and_arms_at_the_tempo() -> None:

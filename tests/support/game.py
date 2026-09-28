@@ -2,14 +2,14 @@ from functools import partial
 from pathlib import Path
 from random import Random
 
-from rulehall.app.launch import LaunchTarget
-from rulehall.app.session import GameService
-from rulehall.core.model import Character, Scenario
+from rulehall.app.catalog import SavedGameKey
+from rulehall.app.game_session import GameSession
+from rulehall.core.game import Character, Scenario
 from rulehall.core.validation import Slug
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.loner4e.engine import Loner4eEngine
 from rulehall.engines.loner4e.sheet import Loner4eEntity
-from rulehall.engines.loner4e.world import Loner4eGame, Loner4eOpening
+from rulehall.engines.loner4e.world import Loner4eGame, Loner4eOpeningProposal
 from support.table import (
     ENGINES_BUILT,
     LIBRARY,
@@ -20,7 +20,7 @@ from support.table import (
     open_table,
 )
 
-TARGET = LaunchTarget(scenario_id="whispering-vault", character_id="kael")
+KEY = SavedGameKey(scenario_id="whispering-vault", character_id="kael")
 MARA: Slug = "mara"
 TOMAS: Slug = "tomas"
 SITUATION = (
@@ -46,21 +46,21 @@ def with_entity(state: Loner4eGame, entity: Loner4eEntity) -> Loner4eGame:
     draft = state.draft()
     draft.world.cast[entity.id] = entity
     if entity.known:
-        draft.world.scene.here.append(entity.id)
-    return draft.commit()
+        draft.world.scene.here_ids.append(entity.id)
+    return draft.validated()
 
 
 def loner_sheet(state: Loner4eGame, entity_id: Slug) -> Loner4eEntity:
     return state.world.require(entity_id)
 
 
-def scenario() -> Scenario[Loner4eOpening]:
+def scenario() -> Scenario[Loner4eOpeningProposal]:
     scenario = LIBRARY.read_scenario("whispering-vault", SCENARIO_MODELS)
-    return narrowed(scenario, Scenario[Loner4eOpening])
+    return narrowed(scenario, Scenario[Loner4eOpeningProposal])
 
 
 def character() -> Character[Loner4eEntity]:
-    character = LIBRARY.read_character("kael", ENGINE.id, ENGINE.character)
+    character = LIBRARY.read_character("kael", ENGINE.id, ENGINE.character_model)
     return narrowed(character, Character[Loner4eEntity])
 
 
@@ -72,5 +72,5 @@ def initialized() -> tuple[AnyEngine, Loner4eGame]:
 open_game = partial(open_table, engine_id=LONER4E, state_type=Loner4eGame)
 
 
-def session(directory: Path) -> GameService:
-    return open_game(directory, rng=Random(1)).service
+def session(directory: Path) -> GameSession:
+    return open_game(directory, rng=Random(1)).session

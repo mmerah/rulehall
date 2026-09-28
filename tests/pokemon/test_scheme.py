@@ -8,7 +8,7 @@ from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.battle.models import BattleResult, BattleSetup
 from rulehall.engines.pokemon.rules import RosterSlot
 from rulehall.engines.pokemon.sheet import Trainer
-from rulehall.engines.pokemon.world import PokemonGame, PokemonRegion
+from rulehall.engines.pokemon.world import PokemonGame, PokemonRegionProposal
 from rulehall.engines.rooms.world import Place
 
 TEAM_BEATEN = "The team is beaten. Your journey is complete."
@@ -35,7 +35,7 @@ def test_a_badge_earned_while_the_operation_is_open_makes_it_succeed_and_hold_it
     assert (evil_team.foiled, evil_team.succeeded, evil_team.operation) == (0, 1, None)
     assert evil_team.held_ways == [("gull-cove", "harbour-road")]
     assert refused(ENGINE, draft, "unlock_way", to_id="gull-cove") == (
-        "Grunts of Team Undertow hold this way"
+        "the grunts of Team Undertow hold this way"
     )
 
 
@@ -59,7 +59,7 @@ def test_a_way_that_would_cut_a_place_off_closes_a_center_instead() -> None:
 def test_a_region_without_the_operation_that_is_owed_is_refused() -> None:
     draft = started().draft()
     draft.world.evil_team.operation = None
-    region = PokemonRegion(
+    region = PokemonRegionProposal(
         places={"reef": Place(id="reef", name="Reef", brief="b", known=False, description="d")},
         start_id="reef",
         recap="They left the harbour behind.",
@@ -73,12 +73,11 @@ def test_the_boss_ace_rises_with_each_success_and_the_legendary_joins_at_three()
     draft = started().draft()
     world = draft.world
     boss = _boss(draft)
-    pool = ENGINE.packs.require(draft.pack_id).species
 
     world.evil_team.succeeded = 1
-    once = world.trainer_team(boss, pool, Random(0))
+    once = world.trainer_team(boss, Random(0))
     world.evil_team.succeeded = 3
-    thrice = world.trainer_team(boss, pool, Random(0))
+    thrice = world.trainer_team(boss, Random(0))
 
     assert [(mon.species_id, mon.level) for mon in once] == [("zubat", 12), ("grimer", 14)]
     assert [(mon.species_id, mon.level) for mon in thrice] == [

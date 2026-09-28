@@ -36,7 +36,7 @@ The master reads PLAYER ACTION from its prompt. Lines starting with `!` are scri
 | `!ask question="Does the door give?" action=true helps='["Quiet Hands"]'` | calls that tool (values parse as JSON, else strings; quote lists: `item_ids='["torch"]'`) |
 | `!none` | no tool call |
 | `!crash` / `!refuse` | the master fails with `OSError` / `Refusal` |
-| `!fail narrator`, `!bad worldsmith`, `!slow narrator` | that role's next ask fails (its retry too), answers garbage once so the retry lands, or stalls 6 s |
+| `!fail narrator`, `!bad worldsmith`, `!slow narrator` | that role's next ask fails, answers garbage once so the retry lands, or stalls 6 s |
 
 Plain words with no script get one roll; a Loner question sent with **Ask the oracle** is rolled as `ask(question: null)`. The narrator echoes its prompt as `[narration]` and `[happened]` lines, so a screenshot shows what the page was told; `[say <id> "words"]` adds a spoken line. The worldsmith answers every request with a small valid draft; a Pokemon region carries the evil team's operation or lair when the request asks. The Pokemon opponent takes its first choice.
 

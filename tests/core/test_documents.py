@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from rulehall.core.source import SOURCE_MAX_BYTES, whole_text
+from rulehall.core.documents import SOURCE_MAX_BYTES, whole_text
 from rulehall.core.validation import Refusal
 
 FIXTURES = Path(__file__).parent / "fixtures" / "source"

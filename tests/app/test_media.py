@@ -3,9 +3,8 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from pydantic import SecretStr
-from support.game import TARGET, initialized, with_entity
-from support.table import offline_settings
+from support.game import KEY, initialized, with_entity
+from support.table import offline_settings, updated
 
 from rulehall.app.illustration import (
     ICON_DIR,
@@ -14,8 +13,8 @@ from rulehall.app.illustration import (
     illustration_request,
     scene_key,
 )
-from rulehall.config import MediaConfig, ProviderConfig
-from rulehall.core.io import FileStore
+from rulehall.config import LiveSettings
+from rulehall.core.stores import SaveStore
 from rulehall.core.views import NarratorView
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.loner4e.sheet import Loner4eEntity
@@ -26,8 +25,7 @@ STYLE = "Painterly fantasy illustration, muted colours, no text or lettering."
 
 def _illustrator(saves: Path, icon_dirs: tuple[Path, ...] = ()) -> Illustrator:
     return Illustrator(
-        config=MediaConfig(enabled=True),
-        provider=ProviderConfig(base_url="https://example.invalid/v1", api_key=SecretStr("test")),
+        live_settings=LiveSettings(updated(offline_settings(), media={"enabled": True})),
         saves=saves,
         icon_dirs=icon_dirs,
         style=STYLE,
@@ -142,10 +140,9 @@ async def test_media_off_asks_for_no_art_and_hides_what_an_earlier_run_cached(
         return GeneratedImage(data=b"\x89PNG", suffix=".png")
 
     monkeypatch.setattr(Illustrator, "_generate", _generate)
-    off = Illustrator.open(
-        offline_settings(tmp_path),
-        FileStore(tmp_path),
-        TARGET.save_id,
+    off = Illustrator(
+        live_settings=LiveSettings(offline_settings(tmp_path)),
+        saves=SaveStore(tmp_path).media_dir(KEY.save_id),
         style=STYLE,
         icon_dirs=(),
         portraits=True,

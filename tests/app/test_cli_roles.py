@@ -4,16 +4,12 @@ from dataclasses import dataclass, field
 
 import pytest
 
-import rulehall.app.spawn as spawn
-from rulehall.app.spawn import (
-    ClaudeDriver,
-    CodexDriver,
-    RunResult,
-    child_environment,
-    final_message,
-    run_cli,
-)
-from rulehall.config import Role, RoleConfig
+import rulehall.app.cli_roles as cli_roles
+import rulehall.app.processes as processes
+from rulehall.app.cli_roles import ClaudeDriver, CliReply, CodexDriver, run_cli
+from rulehall.app.processes import child_environment
+from rulehall.app.roles import final_message
+from rulehall.config import RoleConfig
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal, decode
 
@@ -24,15 +20,15 @@ class _StubDriver:
     secrets: tuple[str, ...] = ()
 
     def command(
-        self, role: Role, config: RoleConfig, conversation: str | None, url: str
+        self, config: RoleConfig, resume_id: str | None, mcp_url: str | None
     ) -> tuple[str, ...]:
-        del role, config, conversation, url
+        del config, resume_id, mcp_url
         return self.argv
 
     def delta(self, line: str) -> str:
         return line
 
-    def read_result(self, output: str) -> RunResult:
+    def read_result(self, output: str) -> CliReply:
         del output
         raise AssertionError("the run fails before there is a result to read")
 
@@ -76,8 +72,8 @@ CLAUDE_OUTPUT = "\n".join(
 
 def test_no_codex_role_gets_a_shell_and_only_the_master_reaches_the_tools() -> None:
     config = RoleConfig(provider="codex", model="gpt-5", effort="low")
-    master = CodexDriver().command("master", config, None, "http://localhost:1/mcp/")
-    narrator = CodexDriver().command("narrator", config, None, "")
+    master = CodexDriver().command(config, None, "http://localhost:1/mcp/")
+    narrator = CodexDriver().command(config, None, None)
 
     assert "mcp_servers.rulehall.url=http://localhost:1/mcp/" in master
     assert "mcp_servers.rulehall.default_tools_approval_mode=approve" in master
@@ -99,7 +95,7 @@ def test_no_codex_role_gets_a_shell_and_only_the_master_reaches_the_tools() -> N
 def test_a_resumed_codex_run_still_reads_its_prompt_from_stdin() -> None:
     config = RoleConfig(provider="codex", model="gpt-5", effort="low")
 
-    argv = CodexDriver().command("narrator", config, "abc-123", "")
+    argv = CodexDriver().command(config, "abc-123", None)
 
     assert argv[:4] == ["codex", "exec", "resume", "abc-123"]
     assert argv[-1] == "-"
@@ -107,8 +103,8 @@ def test_a_resumed_codex_run_still_reads_its_prompt_from_stdin() -> None:
 
 def test_no_claude_role_keeps_a_built_in_tool_and_only_the_master_reaches_the_tools() -> None:
     config = RoleConfig(model="haiku", effort="low")
-    master = ClaudeDriver().command("master", config, None, "http://localhost:1/mcp/")
-    narrator = ClaudeDriver().command("narrator", config, None, "")
+    master = ClaudeDriver().command(config, None, "http://localhost:1/mcp/")
+    narrator = ClaudeDriver().command(config, None, None)
 
     assert "--mcp-config" in master and "--mcp-config" not in narrator
     for argv in (master, narrator):
@@ -132,10 +128,8 @@ async def test_a_missing_cli_binary_is_a_refusal_not_a_crash() -> None:
     config = RoleConfig(model="opus", effort="high")
 
     prompt = Prompt(system="", user="PLAY")
-    with pytest.raises(Refusal, match="could not be started: rulehall-no-such-binary"):
-        _ = await run_cli(
-            "master", config, _StubDriver(("rulehall-no-such-binary",)), 1, prompt, None
-        )
+    with pytest.raises(Refusal, match="rulehall-no-such-binary could not be started"):
+        _ = await run_cli("master", config, _StubDriver(("rulehall-no-such-binary",)), prompt)
 
 
 async def test_the_cli_is_found_on_the_childs_path_and_reads_its_prompt_from_stdin(
@@ -147,7 +141,7 @@ async def test_the_cli_is_found_on_the_childs_path_and_reads_its_prompt_from_std
     prompt = Prompt(system="", user="x" * 200_000)
 
     with pytest.raises(Refusal, match="exited 3"):
-        _ = await run_cli("narrator", config, _StubDriver(("rulehall-cli", "-p")), 1, prompt, None)
+        _ = await run_cli("narrator", config, _StubDriver(("rulehall-cli", "-p")), prompt)
 
     assert started.found == [("rulehall-cli", "/opt/cli")]
     assert started.argv == ("/opt/cli/rulehall-cli", "-p")
@@ -183,8 +177,8 @@ def _faked(monkeypatch: pytest.MonkeyPatch, output: bytes, returncode: int) -> _
         started.argv = argv
         return FakeProcess()
 
-    monkeypatch.setattr(spawn.shutil, "which", fake_which)
-    monkeypatch.setattr(spawn.subprocess, "create_subprocess_exec", fake_create)
+    monkeypatch.setattr(processes.shutil, "which", fake_which)
+    monkeypatch.setattr(processes.subprocess, "create_subprocess_exec", fake_create)
     return started
 
 
@@ -196,7 +190,7 @@ async def test_a_crashed_roles_raw_output_never_reaches_the_player(
     prompt = Prompt(system="", user="PLAY")
 
     with pytest.raises(Refusal, match="master exited 3") as failed:
-        _ = await run_cli("master", config, _StubDriver(("rulehall-crashing",)), 1, prompt, None)
+        _ = await run_cli("master", config, _StubDriver(("rulehall-crashing",)), prompt)
 
     assert "HIDDEN HERE" not in str(failed.value)
 
@@ -206,10 +200,10 @@ async def test_a_crashed_roles_raw_output_never_reaches_the_player(
     ((ClaudeDriver(), CLAUDE_OUTPUT, '{"lines": []}'), (CodexDriver(), CODEX_OUTPUT, "")),
     ids=("claude", "codex"),
 )
-def test_a_driver_reads_the_conversation_its_cli_reported_and_streams_only_the_answers_text(
+def test_a_driver_reads_the_resume_id_its_cli_reported_and_streams_only_the_answers_text(
     driver: ClaudeDriver | CodexDriver, output: str, streamed: str
 ) -> None:
-    assert driver.read_result(output).conversation == "abc-123"
+    assert driver.read_result(output).resume_id == "abc-123"
     assert "".join(driver.delta(line) for line in output.splitlines()) == streamed
 
 
@@ -252,13 +246,13 @@ def test_the_child_keeps_what_windows_needs_to_start_a_cli_and_find_its_login(
 
 
 async def test_a_role_that_floods_its_output_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(spawn, "OUTPUT_MAX_BYTES", 16)
+    monkeypatch.setattr(cli_roles, "OUTPUT_MAX_BYTES", 16)
     _ = _faked(monkeypatch, b"x" * 64, 0)
     config = RoleConfig(model="opus", effort="high")
     prompt = Prompt(system="", user="PLAY")
 
     with pytest.raises(Refusal, match="master printed more than 16 bytes"):
-        _ = await run_cli("master", config, _StubDriver(("rulehall-flooding",)), 1, prompt, None)
+        _ = await run_cli("master", config, _StubDriver(("rulehall-flooding",)), prompt)
 
 
 async def test_a_listener_hears_the_text_so_far_line_by_line(
@@ -273,10 +267,8 @@ async def test_a_listener_hears_the_text_so_far_line_by_line(
             "narrator",
             config,
             _StubDriver(("rulehall-talking",)),
-            1,
             Prompt(system="", user="PLAY"),
-            None,
-            heard.append,
+            heard=heard.append,
         )
 
     assert heard == ["a\n", "a\nb\n"]

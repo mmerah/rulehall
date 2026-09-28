@@ -19,10 +19,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 from agents import ScriptedAgents
 from art import generate_placeholder
 
+from rulehall.app.catalog import SavedGameKey
+from rulehall.app.game_session import GameSession
 from rulehall.app.illustration import Illustrator
-from rulehall.app.launch import LaunchTarget
 from rulehall.app.runtime import Runtime
-from rulehall.app.session import GameService
 from rulehall.config import LOOPBACK_HOST, MediaConfig, ServerConfig, Settings
 from rulehall.ui import theme
 from rulehall.ui.app import mount
@@ -62,7 +62,7 @@ def main() -> None:
     _seed_dice()
     agents = ScriptedAgents(delay=parsed.delay)
     # The built agents are passed so a reload, which rebuilds the runtime, keeps them.
-    runtime = Runtime(settings, spawner=agents)
+    runtime = Runtime(settings, roles=agents)
     agents.runtime = runtime
     mount(runtime)
 
@@ -103,9 +103,9 @@ def _seed_dice() -> None:
     """The real runtime, with each game's dice seeded by its save id, so QA numbers repeat."""
     open_game = Runtime._open  # pyright: ignore[reportPrivateUsage]
 
-    def seeded(runtime: Runtime, target: LaunchTarget) -> GameService:
-        session = open_game(runtime, target)
-        session.rng.seed(target.save_id)
+    def seeded(runtime: Runtime, key: SavedGameKey) -> GameSession:
+        session = open_game(runtime, key)
+        session.rng.seed(key.save_id)
         return session
 
     Runtime._open = seeded  # pyright: ignore[reportAttributeAccessIssue]

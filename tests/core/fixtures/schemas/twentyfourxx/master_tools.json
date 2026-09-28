@@ -35,7 +35,7 @@
   },
   {
     "name": "direct",
-    "description": "Call this last, once per turn. It ends the turn and gives notes to the narrator. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Apply world changes through the other tools before calling direct.",
+    "description": "End the turn and give notes to the narrator. Call this last, once per turn. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Apply world changes through the other tools before calling direct.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -125,7 +125,7 @@
   },
   {
     "name": "change_hindrances",
-    "description": "The actor gains hindrances, loses hindrances, or does both.",
+    "description": "Add hindrances to the actor, remove hindrances, or do both.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -159,7 +159,7 @@
   },
   {
     "name": "gain_item",
-    "description": "The actor gains an item and pays for it.",
+    "description": "Give the actor an item they pay for.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -201,7 +201,7 @@
   },
   {
     "name": "drop_item",
-    "description": "The actor loses an item permanently.",
+    "description": "Take an item from the actor permanently.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -226,7 +226,7 @@
   },
   {
     "name": "repair_item",
-    "description": "The actor repairs a broken item.",
+    "description": "Repair a broken item of the actor.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -257,7 +257,7 @@
   },
   {
     "name": "spend",
-    "description": "The actor pays credits for a thing that is not an item and not a repair, or pays someone with `to_id`.",
+    "description": "Pay the actor's credits for a thing that is not an item and not a repair, or pay someone with `to_id`.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -296,7 +296,7 @@
   },
   {
     "name": "ship_upgrade",
-    "description": "The player upgrades one ship function.",
+    "description": "Upgrade one ship function for the player.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -318,7 +318,7 @@
   },
   {
     "name": "lose_hold_item",
-    "description": "An item leaves the ship's hold while the crew is away: a raid, an impound or a theft. Call this once for each item.",
+    "description": "Take an item out of the ship's hold while the crew is away: a raid, an impound or a theft. Call this once for each item.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -340,7 +340,7 @@
   },
   {
     "name": "defend",
-    "description": "A carried item or a ship function breaks. The hit becomes a hindrance.",
+    "description": "Break a carried item or a ship function. The hit becomes a hindrance.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -370,7 +370,7 @@
   },
   {
     "name": "next_scene",
-    "description": "Call this with nothing set when the scene reaches a stopping point. Set `pursuit` instead when the player has left this place. Set `complication` instead to bring a new situation into this place.",
+    "description": "Open the next scene: with nothing set when this one reaches a stopping point. Set `pursuit` instead when the player has left this place. Set `complication` instead to bring a new situation into this place.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -395,7 +395,7 @@
   },
   {
     "name": "bring_in",
-    "description": "A new operator joins the crew after the lead died; the worldsmith writes them.",
+    "description": "Bring a new operator into the crew after the lead died; the worldsmith writes them.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -412,7 +412,7 @@
   },
   {
     "name": "roll",
-    "description": "Call this only to avoid a risk. The engine checks the dice and asks the player to commit, unless `committed` is set; then it rolls and reads the result.",
+    "description": "Roll only to avoid a risk. The engine checks the dice and asks the player to commit, unless `committed` is set; then it rolls and reads the result.",
     "parameters": {
       "additionalProperties": false,
       "properties": {

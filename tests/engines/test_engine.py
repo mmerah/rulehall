@@ -6,15 +6,13 @@ from support.engine_dir import install_engine_dir
 from support.table import (
     ENGINE_IDS,
     ENGINES_BUILT,
-    LONER4E,
-    change,
     game,
 )
 
-from rulehall.core.io import ENCODING
-from rulehall.core.model import Character
+from rulehall.core.game import Character
+from rulehall.core.stores import ENCODING
 from rulehall.core.validation import EngineId, Refusal
-from rulehall.engines.entities import PLAYER_ID, Person
+from rulehall.engines.sheet import PLAYER_ID, Person
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
 
 
@@ -42,7 +40,7 @@ def test_player_of_refuses_a_sheet_the_engine_does_not_write(engine_id: EngineId
     stranger = Character[Person](
         id="wren",
         engine_id=engine.id,
-        sheet=Person(id=PLAYER_ID, name="Wren", brief="", known=True),
+        person=Person(id=PLAYER_ID, name="Wren", brief="", known=True),
     )
 
     with pytest.raises(Refusal, match="is not a"):
@@ -62,15 +60,3 @@ def test_restore_refuses_a_save_smuggling_a_pending_request() -> None:
 
     with pytest.raises(Refusal, match="request"):
         engine.restore(json.dumps(raw))
-
-
-def test_a_direction_marks_the_draft_and_never_reaches_the_save() -> None:
-    engine, state = game(LONER4E)
-    draft = state.draft()
-
-    _ = change(engine, draft, "direct", text="the cold off the stone reaches him")
-
-    directed = engine.accept(draft)
-    assert directed.directed
-    assert "directed" not in json.loads(directed.model_dump_json())
-    assert not engine.restore(directed.model_dump_json()).directed

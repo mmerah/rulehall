@@ -2,12 +2,12 @@ import pytest
 from support.table import TUNNELGOONS, game, narrowed
 from support.tunnelgoons import ENGINE, small_world
 
-from rulehall.core.model import ScenarioDescription
+from rulehall.core.game import ScenarioDescription
 from rulehall.core.validation import Refusal
-from rulehall.engines.entities import PLAYER_ID, Gauge
 from rulehall.engines.rooms.panels import MORE_MAP
-from rulehall.engines.rooms.world import MapProposal, Place, Prop, RegionProposal, Way
-from rulehall.engines.rooms.worldsmith import check_map, check_next_map
+from rulehall.engines.rooms.world import Item, MapProposal, Place, RegionProposal, Way
+from rulehall.engines.rooms.worldsmith import check_next, check_opening
+from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.sheet import Goon
 from rulehall.engines.tunnelgoons.world import TunnelGoonsGame
 
@@ -39,7 +39,7 @@ def _region() -> RegionProposal[Goon]:
         },
         ways={FAR_HALL: [Way(to_id=FAR_VAULT)]},
         items={
-            FAR_ITEM: Prop(id=FAR_ITEM, name="Far Item", brief="b", known=False, holder_id=FAR_HALL)
+            FAR_ITEM: Item(id=FAR_ITEM, name="Far Item", brief="b", known=False, holder_id=FAR_HALL)
         },
         start_id=FAR_HALL,
         recap="They pushed past the hall and found the vault beyond it.",
@@ -58,7 +58,7 @@ def _wide_region() -> MapProposal[Goon]:
 
 
 def test_a_one_place_map_with_no_ways_passes_the_map_bar_and_builds() -> None:
-    check_map(THIN)
+    check_opening(THIN)
 
     built = ENGINE.build_scenario(
         ScenarioDescription(
@@ -79,19 +79,19 @@ def test_a_region_of_one_hidden_place_with_no_ways_installs_hidden() -> None:
         start_id=HIDDEN,
         recap="They found a hidden way and pushed through it.",
     )
-    check_next_map(region, draft.world)
+    check_next(region, draft.world)
 
-    ENGINE.install(draft, region)
+    _ = ENGINE.install_next(draft, region)
 
     assert not draft.world.places[HIDDEN].known
-    assert draft.world.way(draft.world.current.id, HIDDEN) is not None
+    assert draft.world.find_way(draft.world.current.id, HIDDEN) is not None
 
 
 def test_the_shipped_scenario_passes_the_map_bar() -> None:
-    check_map(_wide_region())
+    check_opening(_wide_region())
 
 
-def test_check_map_refuses_a_dead_npc() -> None:
+def test_check_opening_refuses_a_dead_npc() -> None:
     corpse = Goon(
         id="corpse",
         name="Corpse",
@@ -107,15 +107,15 @@ def test_check_map_refuses_a_dead_npc() -> None:
         start_id=ONLY,
     )
     with pytest.raises(Refusal, match="alive"):
-        check_map(proposal)
+        check_opening(proposal)
 
 
-def test_check_next_map_refuses_an_item_planted_on_the_player() -> None:
+def test_check_next_refuses_an_item_planted_on_the_player() -> None:
     world = _tunnelgoons_game().world
     region = RegionProposal[Goon](
         places={HIDDEN: Place(id=HIDDEN, name="Hidden", brief="b", known=False, description="d")},
         items={
-            "planted": Prop(
+            "planted": Item(
                 id="planted", name="Planted", brief="b", known=True, holder_id=PLAYER_ID
             )
         },
@@ -123,21 +123,21 @@ def test_check_next_map_refuses_an_item_planted_on_the_player() -> None:
         recap="A hand slipped something into their pocket.",
     )
     with pytest.raises(Refusal, match="planted on the player"):
-        check_next_map(region, world)
+        check_next(region, world)
 
 
-def test_check_next_map_refuses_a_recap_that_names_an_unmet_npc() -> None:
+def test_check_next_refuses_a_recap_that_names_an_unmet_npc() -> None:
     world = _tunnelgoons_game().world
     unmet = next(person for person in world.people() if not person.known)
     region = _region().model_copy(update={"recap": f"They never found {unmet.name}."})
     with pytest.raises(Refusal, match="has not met"):
-        check_next_map(region, world)
+        check_next(region, world)
 
 
-def test_check_next_map_accepts_an_unknown_place_naming_itself() -> None:
+def test_check_next_accepts_an_unknown_place_naming_itself() -> None:
     region = _region()
     region.places[FAR_HALL].description = "Far Hall is a ruin."
-    check_next_map(region, _tunnelgoons_game().world)
+    check_next(region, _tunnelgoons_game().world)
 
 
 def _hiding_gremlin(
@@ -159,12 +159,12 @@ def _hiding_gremlin(
     )
 
 
-def test_check_map_refuses_a_start_description_naming_a_hidden_dweller() -> None:
+def test_check_opening_refuses_a_start_description_naming_a_hidden_dweller() -> None:
     draft = _hiding_gremlin(
         ONLY, known=True, brief="b", description="A Gremlin hides in the shadows."
     )
     with pytest.raises(Refusal, match="do not name"):
-        check_map(draft)
+        check_opening(draft)
 
 
 def test_attach_joins_at_the_current_place_and_the_world_validates() -> None:
@@ -177,8 +177,8 @@ def test_attach_joins_at_the_current_place_and_the_world_validates() -> None:
 
     assert FAR_HALL in world.places
     assert FAR_VAULT in world.places
-    assert world.way(anchor, FAR_HALL) is not None
-    assert world.way(FAR_HALL, anchor) is not None
+    assert world.find_way(anchor, FAR_HALL) is not None
+    assert world.find_way(FAR_HALL, anchor) is not None
 
 
 def test_a_region_reusing_an_id_already_in_the_world_is_refused() -> None:
@@ -197,7 +197,7 @@ def test_a_region_reusing_an_id_already_in_the_world_is_refused() -> None:
     )
 
     with pytest.raises(Refusal, match="not already in the world"):
-        check_next_map(reused, state.world)
+        check_next(reused, state.world)
 
 
 def test_more_map_is_offered_only_once_every_place_is_known() -> None:
@@ -207,4 +207,4 @@ def test_more_map_is_offered_only_once_every_place_is_known() -> None:
     draft = state.draft()
     for place in draft.world.places.values():
         place.known = True
-    assert ENGINE.player_view(draft.commit()).composer_option == MORE_MAP
+    assert ENGINE.player_view(draft.validated()).composer_option == MORE_MAP

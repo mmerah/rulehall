@@ -3,8 +3,8 @@ from support.table import change
 from support.twentyfourxx import ENGINE, KESTREL, hired, small_world
 
 from rulehall.core.validation import Refusal
-from rulehall.engines.entities import PLAYER_ID
-from rulehall.engines.twentyfourxx.rules import raised
+from rulehall.engines.sheet import PLAYER_ID
+from rulehall.engines.twentyfourxx.rules import next_die
 from rulehall.engines.twentyfourxx.sheet import STARTING_CREDITS, Gear
 from rulehall.engines.twentyfourxx.world import TwentyFourXXGame, TwentyFourXXWorld
 
@@ -18,10 +18,10 @@ def test_item_broken_at_and_below_breaks() -> None:
     assert item.broken
 
 
-def test_raised_steps_up_the_ladder() -> None:
-    assert raised(None) == 8
-    assert raised(8) == 10
-    assert raised(10) == 12
+def test_next_die_steps_up_the_ladder() -> None:
+    assert next_die(None) == 8
+    assert next_die(8) == 10
+    assert next_die(10) == 12
 
 
 def test_the_new_lead_takes_the_players_id_and_the_dead_lead_is_filed_by_name(
@@ -33,9 +33,9 @@ def test_the_new_lead_takes_the_players_id_and_the_dead_lead_is_filed_by_name(
 
     assert (world.player.id, world.player.name) == (PLAYER_ID, "Kestrel")
     assert KESTREL not in world.cast
-    assert KESTREL not in world.party
+    assert KESTREL not in world.party_ids
     assert not world.cast["rook"].alive
-    assert "rook" in world.scene.here
+    assert "rook" in world.scene.here_ids
     assert "Kestrel[kestrel]" not in world.cast_lines()
     assert any(fact.card == "Kestrel leads now" for fact in facts)
     TwentyFourXXWorld.model_validate_json(world.model_dump_json())

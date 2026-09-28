@@ -2,7 +2,7 @@ from support.table import ENGINES_BUILT, TWENTYFOURXX, game, narrowed, refused
 
 from rulehall.app.roles import render_master, render_narrator
 from rulehall.app.turn import ANSWERED_BY_OPTION
-from rulehall.core.play import Chapter, Exchange, SpokenLine
+from rulehall.core.log import Chapter, LogEntry, SpokenLine
 from rulehall.core.prompt import Prompt
 from rulehall.core.views import NarratorView
 from rulehall.engines.engine import AnyEngine
@@ -22,8 +22,8 @@ def _state() -> TwentyFourXXGame:
         Crewmate(id="ledger", name="a ledger", brief="Vessa's notes.", known=True),
     ):
         draft.world.cast[entity.id] = entity
-        draft.world.scene.here.append(entity.id)
-    return draft.commit()
+        draft.world.scene.here_ids.append(entity.id)
+    return draft.validated()
 
 
 def _engine() -> AnyEngine:
@@ -77,7 +77,7 @@ def test_the_narrator_prompt_carries_only_what_the_player_has_met() -> None:
         _engine().narrator_view(state),
         state,
         evidence="- the map was found",
-        prompt="What does Vessa say?",
+        cue="What does Vessa say?",
     ).text
 
     assert "Vessa Rune" in prompt
@@ -90,7 +90,7 @@ def test_the_narrator_prompt_carries_the_id_of_each_subject_here() -> None:
     state = _state()
 
     prompt = render_narrator(
-        _engine().narrator_view(state), state, evidence="- (nothing changed)", prompt="I wait."
+        _engine().narrator_view(state), state, evidence="- (nothing changed)", cue="I wait."
     ).text
 
     who_is_here = prompt.split("# WHO IS HERE\n", 1)[1].split("\n\n", 1)[0]
@@ -99,17 +99,15 @@ def test_the_narrator_prompt_carries_the_id_of_each_subject_here() -> None:
 
 def test_the_narrator_prompt_carries_only_what_the_player_has_read() -> None:
     state = _state()
-    state.log.append(
-        Chapter(
-            title="t", exchanges=[Exchange(words="p", lines=(SpokenLine(text="Water drips."),))]
-        )
+    state.chapters.append(
+        Chapter(title="t", entries=[LogEntry(words="p", lines=(SpokenLine(text="Water drips."),))])
     )
 
     prompt = render_narrator(
         _engine().narrator_view(state),
         state,
         evidence="- the map was found",
-        prompt="What does Vessa say?",
+        cue="What does Vessa say?",
     ).text
 
     assert "Water drips." in prompt

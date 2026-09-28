@@ -10,7 +10,7 @@ from pydantic.fields import FieldInfo
 from rulehall.app.runtime import Runtime
 from rulehall.config import Settings, env_key, read_settings, save_settings
 from rulehall.core.validation import Refusal, parse
-from rulehall.ui.widgets import alert, note, page_body, page_header, page_intro
+from rulehall.ui.widgets import alert, done, inform, page_body, page_header, page_intro
 
 type Widget = ui.input | ui.switch | ui.select | ui.number
 # A cleared box writes no key at all, which is the only way back to a field's own default.
@@ -18,12 +18,10 @@ type Changes = dict[tuple[str, ...], str | None]
 
 
 class SettingsForm:
-    def __init__(self, runtime: Runtime, settings: Settings) -> None:
+    def __init__(self, runtime: Runtime) -> None:
         self.runtime = runtime
-        self.settings = settings
+        self.settings = read_settings()
         self.boxes: dict[tuple[str, ...], Widget] = {}
-
-    def build(self) -> None:
         groups = _shown(self.settings)
         with page_header("Settings"):
             ui.space()
@@ -49,7 +47,7 @@ class SettingsForm:
 
     def render(self, value: object, field: FieldInfo, path: tuple[str, ...]) -> None:
         if not isinstance(value, BaseModel):
-            self.boxes[path] = _widget(_label(path), field, value)
+            self.boxes[path] = _field_input(_label(path), field, value)
             return
         for name, nested, nested_value in _shown(value):
             if isinstance(nested_value, BaseModel):
@@ -59,21 +57,12 @@ class SettingsForm:
                 self.render(nested_value, nested, (*path, name))
 
     def save(self) -> None:
-        changed = changes(self.settings, {path: box.value for path, box in self.boxes.items()})
+        changed = _changes(self.settings, {path: box.value for path, box in self.boxes.items()})
         if not changed:
-            note("Nothing changed.")
+            inform("Nothing changed.")
             return
-        merged = self.settings.model_dump()
-        for path, typed in changed.items():
-            node = merged
-            for part in path[:-1]:
-                node = node[part]
-            if typed is None:
-                node.pop(path[-1], None)
-            else:
-                node[path[-1]] = typed
         try:
-            parse(Settings, merged)
+            parse(Settings, _merged(self.settings, changed))
         except Refusal as refused:
             alert(str(refused))
             return
@@ -81,16 +70,12 @@ class SettingsForm:
         # The snapshot the boxes are compared against, or a second save reads as no change.
         self.settings = read_settings()
         self.runtime.configure(self.settings)
-        note("Saved to .env. The server keys apply at the next start.", good=True)
+        done("Saved to .env. The server keys apply at the next start.")
 
 
-def settings_page(runtime: Runtime) -> None:
-    SettingsForm(runtime, read_settings()).build()
-
-
-def changes(settings: Settings, typed: Mapping[tuple[str, ...], object]) -> Changes:
+def _changes(settings: Settings, entered: Mapping[tuple[str, ...], object]) -> Changes:
     changed: Changes = {}
-    for path, value in typed.items():
+    for path, value in entered.items():
         if env_key(path) in os.environ:
             continue
         stored = _stored(settings, path)
@@ -100,6 +85,19 @@ def changes(settings: Settings, typed: Mapping[tuple[str, ...], object]) -> Chan
         elif value != stored:
             changed[path] = None if value is None or value == "" else _text(value)
     return changed
+
+
+def _merged(settings: Settings, changed: Changes) -> dict[str, object]:
+    merged = settings.model_dump()
+    for path, entered in changed.items():
+        node = merged
+        for part in path[:-1]:
+            node = node[part]
+        if entered is None:
+            node.pop(path[-1], None)
+        else:
+            node[path[-1]] = entered
+    return merged
 
 
 def _shown(model: BaseModel) -> list[tuple[str, FieldInfo, object]]:
@@ -118,26 +116,23 @@ def _label(path: tuple[str, ...]) -> str:
     return spelled
 
 
-def _widget(label: str, field: FieldInfo, value: object) -> Widget:
-    widget = _box(label, field, value)
-    return widget if field.description is None else widget.props(f'hint="{field.description}"')
-
-
-def _box(label: str, field: FieldInfo, value: object) -> Widget:
+def _field_input(label: str, field: FieldInfo, value: object) -> Widget:
     bare = _unaliased(field.annotation)
+    widget: Widget
     if bare is SecretStr:
         # Never read a stored key back into the DOM; blank means "leave the stored key alone".
         placeholder = "set — type to replace" if value else "not set"
-        return ui.input(label, password=True, placeholder=placeholder)
-    if bare is bool:
-        return ui.switch(label, value=value is True)
-    if get_origin(bare) is Literal:
+        widget = ui.input(label, password=True, placeholder=placeholder)
+    elif bare is bool:
+        widget = ui.switch(label, value=value is True)
+    elif get_origin(bare) is Literal:
         options = [str(option) for option in get_args(bare)]
-        return ui.select(options, label=label, value=str(value))
-    if bare is int or bare is float:
-        number = value if isinstance(value, int | float) else None
-        return ui.number(label, value=number)
-    return ui.input(label, value=_text(value))
+        widget = ui.select(options, label=label, value=str(value))
+    elif bare is int or bare is float:
+        widget = ui.number(label, value=value if isinstance(value, int | float) else None)
+    else:
+        widget = ui.input(label, value=_text(value))
+    return widget if field.description is None else widget.props(f'hint="{field.description}"')
 
 
 def _unaliased(annotation: object) -> object:

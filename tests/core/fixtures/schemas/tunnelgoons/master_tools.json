@@ -35,7 +35,7 @@
   },
   {
     "name": "direct",
-    "description": "Call this last, once per turn. It ends the turn and gives notes to the narrator. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Apply world changes through the other tools before calling direct.",
+    "description": "End the turn and give notes to the narrator. Call this last, once per turn. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Apply world changes through the other tools before calling direct.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -77,14 +77,14 @@
           "description": "Exact id of an item here or carried.",
           "type": "string"
         },
-        "to_id": {
+        "holder_id": {
           "description": "Exact id of the player, an npc here, or this place.",
           "type": "string"
         }
       },
       "required": [
         "item_id",
-        "to_id"
+        "holder_id"
       ],
       "type": "object"
     }
@@ -133,7 +133,7 @@
   },
   {
     "name": "meanwhile",
-    "description": "Time passes where the player is not. Move a dweller, move a loose item, and shut a way the player knows. Use any combination in one call. Call this only while ELSEWHERE is shown.",
+    "description": "Pass time where the player is not: move a dweller, move a loose item, and shut a way the player knows. Use any combination in one call. Call this only while ELSEWHERE is shown.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -213,7 +213,7 @@
   },
   {
     "name": "rest",
-    "description": "The player and the party rest here for one night. Their Health goes to full.",
+    "description": "Rest the player and the party here for one night. Their Health goes to full.",
     "parameters": {
       "additionalProperties": false,
       "properties": {},
@@ -222,7 +222,7 @@
   },
   {
     "name": "roll",
-    "description": "Call this for an uncertain action that has a real cost. The engine rolls 2d6, adds the ability and the items, and reads the total.",
+    "description": "Roll for an uncertain action that has a real cost. The engine rolls 2d6, adds the ability and the items, and reads the total.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -288,7 +288,7 @@
   },
   {
     "name": "level_up",
-    "description": "Call this one time, when the whole adventure ends. The engine gives the choice to the player first, then to each living hired member in turn.",
+    "description": "Level up one time, when the whole adventure ends. The engine gives the choice to the player first, then to each living hired member in turn.",
     "parameters": {
       "additionalProperties": false,
       "properties": {

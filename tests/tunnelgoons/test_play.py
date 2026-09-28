@@ -4,7 +4,7 @@ from random import Random
 
 from support.table import TUNNELGOONS, open_table, play_turn, tool_call
 
-from rulehall.core.play import Answer
+from rulehall.core.decisions import PlayerInput
 from rulehall.engines.rooms.panels import MORE_MAP
 from rulehall.engines.tunnelgoons.panels import level_up_decision
 from rulehall.engines.tunnelgoons.sheet import GoonSheet
@@ -92,19 +92,19 @@ async def test_the_shipped_map_plays_start_to_finish(tmp_path: Path) -> None:
         tool_call("move", to_id="corridor"),
         tool_call("move", to_id="cellar"),
     )
-    assert table.service.player_view().composer_option == MORE_MAP
+    assert table.session.player_view().composer_option == MORE_MAP
 
-    before_turn = len(state.exchanges())
-    table.spawner.answers["worldsmith"] = [json.dumps(REGION)]
+    before_turn = len(state.log_entries())
+    table.roles.answers["worldsmith"] = [json.dumps(REGION)]
     after = await play_turn(table, "Deeper in.", composer=MORE_MAP)
 
     # The region lands hidden, then the words play as a turn that sees the new way out.
     assert set(REGION["places"]) <= set(after.world.places)
     assert all(not after.world.places[place].known for place in REGION["places"])
-    assert [role for role, _ in table.spawner.prompts[-3:]] == ["worldsmith", "master", "narrator"]
-    assert "Deep Vault" in table.spawner.prompts[-2][1]
-    assert after.exchanges()[before_turn].words == "Deeper in."
-    assert table.service.player_view().composer_option is None
+    assert [role for role, _ in table.roles.prompts[-3:]] == ["worldsmith", "master", "narrator"]
+    assert "Deep Vault" in table.roles.prompts[-2][1]
+    assert after.log_entries()[before_turn].words == "Deeper in."
+    assert table.session.player_view().composer_option is None
 
 
 async def test_a_region_that_cannot_be_written_files_the_players_words(tmp_path: Path) -> None:
@@ -120,20 +120,20 @@ async def test_a_region_that_cannot_be_written_files_the_players_words(tmp_path:
         tool_call("move", to_id="corridor"),
         tool_call("move", to_id="cellar"),
     )
-    assert table.service.player_view().composer_option == MORE_MAP
-    before = len(table.state.exchanges())
+    assert table.session.player_view().composer_option == MORE_MAP
+    before = len(table.state.log_entries())
 
-    await table.service.use_composer_option(MORE_MAP, "Deeper in.")
+    await table.session.use_composer_option(MORE_MAP, "Deeper in.")
     after = table.state
 
-    unwritten = after.exchanges()
+    unwritten = after.log_entries()
     assert len(unwritten) == before + 1
     assert unwritten[-1].words == "Deeper in."
     assert (
         unwritten[-1].facts[0].card == "The map could not be written. You are still where you were."
     )
-    assert table.spawner.prompts[-1][0] == "worldsmith"
-    assert table.service.player_view().composer_option == MORE_MAP
+    assert table.roles.prompts[-1][0] == "worldsmith"
+    assert table.session.player_view().composer_option == MORE_MAP
 
 
 async def test_the_clock_does_not_count_a_turn_the_master_never_played(tmp_path: Path) -> None:
@@ -141,13 +141,13 @@ async def test_the_clock_does_not_count_a_turn_the_master_never_played(tmp_path:
     table = open_table(tmp_path, engine_id=TUNNELGOONS, state_type=TunnelGoonsGame)
     world = table.state.world
     world.npcs[GRIX].sheet = GoonSheet(abilities={"brute": 1, "skulker": 1, "erudite": 1})
-    world.party.append(GRIX)
+    world.party_ids.append(GRIX)
     suspended = table.state.draft()
     suspended.pending = level_up_decision(suspended.world.player)
-    table.service.save(suspended.commit())
+    table.session.save(suspended.validated())
 
-    state = await play_turn(table, Answer(option_id="brute-health"))
+    state = await play_turn(table, PlayerInput(option_id="brute-health"))
 
-    assert state.exchanges()[-1].facts
+    assert state.log_entries()[-1].facts
     assert state.world.turns_since_meanwhile == 0
-    assert "master" not in [role for role, _ in table.spawner.prompts]
+    assert "master" not in [role for role, _ in table.roles.prompts]

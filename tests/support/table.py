@@ -1,7 +1,6 @@
 import json
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from functools import partial
 from itertools import islice
 from pathlib import Path
 from random import Random
@@ -10,17 +9,17 @@ import pytest
 from pydantic import BaseModel, JsonValue, SecretStr
 from pydantic_settings import SettingsConfigDict
 
-from rulehall.app.launch import LaunchTarget
+from rulehall.app.catalog import SavedGameKey
+from rulehall.app.game_session import GameSession
+from rulehall.app.roles import RoleReply
 from rulehall.app.runtime import Runtime
-from rulehall.app.session import GameService
-from rulehall.app.spawn import RunResult
 from rulehall.app.turn import Turn
 from rulehall.config import ProviderConfig, Providers, Role, Settings
+from rulehall.core.decisions import ActionOption, PlayerInput
 from rulehall.core.facts import Fact
-from rulehall.core.io import Library
-from rulehall.core.model import AnyGame, Check, RoleAnswer
-from rulehall.core.play import Answer, PendingOption
+from rulehall.core.game import AnyGame, Check, RoleAnswer
 from rulehall.core.prompt import Prompt
+from rulehall.core.stores import Library
 from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.registry import build_engines
@@ -49,7 +48,7 @@ TWENTYFOURXX = EngineId("twentyfourxx")
 POKEMON = EngineId("pokemon")
 ENGINES_BUILT = build_engines(NO_PACKS)
 ENGINE_IDS = tuple(ENGINES_BUILT)
-SCENARIO_MODELS = {engine_id: engine.scenario for engine_id, engine in ENGINES_BUILT.items()}
+SCENARIO_MODELS = {engine_id: engine.scenario_model for engine_id, engine in ENGINES_BUILT.items()}
 
 
 def updated[T: BaseModel](model: T, **changes: object) -> T:
@@ -73,18 +72,19 @@ def game(engine_id: EngineId) -> tuple[AnyEngine, AnyGame]:
     engine = ENGINES_BUILT[engine_id]
     scenario_id = scenario_for(engine_id)
     selected_scenario = LIBRARY.read_scenario(scenario_id, SCENARIO_MODELS)
-    selected_character = LIBRARY.read_character("kael", engine.id, engine.character)
+    selected_character = LIBRARY.read_character("kael", engine.id, engine.character_model)
     begun = engine.begin(scenario_id, selected_scenario, selected_character)
     return engine, begun
 
 
 def change(engine: AnyEngine, draft: AnyGame, name: str, /, **args: JsonValue) -> list[Fact]:
     """`name` is positional-only: a tool's own `name` field must pass through as an argument."""
-    return list(engine.tools[name].call(draft, args, Random(0)))
+    return list(engine.call_tool(draft, name, args, Random(0)))
 
 
 def run_action(engine: AnyEngine, draft: AnyGame, name: str, /, **args: JsonValue) -> list[Fact]:
-    return list(engine.actions[name](draft, args, Random(0)))
+    option = ActionOption(id="chosen", name=name, action_name=name, args=args)
+    return list(engine.play_option(draft, option, Random(0)))
 
 
 def refused(engine: AnyEngine, draft: AnyGame, name: str, /, **args: JsonValue) -> str:
@@ -117,7 +117,7 @@ def offline_settings(saves: Path | None = None, scenarios: Path = SCENARIOS) -> 
 
 
 @dataclass(slots=True)
-class ScriptedSpawner:
+class ScriptedRoles:
     """Answers from a per-role list and records every prompt it was given."""
 
     turns: list[Callable[[], None]] = field(default_factory=list)
@@ -125,37 +125,40 @@ class ScriptedSpawner:
     prompts: list[tuple[Role, str]] = field(default_factory=list)
     hooks: list[Callable[[Role, str], Awaitable[None]]] = field(default_factory=list)
 
-    async def run(
+    async def answer(
         self,
         role: Role,
         prompt: Prompt,
-        conversation: str | None,
-        turn: Turn | None = None,
+        *,
+        resume_id: str | None = None,
         heard: Callable[[str], None] | None = None,
-    ) -> RunResult:
-        del conversation, turn
-        text = prompt.text
-        for hook in self.hooks:
-            await hook(role, text)
-        self.prompts.append((role, text))
-        # A conversation every time, so a test exercises the resumed path the real CLIs take.
-        spoke = partial(RunResult, conversation=f"{role}-1")
-        if role == "master":
-            if self.turns:
-                self.turns.pop(0)()
-            return spoke(text)
+    ) -> RoleReply:
+        del resume_id
+        await self._record(role, prompt)
         answers = self.answers.get(role)
         if not answers:
             raise Refusal(f"the scripted {role} has no answer left")
         answer = answers.pop(0)
         if heard is not None:
             heard(answer)
-        return spoke(answer)
+        # A resume id every time, so a test exercises the resumed path the real CLIs take.
+        return RoleReply(answer, f"{role}-1")
+
+    async def play_master_turn(self, prompt: Prompt, turn: Turn) -> None:
+        del turn
+        await self._record("master", prompt)
+        if self.turns:
+            self.turns.pop(0)()
 
     def prompt(self, role: Role, nth: int = 0) -> str:
         """The nth prompt the role was given; the golden prompts come from here."""
         matches = (text for name, text in self.prompts if name == role)
         return next(islice(matches, nth, None))
+
+    async def _record(self, role: Role, prompt: Prompt) -> None:
+        for hook in self.hooks:
+            await hook(role, prompt.text)
+        self.prompts.append((role, prompt.text))
 
 
 def stub_worldsmith(answer: Mapping[str, object]) -> RoleAnswer:
@@ -170,8 +173,8 @@ class Table[G: AnyGame]:
     """A live game and the tool surface a scripted game master plays it through."""
 
     runtime: Runtime
-    service: GameService
-    spawner: ScriptedSpawner
+    session: GameSession
+    roles: ScriptedRoles
     state_type: type[G]
     refusals: list[str] = field(default_factory=list)
     answers: list[str] = field(default_factory=list)
@@ -180,7 +183,7 @@ class Table[G: AnyGame]:
     def call(self, name: str, args: dict[str, JsonValue]) -> str:
         """A refusal is an error result the CLI reads and carries on from, not a crash."""
         try:
-            answered = self.runtime.gate.require_turn().call(name, args)
+            answered = self.runtime.gate.require_turn().call_tool(name, args)
         except Refusal as refused:
             self.refusals.append(str(refused))
             answered = str(refused)
@@ -191,24 +194,24 @@ class Table[G: AnyGame]:
         def run() -> None:
             for name, args in calls:
                 _ = self.call(name, args)
-            # Snapshotted here: the service drops the turn once it is filed.
-            if (turn := self.service.turn) is not None:
+            # Snapshotted here: the session drops the turn once it is filed.
+            if (turn := self.session.turn) is not None:
                 self.facts = list(turn.facts)
 
         return run
 
     @property
     def state(self) -> G:
-        state = self.service.state
+        state = self.session.state
         assert isinstance(state, self.state_type), (
-            f"the service holds an unexpected {self.state_type.__name__}"
+            f"the session holds an unexpected {self.state_type.__name__}"
         )
         return state
 
     def saved(self) -> G:
-        raw = self.service.store.read(self.service.target.save_id)
+        raw = self.session.store.read(self.session.key.save_id)
         assert raw is not None
-        restored = self.service.engine.restore(raw)
+        restored = self.session.engine.restore(raw)
         assert isinstance(restored, self.state_type), (
             f"the save restored an unexpected {self.state_type.__name__}"
         )
@@ -226,29 +229,29 @@ def open_table[G: AnyGame](
     character_id: Slug = "kael",
 ) -> Table[G]:
     settings = settings or offline_settings(saves)
-    spawner = ScriptedSpawner()
-    runtime = Runtime(settings, spawner=spawner)
+    roles = ScriptedRoles()
+    runtime = Runtime(settings, roles=roles)
     selected_engine = ENGINES_BUILT[engine_id] if engine is None else engine
     runtime.engines[engine_id] = selected_engine
     scenario_id = scenario_for(engine_id)
-    service = runtime.session(LaunchTarget(scenario_id=scenario_id, character_id=character_id))
+    session = runtime.session_for(SavedGameKey(scenario_id=scenario_id, character_id=character_id))
     if rng is not None:
-        service.rng = rng
-    return Table(runtime=runtime, service=service, spawner=spawner, state_type=state_type)
+        session.rng = rng
+    return Table(runtime=runtime, session=session, roles=roles, state_type=state_type)
 
 
 async def play_turn[G: AnyGame](
     table: Table[G],
-    prompt: str | Answer,
+    prompt: str | PlayerInput,
     *calls: Scripted,
     narration: str = "You wait.",
     arrival: str | None = None,
-    composer: PendingOption | None = None,
+    composer: ActionOption | None = None,
     then: Sequence[str] = (),
 ) -> G:
     """`then` queues answers for a spawn after the turn, such as the battle-end narration."""
-    table.spawner.turns.append(table.plays(calls))
-    canned = table.spawner.answers.setdefault("narrator", [])
+    table.roles.turns.append(table.plays(calls))
+    canned = table.roles.answers.setdefault("narrator", [])
     canned.append(narrated(narration))
     # The arrival is its own narrator spawn, so a turn that installs a scene answers twice.
     if arrival is not None:
@@ -256,10 +259,10 @@ async def play_turn[G: AnyGame](
     canned.extend(then)
     if composer is not None:
         assert isinstance(prompt, str)
-        await table.service.use_composer_option(composer, prompt)
+        await table.session.use_composer_option(composer, prompt)
     else:
-        answer = Answer(text=prompt) if isinstance(prompt, str) else prompt
-        await table.service.play(answer)
+        answer = PlayerInput(text=prompt) if isinstance(prompt, str) else prompt
+        await table.session.play(answer)
     return table.state
 
 

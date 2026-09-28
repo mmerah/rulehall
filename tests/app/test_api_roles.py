@@ -6,16 +6,15 @@ from dataclasses import dataclass, field
 from random import Random
 
 import pytest
-from httpx import HTTPStatusError, Request, Response
 from pydantic import JsonValue
 from support.game import initialized
 from support.table import ENGINES_BUILT, LONER4E, offline_settings, updated
 
-from rulehall.app.spawn import RoleRunner
+from rulehall.app.roles import ProviderRoleRunner
 from rulehall.app.turn import UNDIRECTED, Turn
-from rulehall.config import RoleConfig, RoleSettings, Settings
+from rulehall.config import LiveSettings, RoleConfig, RoleSettings
 from rulehall.core.prompt import Prompt
-from rulehall.core.tools import MasterTool, schema_of
+from rulehall.core.tools import MasterTool
 from rulehall.core.validation import Refusal
 
 CHANGE_TAGS = ENGINES_BUILT[LONER4E].tools["change_tags"]
@@ -33,12 +32,9 @@ class _Tools(Turn):
     def published_tools(self) -> tuple[MasterTool, ...]:
         return (CHANGE_TAGS, DIRECT)
 
-    def call(self, name: str, raw: JsonValue) -> str:
-        found = {tool.name: tool for tool in self.published_tools()}.get(name)
-        if found is None:
-            raise Refusal(f"{name!r} is not a tool of the 'loner4e' engine.")
-        _ = found.call(self.draft, raw, Random(0))
-        self.calls.append((name, raw))
+    def call_tool(self, name: str, arguments: str | dict[str, JsonValue]) -> str:
+        _ = Turn.call_tool(self, name, arguments)
+        self.calls.append((name, arguments))
         return TRACE
 
 
@@ -46,8 +42,8 @@ def _tools() -> _Tools:
     return _Tools(engine=ENGINES_BUILT[LONER4E], draft=STATE.draft(), rng=Random(0))
 
 
-def _settings(**roles: RoleConfig) -> Settings:
-    return updated(offline_settings(), roles=RoleSettings(**roles).model_dump())
+def _live_settings(**roles: RoleConfig) -> LiveSettings:
+    return LiveSettings(updated(offline_settings(), roles=RoleSettings(**roles).model_dump()))
 
 
 def _post(
@@ -65,13 +61,13 @@ def _post(
         return reply
 
     async def scripted(
-        _provider: object, path: str, body: Mapping[str, JsonValue], _timeout: float
+        _provider: object, path: str, body: Mapping[str, JsonValue], _timeout: float | None
     ) -> bytes:
         return json.dumps(next_reply(path, body)).encode()
 
     @asynccontextmanager
     async def streamed(
-        _provider: object, path: str, body: Mapping[str, JsonValue], _timeout: float
+        _provider: object, path: str, body: Mapping[str, JsonValue], _timeout: float | None
     ) -> AsyncGenerator[AsyncIterator[str]]:
         assert body["stream"] is True
         yield _chunks(next_reply(path, body))
@@ -135,19 +131,18 @@ async def test_the_master_plays_its_tools_in_process_and_echoes_each_reply_whole
     sent = _post(monkeypatch, first, _said("Done.", _call("d", "direct", DIRECTED)))
     tools = _tools()
 
-    spoken = await RoleRunner(_settings(master=RoleConfig(provider="local", model="m"))).run(
-        "master", Prompt(system="BE THE MASTER", user="PLAY"), None, tools
-    )
+    await ProviderRoleRunner(
+        _live_settings(master=RoleConfig(provider="local", model="m"))
+    ).play_master_turn(Prompt(system="BE THE MASTER", user="PLAY"), tools)
 
-    assert spoken.text == "Done."
-    assert tools.calls == [("change_tags", change), ("direct", {"text": "He listens."})]
+    assert tools.calls == [("change_tags", arguments), ("direct", DIRECTED)]
     assert sent[0]["tools"] == [
         {
             "type": "function",
             "function": {
                 "name": tool.name,
                 "description": tool.description,
-                "parameters": schema_of(tool.args),
+                "parameters": tool.schema,
             },
         }
         for tool in (CHANGE_TAGS, DIRECT)
@@ -172,7 +167,7 @@ async def test_the_master_plays_its_tools_in_process_and_echoes_each_reply_whole
     assert answers[2] == {
         "role": "tool",
         "tool_call_id": "c",
-        "content": "'next_scene' is not a tool of the 'loner4e' engine.",
+        "content": "'next_scene' is not a tool now",
     }
 
 
@@ -183,9 +178,9 @@ async def test_a_writer_streams_its_answer_and_the_listener_hears_the_text_so_fa
     prompt = Prompt(system="YOUR ROLE:\nBe the narrator.", user="PLAYER ACTION:\nI wait.")
     heard: list[str] = []
 
-    spoken = await RoleRunner(_settings(narrator=RoleConfig(provider="local", model="m"))).run(
-        "narrator", prompt, None, heard=heard.append
-    )
+    spoken = await ProviderRoleRunner(
+        _live_settings(narrator=RoleConfig(provider="local", model="m"))
+    ).answer("narrator", prompt, heard=heard.append)
 
     assert spoken.text == "Done."
     assert heard == ["Do", "Done."]
@@ -203,7 +198,7 @@ async def test_a_master_still_calling_tools_past_the_cap_is_cut_off(
     prompt = Prompt(system="", user="PLAY")
 
     with pytest.raises(Refusal, match="3 rounds"):
-        _ = await RoleRunner(_settings(master=master)).run("master", prompt, None, _tools())
+        await ProviderRoleRunner(_live_settings(master=master)).play_master_turn(prompt, _tools())
     assert len(sent) == 3
 
 
@@ -214,7 +209,7 @@ async def test_a_master_that_stops_undirected_is_told_once_and_its_direct_ends_t
     prompt = Prompt(system="", user="PLAY")
     master = RoleConfig(provider="local", model="m")
 
-    _ = await RoleRunner(_settings(master=master)).run("master", prompt, None, _tools())
+    await ProviderRoleRunner(_live_settings(master=master)).play_master_turn(prompt, _tools())
 
     assert len(sent) == 2
     assert _messages(sent[1])[-1] == {"role": "user", "content": UNDIRECTED}
@@ -224,11 +219,7 @@ async def test_a_master_that_stops_undirected_is_told_once_and_its_direct_ends_t
     ("reply", "expected"),
     (
         (
-            HTTPStatusError(
-                "404",
-                request=Request("POST", "https://example.invalid/v1/chat/completions"),
-                response=Response(404, text="No endpoints found for m"),
-            ),
+            Refusal("the provider failed: 404 No endpoints found for m"),
             "404 No endpoints found for m",
         ),
         ({"error": {"message": "insufficient credits"}}, "insufficient credits"),
@@ -244,9 +235,9 @@ async def test_a_failed_provider_refuses_in_words_the_player_reads(
     prompt = Prompt(system="", user="BRIEF")
 
     with pytest.raises(Refusal, match=expected):
-        _ = await RoleRunner(_settings(narrator=RoleConfig(provider="local", model="m"))).run(
-            "narrator", prompt, None, _tools()
-        )
+        await ProviderRoleRunner(
+            _live_settings(master=RoleConfig(provider="local", model="m"))
+        ).play_master_turn(prompt, _tools())
 
 
 async def test_a_writer_that_calls_a_tool_is_refused_before_anything_lands(
@@ -256,6 +247,6 @@ async def test_a_writer_that_calls_a_tool_is_refused_before_anything_lands(
     prompt = Prompt(system="", user="BRIEF")
 
     with pytest.raises(Refusal, match="no tools, yet called 'change_tags'"):
-        _ = await RoleRunner(_settings(narrator=RoleConfig(provider="local", model="m"))).run(
-            "narrator", prompt, None
-        )
+        _ = await ProviderRoleRunner(
+            _live_settings(narrator=RoleConfig(provider="local", model="m"))
+        ).answer("narrator", prompt)

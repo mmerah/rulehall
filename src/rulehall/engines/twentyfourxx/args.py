@@ -3,14 +3,14 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, model_validator
 
 from rulehall.core.facts import DiceEvent
-from rulehall.core.tools import Told
+from rulehall.core.tools import PlayerFacing
 from rulehall.core.validation import Frozen, Slug
 from rulehall.engines.args import ACTOR, BE_SHORT, Attempt, ShortName
 from rulehall.engines.twentyfourxx.world import NO_PAY_FIGURE
 
 RISK_MAX = 100
 RISK_SHORT = f"Say it in one short phrase, never more than {RISK_MAX} characters."
-Risk = Annotated[Told, Field(max_length=RISK_MAX)]
+Risk = Annotated[PlayerFacing, Field(max_length=RISK_MAX)]
 
 
 class NextScene(Frozen):
@@ -78,7 +78,7 @@ class RepairItem(Frozen):
 
 class Spend(Frozen):
     amount: int = Field(gt=0, description="Credits spent.")
-    why: Told = Field(min_length=1, description="What the credits pay for, in a few words.")
+    why: PlayerFacing = Field(min_length=1, description="What the credits pay for, in a few words.")
     actor_id: Slug | None = Field(default=None, description=ACTOR)
     to_id: Slug | None = Field(
         default=None,
@@ -88,7 +88,7 @@ class Spend(Frozen):
 
 
 class TakeLead(Frozen):
-    actor_id: Slug
+    member_id: Slug
 
 
 class ShipUpgrade(Frozen):
@@ -157,7 +157,7 @@ class Staked(Frozen):
 
 class Helper(Staked):
     actor_id: Slug = Field(description="Exact id of the hired member who helps.")
-    hindered: Told = Field(
+    hindered: PlayerFacing = Field(
         default="", description="Why the helper is hindered. Empty when nothing hinders them."
     )
     skill: str = Field(
@@ -170,7 +170,7 @@ class Helper(Staked):
 class Roll(Staked, Attempt):
     actor_id: Slug | None = Field(default=None, description=ACTOR)
     skill: str = Field(default="", description="The skill to roll. Empty rolls the plain d6.")
-    helped: Told = Field(
+    helped: PlayerFacing = Field(
         default="",
         description="The circumstance that helps: an advantage the story has already set up for "
         "this action, such as a position won earlier, a tool made for this task, or help from a "
@@ -182,7 +182,7 @@ class Roll(Staked, Attempt):
         description="The hired member who helps. They roll their skill die and share the risk. "
         "Null when nobody helps.",
     )
-    hindered: Told = Field(
+    hindered: PlayerFacing = Field(
         default="", description="Why the actor is hindered. Empty when nothing hinders them."
     )
     committed: bool = Field(
@@ -211,7 +211,7 @@ class DefendHit(Frozen):
 
 class Raise(Frozen):
     actor_id: Slug = Field(description="Exact id of a living hired member.")
-    skill: Told = Field(
+    skill: PlayerFacing = Field(
         min_length=1,
         description="The skill that the job used for this member. A skill that is not on "
         "their sheet is added at d8.",
@@ -219,7 +219,7 @@ class Raise(Frozen):
 
 
 class RaiseSkill(Frozen):
-    skill: Told = Field(
+    skill: PlayerFacing = Field(
         min_length=1,
         description="The skill the player named for their raise after a job; a new one starts "
         "at d8.",
@@ -227,7 +227,7 @@ class RaiseSkill(Frozen):
 
 
 class BringIn(Frozen):
-    who: Told = Field(min_length=1, description="The new operator in the player's words.")
+    who: PlayerFacing = Field(min_length=1, description="The new operator in the player's words.")
 
 
 class Job(Frozen):
@@ -235,11 +235,11 @@ class Job(Frozen):
         description="`find` looks for work. `take` records agreed work, or new terms for the "
         "open job. `finish` closes the job."
     )
-    where: Told = Field(
+    where: PlayerFacing = Field(
         default="",
         description="Where the player looks for work, in a few words. Required with `find`.",
     )
-    terms: Told = Field(
+    terms: PlayerFacing = Field(
         default="",
         description=f"Who wants the work and what the work is, as agreed. {NO_PAY_FIGURE} "
         "Required with `take`.",

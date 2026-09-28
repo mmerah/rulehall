@@ -11,12 +11,12 @@ from support.table import (
     scenario_for,
 )
 
-from rulehall.core.model import WorldsmithRequest
+from rulehall.core.game import WorldsmithRequest
 from rulehall.core.validation import Refusal, Slug
-from rulehall.engines.entities import PLAYER_ID, Person
 from rulehall.engines.loner4e.world import Loner4eGame
 from rulehall.engines.scenes.world import NextProposal, Scene, SceneProposal, SceneWorld
 from rulehall.engines.scenes.worldsmith import check_next, check_opening
+from rulehall.engines.sheet import PLAYER_ID, Person
 
 PLAYER = Person(id=PLAYER_ID, name="Player", brief="", known=True)
 MARA = "mara"
@@ -35,14 +35,14 @@ def _scene(place: str, title: str, *, here: Sequence[Slug] = ()) -> Scene:
         location="The abbey",
         title=title,
         situation=SITUATION,
-        here=list(here),
+        here_ids=list(here),
     )
 
 
 def _travelling() -> SceneWorld[Person]:
     """The player, one companion in the cast, and a scene the pair stand in."""
     mara = Person(id=MARA, name="Mara", brief="A guide", known=True)
-    return _world(_scene("a1", "A1", here=[MARA]), cast={MARA: mara}, party=[MARA])
+    return _world(_scene("a1", "A1", here=[MARA]), cast={MARA: mara}, party_ids=[MARA])
 
 
 def test_only_leave_party_takes_a_member_out_and_an_unknown_leave_is_nothing() -> None:
@@ -56,7 +56,7 @@ def test_only_leave_party_takes_a_member_out_and_an_unknown_leave_is_nothing() -
 def test_killing_a_party_member_drops_them_from_the_party() -> None:
     world = _travelling()
     facts = world.kill(MARA)
-    assert world.party == []
+    assert world.party_ids == []
     assert not world.cast[MARA].alive
     assert any(fact.card == "Mara is dead" for fact in facts)
 
@@ -99,6 +99,24 @@ def test_a_scene_keeps_its_location_until_a_next_scene_names_a_new_one() -> None
     assert [scene.location for scene in world.scenes] == ["The abbey", "The abbey", "The village"]
 
 
+def test_an_opening_files_its_hidden_cast_unmet_and_leaves_the_proposal_as_written() -> None:
+    mara = Person(id=MARA, name="Mara", brief="A guide", known=True)
+    opening = SceneProposal[Person](
+        place_id="a1",
+        location="The abbey",
+        title="A1",
+        situation=SITUATION,
+        hidden_ids=(MARA,),
+        cast={MARA: mara},
+    )
+
+    check_opening(opening)
+    world = SceneWorld[Person].opening(opening, PLAYER)
+
+    assert world.hidden() == [MARA]
+    assert opening.cast[MARA].known
+
+
 def test_an_opening_without_a_location_is_refused() -> None:
     opening = SceneProposal[Person](place_id="a1", title="A1", situation=SITUATION)
     with pytest.raises(Refusal, match="a `location`"):
@@ -133,10 +151,21 @@ def test_beginning_the_game_does_not_mutate_the_authored_scenario() -> None:
     scenario_id = scenario_for(LONER4E)
     scenario = LIBRARY.read_scenario(scenario_id, SCENARIO_MODELS)
     before = scenario.opening.model_dump()
-    character = LIBRARY.read_character("kael", engine.id, engine.character)
+    character = LIBRARY.read_character("kael", engine.id, engine.character_model)
     draft = engine.begin(scenario_id, scenario, character)
     world = narrowed(draft, Loner4eGame).world
 
     world.cast[MARA].name = "Someone else"
 
     assert scenario.opening.model_dump() == before
+
+
+def test_the_scene_arc_reaches_the_master_and_the_worldsmith_and_nobody_else() -> None:
+    engine, state = game(LONER4E)
+    begun = narrowed(state, Loner4eGame)
+    begun.world.arc = ARC
+
+    assert ARC in str(engine.master_sections(begun))
+    assert ARC in str(engine.worldsmith_sections(begun))
+    assert ARC not in str(engine.narrator_view(begun).model_dump())
+    assert ARC not in str(engine.player_view(begun).model_dump())

@@ -6,7 +6,7 @@ Call `check` when the player tries something hard outside a battle, such as a cl
 a bargain. Pick the skill that the attempt uses. Pick the difficulty: easy is DC 10, hard is DC
 15, and very-hard is DC 20. Easy, calm work gets no roll.
 
-A team Pokemon can help. Give its id in `helper_id` and say how it helps in `reason`, such as
+A team Pokemon can help. Give its id in `helper_mon_id` and say how it helps in `reason`, such as
 "Geodude breaks the rock". A fainted Pokemon cannot help. The engine rolls d20, adds twice the
 skill rank, and adds 2 for the helper. A natural 20 always succeeds, and a natural 1 always
 fails.

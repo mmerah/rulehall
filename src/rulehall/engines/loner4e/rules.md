@@ -55,10 +55,10 @@ a no or a no, and, the dead end holds: close the scene as `blocked`.
 ## Conflict
 
 Settle a conflict with one question, with a series of key actions, or with Harm & Luck, a
-contest of endurance: `against_id` makes an `ask` an exchange. Run one exchange per turn. In an
+contest of endurance: `opponent_id` makes an `ask` an exchange. Run one exchange per turn. In an
 exchange, cite the opponent's skill or gear that bears on it in `hinders`. While
 the conflict is open, every `ask` is an exchange, against the opponent fought last unless
-`against_id` names another. When the protagonist stops fighting, call `withdraw` first.
+`opponent_id` names another. When the protagonist stops fighting, call `withdraw` first.
 
 A cost in luck from SPECIAL RULES is `spend_luck` before the `ask` that decides the action. Inside
 Harm & Luck, open the conflict first and pay after, since opening it refills every pool.

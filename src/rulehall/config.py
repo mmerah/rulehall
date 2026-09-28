@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Literal, Self, get_args
 
@@ -17,7 +18,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from rulehall.core.validation import Frozen, parse
 
-type ProviderName = Literal["openrouter", "local"]
+type ApiProvider = Literal["openrouter", "local"]
 type Role = Literal["master", "narrator", "worldsmith", "opponent"]
 type CliProvider = Literal["claude", "codex"]
 # Spelled flat, not as a union of the two: the settings page renders one `Literal` as a select.
@@ -65,7 +66,7 @@ class RoleConfig(Configured):
 
 class MediaConfig(Configured):
     enabled: bool = False
-    provider: ProviderName = "openrouter"
+    provider: ApiProvider = "openrouter"
     model: str = "google/gemini-3.1-flash-lite-image"
     timeout: float = Field(default=180.0, gt=0.0)
 
@@ -123,7 +124,7 @@ class Providers(Configured):
         api_key=SecretStr("none"),
     )
 
-    def for_name(self, name: ProviderName) -> ProviderConfig:
+    def for_name(self, name: ApiProvider) -> ProviderConfig:
         return {"openrouter": self.openrouter, "local": self.local}[name]
 
 
@@ -149,7 +150,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _keys_present(self) -> Self:
-        posting: list[tuple[str, ProviderName]] = (
+        posting: list[tuple[str, ApiProvider]] = (
             [("media", self.media.provider)] if self.media.enabled else []
         )
         roles: tuple[Role, ...] = get_args(Role.__value__)
@@ -161,6 +162,11 @@ class Settings(BaseSettings):
             if not self.providers.for_name(name).api_key:
                 raise ValueError(f"{what} uses provider {name!r}, which has no api_key")
         return self
+
+
+@dataclass(slots=True)
+class LiveSettings:
+    current: Settings
 
 
 def read_settings() -> Settings:

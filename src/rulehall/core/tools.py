@@ -2,25 +2,22 @@ import json
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
+from functools import cached_property
 from inspect import cleandoc, signature
-from random import Random
 from types import FunctionType, UnionType
-from typing import Annotated, Union, cast, get_args, get_origin
+from typing import Annotated, Literal, Union, cast, get_args, get_origin
 
 from pydantic import BaseModel, JsonValue
 
 from rulehall.core.facts import Fact
-from rulehall.core.model import AnyGame
-from rulehall.core.validation import Frozen, parse_mended
+from rulehall.core.validation import Frozen
 
-type Call = Callable[[AnyGame, JsonValue, Random], tuple[Fact, ...]]
 type Marks = dict[Callable[..., object], type[BaseModel]]
-type CheckUnnamed = Callable[[AnyGame, tuple[str, ...]], None]
 
 NOISE_KEYS = ("title", "pattern", "maxLength", "minLength")
-_TOLD = object()
+_PLAYER_FACING = object()
 # A plain assignment, not a `type` alias: pydantic must read the metadata inside it.
-Told = Annotated[str, _TOLD]
+PlayerFacing = Annotated[str, _PLAYER_FACING]
 _TOOLS: Marks = {}
 _ACTIONS: Marks = {}
 
@@ -30,12 +27,15 @@ class NoArgs(Frozen):
     pass
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class MasterTool:
     name: str
     description: str
     args: type[BaseModel]
-    call: Call
+
+    @cached_property
+    def schema(self) -> dict[str, JsonValue]:
+        return tool_schema(self.args)
 
 
 def tool[F: Callable[..., Sequence[Fact]]](method: F) -> F:
@@ -55,30 +55,32 @@ def action[F: Callable[..., Sequence[Fact]]](method: F) -> F:
     return method
 
 
-def tools_of(engine: object, check_unnamed: CheckUnnamed) -> dict[str, MasterTool]:
+def marked_methods(engine: object, mark: Literal["tool", "action"]) -> dict[str, MasterTool]:
+    marks = _TOOLS if mark == "tool" else _ACTIONS
     return {
-        name: _published(engine, name, function, check_unnamed)
-        for name, function in _marked(engine, _TOOLS, "tool").items()
+        name: MasterTool(
+            name,
+            " ".join(cleandoc(function.__doc__ or "").split()) if mark == "tool" else "",
+            marks[function],
+        )
+        for name, function in _marked(engine, marks, mark).items()
     }
 
 
-def actions_of(engine: object) -> dict[str, Call]:
-    return {
-        name: _call_of(engine, name, _ACTIONS[function], _trusted)
-        for name, function in _marked(engine, _ACTIONS, "action").items()
-    }
+def player_facing_texts(parsed: BaseModel) -> Iterator[str]:
+    return _player_facing_texts(parsed, type(parsed))
 
 
-def schema_of(args: type[BaseModel]) -> dict[str, JsonValue]:
-    schema = args.model_json_schema()
+def tool_schema(model: type[BaseModel]) -> dict[str, JsonValue]:
+    schema = model.model_json_schema()
     defs = schema.pop("$defs", {})
     _inline_refs(schema, defs)
     _normalize(schema)
     return schema
 
 
-def schema_text(model: type[BaseModel]) -> str:
-    return json.dumps(schema_of(model), indent=2, ensure_ascii=False)
+def render_schema(model: type[BaseModel]) -> str:
+    return json.dumps(tool_schema(model), indent=2, ensure_ascii=False)
 
 
 def _marked(engine: object, marks: Marks, mark: str) -> dict[str, FunctionType]:
@@ -98,48 +100,28 @@ def _marked(engine: object, marks: Marks, mark: str) -> dict[str, FunctionType]:
     return marked
 
 
-def _published(
-    engine: object, name: str, function: FunctionType, check_unnamed: CheckUnnamed
-) -> MasterTool:
-    args = _TOOLS[function]
-    description = " ".join(cleandoc(function.__doc__ or "").split())
-    return MasterTool(name, description, args, _call_of(engine, name, args, check_unnamed))
-
-
-def _call_of(engine: object, name: str, args: type[BaseModel], check_unnamed: CheckUnnamed) -> Call:
-    bound: Callable[[AnyGame, BaseModel, Random], Sequence[Fact]] = getattr(engine, name)
-
-    def call(draft: AnyGame, raw: JsonValue, rng: Random) -> tuple[Fact, ...]:
-        parsed = parse_mended(args, raw)
-        if texts := tuple(_told_texts(parsed, type(parsed))):
-            check_unnamed(draft, texts)
-        return tuple(bound(draft, parsed, rng))
-
-    return call
-
-
-def _trusted(_draft: AnyGame, _texts: tuple[str, ...]) -> None:
-    pass
-
-
-def _told_texts(value: object, annotation: object, *, told: bool = False) -> Iterator[str]:
+def _player_facing_texts(
+    value: object, annotation: object, *, player_facing: bool = False
+) -> Iterator[str]:
     origin = get_origin(annotation)
     members = get_args(annotation)
-    if told and isinstance(value, str):
+    if player_facing and isinstance(value, str):
         yield value
     elif isinstance(value, BaseModel):
         for key, info in type(value).model_fields.items():
-            yield from _told_texts(
-                getattr(value, key), info.annotation, told=_TOLD in info.metadata
+            yield from _player_facing_texts(
+                getattr(value, key), info.annotation, player_facing=_PLAYER_FACING in info.metadata
             )
     elif origin is Annotated:
-        yield from _told_texts(value, members[0], told=_TOLD in members[1:])
+        yield from _player_facing_texts(
+            value, members[0], player_facing=_PLAYER_FACING in members[1:]
+        )
     elif origin in (Union, UnionType):
         for member in members:
-            yield from _told_texts(value, member)
+            yield from _player_facing_texts(value, member)
     elif origin in (tuple, list) and isinstance(value, tuple | list):
         for item in cast("Sequence[object]", value):
-            yield from _told_texts(item, members[0])
+            yield from _player_facing_texts(item, members[0])
 
 
 def _args_of(function: Callable[..., object]) -> type[BaseModel]:

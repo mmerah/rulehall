@@ -3,9 +3,9 @@ from collections.abc import Sequence
 from pydantic import Field
 
 from rulehall.core.prompt import Prompt, lines_of, sections
-from rulehall.core.tools import schema_text
+from rulehall.core.tools import render_schema
 from rulehall.core.validation import Frozen, Loose, Refusal
-from rulehall.core.views import Choice
+from rulehall.core.views import BattleChoice
 from rulehall.engines.pokemon.battle.models import STATUSES, BattleSetup
 
 ROLE = (
@@ -66,7 +66,7 @@ class OpponentAnswer(Frozen):
 
 
 def render_opponent(
-    setup: BattleSetup, assessment: Assessment, choices: Sequence[Choice]
+    setup: BattleSetup, assessment: Assessment, choices: Sequence[BattleChoice]
 ) -> Prompt:
     target = next((mon for mon in assessment.foes if mon.active), None)
     target_name = "the player's Pokemon" if target is None else target.name
@@ -81,19 +81,19 @@ def render_opponent(
                 ("YOUR POKEMON", team),
                 ("THE PLAYER'S POKEMON", foes),
                 ("THE CHOICES", offered),
-                ("ANSWER WITH", schema_text(OpponentAnswer)),
+                ("ANSWER WITH", render_schema(OpponentAnswer)),
             )
         ),
     )
 
 
-def check_command(choices: Sequence[Choice], answer: OpponentAnswer) -> None:
+def check_command(choices: Sequence[BattleChoice], answer: OpponentAnswer) -> None:
     offered = [choice.command for choice in choices]
     if answer.command not in offered:
         raise Refusal(f"{answer.command!r} is not a choice; pick one of: {', '.join(offered)}")
 
 
-def greedy_choice(assessment: Assessment, choices: Sequence[Choice]) -> str:
+def greedy_choice(assessment: Assessment, choices: Sequence[BattleChoice]) -> str:
     offered = [choice.command for choice in choices if not choice.refusal]
     team = {mon.slot: mon for mon in assessment.team}
     active = next((mon for mon in assessment.team if mon.active), None)

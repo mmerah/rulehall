@@ -13,7 +13,7 @@ from support.twentyfourxx import KESTREL
 from support.twentyfourxx import hired as twentyfourxx_hired
 from support.twentyfourxx import small_world as twentyfourxx_world
 
-from rulehall.core.model import AnyGame, WorldsmithRequest
+from rulehall.core.game import AnyGame, WorldsmithRequest
 from rulehall.core.validation import Refusal, Slug
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.hiring import HIRE, SIGNED_ON
@@ -76,7 +76,7 @@ def _case_id(case: HireCase) -> str:
 
 def _join_party(case: HireCase, draft: AnyGame, terms: str) -> None:
     args: dict[str, JsonValue] = {"target_id": case.member, "terms": terms}
-    _ = case.engine.tools["join_party"].call(draft, args, Random(0))
+    _ = case.engine.call_tool(draft, "join_party", args, Random(0))
 
 
 @pytest.mark.parametrize("case", CASES, ids=_case_id)
@@ -84,21 +84,21 @@ def test_join_party_with_terms_files_the_hire_and_without_joins_at_once(case: Hi
     hiring = case.game().draft()
     _join_party(case, hiring, TERMS)
     assert hiring.request == WorldsmithRequest(kind=HIRE, detail=TERMS, target_id=case.member)
-    assert case.member not in hiring.world.party
+    assert case.member not in hiring.world.party_ids
 
     joining = case.game().draft()
     _join_party(case, joining, "")
     assert joining.request is None
-    assert case.member in joining.world.party
+    assert case.member in joining.world.party_ids
 
 
 @pytest.mark.parametrize("case", CASES, ids=_case_id)
 def test_hiring_a_member_let_go_brings_them_back_with_their_sheet(case: HireCase) -> None:
     draft = case.sheeted(case.game()).draft()
-    draft.world.party.clear()
+    draft.world.party_ids.clear()
     _join_party(case, draft, TERMS)
     assert draft.request is None
-    assert case.member in draft.world.party
+    assert case.member in draft.world.party_ids
     with pytest.raises(Refusal, match="already travels"):
         _join_party(case, draft, TERMS)
 
@@ -112,6 +112,6 @@ async def test_advance_on_a_hire_installs_the_sheet_and_joins_the_party(case: Hi
     )
     world = draft.world
     member = world.require_person_here(case.member)
-    assert member.hired
-    assert case.member in world.party
+    assert member.has_sheet
+    assert case.member in world.party_ids
     assert resolution.narrator_cue == SIGNED_ON.format(name=member.name)

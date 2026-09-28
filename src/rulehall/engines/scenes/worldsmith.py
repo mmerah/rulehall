@@ -1,9 +1,11 @@
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping
 
 from rulehall.core.prompt import Sections
 from rulehall.core.validation import Refusal, Slug
-from rulehall.engines.entities import Person, Thing, leaked_names, named_unmet, required_needs
-from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld, resolved_id
+from rulehall.engines.name_leaks import leaked_names, names_in
+from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld, find_resolved_id
+from rulehall.engines.sheet import Entity, Person
+from rulehall.engines.world import authoring_faults
 
 OPENING_SECTIONS: Sections = (
     ("SCENES SO FAR", "(no scenes yet — write the opening)"),
@@ -14,15 +16,15 @@ OPENING = (
     "Write the opening scene of this adventure. Name the one place the player starts in. Name "
     "who is there. Name in `location` the wider location the scene is in. `cast` holds the "
     "people and things of the adventure, not of the scene. Write who the player meets here. "
-    "Write also who the player will meet farther in. List under `present` only who is here "
+    "Write also who the player will meet farther in. List under `present_ids` only who is here "
     "now. The opening also writes `arc`, in a few lines or in none."
 )
 
 
-def check_opening[C: Person](proposal: SceneProposal[C]) -> None:
-    everyone = proposal.cast
-    present = _resolved_ids(proposal.present, everyone)
-    hidden = _resolved_ids(proposal.hidden, everyone)
+def check_opening[P: Person](proposal: SceneProposal[P]) -> None:
+    everyone = proposal.cast_with_hidden_unmet()
+    present = _resolved_ids(proposal.present_ids, everyone)
+    hidden = _resolved_ids(proposal.hidden_ids, everyone)
     gathered = [] if proposal.location else ["a `location`: the wider location the scene is in"]
     gathered += _placement_needs(proposal, everyone, present, hidden)
     gathered += _cast_needs(proposal, {})
@@ -30,23 +32,19 @@ def check_opening[C: Person](proposal: SceneProposal[C]) -> None:
     _refuse(gathered + _leak_needs(scanned, everyone, (), present, hidden))
 
 
-def check_next[C: Person](
-    proposal: NextProposal[C], world: SceneWorld[C], *, needs: Sequence[str] = ()
-) -> None:
-    _refuse(next_needs(proposal, world, needs=needs))
+def check_next[P: Person](proposal: NextProposal[P], world: SceneWorld[P]) -> None:
+    _refuse(next_needs(proposal, world))
 
 
-def next_needs[C: Person](
-    proposal: NextProposal[C], world: SceneWorld[C], *, needs: Sequence[str] = ()
-) -> list[str]:
-    everyone: Mapping[Slug, Thing] = {
+def next_needs[P: Person](proposal: NextProposal[P], world: SceneWorld[P]) -> list[str]:
+    everyone: Mapping[Slug, Entity] = {
         world.player.id: world.player,
-        **world.merged_cast(proposal.cast),
+        **world.merged_cast(proposal.cast_with_hidden_unmet()),
     }
-    followers = (world.player.id, *world.party)
-    present = _resolved_ids(proposal.present, everyone)
-    hidden = _resolved_ids(proposal.hidden, everyone)
-    gathered = [*needs, *_placement_needs(proposal, everyone, present, hidden)]
+    followers = (world.player.id, *world.party_ids)
+    present = _resolved_ids(proposal.present_ids, everyone)
+    hidden = _resolved_ids(proposal.hidden_ids, everyone)
+    gathered = _placement_needs(proposal, everyone, present, hidden)
     if world.player.id in proposal.cast:
         gathered.append("a cast that never rewrites the player")
     gathered += _cast_needs(proposal, world.cast)
@@ -59,22 +57,22 @@ def _refuse(needs: list[str]) -> None:
         raise Refusal("the scene needs " + "; ".join(needs))
 
 
-def _placement_needs[C: Person](
-    proposal: SceneProposal[C],
-    everyone: Mapping[Slug, Thing],
+def _placement_needs[P: Person](
+    proposal: SceneProposal[P],
+    everyone: Mapping[Slug, Entity],
     present: list[Slug],
     hidden: list[Slug],
 ) -> list[str]:
-    others = (*proposal.present, *proposal.hidden)
+    others = (*proposal.present_ids, *proposal.hidden_ids)
     needs: list[str] = []
-    if stray := sorted(name for name in others if resolved_id(name, everyone) is None):
+    if stray := sorted(name for name in others if find_resolved_id(name, everyone) is None):
         needs.append(f"ids that exist; these name nobody: {stray}")
     if overlap := sorted(set(present) & set(hidden)):
         needs.append(f"nobody listed as both present and hidden: {overlap}")
     return needs
 
 
-def _cast_needs[C: Person](proposal: SceneProposal[C], filed: Mapping[Slug, C]) -> list[str]:
+def _cast_needs[P: Person](proposal: SceneProposal[P], filed: Mapping[Slug, P]) -> list[str]:
     needs: list[str] = []
     if misfiled := [
         f"{entry.id!r} is filed under {key!r}"
@@ -82,14 +80,14 @@ def _cast_needs[C: Person](proposal: SceneProposal[C], filed: Mapping[Slug, C]) 
         if key != entry.id
     ]:
         needs.append("cast entries under their own id: " + "; ".join(misfiled))
-    if broken := required_needs(proposal.cast, filed):
+    if broken := authoring_faults(proposal.cast, filed):
         needs.append(f"cast members as the worldsmith may write them: {broken}")
     return needs
 
 
 def _leak_needs(
     read: str,
-    everyone: Mapping[Slug, Thing],
+    everyone: Mapping[Slug, Entity],
     followers: tuple[Slug, ...],
     present: list[Slug],
     hidden: list[Slug],
@@ -98,7 +96,7 @@ def _leak_needs(
     watched = [entry for entry in everyone.values() if not entry.known and entry.id not in present]
     scanned = (everyone[entity_id] for entity_id in (*present, *followers, *hidden))
     hidden_entries = [everyone[entity_id] for entity_id in hidden]
-    leaked = leaked_names(read, scanned, hidden_entries) | set(named_unmet(read, watched))
+    leaked = leaked_names(read, scanned, hidden_entries) | set(names_in(read, watched))
     if named := sorted(leaked):
         needs.append(f"a scene that does not name what the player has not met: {named}")
     if met := sorted(
@@ -108,5 +106,7 @@ def _leak_needs(
     return needs
 
 
-def _resolved_ids(names: Iterable[str], everyone: Mapping[Slug, Thing]) -> list[Slug]:
-    return [entity_id for name in names if (entity_id := resolved_id(name, everyone)) is not None]
+def _resolved_ids(names: Iterable[str], everyone: Mapping[Slug, Entity]) -> list[Slug]:
+    return [
+        entity_id for name in names if (entity_id := find_resolved_id(name, everyone)) is not None
+    ]

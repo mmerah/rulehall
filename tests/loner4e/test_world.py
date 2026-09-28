@@ -4,10 +4,10 @@ from support.game import ENGINE, MARA, initialized
 from support.table import change
 from support.table import refused as change_refused
 
-from rulehall.engines.entities import PLAYER_ID, Gauge
 from rulehall.engines.loner4e.rules import DOUBLES_PER_TWIST, position_for
 from rulehall.engines.loner4e.sheet import Loner4eEntity
 from rulehall.engines.loner4e.world import Loner4eGame
+from rulehall.engines.sheet import PLAYER_ID, Gauge
 
 
 def changed(draft: Loner4eGame, name: str, **fields: JsonValue) -> list[str]:
@@ -56,7 +56,7 @@ def test_change_tags_edits_one_list_and_refuses_what_it_cannot_move() -> None:
 
     _ = changed(draft, "kill", target_id=MARA)
     assert "dead" in refused(draft, "change_tags", actor_id=MARA, kind="gear", gained=["Rope"])
-    _ = draft.commit()
+    _ = draft.validated()
 
 
 def test_drive_writes_what_play_revealed() -> None:
@@ -71,7 +71,7 @@ def test_drive_writes_what_play_revealed() -> None:
 
     _ = changed(draft, "kill", target_id=MARA)
     assert "dead" in refused(draft, "drive", actor_id=MARA, motive="Survive")
-    _ = draft.commit()
+    _ = draft.validated()
 
 
 def test_tick_twist_turns_over_on_the_third_call_and_resets() -> None:

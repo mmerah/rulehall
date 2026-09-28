@@ -54,11 +54,11 @@ class Rolled(Frozen):
         return self.event.rolled[0]
 
 
-def cards(facts: Sequence[Fact]) -> tuple[Fact, ...]:
+def told_cards(facts: Sequence[Fact]) -> tuple[Fact, ...]:
     return tuple(fact for fact in facts if fact.told and fact.card)
 
 
-def traced(facts: Sequence[Fact], *, told_only: bool = False) -> str:
+def render_traces(facts: Sequence[Fact], *, told_only: bool = False) -> str:
     return "\n".join(f"- {fact.trace}" for fact in facts if fact.told or not told_only) or NOTHING
 
 

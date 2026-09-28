@@ -242,10 +242,6 @@ body, body.body--dark {
 .game-entity-dead .game-avatar, .game-entity-dead .game-sprite-frame { filter: grayscale(1); opacity: .55 }
 .game-entity-dead .game-entity-name, .game-entity-dead .game-entity-sub { color: var(--game-muted) }
 .game-entity-badge { font-size: .6rem; padding: .15em .5em }
-.game-portrait .q-avatar {
-  font-size: 64px !important;  /* beats the inline `size` */
-  box-shadow: 0 0 0 2px var(--game-surface-raised), 0 0 0 4px var(--game-accent), 0 10px 24px -8px var(--game-accent-glow);
-}
 .game-card-icon { color: var(--game-accent); font-size: 1.25rem }
 .game-decision, .game-offer {
   border-color: color-mix(in srgb, var(--game-accent) 45%, transparent);

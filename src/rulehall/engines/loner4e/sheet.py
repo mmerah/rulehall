@@ -5,10 +5,9 @@ from pydantic import BeforeValidator, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 from rulehall.core.facts import Fact
-from rulehall.core.validation import Mutable, Refusal, listed
-from rulehall.core.views import Rows, filled
+from rulehall.core.validation import Mutable, Refusal, as_tuple
+from rulehall.core.views import Rows, nonblank_rows
 from rulehall.engines.args import ShortName
-from rulehall.engines.entities import Gauge, Person, changed_tags, joined, tag_card, tag_delta
 from rulehall.engines.loner4e.rules import (
     GROUP_LUCK,
     LUCK_MAX,
@@ -18,12 +17,13 @@ from rulehall.engines.loner4e.rules import (
     TagKind,
     and_for_commas,
 )
+from rulehall.engines.sheet import Gauge, Person, changed_tags, joined, tag_card, tag_delta
 
 OVERCOME = "the protagonist is overcome; the story decides what that means"
 
 Tag = Annotated[str, BeforeValidator(and_for_commas)]
 TagName = Annotated[ShortName, BeforeValidator(and_for_commas)]
-Tags = Annotated[tuple[str, ...], BeforeValidator(listed)]
+Tags = Annotated[tuple[str, ...], BeforeValidator(as_tuple)]
 
 
 class Loner4eEntity(Person):
@@ -58,7 +58,7 @@ class Loner4eEntity(Person):
         return (*self.traits(), ("Luck", str(self.luck)))
 
     def traits(self) -> Rows:
-        return filled(
+        return nonblank_rows(
             ("Concept", self.concept),
             ("Skills", ", ".join(self.tagged("skill"))),
             ("Frailties", ", ".join(self.tagged("frailty"))),
@@ -71,8 +71,8 @@ class Loner4eEntity(Person):
             ("Group", "yes" if self.group else ""),
         )
 
-    def required(self) -> str:
-        return joined(super().required(), "no living world" if self.living_world else "")
+    def authoring_fault(self) -> str:
+        return joined(super().authoring_fault(), "no living world" if self.living_world else "")
 
     def change_tags(self, kind: TagKind, gained: Sequence[str], lost: Sequence[str]) -> list[Fact]:
         here = [tag for tag in lost if self._carrier(tag, kind) == kind]
@@ -117,7 +117,7 @@ class Loner4eEntity(Person):
 
     def spend_luck(self, amount: int, why: str) -> list[Fact]:
         if amount > self.luck.current:
-            raise Refusal(f"{self.name} has {self.luck.current} luck, not {amount}.")
+            raise Refusal(f"{self.name} has {self.luck.current} luck, not {amount}")
         return self.change(self.luck, -amount, "Luck", why)
 
 

@@ -17,10 +17,10 @@ from support.showdown import (
 )
 from support.showdown import started as blocks_started
 
-from rulehall.core.model import Check
+from rulehall.core.game import Check
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal, Slug, parse_json
-from rulehall.core.views import Choice, Tag
+from rulehall.core.views import BattleChoice, Tag
 from rulehall.engines.engine import Resolution
 from rulehall.engines.pokemon.battle.models import (
     Ball,
@@ -84,7 +84,7 @@ async def test_a_resumed_battle_replays_its_inputs_and_waits_on_the_player() -> 
     assert draft.world.battle is not None
     assert draft.world.battle.inputs == run.inputs
 
-    resumed_draft = draft.commit().draft()
+    resumed_draft = draft.validated().draft()
     replayed = ScriptedSimulator(recorded())
     resumed = await ShowdownRun.start(resumed_draft, replayed, EndOnly())
 
@@ -148,8 +148,8 @@ async def test_the_model_opponent_thinks_at_the_request_and_its_choice_is_record
 
 def test_an_answer_outside_the_choices_is_refused_with_the_choices() -> None:
     choices = (
-        Choice(command="move 1", name="Tackle"),
-        Choice(command="switch 2", name="Rattata", group="Switch"),
+        BattleChoice(command="move 1", name="Tackle"),
+        BattleChoice(command="switch 2", name="Rattata", group="Switch"),
     )
 
     with pytest.raises(Refusal, match="pick one of: move 1, switch 2"):
@@ -187,7 +187,9 @@ def test_a_move_outside_the_setup_has_no_type_and_no_pp() -> None:
     }
     request = _request({"active": [{"moves": [struggle]}], "side": _side(("3/24", True))})
 
-    assert choices_of(request, WILD_SETUP.team) == (Choice(command="move 1", name="Struggle"),)
+    assert choices_of(request, WILD_SETUP.team) == (
+        BattleChoice(command="move 1", name="Struggle"),
+    )
 
 
 def test_a_choice_carries_its_types_and_pp() -> None:

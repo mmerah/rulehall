@@ -2,8 +2,7 @@ import pytest
 from support.golden import FIXTURES, golden_json, golden_schema
 from support.table import ENGINE_IDS, game
 
-from rulehall.core.play import Narration
-from rulehall.core.tools import schema_of
+from rulehall.core.log import Narration
 from rulehall.core.validation import EngineId
 
 
@@ -13,7 +12,7 @@ def test_the_master_is_offered_the_same_tools(engine_id: EngineId) -> None:
     golden_json(
         FIXTURES / "schemas" / engine_id / "master_tools.json",
         [
-            {"name": tool.name, "description": tool.description, "parameters": schema_of(tool.args)}
+            {"name": tool.name, "description": tool.description, "parameters": tool.schema}
             for tool in engine.tools.values()
         ],
     )

@@ -52,7 +52,7 @@ TURNS = (
 
 def create_trainer(s: Session, page: Page) -> None:
     """The challenge is a creation step after the starter; each option says what it changes."""
-    page.goto(BASE + "/create")
+    page.goto(BASE + "/character")
     page.wait_for_timeout(1000)
     select(page, "Rules", "POKEMON")
     text(page, "Name", "Nuzla")

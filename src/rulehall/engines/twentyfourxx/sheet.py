@@ -3,10 +3,10 @@ from collections.abc import Sequence
 from pydantic import Field
 
 from rulehall.core.facts import DiceEvent, Fact
-from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, slug
-from rulehall.core.views import Rows, filled, tag_of
-from rulehall.engines.entities import Sheeted, Thing, changed_tags, tag_card
-from rulehall.engines.twentyfourxx.rules import DEFAULT_DIE, SkillDie, brief_hindrance, raised
+from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, slug, slugs
+from rulehall.core.views import Rows, nonblank_rows, tag_of
+from rulehall.engines.sheet import Entity, Sheeted, changed_tags, tag_card
+from rulehall.engines.twentyfourxx.rules import DEFAULT_DIE, SkillDie, brief_hindrance, next_die
 
 STARTING_CREDITS = 2
 MAIMED = "Maimed"
@@ -70,9 +70,25 @@ class CrewSheet(Mutable):
     def best_skill(self) -> tuple[str, int]:
         return max(self.skills.items(), key=lambda skill: skill[1], default=("", DEFAULT_DIE))
 
+    def match_skill(self, wanted: str, rulebook_skills: Sequence[str]) -> str | None:
+        folded = wanted.casefold().split()
+        names = (*self.skills, *rulebook_skills)
+        return next((name for name in names if name.casefold().split() == folded), None)
+
+    def skill_die(self, wanted: str, rulebook_skills: Sequence[str]) -> tuple[str, int]:
+        if not wanted:
+            return "unskilled", DEFAULT_DIE
+        if (match := self.match_skill(wanted, rulebook_skills)) is None:
+            known = ", ".join(sorted(self.skills)) or "none"
+            listed = ", ".join(rulebook_skills)
+            raise Refusal(
+                f"{wanted!r} is not a skill on the sheet ({known}) or in the rules ({listed})"
+            )
+        return match, self.skills.get(match, DEFAULT_DIE)
+
     def rows(self) -> Rows:
         skills = ", ".join(f"{skill} d{die}" for skill, die in self.skills.items())
-        return filled(
+        return nonblank_rows(
             ("Specialty", self.specialty),
             ("Origin", self.origin),
             ("Traits", ", ".join(self.traits)),
@@ -94,7 +110,7 @@ class CrewSheet(Mutable):
             raise Refusal(f"{item_id!r} is not among {owner}'s items")
         return item
 
-    def drop_item(self, item_id: Slug, owner: Thing) -> list[Fact]:
+    def drop_item(self, item_id: Slug, owner: Entity) -> list[Fact]:
         if (item := self.items.pop(item_id, None)) is None:
             return []
         return [owner.fact(f"{owner.mention} drops {item.name}", card=f"Dropped {item.name}")]
@@ -174,14 +190,14 @@ class Crewmate(Sheeted[CrewSheet]):
 
     def raise_skill(self, skill: str) -> list[Fact]:
         sheet = self.require_sheet()
-        if (new_die := raised(sheet.skills.get(skill))) is None:
-            raise Refusal(f"{self.name}'s {skill} is already at d12. Raise another skill for them.")
+        if (new_die := next_die(sheet.skills.get(skill))) is None:
+            raise Refusal(f"{self.name}'s {skill} is already at d12; raise another skill for them")
         sheet.skills[skill] = new_die
         trace = f"{self.mention} — {skill} rises to d{new_die}"
         return [self.fact(trace, card=self.card_line(f"Job done: {skill} d{new_die}"))]
 
     def earn(
-        self, credits: int, *, dice: tuple[DiceEvent, ...] = (), giver: Thing | None = None
+        self, credits: int, *, dice: tuple[DiceEvent, ...] = (), giver: Entity | None = None
     ) -> list[Fact]:
         sheet = self.require_sheet()
         sheet.credits += credits
@@ -193,3 +209,8 @@ class Crewmate(Sheeted[CrewSheet]):
                 dice=dice,
             )
         ]
+
+
+def items_from_kits(kits: Sequence[Kit]) -> dict[Slug, Gear]:
+    keys = slugs((kit.name for kit in kits), SHIP_IDS)
+    return {key: Gear(**kit.model_dump()) for key, kit in zip(keys, kits, strict=True)}

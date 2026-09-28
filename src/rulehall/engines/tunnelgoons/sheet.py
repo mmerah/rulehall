@@ -1,14 +1,14 @@
 from collections.abc import Iterable
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 from rulehall.core.facts import Fact
-from rulehall.core.validation import Mutable, slug
+from rulehall.core.validation import Mutable, slugs
 from rulehall.core.views import Rows
-from rulehall.engines.entities import PLAYER_ID, Gauge, Sheeted, joined
-from rulehall.engines.rooms.world import Dweller, Prop
+from rulehall.engines.rooms.world import Dweller, Item
+from rulehall.engines.sheet import PLAYER_ID, Gauge, Sheeted, joined
 
 type Ability = Literal["brute", "skulker", "erudite"]
 type AbilityScores = dict[Ability, Annotated[int, Field(ge=0)]]
@@ -52,6 +52,11 @@ class Goon(Sheeted[GoonSheet], Dweller):
     hp: Gauge
     kit: SkipJsonSchema[tuple[str, ...]] = ()
 
+    @model_validator(mode="after")
+    def _kit_names_make_ids(self) -> Self:
+        slugs(self.kit)
+        return self
+
     def sign_on(self, abilities: AbilityScores) -> str:
         sheet = self.sheet = GoonSheet(abilities=dict(abilities))
         return ", ".join(
@@ -67,18 +72,16 @@ class Goon(Sheeted[GoonSheet], Dweller):
         card = self.card_line(self.require_sheet().level_up(ability, boost, self.hp))
         return [self.card_fact(card)]
 
-    def required(self) -> str:
+    def authoring_fault(self) -> str:
         return joined(
-            super().required(),
+            super().authoring_fault(),
             "no kit" if self.kit else "",
             "health above zero" if self.hp.current == 0 else "",
         )
 
-    def unpack_kit(self, taken: Iterable[str]) -> tuple[Prop, ...]:
-        made = [PLAYER_ID, *taken]
-        items: list[Prop] = []
-        for name in self.kit:
-            item_id = slug(name, made)
-            made.append(item_id)
-            items.append(Prop(id=item_id, name=name, brief="", known=True, holder_id=PLAYER_ID))
-        return tuple(items)
+    def unpack_kit(self, taken: Iterable[str]) -> tuple[Item, ...]:
+        item_ids = slugs(self.kit, (PLAYER_ID, *taken))
+        return tuple(
+            Item(id=item_id, name=name, brief="", known=True, holder_id=PLAYER_ID)
+            for item_id, name in zip(item_ids, self.kit, strict=True)
+        )

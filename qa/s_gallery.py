@@ -44,7 +44,7 @@ DEVICES: tuple[tuple[str, Device], ...] = (
 )
 PLAIN_PAGES = (
     ("/", "home"),
-    ("/create", "create"),
+    ("/character", "create"),
     ("/scenario", "scenario"),
     ("/packs", "packs"),
     ("/settings", "settings"),
@@ -69,7 +69,7 @@ def body(s: Session) -> None:
         page.wait_for_timeout(2600)
         s.shot(page, f"{name}-game")
         _no_sideways(s, page, f"{name} game")
-        submit(page, 'I fight.\n!ask question="Do I land it?" against_id=mara')
+        submit(page, 'I fight.\n!ask question="Do I land it?" opponent_id=mara')
         wait_idle(page)
         page.wait_for_timeout(2600)
         s.shot(page, f"{name}-conflict")

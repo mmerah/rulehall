@@ -4,8 +4,9 @@ from typing import Any, Protocol, Self
 
 from pydantic import BaseModel, Field
 
+from rulehall.core.decisions import Decision
 from rulehall.core.facts import Fact
-from rulehall.core.play import Chapter, Exchange, PendingDecision
+from rulehall.core.log import Chapter, LogEntry
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import (
     EngineHeader,
@@ -37,14 +38,14 @@ class ScenarioDescription(Frozen):
             raise Refusal(f"save scenario differs from the one on disk in: {', '.join(drifted)}")
 
 
-class SheetHeader(Loose):
+class PersonHeader(Loose):
     name: str
     brief: str = ""
 
 
 class CharacterHeader(EngineHeader):
     id: Slug
-    sheet: SheetHeader
+    person: PersonHeader
 
 
 class Scenario[O: BaseModel](Frozen):
@@ -58,7 +59,7 @@ class Scenario[O: BaseModel](Frozen):
 class Character[S: BaseModel](Frozen):
     id: Slug
     engine_id: EngineId
-    sheet: S
+    person: S
 
 
 class RoleAnswer(Protocol):
@@ -80,27 +81,26 @@ class Game[W: BaseModel](Mutable):
     engine_id: EngineId
     pack_id: Slug
     source: str = ""
-    pending: PendingDecision | None = None
+    pending: Decision | None = None
     # `exclude=True` keeps it out of every save, so `restore` only refuses a hand-edited one.
     request: WorldsmithRequest | None = Field(default=None, exclude=True)
-    directed: bool = Field(default=False, exclude=True)
     notes: list[str] = Field(default_factory=list)
     unnarrated: list[Fact] = Field(default_factory=list)
-    log: list[Chapter] = Field(default_factory=list)
+    chapters: list[Chapter] = Field(default_factory=list)
     world: W
 
     def note(self, text: str) -> None:
         self.notes.append(text)
 
-    def exchanges(self) -> tuple[Exchange, ...]:
-        return tuple(exchange for chapter in self.log for exchange in chapter.exchanges)
+    def log_entries(self) -> tuple[LogEntry, ...]:
+        return tuple(entry for chapter in self.chapters for entry in chapter.entries)
 
     def last_words(self) -> str:
         return next(
             (
-                exchange.words
-                for exchange in reversed(self.exchanges())
-                if exchange.words and not exchange.by_option
+                entry.words
+                for entry in reversed(self.log_entries())
+                if entry.words and not entry.by_option
             ),
             "",
         )
@@ -108,7 +108,7 @@ class Game[W: BaseModel](Mutable):
     def draft(self) -> Self:
         return deepcopy(self)
 
-    def commit(self) -> Self:
+    def validated(self) -> Self:
         try:
             return parse(type(self), self)
         except Refusal as refused:

@@ -37,12 +37,12 @@ The tests run offline. They give the same result every time.
 - Validate data at each boundary with strict models. Reject bad data at once.
 - A message for a person or a model is a `Refusal`. Any other exception is a bug. Do not catch it.
 - Use the same field names for the same things. An id field ends in `_id`.
-- Every leaf engine holds the same files: `sheet.py` (the person model, its sheet and their parts), `world.py` (the world, its sub-state and the worldsmith proposal models), `args.py` (argument models and their field descriptions only), `panels.py` (every panel, pending option and pending decision builder), `pack.py` and `engine.py` (the engine and the notes, cards and facts it sends). `rules.py` holds pure rules only, and exists only when needed.
-- A family base (`rooms`, `scenes`) holds `world.py`, `args.py`, `panels.py`, `worldsmith.py` and `engine.py`. The engines root holds the shared `worldsmith.py`. A subpackage holds one engine-specific concern of several files.
-- Inside an engine, imports flow `rules <- sheet <- world <- args <- panels <- engine`. Data and contract modules (Pokemon's `dex.py`, `battle/models.py`) sit below `rules`; the rest of a subpackage sits between `panels` and `engine`.
-- Do not add an abstraction before two things need it.
-- Do not build for future needs.
-- Names must explain themselves. Add a comment only when the code cannot show the reason.
+- Every leaf engine holds the same files, and every family base holds the same files. Look at a sibling before you add one.
+- `sheet.py` holds the person model and its sheet; `world.py` the world and the in-play worldsmith proposal models; `args.py` argument models and their field descriptions; `panels.py` the panel and decision builders; `pack.py` the pack models; `worldsmith.py` the worldsmith prose and its checks; `engine.py` the engine. `rules.py` holds pure rules and exists only when needed.
+- An engine-specific concern that fits no shared file gets one module, or one subpackage when it needs several files.
+- Inside an engine, imports flow `rules <- sheet <- pack <- world <- args <- panels <- worldsmith <- engine`. A data module sits below `rules`; an extra module sits where its imports allow.
+- Names are descriptive, even when longer. A lookup that raises is `require_x`; one that returns `None` is `find_x`. A value is a noun; an action is a verb phrase. Add a comment only when the code cannot show the reason.
+- Do not add an abstraction before two things need it. Do not build for future needs.
 - Keep `__init__.py` files empty. Import from full module paths.
 - Imports flow one way: `core <- engines <- app <- ui`. No cycles.
 - Module layout: imports, constants, classes, public functions, private functions.

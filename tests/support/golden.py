@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from rulehall.core.tools import schema_text
+from rulehall.core.tools import render_schema
 
 ENCODING = "utf-8"
 FIXTURES = Path(__file__).parents[1] / "core" / "fixtures"
@@ -51,8 +51,8 @@ def golden_json(path: Path, actual: object) -> None:
 
 
 def golden_schema(path: Path, model: type[BaseModel]) -> None:
-    """Pins `schema_text`, the rendering every role's prompt carries."""
-    golden(path, schema_text(model) + "\n")
+    """Pins `render_schema`, the rendering every role's prompt carries."""
+    golden(path, render_schema(model) + "\n")
 
 
 def _diff(expected: str, actual: str) -> str:

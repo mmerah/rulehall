@@ -33,12 +33,12 @@ async def test_a_wild_battle_hands_off_to_the_battle_screen_and_back(tmp_path: P
     async def start(_engine: AnyEngine) -> ScriptedSimulator:
         return simulator
 
-    table.service.start_transport = start
-    await table.service.open_battle()
-    await table.service.battle_command("leave")
+    table.session.start_transport = start
+    await table.session.open_battle()
+    await table.session.battle_command("leave")
 
     assert table.state.world.battle is None
-    assert table.state.exchanges()[-1].cause == "battle"
+    assert table.state.log_entries()[-1].cause == "battle"
     assert simulator.closed
 
 
@@ -60,11 +60,11 @@ async def test_a_caught_pokemon_joins_the_team(tmp_path: Path) -> None:
     async def start(_engine: AnyEngine) -> ScriptedSimulator:
         return simulator
 
-    table.service.start_transport = start
-    await table.service.open_battle()
-    await table.service.battle_command("team 1")
-    table.service.rng = LowRandom()
-    await table.service.battle_command("ball poke-ball")
+    table.session.start_transport = start
+    await table.session.open_battle()
+    await table.session.battle_command("team 1")
+    table.session.rng = LowRandom()
+    await table.session.battle_command("ball poke-ball")
 
     assert len(table.state.world.player.require_sheet().team) == 2
     assert table.state.world.battle is None
@@ -84,16 +84,16 @@ async def test_a_save_with_a_caught_throw_ends_the_battle_on_reopen(tmp_path: Pa
     setup = battle.setup
     draft = table.state.draft()
     _ = ENGINE.throw_ball(draft, "poke-ball", setup.foes[0], LowRandom())
-    table.service.save(table.service.engine.accept(draft))
+    table.session.save(table.session.engine.accept(draft))
     reopened = open_table(tmp_path, engine_id=POKEMON, state_type=PokemonGame)
-    reopened.spawner.answers.setdefault("narrator", []).append(narrated("The Pidgey is caught."))
+    reopened.roles.answers.setdefault("narrator", []).append(narrated("The Pidgey is caught."))
     simulator = ScriptedSimulator(started(setup) + ended(setup, foe_hp=10))
 
     async def start(_engine: AnyEngine) -> ScriptedSimulator:
         return simulator
 
-    reopened.service.start_transport = start
-    await reopened.service.open_battle()
+    reopened.session.start_transport = start
+    await reopened.session.open_battle()
 
     assert reopened.state.world.battle is None
     assert len(reopened.state.world.player.require_sheet().team) == 2

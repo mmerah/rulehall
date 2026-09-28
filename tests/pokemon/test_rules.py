@@ -5,9 +5,12 @@ from support.pokemon import ENGINE, started
 from support.table import change, refused
 
 from rulehall.core.validation import Refusal
-from rulehall.engines.pokemon.dex import Stats, dex
-from rulehall.engines.pokemon.rules import (
+from rulehall.engines.pokemon.dex import (
     SIGNATURE_EXCLUDED,
+    Stats,
+    dex,
+)
+from rulehall.engines.pokemon.rules import (
     STARTER_LEVEL,
     counter_pick,
     signature_moves,
@@ -86,7 +89,7 @@ def test_signature_moves_lead_with_a_same_type_move_then_coverage_and_skip_the_e
 
 
 def test_a_species_with_only_excluded_moves_is_built_with_its_latest_level_up_move() -> None:
-    unown = Mon.built("unown", 20, (), ace=True)
+    unown = Mon.built("unown", 20, "unown", ace=True)
 
     assert [slot.move_id for slot in unown.moves] == ["hiddenpower"]
 

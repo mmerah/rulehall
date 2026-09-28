@@ -13,17 +13,15 @@ from rulehall.core.validation import (
     check_unique,
     parse,
 )
-from rulehall.engines.entities import (
-    IS_DEAD,
-    UNKNOWN_ID,
-    OpeningProposal,
-    Person,
-    Thing,
-    World,
-    check_filing,
-)
+from rulehall.engines.sheet import Entity, Person
+from rulehall.engines.world import IS_DEAD, UNKNOWN_ID, OpeningProposal, World, check_filing
 
 SETTLED_SHOWN = 12
+ARC_DESCRIPTION = (
+    "The long game that spans the scenes: pressure, intent and what can come later. Never "
+    "restate or change what happened, and never what is true in this scene now. The player "
+    "never reads it."
+)
 
 
 class Settled(Frozen):
@@ -39,11 +37,11 @@ class Scene(Mutable):
     location: str = Field(min_length=1)
     title: str
     situation: str = Field(min_length=1)
-    here: list[Slug] = Field(default_factory=list)
+    here_ids: list[Slug] = Field(default_factory=list)
     settled: list[Settled] = Field(default_factory=list)
 
 
-class SceneProposal[C: Person](Frozen, OpeningProposal):
+class SceneProposal[P: Person](Frozen, OpeningProposal):
     place_id: Slug = Field(
         description="Slug naming the place. Reuse it when the player returns here."
     )
@@ -62,44 +60,45 @@ class SceneProposal[C: Person](Frozen, OpeningProposal):
         "what the place offers or blocks. Describe the place. Never narrate an action, and "
         "never tell what the player does. Hold nothing hidden here.",
     )
-    present: tuple[str, ...] = Field(
+    present_ids: tuple[str, ...] = Field(
         default=(), description="Ids of who and what is in the scene now."
     )
-    hidden: tuple[str, ...] = Field(default=(), description="Ids of what is hidden here.")
-    cast: dict[Slug, C] = Field(
+    hidden_ids: tuple[str, ...] = Field(default=(), description="Ids of what is hidden here.")
+    cast: dict[Slug, P] = Field(
         default_factory=dict,
         description="New people and things, each filed under its own id. The player reads a "
         "brief and a sheet after they meet that entry. Name nothing still hidden in either one.",
     )
-    arc: str = Field(
-        default="",
-        description="The long game that spans the scenes: pressure, intent and what can come "
-        "later. Never restate or change what happened, and never what is true in this scene "
-        "now. The player never reads it.",
-    )
-
-    @model_validator(mode="after")
-    def _hidden_unmet(self) -> Self:
-        for key in self.hidden:
-            if (entry := self.cast.get(key)) is not None:
-                entry.known = False
-        return self
+    arc: str = Field(default="", description=ARC_DESCRIPTION)
 
     def premise(self) -> str:
         return self.situation
 
+    def cast_with_hidden_unmet(self) -> dict[Slug, P]:
+        return {
+            entity_id: entry.model_copy(
+                update={"known": False} if entity_id in self.hidden_ids else {}, deep=True
+            )
+            for entity_id, entry in self.cast.items()
+        }
 
-class NextProposal[C: Person](SceneProposal[C]):
+
+class NextProposal[P: Person](SceneProposal[P]):
     recap: str = Field(
         min_length=1,
         description="One paragraph on the scene the player leaves: what the player did, paid "
         "and learned. The narrator reads it. Name nothing hidden.",
     )
+    arc: str = Field(
+        default="",
+        description=f"{ARC_DESCRIPTION} Revise it only where what happened makes a change "
+        "necessary, else leave it empty.",
+    )
 
 
-class SceneWorld[C: Person](World[C]):
+class SceneWorld[P: Person](World[P]):
     scenes: list[Scene] = Field(min_length=1)
-    cast: dict[Slug, C] = Field(default_factory=dict)
+    cast: dict[Slug, P] = Field(default_factory=dict)
     arc: str = ""
 
     @model_validator(mode="after")
@@ -108,16 +107,18 @@ class SceneWorld[C: Person](World[C]):
         if self.player.id in self.cast:
             raise ValueError("the player is in the cast")
         # Ahead of `check_named`, whose generic "not in the cast" message would win instead.
-        if self.player.id in self.scene.here:
+        if self.player.id in self.scene.here_ids:
             raise ValueError("the player is in every scene and is never listed in it")
-        check_named(self.scene.here, self.cast)
-        if left := sorted(set(self.party) - set(self.scene.here)):
+        check_named(self.scene.here_ids, self.cast)
+        if left := sorted(set(self.party_ids) - set(self.scene.here_ids)):
             raise ValueError(f"the party is in every scene; {left} are not in this one")
         return self
 
     @classmethod
-    def opening(cls, proposal: SceneProposal[C], player: C) -> Self:
-        cast, scene = built_scene(proposal, player, dict(proposal.cast), (), proposal.location)
+    def opening(cls, proposal: SceneProposal[P], player: P) -> Self:
+        cast, scene = built_scene(
+            proposal, player, proposal.cast_with_hidden_unmet(), (), proposal.location
+        )
         return parse(cls, {"player": player, "cast": cast, "scenes": [scene], "arc": proposal.arc})
 
     @property
@@ -125,24 +126,22 @@ class SceneWorld[C: Person](World[C]):
         return self.scenes[-1]
 
     def present(self) -> list[Slug]:
-        return [entity_id for entity_id in self.scene.here if self.cast[entity_id].known]
+        return [entity_id for entity_id in self.scene.here_ids if self.cast[entity_id].known]
 
     def hidden(self) -> list[Slug]:
-        return [entity_id for entity_id in self.scene.here if not self.cast[entity_id].known]
+        return [entity_id for entity_id in self.scene.here_ids if not self.cast[entity_id].known]
 
     def last_seen(self, entity_id: Slug) -> str:
         for scene in reversed(self.scenes):
-            if entity_id in scene.here:
+            if entity_id in scene.here_ids:
                 return f"last seen in: {scene.title}"
         return ""
 
-    def party_members(self) -> list[C]:
-        return [self.cast[member_id] for member_id in self.party]
+    @property
+    def roster(self) -> Mapping[Slug, P]:
+        return self.cast
 
-    def person_of(self, person_id: Slug) -> C | None:
-        return self.cast.get(person_id)
-
-    def require(self, entity_id: Slug) -> C:
+    def require(self, entity_id: Slug) -> P:
         if entity_id == self.player.id:
             return self.player
         entity = self.cast.get(entity_id)
@@ -150,38 +149,37 @@ class SceneWorld[C: Person](World[C]):
             raise Refusal(UNKNOWN_ID.format(entity_id=entity_id))
         return entity
 
-    def require_here(self, entity_id: Slug) -> C:
+    def require_here(self, entity_id: Slug) -> P:
         entity = self.require(entity_id)
         if entity.id == self.player.id:
             return entity
-        if entity.id not in self.scene.here or not entity.known:
+        if entity.id not in self.scene.here_ids or not entity.known:
             raise Refusal(
-                f"{entity.name} is not here with the player. "
-                "Bring them here first, or act on who is here."
+                f"{entity.name} is not here with the player; bring them here first, or act on "
+                "who is here"
             )
         return entity
 
-    def require_living_here(self, entity_id: Slug) -> C:
+    def require_living_here(self, entity_id: Slug) -> P:
         entity = self.require_here(entity_id)
         if not entity.alive:
             raise Refusal(IS_DEAD.format(name=entity.name))
         return entity
 
-    def here(self) -> Iterator[C]:
+    def here(self) -> Iterator[P]:
         yield self.player
         for entity_id in self.present():
             yield self.cast[entity_id]
 
-    def require_person_here(self, entity_id: Slug) -> C:
+    def require_person_here(self, entity_id: Slug) -> P:
         if entity_id == self.player.id:
             raise Refusal("the player is not a party member")
         return self.require_living_here(entity_id)
 
-    def people(self) -> Iterable[C]:
-        return (self.player, *self.cast.values())
-
-    def others(self) -> Iterator[C]:
-        return (self.cast[entity_id] for entity_id in self.present() if entity_id not in self.party)
+    def others(self) -> Iterator[P]:
+        return (
+            self.cast[entity_id] for entity_id in self.present() if entity_id not in self.party_ids
+        )
 
     def here_lines(self) -> str:
         return lines_of(other.line() for other in self.others())
@@ -205,7 +203,9 @@ class SceneWorld[C: Person](World[C]):
         lines = [self.player_line()]
         for entry in self.cast.values():
             where = (
-                "travels with the player" if entry.id in self.party else self.last_seen(entry.id)
+                "travels with the player"
+                if entry.id in self.party_ids
+                else self.last_seen(entry.id)
             )
             lines.append(
                 entry.line(detail=f"{entry.met_label}; {where}" if where else entry.met_label)
@@ -224,7 +224,7 @@ class SceneWorld[C: Person](World[C]):
 
     def reveal_hidden(self, entity_id: Slug) -> list[Fact]:
         entity = self.require(entity_id)
-        if entity_id not in self.scene.here or entity.known:
+        if entity_id not in self.scene.here_ids or entity.known:
             raise Refusal(f"{entity_id!r} is not hidden here")
         return entity.reveal(card=sentence(f"{entity.name} discovered"))
 
@@ -232,13 +232,13 @@ class SceneWorld[C: Person](World[C]):
         if entity_id == self.player.id:
             raise Refusal("the player is in every scene; move the story on instead")
         entity = self.require(entity_id)
-        if entity.id in self.scene.here:
+        if entity.id in self.scene.here_ids:
             if not entity.known:
                 raise Refusal(f"{entity.name} is hidden here: `reveal` them")
             return []
         if not entity.alive:
             raise Refusal(IS_DEAD.format(name=entity.name))
-        self.scene.here.append(entity.id)
+        self.scene.here_ids.append(entity.id)
         trace = f"{entity.mention} arrives"
         return [
             *entity.reveal(),
@@ -251,9 +251,9 @@ class SceneWorld[C: Person](World[C]):
         if entity_id not in self.cast or not self.cast[entity_id].alive:
             return []
         entity = self.require_living_here(entity_id)
-        if entity.id in self.party:
+        if entity.id in self.party_ids:
             raise Refusal(f"{entity.name} travels with the player and leaves through `leave_party`")
-        self.scene.here.remove(entity.id)
+        self.scene.here_ids.remove(entity.id)
         card = f"{entity.name} leaves"
         return [entity.fact(f"{entity.mention} leaves", card=card)]
 
@@ -261,12 +261,12 @@ class SceneWorld[C: Person](World[C]):
         entity = self.require_here(entity_id)
         return [entity.fact(f"{entity.mention} is dead", card=self.die(entity))]
 
-    def file_stranger(self, entity_id: Slug, brief: str) -> C:
+    def file_stranger(self, entity_id: Slug, brief: str) -> P:
         stranger = type(self.player)(id=entity_id, name=stranger_name(entity_id), brief=brief)
         self.cast[entity_id] = stranger
         return stranger
 
-    def merged_cast(self, cast: Mapping[Slug, C]) -> dict[Slug, C]:
+    def merged_cast(self, cast: Mapping[Slug, P]) -> dict[Slug, P]:
         return {
             **self.cast,
             **{
@@ -277,31 +277,37 @@ class SceneWorld[C: Person](World[C]):
             },
         }
 
-    def apply_scene(self, proposal: SceneProposal[C]) -> None:
+    def apply_scene(self, proposal: SceneProposal[P]) -> None:
         self.cast, scene = built_scene(
             proposal,
             self.player,
-            self.merged_cast(proposal.cast),
-            self.party,
+            self.merged_cast(proposal.cast_with_hidden_unmet()),
+            self.party_ids,
             proposal.location or self.scene.location,
         )
         self.arc = proposal.arc or self.arc
         self.scenes.append(scene)
 
 
-def built_scene[C: Person](
-    proposal: SceneProposal[C],
+def built_scene[P: Person](
+    proposal: SceneProposal[P],
     player: Person,
-    cast: dict[Slug, C],
-    party: Sequence[Slug],
+    cast: dict[Slug, P],
+    party_ids: Sequence[Slug],
     location: str,
-) -> tuple[dict[Slug, C], Scene]:
-    everyone: Mapping[Slug, Thing] = {player.id: player, **cast}
-    placed = {player.id, *party}
+) -> tuple[dict[Slug, P], Scene]:
+    everyone: Mapping[Slug, Entity] = {player.id: player, **cast}
+    placed = {player.id, *party_ids}
     present = [
-        who for who in resolved_ids(proposal.present, everyone, "present") if who not in placed
+        who
+        for who in require_resolved_ids(proposal.present_ids, everyone, "present")
+        if who not in placed
     ]
-    hidden = [who for who in resolved_ids(proposal.hidden, everyone, "hidden") if who not in placed]
+    hidden = [
+        who
+        for who in require_resolved_ids(proposal.hidden_ids, everyone, "hidden")
+        if who not in placed
+    ]
     for entity_id in present:
         cast[entity_id].known = True
     scene = Scene(
@@ -309,7 +315,7 @@ def built_scene[C: Person](
         location=location,
         title=proposal.title,
         situation=proposal.situation,
-        here=[*party, *present, *hidden],
+        here_ids=[*party_ids, *present, *hidden],
     )
     return cast, scene
 
@@ -318,24 +324,26 @@ def stranger_name(entity_id: Slug) -> str:
     return entity_id.replace("-", " ").title()
 
 
-def check_named(here: Sequence[Slug], cast: Mapping[Slug, Thing]) -> None:
+def check_named(here: Sequence[Slug], cast: Mapping[Slug, Entity]) -> None:
     check_unique("ids in the scene", here)
     for who in here:
         if who not in cast:
             raise ValueError(f"scene names {who!r}, who is not in the cast")
 
 
-def resolved_id(wanted: str, cast: Mapping[Slug, Thing]) -> Slug | None:
+def find_resolved_id(wanted: str, cast: Mapping[Slug, Entity]) -> Slug | None:
     if wanted in cast:
         return wanted
     matches = [entry.id for entry in cast.values() if entry.name.casefold() == wanted.casefold()]
     return matches[0] if len(matches) == 1 else None
 
 
-def resolved_ids(wanted: Iterable[str], cast: Mapping[Slug, Thing], where: str) -> list[Slug]:
+def require_resolved_ids(
+    wanted: Iterable[str], cast: Mapping[Slug, Entity], where: str
+) -> list[Slug]:
     found: list[Slug] = []
     for name in wanted:
-        matched = resolved_id(name, cast)
+        matched = find_resolved_id(name, cast)
         if matched is None:
             raise Refusal(f"the scene lists {name!r} as {where}, and no such id or name exists")
         if matched not in found:

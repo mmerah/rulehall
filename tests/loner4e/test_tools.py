@@ -6,11 +6,12 @@ from support.game import ENGINE, MARA, TOMAS, initialized, loner_sheet, with_ent
 from support.table import change, refused, run_action
 
 from rulehall.app.turn import Turn
-from rulehall.core.facts import cards
-from rulehall.core.play import Answer, SpokenLine
-from rulehall.engines.entities import PLAYER_ID
+from rulehall.core.decisions import PlayerInput
+from rulehall.core.facts import told_cards
+from rulehall.core.log import SpokenLine
 from rulehall.engines.loner4e.engine import BROKE_AWAY
 from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.sheet import PLAYER_ID
 
 
 def test_a_name_the_player_is_told_or_narrated_is_met_where_loner_refused_it() -> None:
@@ -23,7 +24,7 @@ def test_a_name_the_player_is_told_or_narrated_is_met_where_loner_refused_it() -
 
     assert loner_sheet(draft, PLAYER_ID).nemesis == hunter
     assert [narrated.world.cast[entry].known for entry in (TOMAS, "elena")] == [True, True]
-    assert TOMAS not in narrated.world.scene.here
+    assert TOMAS not in narrated.world.scene.here_ids
 
 
 def test_spend_luck_is_published_only_when_the_pack_spends_it() -> None:
@@ -34,17 +35,23 @@ def test_spend_luck_is_published_only_when_the_pack_spends_it() -> None:
     assert "spend_luck" in {tool.name for tool in ENGINE.published(fantasy)}
 
 
+def test_spend_luck_on_a_pack_without_luck_is_refused_as_not_a_tool_now() -> None:
+    _, state = initialized()
+
+    assert refused(ENGINE, state.draft(), "spend_luck") == "'spend_luck' is not a tool now"
+
+
 def test_spend_luck_lands_one_fact() -> None:
     _, state = initialized()
     draft = state.draft()
     draft.pack_id = "ap01-fantasy"
-    fantasy = draft.commit()
+    fantasy = draft.validated()
 
     facts = change(
         ENGINE, fantasy.draft(), "spend_luck", actor_id=PLAYER_ID, amount=2, why="A ward"
     )
 
-    (event,) = cards(facts)
+    (event,) = told_cards(facts)
     assert event.card == "Luck -2 → 4/6"
 
 
@@ -53,7 +60,7 @@ def test_spend_luck_lands_one_fact() -> None:
     [
         ({"helps": ["Picks Any Lock"]}, "no such tag here"),
         ({"helps": ["Slow to Trust"], "hinders": ["slow to trust"]}, "duplicate cited tags"),
-        ({"against_id": PLAYER_ID}, "never the player"),
+        ({"opponent_id": PLAYER_ID}, "never the player"),
         ({"helps": ["Untrained"]}, "never helps"),
     ],
 )
@@ -95,7 +102,7 @@ def test_a_new_id_files_a_met_stranger_someone_elsewhere_enters_and_a_repeat_cha
     _ = change(ENGINE, draft, "change_tags", actor_id=TOMAS, kind="condition", gained="Wary")
 
     world = draft.world
-    assert world.scene.here[-4:] == ["silas-crane", "dock-guard", "old-monk", TOMAS]
+    assert world.scene.here_ids[-4:] == ["silas-crane", "dock-guard", "old-monk", TOMAS]
     assert loner_sheet(draft, "old-monk").name == "Old Monk"
     assert loner_sheet(draft, "old-monk").tagged("condition") == ["Wary"]
     _ = change(ENGINE, draft, "kill", target_id=TOMAS)
@@ -125,8 +132,8 @@ def test_a_withdraw_cost_passes_another_defeat() -> None:
     draft.pack_id = "ap01-fantasy"
     hurt: dict[str, JsonValue] = {"actor_id": PLAYER_ID, "kind": "condition", "gained": "Bleeding"}
     asked: dict[str, JsonValue] = {"question": "Do I break through?"}
-    _ = change(ENGINE, draft, "ask", **asked, against_id="mob")
-    _ = change(ENGINE, draft, "ask", **asked, against_id=MARA)
+    _ = change(ENGINE, draft, "ask", **asked, opponent_id="mob")
+    _ = change(ENGINE, draft, "ask", **asked, opponent_id=MARA)
 
     left = loner_sheet(draft, MARA).luck.current
     _ = change(ENGINE, draft, "spend_luck", actor_id=MARA, amount=left, why="A bolt")
@@ -141,7 +148,7 @@ def test_a_player_question_with_no_conflict_open_is_a_plain_question() -> None:
     words = "Is the gunman afraid to shoot me?"
     _ = run_action(ENGINE, draft, "ask_oracle", words=words)
 
-    _ = change(ENGINE, draft, "ask", question=None, against_id=MARA)
+    _ = change(ENGINE, draft, "ask", question=None, opponent_id=MARA)
 
     assert draft.world.opponent_ids == []
     assert draft.world.scene.settled[-1].question == words
@@ -182,7 +189,7 @@ def test_after_the_close_only_direct_is_left() -> None:
         ("leave", {"target_id": MARA}),
     )
     for name, args in after_close:
-        assert "Call `direct` now" in refused(ENGINE, draft, name, **args)
+        assert "call `direct` now" in refused(ENGINE, draft, name, **args)
     _ = change(ENGINE, draft, "direct", text="The study falls behind him.")
 
 
@@ -194,7 +201,7 @@ def test_a_null_question_rolls_the_player_question_word_for_word_and_clears_it()
 
     facts = change(ENGINE, draft, "ask", question=None)
 
-    assert cards(facts)[0].card.startswith(words)
+    assert told_cards(facts)[0].card.startswith(words)
     assert draft.world.scene.settled[-1].question == words
     assert draft.world.player_question == ""
 
@@ -225,11 +232,11 @@ def test_a_note_the_tool_answer_shows_is_not_shown_again_next_turn() -> None:
     engine, state = initialized()
     draft = state.draft()
     _ = run_action(ENGINE, draft, "fight", opponent_id=MARA)
-    turn = Turn.begin(engine, draft.commit(), Answer(text="I run."), Random(0))
+    turn = Turn.begin(engine, draft.validated(), PlayerInput(text="I run."), Random(0))
 
-    assert BROKE_AWAY in turn.call("withdraw", {})
+    assert BROKE_AWAY in turn.call_tool("withdraw", {})
     after = turn.finish(())
-    assert Turn.begin(engine, after, Answer(text="I catch my breath."), Random(0)).notes == []
+    assert Turn.begin(engine, after, PlayerInput(text="I catch my breath."), Random(0)).notes == []
 
 
 def test_in_a_conflict_every_ask_is_an_exchange_against_the_one_fought_last() -> None:
@@ -238,8 +245,8 @@ def test_in_a_conflict_every_ask_is_an_exchange_against_the_one_fought_last() ->
     draft = with_entity(state, mob).draft()
     asked: dict[str, JsonValue] = {"question": "Do I break through?"}
 
-    _ = change(ENGINE, draft, "ask", **asked, against_id="mob")
-    _ = change(ENGINE, draft, "ask", **asked, against_id=MARA)
+    _ = change(ENGINE, draft, "ask", **asked, opponent_id="mob")
+    _ = change(ENGINE, draft, "ask", **asked, opponent_id=MARA)
     struck = change(ENGINE, draft, "ask", **asked)
     assert any("Mara" in fact.trace and "exchange" in fact.trace for fact in struck)
     assert draft.world.opponent_ids == ["mob", MARA]

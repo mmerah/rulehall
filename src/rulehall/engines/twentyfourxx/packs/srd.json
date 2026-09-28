@@ -1,6 +1,6 @@
 {
   "name": "Core tables",
-  "source": "https://24xx-srd.carrd.co/",
+  "origin": "https://24xx-srd.carrd.co/",
   "license": "24XX rules (v1.4) are CC BY Jason Tocci.",
   "skills": [
     { "id": "climbing", "name": "Climbing" },
@@ -39,7 +39,11 @@
         { "id": "hand-to-hand", "name": "Hand-to-hand", "skills": { "Hand-to-hand": 8 } },
         { "id": "shooting", "name": "Shooting", "skills": { "Shooting": 8 } }
       ],
-      "kit_choice": [{ "name": "Sword" }, { "name": "Firearm" }, { "name": "Cyber-arm" }]
+      "kit_choice": [
+        { "id": "sword", "name": "Sword", "kit": { "name": "Sword" } },
+        { "id": "firearm", "name": "Firearm", "kit": { "name": "Firearm" } },
+        { "id": "cyber-arm", "name": "Cyber-arm", "kit": { "name": "Cyber-arm" } }
+      ]
     },
     {
       "id": "psychic",

@@ -49,7 +49,7 @@ def body(s: Session) -> None:
     s.check(page.url.endswith("/settings"), "settings button did not navigate")
     page.goto(BASE + "/")
     page.get_by_role("button", name="New character").click()
-    page.wait_for_url("**/create")
+    page.wait_for_url("**/character")
     page.goto(BASE + "/")
     page.get_by_role("button", name="New scenario").click()
     page.wait_for_url("**/scenario")

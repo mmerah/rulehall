@@ -1,8 +1,8 @@
-from rulehall.core.model import ScenarioDescription
-from rulehall.core.play import Chapter
+from rulehall.core.game import ScenarioDescription
+from rulehall.core.log import Chapter
 from rulehall.core.validation import EngineId, Slug
-from rulehall.engines.entities import PLAYER_ID, Gauge
-from rulehall.engines.rooms.world import Place, Prop, Way
+from rulehall.engines.rooms.world import Item, Place, Way
+from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
 from rulehall.engines.tunnelgoons.sheet import HP_START, Goon, GoonSheet
 from rulehall.engines.tunnelgoons.world import TunnelGoonsGame, TunnelGoonsWorld
@@ -30,7 +30,7 @@ def _map_pieces() -> tuple[
     dict[Slug, Place],
     dict[Slug, list[Way]],
     dict[Slug, Goon],
-    dict[Slug, Prop],
+    dict[Slug, Item],
 ]:
     """A line of four places, a start->vault shortcut, and hall->vault locked."""
     places = {
@@ -90,12 +90,12 @@ def _map_pieces() -> tuple[
         hp=Gauge(current=4, maximum=4),
     )
     items = {
-        ROPE: Prop(id=ROPE, name="Rope", brief="A coil of rope", known=True, holder_id=PLAYER_ID),
-        TORCH: Prop(
+        ROPE: Item(id=ROPE, name="Rope", brief="A coil of rope", known=True, holder_id=PLAYER_ID),
+        TORCH: Item(
             id=TORCH, name="Torch", brief="An unlit torch", known=True, holder_id=PLAYER_ID
         ),
-        KEY: Prop(id=KEY, name="Key", brief="A tarnished key", known=False, holder_id=HALL),
-        LANTERN: Prop(
+        KEY: Item(id=KEY, name="Key", brief="A tarnished key", known=False, holder_id=HALL),
+        LANTERN: Item(
             id=LANTERN, name="Lantern", brief="A dented lantern", known=True, holder_id=START
         ),
     }
@@ -127,7 +127,7 @@ def _game(world: TunnelGoonsWorld, *, scenario_id: Slug, chapter: Chapter) -> Tu
         ),
         engine_id=EngineId("tunnelgoons"),
         pack_id="srd",
-        log=[chapter],
+        chapters=[chapter],
         world=world,
     )
 
@@ -140,7 +140,7 @@ def small_world() -> TunnelGoonsGame:
         npcs=npcs,
         items=items,
         player=_kael(),
-        visits=[START],
+        visited_place_ids=[START],
     )
     return _game(world, scenario_id="test", chapter=Chapter(title="Start"))
 
@@ -169,13 +169,13 @@ def keep() -> TunnelGoonsGame:
         place_id=GATE,
         hp=Gauge(current=8, maximum=8),
     )
-    lantern = Prop(id=LANTERN, name="Lantern", brief="A dim lantern", known=False, holder_id=YARD)
+    lantern = Item(id=LANTERN, name="Lantern", brief="A dim lantern", known=False, holder_id=YARD)
     world = TunnelGoonsWorld(
         places=places,
         ways=ways,
         npcs={WARDEN: warden},
         items={LANTERN: lantern},
         player=_kael(),
-        visits=[GATE],
+        visited_place_ids=[GATE],
     )
     return _game(world, scenario_id="the-keep", chapter=Chapter(title="Gate"))

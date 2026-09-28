@@ -96,7 +96,7 @@ def test_an_evolution_follows_the_gender() -> None:
 
 
 def _in(draft: PokemonGame, pack_id: str) -> None:
-    draft.pack_id = pack_id
+    draft.world.species_ids = ENGINE.packs.require(pack_id).species_ids
 
 
 def _joined(draft: PokemonGame, species_id: str, level: int) -> Mon:

@@ -13,14 +13,14 @@ from support.twentyfourxx import KESTREL, SABLE
 from support.twentyfourxx import SCENE_BASE as TWENTYFOURXX_BASE
 from support.twentyfourxx import small_world as twentyfourxx_world
 
-from rulehall.core.model import AnyGame
+from rulehall.core.game import AnyGame
 from rulehall.core.validation import Refusal, Slug
-from rulehall.engines.entities import PLAYER_ID, Person
 from rulehall.engines.loner4e.engine import Loner4eEngine
 from rulehall.engines.loner4e.sheet import Loner4eEntity
 from rulehall.engines.loner4e.world import Loner4eWorld
 from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
 from rulehall.engines.scenes.worldsmith import check_next
+from rulehall.engines.sheet import PLAYER_ID, Person
 from rulehall.engines.twentyfourxx.engine import TwentyFourXXEngine
 from rulehall.engines.twentyfourxx.sheet import Crewmate
 from rulehall.engines.twentyfourxx.world import TwentyFourXXWorld
@@ -113,11 +113,11 @@ def _case_id(case: SceneCase) -> str:
 def test_a_scene_that_lists_the_player_passes_the_bar_and_code_drops_the_player(
     case: SceneCase,
 ) -> None:
-    fields = {"present": (case.player, case.met)}
+    fields = {"present_ids": (case.player, case.met)}
     case.bar(fields)
     state = case.game()
     case.apply(state, fields)
-    assert state.world.scene.here == [case.met]
+    assert state.world.scene.here_ids == [case.met]
 
 
 @pytest.mark.parametrize("case", CASES, ids=_case_id)
@@ -129,21 +129,21 @@ def test_the_bar_refuses_a_draft_cast_entry_under_player_id(case: SceneCase) -> 
 @pytest.mark.parametrize("case", CASES, ids=_case_id)
 def test_the_bar_refuses_hiding_someone_met(case: SceneCase) -> None:
     with pytest.raises(Refusal, match="already met"):
-        case.bar({"hidden": (case.met,)})
+        case.bar({"hidden_ids": (case.met,)})
 
 
 @pytest.mark.parametrize("case", CASES, ids=_case_id)
 def test_a_dead_draft_cast_member_is_refused(case: SceneCase) -> None:
     ghost = {"id": "ghost", "name": "Ghost", "brief": "", "alive": False}
     with pytest.raises(Refusal, match="may write them"):
-        case.bar({"present": (case.met,), "cast": {"ghost": ghost}})
+        case.bar({"present_ids": (case.met,), "cast": {"ghost": ghost}})
 
 
 @pytest.mark.parametrize("case", CASES, ids=_case_id)
 def test_the_bar_refuses_present_hidden_overlap(case: SceneCase) -> None:
     message = f"nobody listed as both present and hidden: ['{case.unmet}']"
     with pytest.raises(Refusal, match=re.escape(message)):
-        case.bar({"present": (case.unmet,), "hidden": (case.unmet,)})
+        case.bar({"present_ids": (case.unmet,), "hidden_ids": (case.unmet,)})
 
 
 def test_a_situation_naming_an_unmet_cast_member_not_in_this_scene_is_refused() -> None:
@@ -157,7 +157,7 @@ def test_a_party_members_stored_brief_naming_an_absent_unmet_neighbour_is_accept
     """An old brief naming someone unmet outside this scene must not wedge every later one."""
     world = twentyfourxx_world().world
     world.cast[KESTREL].brief = "She is watching for Sable."
-    world.join_party(KESTREL)
+    _ = world.join(world.require_person_here(KESTREL))
     proposal = NextProposal[Crewmate].model_validate({**TWENTYFOURXX_BASE, "recap": BAR_RECAP})
     check_next(proposal, world)
 
@@ -173,14 +173,14 @@ def test_a_game_naming_an_uninstalled_pack_is_refused_by_restore(case: SceneCase
 def test_apply_scene_resolves_present_by_name(case: SceneCase) -> None:
     state = case.game()
     name = state.world.cast[case.unmet].name
-    case.apply(state, {"present": (name,)})
+    case.apply(state, {"present_ids": (name,)})
     assert case.unmet in state.world.present()
 
 
 @pytest.mark.parametrize("case", CASES, ids=_case_id)
 def test_apply_scene_marks_present_cast_known(case: SceneCase) -> None:
     state = case.game()
-    case.apply(state, {"present": (str(case.unmet),)})
+    case.apply(state, {"present_ids": (str(case.unmet),)})
     assert state.world.cast[case.unmet].known is True
 
 
@@ -191,7 +191,7 @@ def test_apply_scene_lands_new_cast(case: SceneCase) -> None:
     case.apply(
         state,
         {
-            "present": (str(case.met), stranger),
+            "present_ids": (str(case.met), stranger),
             "cast": {
                 stranger: {"id": stranger, "name": "A Stranger", "brief": "unknown to the world"}
             },
@@ -204,7 +204,7 @@ def test_apply_scene_lands_new_cast(case: SceneCase) -> None:
 def test_apply_scene_refuses_a_present_name_that_resolves_to_nobody(case: SceneCase) -> None:
     state = case.game()
     with pytest.raises(Refusal, match="no such id or name exists"):
-        case.apply(state, {"present": ("nobody",)})
+        case.apply(state, {"present_ids": ("nobody",)})
 
 
 @pytest.mark.parametrize("case", CASES, ids=_case_id)
@@ -228,6 +228,6 @@ def test_a_cast_that_holds_the_player_is_refused(case: SceneCase) -> None:
 
 def test_require_actor_refuses_an_unsheeted_member() -> None:
     world = twentyfourxx_world().world
-    world.party = [KESTREL]
+    world.party_ids = [KESTREL]
     with pytest.raises(Refusal, match="not the player or a hired party member"):
         world.require_actor(KESTREL)

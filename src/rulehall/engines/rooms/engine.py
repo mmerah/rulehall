@@ -4,23 +4,15 @@ from random import Random
 from typing import Any
 
 from rulehall.core.facts import Fact
-from rulehall.core.model import (
-    AnyCharacter,
-    AnyScenario,
-    Character,
-    Game,
-    RoleAnswer,
-    WorldsmithRequest,
-)
-from rulehall.core.prompt import Sections, lines_of, render_history, section_if
+from rulehall.core.game import AnyCharacter, AnyScenario, Game, RoleAnswer, WorldsmithRequest
+from rulehall.core.prompt import Sections, lines_of, render_log, section_if
 from rulehall.core.tools import action, tool
 from rulehall.core.validation import Refusal, Slug
-from rulehall.core.views import NarratorView, PlayerView
+from rulehall.core.views import NarratorView, Panel, PlayerView
 from rulehall.engines.args import Words
 from rulehall.engines.engine import Engine, RequestHandler, Resolution, Revealing
-from rulehall.engines.entities import ARC_TITLE, HIDDEN_TITLE, party_section
 from rulehall.engines.packs import Pack
-from rulehall.engines.panels import character_panel, here_panel, party_panel
+from rulehall.engines.panels import here_panel, party_panel
 from rulehall.engines.rooms.args import (
     ELSEWHERE,
     MOVED_CARD,
@@ -28,13 +20,21 @@ from rulehall.engines.rooms.args import (
     NOTHING_OFFSCREEN,
     DropHere,
     Meanwhile,
-    Move,
     MoveItem,
+    MoveTo,
     UnlockWay,
 )
-from rulehall.engines.rooms.panels import EXTEND, MORE_MAP, carried_panel, map_view, ways_panel
-from rulehall.engines.rooms.world import Dweller, MapProposal, Prop, RegionProposal, RoomWorld
-from rulehall.engines.rooms.worldsmith import MAP_ASK, OPENING_SECTIONS, check_map, check_next_map
+from rulehall.engines.rooms.panels import (
+    EXTEND,
+    MORE_MAP,
+    carried_panel,
+    map_view,
+    sheet_panel,
+    ways_panel,
+)
+from rulehall.engines.rooms.world import Dweller, Item, MapProposal, RegionProposal, RoomWorld
+from rulehall.engines.rooms.worldsmith import MAP_ASK, OPENING_SECTIONS, check_next, check_opening
+from rulehall.engines.world import ARC_SO_FAR_TITLE, ARC_TITLE, HIDDEN_TITLE, party_section
 
 MAP_UNWRITTEN = Fact(
     told=True,
@@ -43,42 +43,36 @@ MAP_UNWRITTEN = Fact(
 )
 
 
-class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Revealing, Engine[W, K]):
+class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]](
+    Revealing, Engine[P, W, K, R]
+):
     family_dir = Path(__file__).parent
     opening_sections = OPENING_SECTIONS
     opening_intent = MAP_ASK
-    person: type[N]
-    next_proposal: type[RegionProposal[N]]
 
     def __init__(self, player_packs: Path) -> None:
         super().__init__(player_packs)
-        if (every := self.world.meanwhile_every) < 2:
+        if (every := self.world_model.meanwhile_every) < 2:
             raise ValueError(f"the {self.id!r} engine runs the meanwhile every {every} turns")
-        self.character = Character[self.person]
-
-    def player_of(self, character: AnyCharacter) -> N:
-        return self.player_as(character, self.person)
 
     def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> W:
-        proposal: MapProposal[N] = scenario.opening
-        check_map(proposal)
+        proposal: MapProposal[P] = scenario.opening
+        check_opening(proposal)
         player = self.player_of(character)
-        world = self.world.opening(proposal, player, self.starting_items(proposal, player))
-        world.absorb(proposal)
-        return world
+        return self.world_model.opening(proposal, player, self.starting_items(proposal, player))
 
-    def starting_items(self, _proposal: MapProposal[N], _player: N, /) -> tuple[Prop, ...]:
+    def starting_items(self, _proposal: MapProposal[P], _player: P, /) -> tuple[Item, ...]:
         return ()
 
     def request_handlers(self) -> Mapping[Slug, RequestHandler[W]]:
         return {EXTEND: RequestHandler(self.write_region, MAP_UNWRITTEN)}
 
-    def worldsmith_sections(self, draft: Game[W]) -> Sections:
+    def worldsmith_sections(self, draft: Game[W], /) -> Sections:
         world = draft.world
         return (
             ("MAP SO FAR", world.map_so_far()),
-            *section_if("THE ARC SO FAR", world.arc),
-            ("SCENES SO FAR", render_history(draft.log)),
+            *section_if(ARC_SO_FAR_TITLE, world.arc),
+            ("SCENES SO FAR", render_log(draft.chapters)),
             ("THE PLAYER", world.line(world.player)),
         )
 
@@ -113,7 +107,7 @@ class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Revealing, Engine[W, K]
             situation="\n".join(part for part in (place.brief, place.description) if part),
             subjects=tuple(entity.subject() for entity in here),
             speakers=tuple(entity.id for entity in here if entity.alive),
-            party=(world.player.id, *world.party),
+            party=(world.player.id, *world.party_ids),
             sheet=(*world.sheet_rows(), ("Carrying", carrying or "nothing")),
         )
 
@@ -125,17 +119,21 @@ class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Revealing, Engine[W, K]
             player=player.subject(),
             scene_title=world.current.name,
             situation=world.current.description,
-            panels=(
-                character_panel(world.sheet_rows()),
-                *party_panel(world.party_members()),
-                here_panel(other.subject() for other in world.others()),
-                carried_panel(world),
-                ways_panel(world),
-            ),
+            panels=self.scene_panels(state),
             decision=state.pending,
             ending=self.ending(state),
             map=map_view(world),
             composer_option=MORE_MAP if world.frontier() == 0 else None,
+        )
+
+    def scene_panels(self, state: Game[W], /) -> tuple[Panel, ...]:
+        world = state.world
+        return (
+            sheet_panel(world),
+            *party_panel(world.party_members()),
+            here_panel(other.subject() for other in world.others()),
+            carried_panel(world),
+            ways_panel(world),
         )
 
     @action
@@ -147,7 +145,7 @@ class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Revealing, Engine[W, K]
     @tool
     def move_item(self, draft: Game[W], args: MoveItem, _rng: Random) -> list[Fact]:
         """Move an item to a new holder."""
-        return draft.world.move_item(args.item_id, args.to_id)
+        return draft.world.move_item(args.item_id, args.holder_id)
 
     @tool
     def unlock_way(self, draft: Game[W], args: UnlockWay, _rng: Random) -> list[Fact]:
@@ -155,13 +153,13 @@ class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Revealing, Engine[W, K]
         return draft.world.unlock_way(args.to_id)
 
     @tool
-    def move(self, draft: Game[W], args: Move, _rng: Random) -> list[Fact]:
+    def move(self, draft: Game[W], args: MoveTo, _rng: Random) -> list[Fact]:
         """Move the player through an unlocked way out of this place."""
         return draft.world.move(args.to_id, args.with_ids)
 
     @tool
     def meanwhile(self, draft: Game[W], args: Meanwhile, _rng: Random) -> list[Fact]:
-        """Time passes where the player is not. Move a dweller, move a loose item, and shut a
+        """Pass time where the player is not: move a dweller, move a loose item, and shut a
         way the player knows. Use any combination in one call. Call this only while ELSEWHERE is
         shown."""
         world = draft.world
@@ -170,10 +168,12 @@ class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Revealing, Engine[W, K]
         facts: list[Fact] = []
         if args.dweller_id is not None and args.dweller_to_id is not None:
             npc = world.require_dweller(args.dweller_id)
-            facts.append(world.walk_offscreen(npc, world.offscreen_place(args.dweller_to_id)))
+            facts.append(
+                world.walk_offscreen(npc, world.require_offscreen_place(args.dweller_to_id))
+            )
         if args.item_id is not None and args.item_to_id is not None:
-            item = world.require_prop(args.item_id)
-            facts.append(world.drift_item(item, world.offscreen_place(args.item_to_id)))
+            item = world.require_item(args.item_id)
+            facts.append(world.drift_item(item, world.require_offscreen_place(args.item_to_id)))
         if args.shut_from_id is not None and args.shut_to_id is not None:
             start = world.require_place(args.shut_from_id)
             facts.append(world.shut_way(start, world.require_place(args.shut_to_id)))
@@ -190,28 +190,17 @@ class RoomEngine[N: Dweller, W: RoomWorld[Any], K: Pack](Revealing, Engine[W, K]
         if acted:
             draft.world.count_turn()
 
-    def check_next(self, draft: Game[W], proposal: RegionProposal[N]) -> None:
-        check_next_map(proposal, draft.world)
+    def check_next(self, draft: Game[W], proposal: R, /) -> None:
+        check_next(proposal, draft.world)
 
-    async def write_next(
-        self, draft: Game[W], intent: str, worldsmith: RoleAnswer
-    ) -> RegionProposal[N]:
-        return await self.ask_worldsmith(
-            draft,
-            worldsmith,
-            intent,
-            self.next_proposal,
-            lambda answer: self.check_next(draft, answer),
-        )
-
-    def install(self, draft: Game[W], proposal: RegionProposal[N]) -> None:
+    def install_next(self, draft: Game[W], proposal: R, /) -> list[Fact]:
         draft.world.attach(proposal, proposal.start_id)
-        draft.world.absorb(proposal)
-        draft.log[-1].recap = proposal.recap
+        draft.chapters[-1].recap = proposal.recap
         self.open_chapter(draft)
+        return []
 
     async def write_region(
         self, draft: Game[W], request: WorldsmithRequest, worldsmith: RoleAnswer
     ) -> Resolution:
-        self.install(draft, await self.write_next(draft, request.detail, worldsmith))
-        return Resolution((), None)
+        facts = self.install_next(draft, await self.write_next(draft, request.detail, worldsmith))
+        return Resolution(tuple(facts), None)

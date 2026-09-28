@@ -11,7 +11,7 @@ SOURCE = Path(__file__).parents[1] / "tests/core/fixtures/source/drowned-road.md
 
 def body(s: Session) -> None:
     page = s.page()
-    page.goto(BASE + "/create")
+    page.goto(BASE + "/character")
     page.wait_for_timeout(1000)
     s.shot(page, "create")
     s.check("LONER 4E" in clean(page.inner_text("body")), "default rules not shown")
@@ -48,7 +48,7 @@ def body(s: Session) -> None:
     s.shot(page, "home-quinn")
 
     # The same name again is refused; an empty name is refused before anything runs.
-    page.goto(BASE + "/create")
+    page.goto(BASE + "/character")
     page.wait_for_timeout(800)
     select(page, "Rules", "TUNNEL GOONS")
     text(page, "Name", "Quinn")
@@ -68,7 +68,7 @@ def body(s: Session) -> None:
     s.check(any("Name the character." in n for n in notifications(page)), "empty name not refused")
 
     # Loner: a chosen pack, then dependent skill and gear picks pooled over the SRD and it.
-    page.goto(BASE + "/create")
+    page.goto(BASE + "/character")
     page.wait_for_timeout(800)
     text(page, "Name", "Wren")
     select(page, "Pack", "AP01 Fantasy")
@@ -101,7 +101,7 @@ def body(s: Session) -> None:
     page.wait_for_url("**/")
 
     # 24XX: a specialty with a choice and a weapon, an origin with a body and an increase.
-    page.goto(BASE + "/create")
+    page.goto(BASE + "/character")
     page.wait_for_timeout(800)
     select(page, "Rules", "24XX")
     text(page, "Name", "Wren")

@@ -2,32 +2,32 @@ from collections.abc import Callable
 from pathlib import Path
 
 from nicegui import Client, ui
-from support.game import TARGET
+from support.game import KEY
 from support.table import ENGINES_BUILT, offline_settings
 
-from rulehall.app.launch import LauncherCatalog, scenario_models
-from rulehall.core.io import FileStore, Library
-from rulehall.ui.app import LaunchForm
+from rulehall.app.catalog import LauncherCatalog, scenario_models
+from rulehall.core.stores import Library, SaveStore
+from rulehall.ui.home import LaunchForm
 from rulehall.ui.widgets import DICE_CLIP, SOUNDS_DIR
 
 
-def test_an_unresumable_save_renders_no_start_button(
+async def test_an_unresumable_save_renders_no_start_button(
     tmp_path: Path, page: Callable[[], Client]
 ) -> None:
     settings = offline_settings(tmp_path)
-    _ = (tmp_path / f"{TARGET.save_id}.json").write_bytes(b"\xff\xfe not text")
+    _ = (tmp_path / f"{KEY.save_id}.json").write_bytes(b"\xff\xfe not text")
     library = Library(settings.scenarios_dir, settings.characters_dir)
     catalog = LauncherCatalog.read(
-        library, FileStore(settings.saves_dir), ENGINES_BUILT, scenario_models(ENGINES_BUILT)
+        library, SaveStore(settings.saves_dir), ENGINES_BUILT, scenario_models(ENGINES_BUILT)
     )
-    assert catalog.unresumable == (TARGET.save_id,)
+    assert catalog.unresumable == (KEY.save_id,)
 
-    form = LaunchForm(catalog)
-    form.scenario_id = TARGET.scenario_id
-    form.character_id = TARGET.character_id
     client = page()
+    form = LaunchForm(catalog)
+    form.scenario_id = KEY.scenario_id
+    form.character_id = KEY.character_id
 
-    form.form()
+    await form.draw.refresh()
 
     elements = client.elements.values()
     assert not any(isinstance(element, ui.button) for element in elements)

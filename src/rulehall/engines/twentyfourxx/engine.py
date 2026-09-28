@@ -1,40 +1,24 @@
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
 from pathlib import Path
 from random import Random
-from typing import NamedTuple
 
-from rulehall.core.creation import (
-    CreationStep,
-    Picks,
-    check_picks,
-    chosen_option,
-    option_of,
-    picked,
-)
-from rulehall.core.facts import DiceEvent, Fact, roll
-from rulehall.core.model import AnyCharacter, Character, Check, RoleAnswer, WorldsmithRequest
-from rulehall.core.play import (
-    Cause,
-    DecisionOption,
-    PendingOption,
-    Refused,
-    SpokenLine,
-)
-from rulehall.core.prompt import Sections, lines_of, section_if, sentence
+from rulehall.core.creation import CreationStep, Picks, find_option
+from rulehall.core.decisions import ActionOption, DecisionOption
+from rulehall.core.facts import Fact, roll
+from rulehall.core.game import AnyCharacter, AnyScenario, Character, RoleAnswer, WorldsmithRequest
+from rulehall.core.prompt import Sections, lines_of, section_if
 from rulehall.core.tools import action, tool
-from rulehall.core.validation import EngineId, Refusal, Slug, slug
+from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.core.views import NarratorView, Panel, Rows, tag_of
 from rulehall.engines.args import Words
 from rulehall.engines.engine import RequestHandler, Resolution, Revealing
-from rulehall.engines.entities import IS_DEAD, PLAYER_ID, joined
 from rulehall.engines.hiring import HIRE_PENDING, HIRE_UNWRITTEN, Hiring, signed_on
 from rulehall.engines.packs import unique_options
-from rulehall.engines.panels import character_panel, here_panel, party_panel
+from rulehall.engines.panels import here_panel, party_panel
 from rulehall.engines.scenes.engine import SceneEngine
 from rulehall.engines.scenes.panels import trail_panel
-from rulehall.engines.scenes.world import SceneProposal
-from rulehall.engines.scenes.worldsmith import check_next, check_opening
+from rulehall.engines.scenes.worldsmith import check_opening
+from rulehall.engines.sheet import PLAYER_ID, joined
 from rulehall.engines.twentyfourxx.args import (
     BringIn,
     CarriedItem,
@@ -44,7 +28,6 @@ from rulehall.engines.twentyfourxx.args import (
     FindAgain,
     FromHold,
     GainItem,
-    Helper,
     Job,
     LoseHoldItem,
     NextScene,
@@ -54,18 +37,10 @@ from rulehall.engines.twentyfourxx.args import (
     Roll,
     ShipUpgrade,
     Spend,
-    Staked,
     TakeLead,
 )
 from rulehall.engines.twentyfourxx.pack import (
-    COMPLICATING,
-    HIRING,
-    NEWCOMING,
-    SKILL_COUNT,
-    WORLDSMITH_GUIDANCE,
-    NewcomerProposal,
     Origin,
-    SheetProposal,
     Specialty,
     TwentyFourXXBody,
     TwentyFourXXHead,
@@ -76,37 +51,35 @@ from rulehall.engines.twentyfourxx.panels import (
     NEWCOMER,
     commit_decision,
     crew_rows,
-    defence_decision,
-    gear_rows,
     job_panel,
     newcomer_decision,
     raise_decision,
+    sheet_panel,
     ship_panel,
     succession_decision,
 )
-from rulehall.engines.twentyfourxx.rules import (
-    DEFAULT_DIE,
-    HELP_DIE,
-    HINDERED_DIE,
-    NO_WORK,
-    ODD_WORK,
-    TWO_JOBS_FOUND,
-    SkillDie,
-    outcome_band,
-    raised,
-    risk_text,
-    roll_band,
-    spared,
-)
-from rulehall.engines.twentyfourxx.sheet import SHIP_IDS, Crewmate, CrewSheet, Gear, Kit
+from rulehall.engines.twentyfourxx.risk import DicePool, defend_or_land
+from rulehall.engines.twentyfourxx.rules import SKILL_COUNT, next_die
+from rulehall.engines.twentyfourxx.sheet import Crewmate, CrewSheet, Gear, Kit, items_from_kits
 from rulehall.engines.twentyfourxx.world import (
-    WORK_AT,
+    NewcomerProposal,
+    SheetProposal,
     TwentyFourXXGame,
-    TwentyFourXXNext,
-    TwentyFourXXScene,
+    TwentyFourXXNextProposal,
+    TwentyFourXXSceneProposal,
     TwentyFourXXWorld,
     filed_by_name,
 )
+from rulehall.engines.twentyfourxx.worldsmith import (
+    COMPLICATING,
+    FLOWN,
+    HIRING,
+    NEW_LOCATION,
+    NEWCOMING,
+    WORLDSMITH_GUIDANCE,
+    check_newcomer,
+)
+from rulehall.engines.world import IS_DEAD
 
 DEPARTURE: Slug = "departure"
 FLIGHT: Slug = "flight"
@@ -138,7 +111,7 @@ NEW_LEAD_HERE = (
     "{name} leads now and is here, in {scene}, where the dead operator fell. Play them here, "
     "never anywhere else."
 )
-SCENE_LEFT = "the worldsmith writes the crossing once this turn ends. Stop here and exit."
+SCENE_LEFT = "the worldsmith writes the crossing once this turn ends: stop here and exit"
 WAY_OFFERED = (
     "This scene offers a way on. Ask the player what they want to pursue next. Ask in the "
     "fiction, and name what the scene left open. Never ask with a list of choices. The player "
@@ -154,63 +127,17 @@ COMPLICATION_UNWRITTEN = Fact(
     trace="the complication could not be written",
     card="Nothing new came down on this place after all. You are still where you were.",
 )
-NEW_LOCATION = "no new `location`: a complication happens where the player is; leave it empty"
-GEAR_TOOK_THE_HIT = (
-    "the gear took the hit: do not apply `risk`; the engine removes the brief hindrance at the "
-    "next scene"
-)
-TWO_JOBS = (
-    "offer two jobs with `direct`; the player picks in their words; `job` `take` records the pick"
-)
-ODD_JOB = (
-    "offer one job with `direct`, and let something about it seem off; write what seems off in "
-    "`terms` when the player takes it"
-)
-NO_JOB = (
-    "no work, unless the crew takes a job that leaves them owing somebody: offer that with "
-    "`direct`; write the debt in `terms` when the player takes it"
-)
 JOB_PAID = (
     "the job is over, done or failed: the credits each operator earned above are their cut for "
     "the work done. Tell them as that pay; never say that no pay came"
 )
-FLOWN = (
-    "a new `place_id`: the crew flew away from {place_id}. Land them at the place that WHAT "
-    "COMES NEXT names"
-)
 RAISE_OWED = "A raise is owed: when the player names a skill, call `raise_skill` with it."
-
-
-class Helping(NamedTuple):
-    who: Crewmate
-    terms: Helper
-    skill: str
-    die: int
-
-
-@dataclass(frozen=True, slots=True)
-class DicePool:
-    roll: Roll
-    actor: Crewmate
-    helping: Helping | None
-    faces: tuple[int, ...]
-    label: str
-
-    @property
-    def die(self) -> int:
-        return self.faces[0]
-
-    def stakes(self) -> list[tuple[Crewmate, Staked]]:
-        staked: list[tuple[Crewmate, Staked]] = [(self.actor, self.roll)]
-        if self.helping is not None:
-            staked.append((self.helping.who, self.helping.terms))
-        return staked
 
 
 class TwentyFourXXEngine(
     Revealing,
-    Hiring[TwentyFourXXWorld, TwentyFourXXPack, Crewmate, SheetProposal],
-    SceneEngine[Crewmate, TwentyFourXXWorld, TwentyFourXXPack],
+    Hiring[Crewmate, TwentyFourXXWorld, TwentyFourXXPack, TwentyFourXXNextProposal, SheetProposal],
+    SceneEngine[Crewmate, TwentyFourXXWorld, TwentyFourXXPack, TwentyFourXXNextProposal],
 ):
     id = EngineId("twentyfourxx")
     title = "24XX"
@@ -220,12 +147,13 @@ class TwentyFourXXEngine(
         "technology, no text or lettering."
     )
     directory = Path(__file__).parent
-    pack = TwentyFourXXPack
-    head = TwentyFourXXHead
-    body = TwentyFourXXBody
-    world = TwentyFourXXWorld
-    person = Crewmate
-    opening = TwentyFourXXScene
+    pack_model = TwentyFourXXPack
+    pack_head_model = TwentyFourXXHead
+    pack_body_model = TwentyFourXXBody
+    world_model = TwentyFourXXWorld
+    person_model = Crewmate
+    opening_model = TwentyFourXXSceneProposal
+    next_proposal_model = TwentyFourXXNextProposal
     hire_model = SheetProposal
     hire_intent = HIRING
 
@@ -248,26 +176,21 @@ class TwentyFourXXEngine(
             NEWCOMER: RequestHandler(self.write_newcomer, HIRE_UNWRITTEN),
         }
 
-    def record(
-        self,
-        draft: TwentyFourXXGame,
-        lines: tuple[SpokenLine, ...],
-        facts: tuple[Fact, ...],
-        *,
-        words: str = "",
-        by_option: bool = False,
-        cause: Cause | None = None,
-        refused: tuple[Refused, ...] = (),
-    ) -> TwentyFourXXGame:
+    def before_record(self, draft: TwentyFourXXGame, /) -> None:
         if draft.pending is None and draft.request is None:
             self._succession(draft)
         if draft.pending is None and draft.request is None and draft.world.raise_owed:
             draft.pending = raise_decision(draft.world.player.require_sheet())
-        return super().record(
-            draft, lines, facts, words=words, by_option=by_option, cause=cause, refused=refused
-        )
 
-    def composer(self, _state: TwentyFourXXGame) -> tuple[PendingOption | None, bool]:
+    def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> TwentyFourXXWorld:
+        opening: TwentyFourXXSceneProposal = scenario.opening
+        filed = filed_by_name(opening)
+        check_opening(filed)
+        world = self.world_model.opening(filed, self.player_of(character))
+        world.apply_proposal_extras(opening)
+        return world
+
+    def composer(self, _state: TwentyFourXXGame, /) -> tuple[ActionOption | None, bool]:
         return MOVE_ON, False
 
     def hire_guidance(self, draft: TwentyFourXXGame) -> str:
@@ -278,18 +201,15 @@ class TwentyFourXXEngine(
                 *(specialty.line() for specialty in specialties),
                 "Origins:",
                 *(origin.line() for origin in origins),
-                f"Skills: {', '.join(option.name for option in self.packs.srd().skills)}",
+                f"Skills: {', '.join(self._rulebook_skills())}",
             )
         )
 
-    def hire_check(self, draft: TwentyFourXXGame) -> Check[SheetProposal]:
-        def check(answer: SheetProposal) -> None:
-            self._operator_sheet(draft.pack_id, answer)
-
-        return check
+    def check_hire(self, draft: TwentyFourXXGame, answer: SheetProposal, /) -> None:
+        self.build_sheet(draft.pack_id, answer)
 
     def sign_on(self, draft: TwentyFourXXGame, person: Crewmate, answer: SheetProposal) -> str:
-        sheet = self._operator_sheet(draft.pack_id, answer)
+        sheet = self.build_sheet(draft.pack_id, answer)
         person.sheet = sheet
         return joined(sheet.specialty, sheet.origin)
 
@@ -297,7 +217,7 @@ class TwentyFourXXEngine(
         specialties, origins = self._offered(pack_id)
         skills = self.packs.srd().skills
         steps = [CreationStep(id="specialty", name="Specialty", options=specialties)]
-        specialty = option_of(specialties, picked(picks, "specialty"))
+        specialty = find_option(specialties, picks.get("specialty", ""))
         if specialty is None:
             return tuple(steps)
         if specialty.choice:
@@ -307,18 +227,9 @@ class TwentyFourXXEngine(
                 )
             )
         if specialty.kit_choice:
-            steps.append(
-                CreationStep(
-                    id="weapon",
-                    name="Weapon",
-                    options=tuple(
-                        DecisionOption(id=slug(kit.name, ()), name=kit.name)
-                        for kit in specialty.kit_choice
-                    ),
-                )
-            )
+            steps.append(CreationStep(id="weapon", name="Weapon", options=specialty.kit_choice))
         steps.append(CreationStep(id="origin", name="Origin", options=origins))
-        origin = option_of(origins, picked(picks, "origin"))
+        origin = find_option(origins, picks.get("origin", ""))
         if origin is None:
             return tuple(steps)
         steps.extend(
@@ -341,82 +252,54 @@ class TwentyFourXXEngine(
     def build_character(
         self, name: str, brief: str, pack_id: Slug, picks: Picks
     ) -> Character[Crewmate]:
+        proposal = SheetProposal(
+            specialty=picks.get("specialty", ""),
+            specialty_skills=picks.get("specialty-choice", ""),
+            weapon=picks.get("weapon", ""),
+            origin=picks.get("origin", ""),
+            traits=_numbered(picks, "trait"),
+            body=picks.get("body", ""),
+            increases=_numbered(picks, "increase"),
+        )
         player = Crewmate(
             id=PLAYER_ID,
             name=name,
             brief=brief,
             known=True,
-            sheet=self._built_sheet(pack_id, picks),
+            sheet=self.build_sheet(pack_id, proposal),
         )
-        return self.sheet_character(name, player)
+        return self.character_of(name, player)
 
-    def _built_sheet(self, pack_id: Slug, picks: Picks) -> CrewSheet:
-        offered_specialties, offered_origins = self._offered(pack_id)
-        specialty = chosen_option(offered_specialties, picked(picks, "specialty"))
-        origin = chosen_option(offered_origins, picked(picks, "origin"))
+    def build_sheet(self, pack_id: Slug, proposal: SheetProposal) -> CrewSheet:
+        specialties, origins = self._offered(pack_id)
+        specialty = _chosen(specialties, proposal.specialty, "specialty")
+        origin = _chosen(origins, proposal.origin, "origin")
+        skill_choice = _chosen_if_offered(
+            specialty.choice, proposal.specialty_skills, "specialty skills"
+        )
+        weapon = _chosen_if_offered(specialty.kit_choice, proposal.weapon, "weapon")
+        body = _chosen_if_offered(origin.choice, proposal.body, "body")
+        _require_count(proposal.traits, origin.invents, "traits to invent")
+        _require_count(proposal.increases, origin.increases, "skill increases")
 
-        skills: dict[str, SkillDie] = dict(specialty.skills)
-        if specialty.choice:
-            picked_skills = chosen_option(specialty.choice, picked(picks, "specialty-choice"))
-            skills.update(picked_skills.skills)
-        for number in range(1, origin.increases + 1):
-            typed = picked(picks, f"increase-{number}")
-            option = option_of(self.packs.srd().skills, typed)
-            skill = option.name if option is not None else self._match_skill(skills, typed) or typed
-            if (new_die := raised(skills.get(skill))) is None:
-                raise Refusal("the skill is already at d12")
-            skills[skill] = new_die
-
-        weapon: Kit | None = None
-        if specialty.kit_choice:
-            wanted = picked(picks, "weapon")
-            weapon = next(
-                (kit for kit in specialty.kit_choice if slug(kit.name, ()) == wanted), None
-            )
-            if weapon is None:
-                raise Refusal(f"{wanted!r} is not a weapon on offer")
-
-        traits = tuple(picked(picks, f"trait-{number}") for number in range(1, origin.invents + 1))
-        body = None
-        if origin.choice:
-            body = chosen_option(origin.choice, picked(picks, "body"))
-            traits = (*traits, body.name)
-
-        kits = [*self.packs.srd().starting_kit, *specialty.kit]
+        kits: list[Kit] = [*self.packs.srd().starting_kit, *specialty.kit]
         if weapon is not None:
-            kits.append(weapon)
+            kits.append(weapon.kit)
         if body is not None and body.kit is not None:
             kits.append(body.kit)
-        return CrewSheet(
+        sheet = CrewSheet(
             specialty=specialty.name,
             origin=origin.name,
-            traits=traits,
-            skills=skills,
+            traits=(*proposal.traits, *(() if body is None else (body.name,))),
+            skills={**specialty.skills, **({} if skill_choice is None else skill_choice.skills)},
             items=items_from_kits(kits),
         )
-
-    def _operator_sheet(self, pack_id: Slug, answer: SheetProposal) -> CrewSheet:
-        answers = {
-            "specialty": answer.specialty,
-            "specialty-choice": answer.specialty_skills,
-            "weapon": answer.weapon,
-            "origin": answer.origin,
-            "body": answer.body,
-            **{f"trait-{number}": trait for number, trait in enumerate(answer.traits, 1)},
-            **{f"increase-{number}": skill for number, skill in enumerate(answer.increases, 1)},
-        }
-        picks: dict[Slug, str] = {}
-        while steps := [
-            step for step in self.creation_steps(pack_id, picks) if step.id not in picks
-        ]:
-            for step in steps:
-                picks[step.id] = _answered(step, answers.get(step.id, ""))
-        if unasked := [
-            step_id for step_id, given in answers.items() if given and step_id not in picks
-        ]:
-            raise Refusal(f"these choices take no {', '.join(unasked)}: leave them empty")
-        check_picks(self.creation_steps(pack_id, picks), picks)
-        return self._built_sheet(pack_id, picks)
+        for wanted in proposal.increases:
+            skill = sheet.match_skill(wanted, self._rulebook_skills()) or wanted
+            if (raised_die := next_die(sheet.skills.get(skill))) is None:
+                raise Refusal(f"{skill} is already at d12")
+            sheet.skills[skill] = raised_die
+        return sheet
 
     def preview_character(self, character: AnyCharacter) -> Rows:
         sheet = self.player_of(character).require_sheet()
@@ -443,11 +326,10 @@ class TwentyFourXXEngine(
             return view
         return view.model_copy(update={"situation": f"{view.situation}\n{line}"})
 
-    def scene_panels(self, state: TwentyFourXXGame) -> tuple[Panel, ...]:
+    def scene_panels(self, state: TwentyFourXXGame, /) -> tuple[Panel, ...]:
         world = state.world
-        player = world.player
         return (
-            character_panel(player.rows(), *gear_rows(world, player)),
+            sheet_panel(world),
             *job_panel(world),
             ship_panel(world),
             *party_panel(world.party_members(), lambda member: crew_rows(world, member)),
@@ -455,50 +337,36 @@ class TwentyFourXXEngine(
             trail_panel(scene.title for scene in world.scenes),
         )
 
-    def resolve_skill(self, sheet: CrewSheet, wanted: str) -> str:
-        if (match := self._match_skill(sheet.skills, wanted)) is not None:
-            return match
-        known = ", ".join(sorted(sheet.skills)) or "none"
-        listed = ", ".join(option.name for option in self.packs.srd().skills)
-        raise Refusal(
-            f"{wanted!r} is not a skill on the sheet ({known}) or in the rules ({listed})"
-        )
-
-    def _match_skill(self, known: Mapping[str, SkillDie], wanted: str) -> str | None:
-        folded = wanted.casefold().split()
-        names = (*known, *(option.name for option in self.packs.srd().skills))
-        return next((name for name in names if name.casefold().split() == folded), None)
-
     @tool
     def change_hindrances(
         self, draft: TwentyFourXXGame, args: ChangeHindrances, _rng: Random
     ) -> list[Fact]:
-        """The actor gains hindrances, loses hindrances, or does both."""
+        """Add hindrances to the actor, remove hindrances, or do both."""
         return draft.world.require_actor(args.actor_id).change_hindrances(args.gained, args.lost)
 
     @tool
     def gain_item(self, draft: TwentyFourXXGame, args: GainItem, _rng: Random) -> list[Fact]:
-        """The actor gains an item and pays for it."""
+        """Give the actor an item they pay for."""
         actor = draft.world.require_actor(args.actor_id)
         return actor.gain_item(args.name, bulky=args.bulky, breaks=args.breaks, cost=args.cost)
 
     @tool
     @action
     def drop_item(self, draft: TwentyFourXXGame, args: CarriedItem, _rng: Random) -> list[Fact]:
-        """The actor loses an item permanently."""
+        """Take an item from the actor permanently."""
         actor = draft.world.require_actor(args.actor_id)
         return actor.require_sheet().drop_item(args.item_id, actor)
 
     @tool
     def repair_item(self, draft: TwentyFourXXGame, args: RepairItem, _rng: Random) -> list[Fact]:
-        """The actor repairs a broken item."""
+        """Repair a broken item of the actor."""
         world = draft.world
         actor = world.require_actor(args.actor_id)
         return actor.repair_item(world.require_gear(actor, args.item_id, hold=True), args.cost)
 
     @tool
     def spend(self, draft: TwentyFourXXGame, args: Spend, _rng: Random) -> list[Fact]:
-        """The actor pays credits for a thing that is not an item and not a repair, or pays
+        """Pay the actor's credits for a thing that is not an item and not a repair, or pay
         someone with `to_id`."""
         world = draft.world
         actor = world.require_actor(args.actor_id)
@@ -506,8 +374,10 @@ class TwentyFourXXEngine(
             return actor.spend(args.amount, args.why)
         if args.to_id == actor.id:
             raise Refusal(f"{actor.name} cannot pay themselves")
-        person = world.person_of(args.to_id)
-        if args.to_id == world.player.id or (person and person.hired and person.id in world.party):
+        person = world.find_person(args.to_id)
+        if args.to_id == world.player.id or (
+            person and person.has_sheet and person.id in world.party_ids
+        ):
             taker = world.require_actor(args.to_id)
             return [*actor.spend(args.amount, args.why), *taker.earn(args.amount, giver=actor)]
         taker_name = args.to_id if person is None else person.name
@@ -515,12 +385,12 @@ class TwentyFourXXEngine(
 
     @action
     def take_lead(self, draft: TwentyFourXXGame, args: TakeLead, _rng: Random) -> list[Fact]:
-        return draft.world.take_lead(args.actor_id)
+        return draft.world.take_lead(args.member_id)
 
     @tool
     @action
     def ship_upgrade(self, draft: TwentyFourXXGame, args: ShipUpgrade, _rng: Random) -> list[Fact]:
-        """The player upgrades one ship function."""
+        """Upgrade one ship function for the player."""
         return draft.world.upgrade_ship(args.function_id, args.upgrade)
 
     @action
@@ -537,20 +407,20 @@ class TwentyFourXXEngine(
     def lose_hold_item(
         self, draft: TwentyFourXXGame, args: LoseHoldItem, _rng: Random
     ) -> list[Fact]:
-        """An item leaves the ship's hold while the crew is away: a raid, an impound or a theft.
-        Call this once for each item."""
+        """Take an item out of the ship's hold while the crew is away: a raid, an impound or a
+        theft. Call this once for each item."""
         return draft.world.lose_hold_item(args.item_id, args.why)
 
     @tool
     def defend(self, draft: TwentyFourXXGame, args: Defend, _rng: Random) -> list[Fact]:
-        """A carried item or a ship function breaks. The hit becomes a hindrance."""
+        """Break a carried item or a ship function. The hit becomes a hindrance."""
         return draft.world.defend(args.actor_id, args.item_id, args.hindrance)
 
     @tool
     def next_scene(self, draft: TwentyFourXXGame, args: NextScene, _rng: Random) -> list[Fact]:
-        """Call this with nothing set when the scene reaches a stopping point. Set `pursuit`
-        instead when the player has left this place. Set `complication` instead to bring a new
-        situation into this place."""
+        """Open the next scene: with nothing set when this one reaches a stopping point. Set
+        `pursuit` instead when the player has left this place. Set `complication` instead to
+        bring a new situation into this place."""
         if args.pursuit:
             if args.by_ship and (refusal := draft.world.ship_refusal()):
                 raise Refusal(refusal)
@@ -565,7 +435,7 @@ class TwentyFourXXEngine(
         return [
             Fact(
                 trace=f"the worldsmith writes the complication once this turn ends: "
-                f"{args.complication}. Nothing more happens this turn; stop and exit",
+                f"{args.complication}; nothing more happens this turn, so stop and exit",
             )
         ]
 
@@ -599,43 +469,39 @@ class TwentyFourXXEngine(
         pursuit: str,
         worldsmith: RoleAnswer,
         how: str,
-        needs: Callable[[TwentyFourXXNext], list[str]] = lambda _answer: [],
+        extra_needs: Callable[[TwentyFourXXNextProposal], list[str]] = lambda _: [],
     ) -> Resolution:
         left = draft.world.scene.title
-        facts = await self._write_next(draft, pursuit, worldsmith, needs)
+        facts = self.install_next(
+            draft, await self.write_next(draft, pursuit, worldsmith, extra_needs=extra_needs)
+        )
         return Resolution(tuple(facts), CROSSING.format(left=left, how=how))
 
     async def complicate(
         self, draft: TwentyFourXXGame, request: WorldsmithRequest, worldsmith: RoleAnswer
     ) -> Resolution:
         location = draft.world.scene.location
-        facts = await self._write_next(
+        facts = self.install_next(
             draft,
-            COMPLICATING.format(brief=request.detail),
-            worldsmith,
-            lambda answer: [NEW_LOCATION] if answer.location not in ("", location) else [],
+            await self.write_next(
+                draft,
+                COMPLICATING.format(brief=request.detail),
+                worldsmith,
+                extra_needs=lambda answer: (
+                    [NEW_LOCATION] if answer.location not in ("", location) else []
+                ),
+            ),
         )
         return Resolution(tuple(facts), TURNING)
 
-    async def _write_next(
-        self,
-        draft: TwentyFourXXGame,
-        intent: str,
-        worldsmith: RoleAnswer,
-        needs: Callable[[TwentyFourXXNext], list[str]] = lambda _answer: [],
+    def check_next(self, draft: TwentyFourXXGame, proposal: TwentyFourXXNextProposal, /) -> None:
+        super().check_next(draft, filed_by_name(proposal))
+
+    def install_next(
+        self, draft: TwentyFourXXGame, proposal: TwentyFourXXNextProposal, /
     ) -> list[Fact]:
-        world = draft.world
-
-        def check(answer: TwentyFourXXNext) -> None:
-            check_next(filed_by_name(answer), world, needs=needs(answer))
-
-        scene = await self.ask_worldsmith_for_next_scene(
-            draft, worldsmith, intent, TwentyFourXXNext, check
-        )
-        return [*world.end_brief_hindrances(), *self.install_scene(draft, filed_by_name(scene))]
-
-    def check_opening(self, proposal: SceneProposal[Crewmate]) -> None:
-        check_opening(filed_by_name(proposal))
+        ended = draft.world.end_brief_hindrances()
+        return [*ended, *super().install_next(draft, filed_by_name(proposal))]
 
     def _offered(self, pack_id: Slug) -> tuple[tuple[Specialty, ...], tuple[Origin, ...]]:
         played = self.packs.played(pack_id)
@@ -659,7 +525,7 @@ class TwentyFourXXEngine(
 
     @tool
     def bring_in(self, draft: TwentyFourXXGame, args: BringIn, _rng: Random) -> list[Fact]:
-        """A new operator joins the crew after the lead died; the worldsmith writes them."""
+        """Bring a new operator into the crew after the lead died; the worldsmith writes them."""
         world = draft.world
         if world.player.alive or world.hired_party_members():
             raise Refusal(
@@ -674,12 +540,8 @@ class TwentyFourXXEngine(
         world = draft.world
 
         def check(answer: NewcomerProposal) -> None:
-            self._operator_sheet(draft.pack_id, answer.sheet)
-            world.check_unnamed(answer.name, answer.brief)
-            if any(
-                answer.name.casefold() == entry.name.casefold() for entry in world.cast.values()
-            ):
-                raise Refusal(f"{answer.name!r} is already in the cast: name a new operator")
+            self.build_sheet(draft.pack_id, answer.sheet)
+            check_newcomer(answer, world)
 
         answer = await self.ask_worldsmith(
             draft,
@@ -689,6 +551,7 @@ class TwentyFourXXEngine(
             check,
             guidance=self.hire_guidance(draft),
         )
+        world.hear(answer.name, answer.brief)
         newcomer = Crewmate(
             id=PLAYER_ID,
             name=answer.name,
@@ -703,65 +566,23 @@ class TwentyFourXXEngine(
     @tool
     @action
     def roll(self, draft: TwentyFourXXGame, args: Roll, rng: Random) -> list[Fact]:
-        """Call this only to avoid a risk. The engine checks the dice and asks the player to
+        """Roll only to avoid a risk. The engine checks the dice and asks the player to
         commit, unless `committed` is set; then it rolls and reads the result."""
-        pool = self._pool(draft.world, args)
+        pool = DicePool.build(draft.world, args, self._rulebook_skills())
         if args.committed:
             return self._rolled(draft, pool, rng)
-        draft.pending = commit_decision(args, _roll_lines(pool)[1], pool.actor, pool.faces)
+        draft.pending = commit_decision(args, pool.lines()[1], pool.actor, pool.faces)
         return []
 
     @action
     def defend_hit(self, draft: TwentyFourXXGame, args: DefendHit, _rng: Random) -> list[Fact]:
-        return _defend_or_land(draft, self._pool(draft.world, args.roll), args.rolled, args.choices)
+        pool = DicePool.build(draft.world, args.roll, self._rulebook_skills())
+        return defend_or_land(draft, pool, args.rolled, args.choices)
 
     def _rolled(self, draft: TwentyFourXXGame, pool: DicePool, rng: Random) -> list[Fact]:
         args = pool.roll
         rolled = roll(pool.faces, f"{args.what} — {pool.label}", rng, highlight_kept=True)
-        return [rolled.fact, *_defend_or_land(draft, pool, rolled.event, {})]
-
-    def _skill_die(self, sheet: CrewSheet, skill: str) -> tuple[str, int]:
-        if not skill:
-            return "unskilled", DEFAULT_DIE
-        label = self.resolve_skill(sheet, skill)
-        return label, sheet.skills.get(label, DEFAULT_DIE)
-
-    def _pool(self, world: TwentyFourXXWorld, args: Roll) -> DicePool:
-        actor = world.require_actor(args.actor_id)
-        if not actor.alive:
-            raise Refusal(IS_DEAD.format(name=actor.name))
-        helping = None
-        if (helper := args.helped_by) is not None:
-            who = world.require_actor(helper.actor_id)
-            if who is actor:
-                raise Refusal(f"{actor.name} cannot help their own roll")
-            if not helper.risk:
-                helper = helper.model_copy(
-                    update={"risk": args.risk, "harm": args.harm, "deadly": args.deadly}
-                )
-            sheet = who.require_sheet()
-            skill = self._skill_die(sheet, helper.skill) if helper.skill else sheet.best_skill()
-            helping = Helping(who, helper, *skill)
-
-        label, die = self._skill_die(actor.require_sheet(), args.skill)
-        if args.hindered:
-            die = HINDERED_DIE
-
-        faces = [die]
-        if args.helped:
-            faces.append(HELP_DIE)
-        if helping is not None:
-            faces.append(HINDERED_DIE if helping.terms.hindered else helping.die)
-
-        pool = DicePool(roll=args, actor=actor, helping=helping, faces=tuple(faces), label=label)
-        world.check_defenses(
-            [
-                (who, stake.defend.item_id, stake.defend.hindrance)
-                for who, stake in pool.stakes()
-                if stake.defend is not None
-            ]
-        )
-        return pool
+        return [rolled.fact, *defend_or_land(draft, pool, rolled.event, {})]
 
     @tool
     def job(self, draft: TwentyFourXXGame, args: Job, rng: Random) -> list[Fact]:
@@ -771,7 +592,7 @@ class TwentyFourXXEngine(
         world = draft.world
         match args.verb:
             case "find":
-                return _find(world, args.where, rng)
+                return world.find_work(args.where, rng)
             case "take":
                 return world.take_job(args.terms)
             case "finish":
@@ -791,7 +612,7 @@ class TwentyFourXXEngine(
     @action
     def find_again(self, draft: TwentyFourXXGame, args: FindAgain, rng: Random) -> list[Fact]:
         spent = draft.world.player.spend(1, "another look for work")
-        return [*spent, *_find(draft.world, args.where, rng)]
+        return [*spent, *draft.world.find_work(args.where, rng)]
 
     def _finish(self, draft: TwentyFourXXGame, raises: Sequence[Raise], rng: Random) -> list[Fact]:
         world = draft.world
@@ -824,122 +645,11 @@ class TwentyFourXXEngine(
         return [*facts, Fact(trace=JOB_PAID)]
 
     def _raise(self, actor: Crewmate, skill: str) -> list[Fact]:
-        return actor.raise_skill(self._match_skill(actor.require_sheet().skills, skill) or skill)
+        matched = actor.require_sheet().match_skill(skill, self._rulebook_skills())
+        return actor.raise_skill(matched or skill)
 
-
-def items_from_kits(kits: Sequence[Kit]) -> dict[Slug, Gear]:
-    taken: list[str] = list(SHIP_IDS)
-    items: dict[Slug, Gear] = {}
-    for kit in kits:
-        key = slug(kit.name, taken)
-        taken.append(key)
-        items[key] = Gear(**kit.model_dump())
-    return items
-
-
-def _answered(step: CreationStep, given: str) -> str:
-    if not step.options:
-        return given
-    folded = given.casefold()
-    chosen = next(
-        (option.id for option in step.options if folded in (option.id, option.name.casefold())),
-        None,
-    )
-    if chosen is None and not step.allows_text:
-        names = " / ".join(option.name for option in step.options)
-        raise Refusal(f"{step.name}: {given!r} is not one of {names}")
-    return chosen or given
-
-
-def _find(world: TwentyFourXXWorld, where: str, rng: Random) -> list[Fact]:
-    world.require_no_job()
-    rolled = roll((6,), where, rng)
-    face = rolled.face
-    result = outcome_band(face, NO_WORK, ODD_WORK, TWO_JOBS_FOUND)
-    world.settle(f"{WORK_AT}{where}", result)
-    return [
-        rolled.fact,
-        world.player.card_fact(f"{where} — d6 → {result}", (rolled.event,)),
-        Fact(trace=outcome_band(face, NO_JOB, ODD_JOB, TWO_JOBS)),
-    ]
-
-
-def _defend_or_land(
-    draft: TwentyFourXXGame, pool: DicePool, rolled: DiceEvent, choices: dict[Slug, Slug | None]
-) -> list[Fact]:
-    band = roll_band(max(rolled.rolled))
-    for who, stake in pool.stakes():
-        hurt = (band == "disaster" and stake.harm) or (band != "success" and stake.deadly)
-        defences = draft.world.defences_for(who)
-        if not hurt or stake.defend is not None or who.id in choices or not defences:
-            continue
-        hit = (
-            f"{who.name} is maimed"
-            if band == "setback"
-            else f"{sentence(stake.risk)} hits {who.name}"
-        )
-        draft.pending = defence_decision(
-            f"{pool.roll.what}: {band}. {hit}.",
-            DefendHit(roll=pool.roll, rolled=rolled, choices=choices),
-            who.id,
-            defences,
-        )
-        return []
-    return _land(draft, pool, band, rolled, choices)
-
-
-def _land(
-    draft: TwentyFourXXGame,
-    pool: DicePool,
-    band: str,
-    rolled: DiceEvent,
-    choices: dict[Slug, Slug | None],
-) -> list[Fact]:
-    world = draft.world
-    world.work_rolled = True
-    line, staked = _roll_lines(pool)
-    facts = [pool.actor.fact(f"{staked} → {band}", card=f"{line} → {band}", dice=(rolled,))]
-    if band != "success":
-        # Hits land helper-first, the reverse of the actor-first claims checked before.
-        for who, stake in reversed(pool.stakes()):
-            defend = stake.defend
-            item_id = None if defend is None else defend.item_id
-            hindrance = "" if defend is None else defend.hindrance
-            if (chosen := choices.get(who.id)) is not None:
-                harmless = world.require_gear(who, chosen).harmless
-                item_id, hindrance = chosen, "" if harmless else spared(deadly=stake.deadly)
-            facts.extend(
-                world.take_hit(
-                    who,
-                    item_id,
-                    hindrance,
-                    risk=stake.risk,
-                    disaster=band == "disaster",
-                    deadly=stake.deadly,
-                    harm=stake.harm,
-                )
-            )
-    if any(chosen is not None for chosen in choices.values()):
-        facts.append(Fact(trace=GEAR_TOOK_THE_HIT))
-    return facts
-
-
-def _roll_lines(pool: DicePool) -> tuple[str, str]:
-    args = pool.roll
-    line = f"{args.what} — {pool.actor.card_line(sentence(pool.label))} d{pool.die}"
-    if args.helped:
-        line += f", helped ({args.helped})"
-    if (helping := pool.helping) is not None:
-        hindered = f", hindered ({helping.terms.hindered})" if helping.terms.hindered else ""
-        skill = sentence(helping.skill or "unskilled")
-        line += f", helped by {helping.who.name} ({skill} d{pool.faces[-1]}{hindered})"
-    if args.hindered:
-        line += f", hindered ({args.hindered})"
-    staked = line
-    if helping is not None and (terms := helping.terms).risk:
-        risked = risk_text(terms.risk, harm=terms.harm, deadly=terms.deadly)
-        staked += f", {helping.who.name} risking {risked}"
-    return line, f"{staked}, risking {risk_text(args.risk, harm=args.harm, deadly=args.deadly)}"
+    def _rulebook_skills(self) -> tuple[str, ...]:
+        return tuple(option.name for option in self.packs.srd().skills)
 
 
 def _item_lines(items: Mapping[Slug, Gear]) -> str:
@@ -947,3 +657,32 @@ def _item_lines(items: Mapping[Slug, Gear]) -> str:
         f"- {tag_of(item.name, key)}" + (f" — {detail}" if (detail := item.notes()) else "")
         for key, item in items.items()
     )
+
+
+def _numbered(picks: Picks, prefix: str) -> tuple[str, ...]:
+    numbered = (f"{prefix}-{number}" for number in range(1, len(picks) + 1))
+    return tuple(picks[key] for key in numbered if key in picks)
+
+
+def _chosen[T: DecisionOption](options: Sequence[T], answer: str, what: str) -> T:
+    folded = answer.casefold()
+    chosen = next(
+        (option for option in options if folded in (option.id, option.name.casefold())), None
+    )
+    if chosen is None:
+        names = " / ".join(option.name for option in options)
+        raise Refusal(f"{what}: {answer!r} is not one of {names}")
+    return chosen
+
+
+def _chosen_if_offered[T: DecisionOption](options: Sequence[T], answer: str, what: str) -> T | None:
+    if options:
+        return _chosen(options, answer, what)
+    if answer:
+        raise Refusal(f"{what}: none is on offer here, so leave it empty")
+    return None
+
+
+def _require_count(answers: Sequence[str], offered: int, what: str) -> None:
+    if len(answers) != offered or not all(answer.strip() for answer in answers):
+        raise Refusal(f"the origin takes exactly {offered} {what}, each one named")

@@ -6,11 +6,11 @@ from pydantic import ValidationError
 from support.game import character, initialized, loner_sheet, scenario
 from support.table import ENGINES_BUILT, LONER4E, NO_SHIPPED, SCENARIO_MODELS, SCENARIOS, updated
 
-from rulehall.core.io import Library
+from rulehall.core.stores import Library
 from rulehall.core.validation import EngineId, Refusal
-from rulehall.engines.entities import PLAYER_ID
 from rulehall.engines.loner4e.rules import LUCK_MAX
 from rulehall.engines.loner4e.world import Loner4eGame, Loner4eWorld
+from rulehall.engines.sheet import PLAYER_ID
 
 MARA = "mara"
 OTHER = EngineId("ruleless")
@@ -40,7 +40,7 @@ def test_a_doubled_key_in_a_character_file_is_refused(tmp_path: Path) -> None:
     _ = (folder / f"{filed.engine_id}.json").write_text(doubled, encoding="utf-8")
     with pytest.raises(Refusal, match="duplicate keys"):
         _ = Library(tmp_path, tmp_path, NO_SHIPPED).read_character(
-            filed.id, filed.engine_id, ENGINES_BUILT[LONER4E].character
+            filed.id, filed.engine_id, ENGINES_BUILT[LONER4E].character_model
         )
 
 
@@ -55,7 +55,7 @@ def test_the_scene_world_rejects_state_it_cannot_stand_on() -> None:
         _ = updated(world, player=world.player.model_copy(update={"known": False}))
 
     with pytest.raises(ValidationError, match="scene names"):
-        _ = _with_scene(world, here=["ghost"])
+        _ = _with_scene(world, here_ids=["ghost"])
 
 
 def _with_scene(world: Loner4eWorld, **changes: object) -> Loner4eWorld:
@@ -66,30 +66,30 @@ def test_the_party_rules_refuse_the_dead_and_the_doubled() -> None:
     _, state = initialized()
     dead = state.draft()
     dead.world.require(MARA).alive = False
-    dead.world.party.append(MARA)
+    dead.world.party_ids.append(MARA)
     with pytest.raises(Refusal, match="cannot travel with the player"):
-        _ = dead.commit()
+        _ = dead.validated()
 
     twice = state.draft()
-    twice.world.party.extend((MARA, MARA))
+    twice.world.party_ids.extend((MARA, MARA))
     with pytest.raises(Refusal, match="duplicate party"):
-        _ = twice.commit()
+        _ = twice.validated()
 
 
 def test_an_unknown_party_id_is_refused_by_the_base_validator() -> None:
     _, state = initialized()
     draft = state.draft()
-    draft.world.party.append("ghost")
+    draft.world.party_ids.append("ghost")
     with pytest.raises(Refusal, match="travels with the player but is not known"):
-        _ = draft.commit()
+        _ = draft.validated()
 
 
 def test_a_committed_game_refuses_a_player_who_travels_with_themselves() -> None:
     _, state = initialized()
     draft = state.draft()
-    draft.world.party.append(draft.world.player.id)
+    draft.world.party_ids.append(draft.world.player.id)
     with pytest.raises(Refusal, match="cannot travel with themselves"):
-        _ = draft.commit()
+        _ = draft.validated()
 
 
 def test_entity_and_scene_ids_use_one_grammar() -> None:
@@ -97,7 +97,7 @@ def test_entity_and_scene_ids_use_one_grammar() -> None:
     with pytest.raises(ValidationError, match="pattern"):
         _ = updated(state.world.require(MARA), id="bell_tower")
     with pytest.raises(ValidationError, match="pattern"):
-        _ = updated(state.world.scene, here=["study_1"])
+        _ = updated(state.world.scene, here_ids=["study_1"])
 
 
 def test_a_game_is_refused_a_scenario_or_a_character_from_another_engine() -> None:
@@ -118,9 +118,9 @@ def test_a_character_file_belongs_to_its_folder_and_its_engine(tmp_path: Path) -
 
     library, engine = Library(tmp_path, tmp_path, NO_SHIPPED), ENGINES_BUILT[LONER4E]
     with pytest.raises(Refusal, match="plays 'ruleless', not 'loner4e'"):
-        _ = library.read_character("kael", engine.id, engine.character)
+        _ = library.read_character("kael", engine.id, engine.character_model)
     with pytest.raises(Refusal, match="'kael' is filed under 'mira'"):
-        _ = library.read_character("mira", engine.id, engine.character)
+        _ = library.read_character("mira", engine.id, engine.character_model)
 
 
 def _luck(state: Loner4eGame) -> int:
@@ -132,7 +132,7 @@ def test_a_rules_mutation_lands_on_the_commit_and_nowhere_else() -> None:
     draft = state.draft()
     loner_sheet(draft, PLAYER_ID).luck.current = 1
 
-    committed = draft.commit()
+    committed = draft.validated()
 
     assert _luck(committed) == 1
     assert _luck(state) == LUCK_MAX

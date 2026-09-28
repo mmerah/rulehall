@@ -82,7 +82,7 @@ def body(s: Session, device: Device) -> None:
     page.wait_for_timeout(600)
     s.check(not page.locator(".game-drawer").is_visible(), "drawer did not close")
     # A conflict exchange, then the composer banner.
-    submit(page, 'I fight.\n!ask question="Do I land it?" against_id=mara')
+    submit(page, 'I fight.\n!ask question="Do I land it?" opponent_id=mara')
     wait_idle(page)
     s.shot(page, "conflict")
     submit(page, "I break off.\n!withdraw")
@@ -106,7 +106,11 @@ def body(s: Session, device: Device) -> None:
     page.wait_for_timeout(500)
     s.shot(page, "restart")
     page.get_by_role("button", name="Keep playing").click()
-    for path, name in (("/settings", "settings"), ("/create", "create"), ("/scenario", "scenario")):
+    for path, name in (
+        ("/settings", "settings"),
+        ("/character", "create"),
+        ("/scenario", "scenario"),
+    ):
         page.goto(BASE + path)
         page.wait_for_timeout(1000)
         s.shot(page, name)

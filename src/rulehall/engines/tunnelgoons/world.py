@@ -1,8 +1,33 @@
+from typing import Self
+
+from pydantic import Field, model_validator
+
 from rulehall.core.facts import Fact
-from rulehall.core.model import Game
+from rulehall.core.game import Game
+from rulehall.core.validation import Frozen
 from rulehall.core.views import Rows
 from rulehall.engines.rooms.world import RoomWorld
-from rulehall.engines.tunnelgoons.sheet import Goon
+from rulehall.engines.tunnelgoons.sheet import ABILITY_POINTS, AbilityScores, Goon
+
+
+class AbilitiesProposal(Frozen):
+    abilities: AbilityScores = Field(
+        min_length=3,
+        max_length=3,
+        description=(
+            f"Points in brute, skulker and erudite. The three share exactly "
+            f"{ABILITY_POINTS} points."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _points_spent(self) -> Self:
+        total = sum(self.abilities.values())
+        if total != ABILITY_POINTS:
+            raise ValueError(
+                f"the three abilities must share exactly {ABILITY_POINTS} points, not {total}"
+            )
+        return self
 
 
 class TunnelGoonsWorld(RoomWorld[Goon]):

@@ -1,14 +1,13 @@
 from collections.abc import Collection
 from random import Random
-from typing import Annotated, Literal, Self, cast
+from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
 from rulehall.core.facts import Fact
-from rulehall.core.model import Game
+from rulehall.core.game import Game
 from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, refuse
 from rulehall.core.views import Rows
-from rulehall.engines.entities import OpeningProposal
 from rulehall.engines.pokemon.battle.models import (
     LEVEL_MAX,
     MOVES_MAX,
@@ -19,13 +18,11 @@ from rulehall.engines.pokemon.battle.models import (
     BattleResult,
     BattleSetup,
 )
-from rulehall.engines.pokemon.dex import dex
+from rulehall.engines.pokemon.dex import ITEMS, dex
 from rulehall.engines.pokemon.rules import (
     ACE_BELOW_TABLE,
     BELOW_ACE,
     BOSS_RISE,
-    ITEMS,
-    LEGENDARY_AT,
     LEVEL_FLOOR,
     PRIZE_PER_LEVEL,
     RANK_MAX,
@@ -43,12 +40,9 @@ from rulehall.engines.pokemon.rules import (
     item_of,
     rescaled,
 )
+from rulehall.engines.pokemon.scheme import SCHEME_STAGES, EvilTeam, Operation, Scheme, held_line
 from rulehall.engines.pokemon.sheet import Evolving, Learning, Mon, Trainer, built_team
 from rulehall.engines.rooms.world import MapProposal, RegionProposal, RoomWorld
-
-type Consequence = Literal["shut_way", "close_center"]
-type Owed = Literal["operation", "lair"]
-type Stage = Annotated[str, Field(min_length=1)]
 
 WILD = "The wild table of each new place, keyed by place id. A town or a building has no table."
 RIVAL_WAITS = (
@@ -66,13 +60,11 @@ BOSS_ID = (
     "Exact id of the evil team's boss, a person of this map. Write it only when the request asks "
     "for the lair; else null."
 )
-SCHEME_STAGES = 4
 SCHEME_TRIGGER = (
     "It succeeds when the player earns a badge or loses to its leader; it is foiled when the "
     "player beats its leader."
 )
 RUMOUR = "RUMOUR, to tell: the team is at {place}: {goal}"
-HELD_WAY = "Grunts hold the way from {start} to {end}"
 CENTER_SPARED = "The team tried to close a Pokemon Center"
 CENTER_CLOSED = "{center} has closed"
 FOILED = "The team's operation at {place} is foiled."
@@ -93,126 +85,19 @@ class WildSlot(Frozen):
         return self
 
 
-class Scheme(Frozen):
-    name: str = Field(min_length=1, description="The evil team's name, such as 'Team Tide'.")
-    goal: str = Field(min_length=1, description="What the team's boss wants in the end.")
-    stages: tuple[Stage, Stage, Stage, Stage] = Field(
-        description="What the player learns of the scheme as each of the four operations ends, "
-        "foiled or not, in order."
-    )
-    legendary_id: Slug | None = Field(
-        default=None,
-        description="A legendary species id from SPECIES that the team is after: it joins the "
-        "boss's team when three operations succeed. Null for none.",
-    )
-
-
-class Operation(Frozen):
-    place_id: Slug = Field(
-        description="Exact id of the place of this map where the team works. The map's start "
-        "reaches it without a lock."
-    )
-    leader_id: Slug = Field(
-        description="Exact id of its leader: a person of this map with a roster and no badge, or "
-        "an earlier leader that THE SCHEME names."
-    )
-    goal: str = Field(min_length=1, description="What the team does there.")
-    consequence: Consequence = Field(
-        description="What changes when it succeeds. shut_way: grunts hold the way from `place_id` "
-        "to `shut_to_id` for good. close_center: a Pokemon Center closes."
-    )
-    shut_to_id: Slug | None = Field(
-        default=None,
-        description="shut_way only: exact id of a place that an unlocked way from `place_id` "
-        "leads to. Every place of the map stays reachable from its start without that way. Null "
-        "for close_center.",
-    )
-
-
 class PokemonMap(MapProposal[Trainer]):
     wild: dict[Slug, tuple[WildSlot, ...]] = Field(default_factory=dict, description=WILD)
     center_place_ids: tuple[Slug, ...] = Field(default=(), description=CENTER_PLACE_IDS)
 
 
-class PokemonOpening(PokemonMap):
+class PokemonOpeningProposal(PokemonMap):
     scheme: Scheme = Field(description="The evil team's scheme, written once for the journey.")
     operation: Operation = Field(description="The evil team's first operation, in this map.")
 
 
-class PokemonRegion(PokemonMap, RegionProposal[Trainer]):
+class PokemonRegionProposal(PokemonMap, RegionProposal[Trainer]):
     operation: Operation | None = Field(default=None, description=OPERATION)
     boss_id: Slug | None = Field(default=None, description=BOSS_ID)
-
-
-class EvilTeam(Mutable):
-    scheme: Scheme | None = None
-    operation: Operation | None = None
-    foiled: int = Field(default=0, ge=0)
-    succeeded: int = Field(default=0, ge=0)
-    leader_ids: list[Slug] = Field(default_factory=list)
-    held_ways: list[tuple[Slug, Slug]] = Field(default_factory=list)
-    boss_id: Slug | None = None
-    boss_beaten: bool = False
-
-    @model_validator(mode="after")
-    def _a_consistent_scheme(self) -> Self:
-        if self.scheme is None and (self.operation or self.boss_id or self.held_ways):
-            raise ValueError("an operation, a boss or a held way needs a scheme")
-        if self.stage() > SCHEME_STAGES:
-            raise ValueError(f"the scheme has {SCHEME_STAGES} stages, not {self.stage()}")
-        operation = self.operation
-        if operation is not None and operation.leader_id not in self.leader_ids:
-            raise ValueError(f"the operation's leader is no leader: {operation.leader_id!r}")
-        return self
-
-    def require_scheme(self) -> Scheme:
-        assert self.scheme is not None
-        return self.scheme
-
-    def stage(self) -> int:
-        return self.foiled + self.succeeded
-
-    def owed(self) -> Owed | None:
-        if self.stage() < SCHEME_STAGES and self.operation is None:
-            return "operation"
-        if self.stage() == SCHEME_STAGES and self.boss_id is None:
-            return "lair"
-        return None
-
-    def key_ids(self) -> tuple[Slug, ...]:
-        return (*self.leader_ids, *filter(None, (self.boss_id,)))
-
-    def holds_way(self, start_id: Slug, end_id: Slug) -> bool:
-        return (start_id, end_id) in self.held_ways or (end_id, start_id) in self.held_ways
-
-    def joining_legendary_id(self) -> Slug | None:
-        if self.succeeded < LEGENDARY_AT:
-            return None
-        return self.require_scheme().legendary_id
-
-    def open_operation(self, operation: Operation) -> None:
-        self.operation = operation
-        if operation.leader_id not in self.leader_ids:
-            self.leader_ids.append(operation.leader_id)
-
-    def record_outcome(self, *, foiled: bool) -> Stage:
-        self.operation = None
-        if foiled:
-            self.foiled += 1
-        else:
-            self.succeeded += 1
-        return self.require_scheme().stages[self.stage() - 1]
-
-    def boss_roster(
-        self, boss: Trainer, table_level: int, species_pool: Collection[Slug]
-    ) -> tuple[RosterSlot, ...]:
-        ace_level = min(table_level + BOSS_RISE * self.succeeded, LEVEL_MAX)
-        roster = rescaled(boss.roster, ace_level, species_pool)
-        legendary_id = self.joining_legendary_id()
-        if legendary_id is None:
-            return roster
-        kept = sorted(roster, key=lambda slot: slot.level)[1 - TEAM_MAX :]
-        return (*kept, RosterSlot(species_id=legendary_id, level=ace_level))
 
 
 class RivalRecord(Mutable):
@@ -231,19 +116,19 @@ class RivalRecord(Mutable):
         badges: int,
         ace_level: int,
         seen_species_ids: Collection[Slug],
-        species_pool: Collection[Slug],
+        species_ids: Collection[Slug],
     ) -> tuple[RosterSlot, ...]:
         assert self.starter_id is not None
         if not badges:
             return (RosterSlot(species_id=self.starter_id, level=STARTER_LEVEL),)
-        ace_id = evolved(self.starter_id, ace_level, species_pool)
+        ace_id = evolved(self.starter_id, ace_level, species_ids)
         species = dex().species
         strongest = sorted(
             seen_species_ids,
             key=lambda species_id: (-sum(species[species_id].base_stats), species_id),
         )
         others = dict.fromkeys(
-            evolved(species_id, ace_level - BELOW_ACE, species_pool) for species_id in strongest
+            evolved(species_id, ace_level - BELOW_ACE, species_ids) for species_id in strongest
         )
         others.pop(ace_id, None)
         return (
@@ -257,6 +142,7 @@ class RivalRecord(Mutable):
 
 class PokemonWorld(RoomWorld[Trainer]):
     meanwhile_every = 4
+    species_ids: tuple[Slug, ...] = Field(min_length=1)
     wild: dict[Slug, tuple[WildSlot, ...]] = Field(default_factory=dict)
     learning: list[Learning] = Field(default_factory=list)
     evolving: list[Evolving] = Field(default_factory=list)
@@ -273,6 +159,9 @@ class PokemonWorld(RoomWorld[Trainer]):
             raise ValueError("the player's team is `sheet.team`; `roster` is for npc trainers")
         if strays := unknown_wild_places(self.wild, self.places):
             raise ValueError(f"wild tables for places that do not exist: {strays}")
+        wild_species_ids = {slot.species_id for rows in self.wild.values() for slot in rows}
+        if strays := sorted(wild_species_ids - set(self.species_ids)):
+            raise ValueError(f"wild species outside `species_ids`: {strays}")
         if strays := sorted(set(self.center_place_ids) - set(self.places)):
             raise ValueError(f"Pokemon Centers that are no place: {strays}")
         if len([npc for npc in self.npcs.values() if npc.rival]) > 1:
@@ -282,7 +171,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         operation = self.evil_team.operation
         if operation is not None and operation.place_id not in self.places:
             raise ValueError(f"the operation is at no place: {operation.place_id!r}")
-        if strays := [pair for pair in self.evil_team.held_ways if self.way(*pair) is None]:
+        if strays := [pair for pair in self.evil_team.held_ways if self.find_way(*pair) is None]:
             raise ValueError(f"held ways that are no way: {strays}")
         return self
 
@@ -290,13 +179,13 @@ class PokemonWorld(RoomWorld[Trainer]):
         self._refuse_key(entity_id)
         return super().kill(entity_id)
 
-    def join_party(self, entity_id: Slug) -> list[Fact]:
-        self._refuse_key(entity_id)
-        return super().join_party(entity_id)
+    def join(self, person: Trainer) -> list[Fact]:
+        self._refuse_key(person.id)
+        return super().join(person)
 
     def unlock_way(self, to_id: Slug) -> list[Fact]:
         if self.evil_team.holds_way(self.current.id, to_id):
-            raise Refusal(f"Grunts of {self.evil_team.require_scheme().name} hold this way")
+            raise Refusal(f"the grunts of {self.evil_team.require_scheme().name} hold this way")
         return super().unlock_way(to_id)
 
     def open_operation(self, operation: Operation) -> None:
@@ -324,7 +213,7 @@ class PokemonWorld(RoomWorld[Trainer]):
             lines += [
                 f"open operation at {place.tag}, led by {self.npcs[operation.leader_id].tag}: "
                 f"{operation.goal}",
-                f"if it succeeds: {self._stake(operation)}. {SCHEME_TRIGGER}",
+                f"if it succeeds: {operation.stake(self)}. {SCHEME_TRIGGER}",
             ]
             if not worldsmith and self.current.id in self.center_place_ids:
                 lines.append(RUMOUR.format(place=place.name, goal=operation.goal))
@@ -346,7 +235,7 @@ class PokemonWorld(RoomWorld[Trainer]):
             if self.places[place_id].known
         )
 
-    def rival_trainer(self) -> Trainer | None:
+    def find_rival(self) -> Trainer | None:
         return next((npc for npc in self.npcs.values() if npc.rival), None)
 
     def sheet_rows(self) -> Rows:
@@ -354,24 +243,24 @@ class PokemonWorld(RoomWorld[Trainer]):
         ledger = self.rival_record.ledger
         return (*rows, ("Rival", "; ".join(ledger))) if ledger else rows
 
-    def absorb(self, proposal: OpeningProposal) -> None:
-        # Safe: the engine writes only this proposal type.
-        pokemon_map = cast(PokemonOpening | PokemonRegion, proposal)
-        self.wild.update(pokemon_map.wild)
-        self.center_place_ids.extend(pokemon_map.center_place_ids)
-        if isinstance(pokemon_map, PokemonOpening):
-            self.evil_team.scheme = pokemon_map.scheme
-        elif pokemon_map.boss_id is not None:
-            self.evil_team.boss_id = pokemon_map.boss_id
-        if pokemon_map.operation is not None:
-            self.open_operation(pokemon_map.operation)
+    def apply_proposal_extras(
+        self, proposal: PokemonOpeningProposal | PokemonRegionProposal
+    ) -> None:
+        self.wild.update(proposal.wild)
+        self.center_place_ids.extend(proposal.center_place_ids)
+        if isinstance(proposal, PokemonOpeningProposal):
+            self.evil_team.scheme = proposal.scheme
+        elif proposal.boss_id is not None:
+            self.evil_team.boss_id = proposal.boss_id
+        if proposal.operation is not None:
+            self.open_operation(proposal.operation)
 
     def setup_battle(self, trainer: Trainer | None, foes: tuple[Battler, ...], rng: Random) -> None:
         player = self.player
         sheet = player.require_sheet()
         able = sheet.able()
         if not able:
-            raise Refusal("No team Pokemon can fight. Heal the team first.")
+            raise Refusal("no team Pokemon can fight: heal the team first")
         here = self.current.id
         first_here = here not in self.encountered_place_ids
         catchable = trainer is None and (first_here or sheet.challenge != "nuzlocke")
@@ -392,7 +281,7 @@ class PokemonWorld(RoomWorld[Trainer]):
             if trainer is None
             else "model"
             if trainer.is_key(self.evil_team.key_ids())
-            else "greedy",
+            else "scripted",
             foe_style="" if trainer is None else trainer.style,
             foe_id=None if trainer is None else trainer.id,
             player_name=player.name,
@@ -419,7 +308,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         sheet = self.player.require_sheet()
         if sheet.challenge == "nuzlocke":
             if species_id is not None:
-                raise Refusal("In a Nuzlocke the wild table decides: leave species_id null")
+                raise Refusal("in a Nuzlocke the wild table decides: leave species_id null")
             if here.id in self.encountered_place_ids:
                 return rows
             return (
@@ -442,32 +331,30 @@ class PokemonWorld(RoomWorld[Trainer]):
 
     def heal_team(self) -> list[Fact]:
         if self.current.id not in self.center_place_ids:
-            raise Refusal("No open Pokemon Center here")
+            raise Refusal("no open Pokemon Center here")
         self.player.require_sheet().heal_team()
         return [self.player.card_fact("Team healed")]
 
-    def trainer_team(
-        self, trainer: Trainer, species_pool: Collection[Slug], rng: Random
-    ) -> list[Mon]:
+    def trainer_team(self, trainer: Trainer, rng: Random) -> list[Mon]:
         sheet = self.player.require_sheet()
         ace_level = sheet.table_level() - ACE_BELOW_TABLE
         if trainer.rival:
             seen_species_ids = {
                 slot.species_id
-                for place_id in set(self.visits)
+                for place_id in set(self.visited_place_ids)
                 for slot in self.wild.get(place_id, ())
             }
             return built_team(
                 self.rival_record.roster(
-                    len(sheet.badges), ace_level, seen_species_ids, species_pool
+                    len(sheet.badges), ace_level, seen_species_ids, self.species_ids
                 )
             )
         if trainer.id == self.evil_team.boss_id:
             return built_team(
-                self.evil_team.boss_roster(trainer, sheet.table_level(), species_pool)
+                self.evil_team.boss_roster(trainer, sheet.table_level(), self.species_ids)
             )
         if trainer.id in self.evil_team.leader_ids:
-            return built_team(rescaled(trainer.roster, ace_level, species_pool))
+            return built_team(rescaled(trainer.roster, ace_level, self.species_ids))
         if trainer.badge:
             return built_team(trainer.roster)
         if not trainer.team:
@@ -478,7 +365,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         return trainer.team
 
     def place_rival(self) -> tuple[list[Fact], list[str]]:
-        rival = self.rival_trainer()
+        rival = self.find_rival()
         here = self.current.id
         operation = self.evil_team.operation
         operation_here = operation is not None and operation.place_id == here
@@ -494,9 +381,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         self.rival_record.due = False
         return [rival.card_fact(f"{rival.name} is here")], [RIVAL_WAITS.format(name=rival.name)]
 
-    def settle_battle(
-        self, result: BattleResult, species_pool: Collection[Slug]
-    ) -> tuple[list[Fact], list[str]]:
+    def settle_battle(self, result: BattleResult) -> tuple[list[Fact], list[str]]:
         battle = self.battle
         assert battle is not None
         setup = battle.setup
@@ -527,14 +412,14 @@ class PokemonWorld(RoomWorld[Trainer]):
                 facts.append(player.card_fact(f"{mon.name} grows to level {reached[-1]}"))
             if clipped:
                 facts.append(player.card_fact(f"{mon.name} is at the level cap (L{cap})"))
-            facts += self.grow(mon, reached, species_pool)
+            facts += self.grow(mon, reached)
         notes: list[str] = []
         if setup.foe_id is not None:
             trainer = self.npcs[setup.foe_id]
             badges = len(sheet.badges)
             facts += self._settle_trainer(trainer, setup, result)
             moved, notes = self._move_scheme(
-                trainer, setup, result, species_pool, badged=len(sheet.badges) > badges
+                trainer, setup, result, badged=len(sheet.badges) > badges
             )
             facts += moved
         if sheet.challenge == "nuzlocke":
@@ -600,7 +485,7 @@ class PokemonWorld(RoomWorld[Trainer]):
 
     def learn_move(self, mon_id: Slug, move_id: Slug, forget_id: Slug | None) -> list[Fact]:
         if self.learning[:1] != [Learning(mon_id=mon_id, move_id=move_id)]:
-            raise Refusal("No new move waits on this answer.")
+            raise Refusal("no new move waits on this answer")
         mon = self.player.require_sheet().require_mon(mon_id)
         name = mon.name
         move = dex().moves[move_id].name
@@ -612,21 +497,21 @@ class PokemonWorld(RoomWorld[Trainer]):
         _ = self.learning.pop(0)
         return [self.player.card_fact(line)]
 
-    def evolve(self, mon_id: Slug, species_id: Slug, species_pool: Collection[Slug]) -> list[Fact]:
+    def evolve(self, mon_id: Slug, species_id: Slug) -> list[Fact]:
         if not any(
             each.mon_id == mon_id and species_id in each.species_ids for each in self.evolving[:1]
         ):
-            raise Refusal("No evolution waits on this answer.")
+            raise Refusal("no evolution waits on this answer")
         mon = self.player.require_sheet().require_mon(mon_id)
         name = mon.name
         mon.evolve(species_id)
         _ = self.evolving.pop(0)
         facts = [self.player.card_fact(f"{name} evolved into {mon.species_name}")]
-        return facts + self.evolve_chain(mon, species_pool)
+        return facts + self.evolve_chain(mon)
 
     def raise_skill(self, skill: Skill) -> list[Fact]:
         if not self.ranks_due:
-            raise Refusal("No skill rank waits.")
+            raise Refusal("no skill rank waits")
         sheet = self.player.require_sheet()
         rank = sheet.skills.get(skill, 0)
         if rank >= RANK_MAX:
@@ -635,13 +520,13 @@ class PokemonWorld(RoomWorld[Trainer]):
         self.ranks_due -= 1
         return [self.player.card_fact(f"{skill.title()} rises to rank {rank + 1}")]
 
-    def use_item(self, item_id: ItemId, mon_id: Slug, species_pool: Collection[Slug]) -> list[Fact]:
+    def use_item(self, item_id: ItemId, mon_id: Slug) -> list[Fact]:
         sheet = self.player.require_sheet()
         mon = sheet.require_mon(mon_id)
         item = ITEMS[item_id]
         if item.kind in ("ball", "held", "tm"):
             raise Refusal(f"{item.name} is given or taught on the Team page, not used")
-        refuse(mon.item_refusal(item_id, species_pool, sheet.level_cap()))
+        refuse(mon.item_refusal(item_id, self.species_ids, sheet.level_cap()))
         name = mon.name
         level = mon.level
         sheet.take(item_id)
@@ -659,26 +544,26 @@ class PokemonWorld(RoomWorld[Trainer]):
                 _ = mon.gain((mon.level + 1) ** 3 - mon.exp, sheet.level_cap())
                 line = f"{item.name} on {name}: level {mon.level}"
             case "evolution":
-                evolved_id = mon.evolution_by_item(species_pool, item.name)
+                evolved_id = mon.evolution_by_item(self.species_ids, item.name)
                 assert evolved_id is not None
                 mon.evolve(evolved_id)
                 line = f"{item.name} on {name}: it evolved into {mon.species_name}"
         facts = [self.player.card_fact(line)]
-        return facts + self.grow(mon, list(range(level + 1, mon.level + 1)), species_pool)
+        return facts + self.grow(mon, list(range(level + 1, mon.level + 1)))
 
-    def grow(self, mon: Mon, reached: list[int], species_pool: Collection[Slug]) -> list[Fact]:
+    def grow(self, mon: Mon, reached: list[int]) -> list[Fact]:
         facts: list[Fact] = []
         for level in reached:
             for move_id in mon.moves_at(level):
                 if not mon.knows(move_id):
                     facts += self._learn_or_ask(mon, move_id)
         if reached and mon.item_id != "everstone":
-            facts += self.evolve_chain(mon, species_pool)
+            facts += self.evolve_chain(mon)
         return facts
 
-    def evolve_chain(self, mon: Mon, species_pool: Collection[Slug]) -> list[Fact]:
+    def evolve_chain(self, mon: Mon) -> list[Fact]:
         facts: list[Fact] = []
-        while len(found := mon.evolutions(species_pool)) == 1:
+        while len(found := mon.evolutions(self.species_ids)) == 1:
             name = mon.name
             mon.evolve(found[0])
             facts.append(self.player.card_fact(f"{name} evolved into {mon.species_name}"))
@@ -694,7 +579,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         facts: list[Fact] = []
         won = result.outcome == "won"
         key = trainer.is_key(self.evil_team.key_ids())
-        trainer.last_battle_visit = len(self.visits)
+        trainer.last_battle_visit = len(self.visited_place_ids)
         if won and key:
             for mon_id in result.on_field_mon_ids:
                 sheet.require_mon(mon_id).wins.append(trainer.name)
@@ -723,7 +608,6 @@ class PokemonWorld(RoomWorld[Trainer]):
         trainer: Trainer,
         setup: BattleSetup,
         result: BattleResult,
-        species_pool: Collection[Slug],
         *,
         badged: bool,
     ) -> tuple[list[Fact], list[str]]:
@@ -732,7 +616,7 @@ class PokemonWorld(RoomWorld[Trainer]):
             return [], []
         leads = trainer.id == operation.leader_id
         if leads and result.outcome == "won":
-            self._learn_counter(trainer, max(foe.level for foe in setup.foes), species_pool)
+            self._learn_counter(trainer, max(foe.level for foe in setup.foes))
             return self._end_operation(operation, foiled=True)
         if badged or (leads and result.outcome == "lost"):
             return self._end_operation(operation, foiled=False)
@@ -750,45 +634,37 @@ class PokemonWorld(RoomWorld[Trainer]):
 
     def _hold_way(self, operation: Operation) -> str:
         start_id, to_id = operation.place_id, operation.shut_to_id
-        way = None if to_id is None else self.way(start_id, to_id)
+        way = None if to_id is None else self.find_way(start_id, to_id)
         if to_id is None or way is None or way.locked:
             return ""
-        here = self.current.id
+        here_id = self.current.id
         held_ways = self.evil_team.held_ways
         if self.reachable(
-            here, past_locks=True, cut=[*held_ways, (start_id, to_id)]
-        ) != self.reachable(here, past_locks=True, cut=held_ways):
+            here_id, past_locks=True, cut=[*held_ways, (start_id, to_id)]
+        ) != self.reachable(here_id, past_locks=True, cut=held_ways):
             return ""
         way.locked = True
-        if (back := self.way(to_id, start_id)) is not None:
+        if (back := self.find_way(to_id, start_id)) is not None:
             back.locked = True
         held_ways.append((start_id, to_id))
-        return self._held_line(start_id, to_id)
+        return held_line(self, start_id, to_id)
 
     def _close_center(self) -> str:
         if len(self.center_place_ids) < 2:
             return CENTER_SPARED
         visited = (
-            place_id for place_id in reversed(self.visits) if place_id in self.center_place_ids
+            place_id
+            for place_id in reversed(self.visited_place_ids)
+            if place_id in self.center_place_ids
         )
         closed = next(visited, self.center_place_ids[0])
         self.center_place_ids.remove(closed)
         return CENTER_CLOSED.format(center=self.places[closed].name)
 
-    def _stake(self, operation: Operation) -> str:
-        if operation.shut_to_id is None:
-            return "a Pokemon Center closes"
-        return self._held_line(operation.place_id, operation.shut_to_id)
-
-    def _held_line(self, start_id: Slug, end_id: Slug) -> str:
-        return HELD_WAY.format(start=self.places[start_id].name, end=self.places[end_id].name)
-
-    def _learn_counter(
-        self, leader: Trainer, fought_level: int, species_pool: Collection[Slug]
-    ) -> None:
+    def _learn_counter(self, leader: Trainer, fought_level: int) -> None:
         ace = max(slot.level for slot in leader.roster)
         lead = self.player.require_sheet().team[0]
-        species_id = counter_pick(species_pool, lead.species.types, fought_level)
+        species_id = counter_pick(self.species_ids, lead.species.types, fought_level)
         roster = sorted(leader.roster, key=lambda slot: slot.level)
         if any(slot.species_id == species_id for slot in roster):
             return
@@ -802,7 +678,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         here = self.current
         self.rival_record.record_battle(here.name, badges, self.player.name if won else rival.name)
         away = [
-            *(place_id for place_id in reversed(self.visits) if place_id != here.id),
+            *(place_id for place_id in reversed(self.visited_place_ids) if place_id != here.id),
             *(way.to_id for way in self.ways.get(here.id, ()) if not way.locked),
         ]
         if not away:
@@ -811,7 +687,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         return [rival.card_fact(f"{rival.name} leaves")]
 
     def _refuse_key(self, entity_id: Slug) -> None:
-        person = self.person_of(entity_id)
+        person = self.find_person(entity_id)
         if person is not None and person.is_key(self.evil_team.key_ids()):
             raise Refusal(f"{person.name} has a part to play; they do not die or join you")
 

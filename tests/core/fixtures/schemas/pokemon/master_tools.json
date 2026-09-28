@@ -35,7 +35,7 @@
   },
   {
     "name": "direct",
-    "description": "Call this last, once per turn. It ends the turn and gives notes to the narrator. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Apply world changes through the other tools before calling direct.",
+    "description": "End the turn and give notes to the narrator. Call this last, once per turn. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Apply world changes through the other tools before calling direct.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -77,14 +77,14 @@
           "description": "Exact id of an item here or carried.",
           "type": "string"
         },
-        "to_id": {
+        "holder_id": {
           "description": "Exact id of the player, an npc here, or this place.",
           "type": "string"
         }
       },
       "required": [
         "item_id",
-        "to_id"
+        "holder_id"
       ],
       "type": "object"
     }
@@ -133,7 +133,7 @@
   },
   {
     "name": "meanwhile",
-    "description": "Time passes where the player is not. Move a dweller, move a loose item, and shut a way the player knows. Use any combination in one call. Call this only while ELSEWHERE is shown.",
+    "description": "Pass time where the player is not: move a dweller, move a loose item, and shut a way the player knows. Use any combination in one call. Call this only while ELSEWHERE is shown.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -208,7 +208,7 @@
   },
   {
     "name": "check",
-    "description": "Call this when the player tries something hard outside a battle. The engine rolls d20, adds twice the skill rank and 2 for a helping Pokemon, and compares the total with the difficulty. You decide what a failure costs.",
+    "description": "Roll a check when the player tries something hard outside a battle. The engine rolls d20, adds twice the skill rank and 2 for a helping Pokemon, and compares the total with the difficulty. You decide what a failure costs.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -237,7 +237,7 @@
           ],
           "type": "string"
         },
-        "helper_id": {
+        "helper_mon_id": {
           "type": [
             "string",
             "null"
@@ -270,7 +270,7 @@
   },
   {
     "name": "nickname",
-    "description": "The player names a Pokemon of the team or the box.",
+    "description": "Name a Pokemon of the team or the box as the player chose.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -292,7 +292,7 @@
   },
   {
     "name": "buy",
-    "description": "The player buys items and pays the price.",
+    "description": "Buy items for the player at their price.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -393,7 +393,7 @@
   },
   {
     "name": "gain_item",
-    "description": "The player finds or gets items for free.",
+    "description": "Give the player items they find or get for free.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -494,7 +494,7 @@
   },
   {
     "name": "gain_money",
-    "description": "The player gets money, such as a reward.",
+    "description": "Give the player money, such as a reward.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -512,7 +512,7 @@
   },
   {
     "name": "use_item",
-    "description": "The player uses a potion, a super potion, a full heal, a revive, a Rare Candy, a stone, another evolution item or a Linking Cord on a team Pokemon, outside a battle.",
+    "description": "Use a potion, a super potion, a full heal, a revive, a Rare Candy, a stone, another evolution item or a Linking Cord on a team Pokemon, outside a battle.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -556,7 +556,7 @@
   },
   {
     "name": "start_battle",
-    "description": "Call this when a trainer here and the player agree to battle. The battle screen plays the fight, and the engine applies the result. Call it last: it ends your turn. A trainer battles once per visit. A gym leader never battles again once beaten. The rival battles once before the first badge, then once after each badge.",
+    "description": "Start a battle when a trainer here and the player agree to one. The battle screen plays the fight, and the engine applies the result. Call it last: it ends your turn. A trainer battles once per visit. A gym leader never battles again once beaten. The rival battles once before the first badge, then once after each badge.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -573,7 +573,7 @@
   },
   {
     "name": "start_wild_battle",
-    "description": "Call this when the player meets a wild Pokemon at this place, such as in tall grass. Set `species_id` to one from WILD HERE, or leave it null to roll on the table; in a Nuzlocke, always leave it null. Call it last: it ends your turn.",
+    "description": "Start a battle when the player meets a wild Pokemon here, such as in tall grass. Set `species_id` to one from WILD HERE, or leave it null to roll on the table; in a Nuzlocke, always leave it null. Call it last: it ends your turn.",
     "parameters": {
       "additionalProperties": false,
       "properties": {

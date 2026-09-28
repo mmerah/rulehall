@@ -4,13 +4,8 @@ from typing import Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.play import (
-    Line,
-    Narration,
-    PendingDecision,
-    PendingOption,
-    SpokenLine,
-)
+from rulehall.core.decisions import ActionOption, Decision
+from rulehall.core.log import Line, Narration, SpokenLine
 from rulehall.core.validation import Frozen, Refusal, Slug, check_unique
 
 SCENE_TAB = "Scene"
@@ -47,11 +42,11 @@ class PanelRow(Frozen):
     alive: bool = True
     tags: tuple[Tag, ...] = ()
     meters: tuple[Meter, ...] = ()
-    options: tuple[PendingOption, ...] = ()
+    options: tuple[ActionOption, ...] = ()
     detail: tuple["Panel", ...] = ()
 
 
-class Choice(Frozen):
+class BattleChoice(Frozen):
     command: str
     name: str
     brief: str = ""
@@ -70,7 +65,7 @@ class Subject(Frozen):
     def headline(self) -> str:
         return headline_of(self.name, self.id, self.brief, alive=self.alive)
 
-    def row(self, options: tuple[PendingOption, ...] = ()) -> PanelRow:
+    def row(self, options: tuple[ActionOption, ...] = ()) -> PanelRow:
         return PanelRow(
             name=self.name, brief=self.brief, icon_id=self.id, alive=self.alive, options=options
         )
@@ -79,7 +74,6 @@ class Subject(Frozen):
 class Panel(Frozen):
     title: str
     rows: tuple[PanelRow, ...]
-    portrait: bool = False
     tab: str = SCENE_TAB
 
 
@@ -133,7 +127,7 @@ class NarratorView(Frozen):
 
     def check_narration(self, narration: Narration) -> None:
         if not narration.lines:
-            raise Refusal("Write the narration lines. An empty answer shows the player nothing.")
+            raise Refusal("write the narration lines: an empty answer shows the player nothing")
 
 
 class MapNode(Frozen):
@@ -161,10 +155,10 @@ class PlayerView(Frozen):
     scene_title: str
     situation: str
     panels: tuple[Panel, ...]
-    decision: PendingDecision | None
+    decision: Decision | None
     ending: str | None
     map: MapView | None = None
-    composer_option: PendingOption | None = None
+    composer_option: ActionOption | None = None
     composer_only: bool = False
 
 
@@ -172,7 +166,7 @@ class Look(Frozen):
     palette: Mapping[str, str]
 
 
-def filled(*pairs: tuple[str, str]) -> Rows:
+def nonblank_rows(*pairs: tuple[str, str]) -> Rows:
     return tuple(pair for pair in pairs if pair[1])
 
 

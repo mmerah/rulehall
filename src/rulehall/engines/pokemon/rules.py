@@ -6,7 +6,16 @@ from pydantic import AfterValidator, Field, WithJsonSchema, model_validator
 
 from rulehall.core.validation import Frozen, Slug
 from rulehall.engines.pokemon.battle.models import LEVEL_MAX, MOVES_MAX, Battler
-from rulehall.engines.pokemon.dex import Move, Species, Stats, dex
+from rulehall.engines.pokemon.dex import (
+    ITEMS,
+    NATURES,
+    SIGNATURE_EXCLUDED,
+    BagItem,
+    Move,
+    Species,
+    Stats,
+    dex,
+)
 
 type Skill = Literal["athletics", "stealth", "perception", "nature", "lore", "charm"]
 type Challenge = Literal["relaxed", "hard", "nuzlocke"]
@@ -36,7 +45,6 @@ STARTER_LEVEL = 5
 START_MONEY = 3000
 TM_PREFIX = "tm-"
 TM_PRICE = 3000
-LINKING_CORD = "Linking Cord"
 IV_MAX = 31
 EV_STAT_MAX = 252
 EV_TOTAL_MAX = 510
@@ -57,20 +65,6 @@ LEGENDARY_AT = 3
 SPECIES_ID = "A species id from SPECIES."
 NICKNAME_MAX = 12
 NICKNAME_MARKS = " '-"
-SIGNATURE_EXCLUDED = frozenset(
-    (
-        *("hyperbeam", "gigaimpact", "lastresort", "focuspunch", "selfdestruct", "explosion"),
-        *("futuresight", "doomdesire", "dreameater", "hiddenpower", "round", "snore", "fling"),
-        *("beatup", "naturalgift", "belch", "synchronoise", "steelbeam", "mindblown"),
-        *("blastburn", "frenzyplant", "hydrocannon", "rockwrecker", "solarbeam", "solarblade"),
-        *("skyattack", "skullbash", "meteorbeam", "beakblast", "mistyexplosion", "memento"),
-        *("healingwish", "finalgambit", "fakeout", "firstimpression", "suckerpunch"),
-        *("poltergeist", "shelltrap", "spitup", "counter", "mirrorcoat", "metalburst"),
-        *("comeuppance", "bide", "weatherball", "terablast", "multiattack", "revelationdance"),
-        *("burnup", "doubleshock", "steelroller", "skydrop", "electroshot", "shadowforce"),
-        *("fly", "dig", "dive", "bounce", "phantomforce", "geomancy"),
-    )
-)
 SEED_LIMIT = 0x10000
 CATCH_BASE = 80
 CATCH_PER_LEVEL = 2
@@ -84,24 +78,8 @@ ATK_VS_DEF: dict[str, Callable[[int, int], bool]] = {
     "with an Atk stat equal to its Def stat": operator.eq,
 }
 TIMES = "×"  # noqa: RUF001
-NATURES = (
-    *("Hardy", "Lonely", "Brave", "Adamant", "Naughty"),
-    *("Bold", "Docile", "Relaxed", "Impish", "Lax"),
-    *("Timid", "Hasty", "Serious", "Jolly", "Naive"),
-    *("Modest", "Mild", "Quiet", "Bashful", "Rash"),
-    *("Calm", "Gentle", "Sassy", "Careful", "Quirky"),
-)
 # NATURES is in game order: index = 5 * raised + lowered, over Atk, Def, Spe, SpA, SpD.
 NATURE_STATS = (1, 2, 5, 3, 4)
-
-
-class Item(Frozen):
-    name: str
-    price: int
-    kind: Literal["ball", "potion", "full-heal", "revive", "candy", "held", "evolution", "tm"]
-    catch_bonus: int = 0
-    heal: int = 0
-    text: str = ""
 
 
 class RosterSlot(Frozen):
@@ -117,106 +95,6 @@ class RosterSlot(Frozen):
         return f"{dex().species[self.species_id].name} L{self.level}"
 
 
-ITEMS: dict[str, Item] = {
-    "poke-ball": Item(name="Poké Ball", price=200, kind="ball"),
-    "great-ball": Item(name="Great Ball", price=600, kind="ball", catch_bonus=10),
-    "ultra-ball": Item(name="Ultra Ball", price=800, kind="ball", catch_bonus=20),
-    "potion": Item(name="Potion", price=200, kind="potion", heal=20),
-    "super-potion": Item(name="Super Potion", price=700, kind="potion", heal=60),
-    "full-heal": Item(name="Full Heal", price=400, kind="full-heal"),
-    "revive": Item(name="Revive", price=2000, kind="revive"),
-    "rare-candy": Item(name="Rare Candy", price=0, kind="candy"),
-    "oran-berry": Item(name="Oran Berry", price=200, kind="held"),
-    "sitrus-berry": Item(name="Sitrus Berry", price=500, kind="held"),
-    "cheri-berry": Item(name="Cheri Berry", price=200, kind="held"),
-    "chesto-berry": Item(name="Chesto Berry", price=200, kind="held"),
-    "pecha-berry": Item(name="Pecha Berry", price=200, kind="held"),
-    "rawst-berry": Item(name="Rawst Berry", price=200, kind="held"),
-    "aspear-berry": Item(name="Aspear Berry", price=200, kind="held"),
-    "lum-berry": Item(name="Lum Berry", price=500, kind="held"),
-    "leftovers": Item(name="Leftovers", price=4000, kind="held"),
-    "everstone": Item(
-        name="Everstone", price=1000, kind="held", text="Holder does not evolve at a level-up."
-    ),
-    "silk-scarf": Item(name="Silk Scarf", price=1000, kind="held"),
-    "charcoal": Item(name="Charcoal", price=1000, kind="held"),
-    "mystic-water": Item(name="Mystic Water", price=1000, kind="held"),
-    "miracle-seed": Item(name="Miracle Seed", price=1000, kind="held"),
-    "magnet": Item(name="Magnet", price=1000, kind="held"),
-    "never-melt-ice": Item(name="Never-Melt Ice", price=1000, kind="held"),
-    "black-belt": Item(name="Black Belt", price=1000, kind="held"),
-    "poison-barb": Item(name="Poison Barb", price=1000, kind="held"),
-    "soft-sand": Item(name="Soft Sand", price=1000, kind="held"),
-    "sharp-beak": Item(name="Sharp Beak", price=1000, kind="held"),
-    "twisted-spoon": Item(name="Twisted Spoon", price=1000, kind="held"),
-    "silver-powder": Item(name="Silver Powder", price=1000, kind="held"),
-    "hard-stone": Item(name="Hard Stone", price=1000, kind="held"),
-    "spell-tag": Item(name="Spell Tag", price=1000, kind="held"),
-    "dragon-fang": Item(name="Dragon Fang", price=1000, kind="held"),
-    "black-glasses": Item(name="Black Glasses", price=1000, kind="held"),
-    "metal-coat": Item(name="Metal Coat", price=1000, kind="held"),
-    "fairy-feather": Item(name="Fairy Feather", price=1000, kind="held"),
-    "fire-stone": Item(name="Fire Stone", price=3000, kind="evolution"),
-    "water-stone": Item(name="Water Stone", price=3000, kind="evolution"),
-    "thunder-stone": Item(name="Thunder Stone", price=3000, kind="evolution"),
-    "leaf-stone": Item(name="Leaf Stone", price=3000, kind="evolution"),
-    "moon-stone": Item(name="Moon Stone", price=3000, kind="evolution"),
-    "linking-cord": Item(
-        name=LINKING_CORD,
-        price=3000,
-        kind="evolution",
-        text="Evolves a Pokemon that other games evolve by trade or a special event.",
-    ),
-    "sun-stone": Item(name="Sun Stone", price=3000, kind="evolution"),
-    "shiny-stone": Item(name="Shiny Stone", price=3000, kind="evolution"),
-    "dusk-stone": Item(name="Dusk Stone", price=3000, kind="evolution"),
-    "dawn-stone": Item(name="Dawn Stone", price=3000, kind="evolution"),
-    "ice-stone": Item(name="Ice Stone", price=3000, kind="evolution"),
-    "black-augurite": Item(
-        name="Black Augurite", price=3000, kind="evolution", text="Evolves Scyther into Kleavor."
-    ),
-    "tart-apple": Item(name="Tart Apple", price=3000, kind="evolution"),
-    "sweet-apple": Item(name="Sweet Apple", price=3000, kind="evolution"),
-    "cracked-pot": Item(name="Cracked Pot", price=3000, kind="evolution"),
-    "auspicious-armor": Item(name="Auspicious Armor", price=3000, kind="evolution"),
-    "malicious-armor": Item(name="Malicious Armor", price=3000, kind="evolution"),
-    "kings-rock": Item(name="King's Rock", price=3000, kind="held"),
-    "dragon-scale": Item(name="Dragon Scale", price=3000, kind="held"),
-    "up-grade": Item(name="Up-Grade", price=3000, kind="held"),
-    "dubious-disc": Item(name="Dubious Disc", price=3000, kind="held"),
-    "protector": Item(name="Protector", price=3000, kind="held"),
-    "electirizer": Item(name="Electirizer", price=3000, kind="held"),
-    "magmarizer": Item(name="Magmarizer", price=3000, kind="held"),
-    "reaper-cloth": Item(name="Reaper Cloth", price=3000, kind="held"),
-    "prism-scale": Item(name="Prism Scale", price=3000, kind="held"),
-    "deep-sea-tooth": Item(name="Deep Sea Tooth", price=3000, kind="held"),
-    "deep-sea-scale": Item(name="Deep Sea Scale", price=3000, kind="held"),
-    "sachet": Item(name="Sachet", price=3000, kind="held"),
-    "whipped-dream": Item(name="Whipped Dream", price=3000, kind="held"),
-    "oval-stone": Item(name="Oval Stone", price=3000, kind="held"),
-    "razor-claw": Item(name="Razor Claw", price=3000, kind="held"),
-    "razor-fang": Item(name="Razor Fang", price=3000, kind="held"),
-}
-TYPE_BOOSTERS: dict[str, ItemId] = {
-    "Normal": "silk-scarf",
-    "Fire": "charcoal",
-    "Water": "mystic-water",
-    "Grass": "miracle-seed",
-    "Electric": "magnet",
-    "Ice": "never-melt-ice",
-    "Fighting": "black-belt",
-    "Poison": "poison-barb",
-    "Ground": "soft-sand",
-    "Flying": "sharp-beak",
-    "Psychic": "twisted-spoon",
-    "Bug": "silver-powder",
-    "Rock": "hard-stone",
-    "Ghost": "spell-tag",
-    "Dragon": "dragon-fang",
-    "Dark": "black-glasses",
-    "Steel": "metal-coat",
-    "Fairy": "fairy-feather",
-}
 type BagId = Annotated[
     ItemId | TmId,
     WithJsonSchema({"anyOf": [{"enum": list(ITEMS), "type": "string"}, {"type": "string"}]}),
@@ -251,11 +129,11 @@ def max_hp(battler: Battler) -> int:
     return stats(species, battler.level, battler.nature, battler.ivs, battler.evs)[0]
 
 
-def item_of(item_id: BagId) -> Item:
+def item_of(item_id: BagId) -> BagItem:
     if item_id in ITEMS:
         return ITEMS[item_id]
     move = tm_move(item_id)
-    return Item(name=f"TM {move.name}", price=TM_PRICE, kind="tm")
+    return BagItem(name=f"TM {move.name}", price=TM_PRICE, kind="tm")
 
 
 def tm_move(item_id: TmId) -> Move:

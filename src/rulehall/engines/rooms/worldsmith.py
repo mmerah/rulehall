@@ -1,7 +1,9 @@
 from rulehall.core.prompt import Sections
 from rulehall.core.validation import Refusal
-from rulehall.engines.entities import PLAYER_ID, leaked_names, required_needs
-from rulehall.engines.rooms.world import Dungeon, Dweller, MapProposal, RegionProposal, RoomWorld
+from rulehall.engines.name_leaks import leaked_names
+from rulehall.engines.rooms.world import Dweller, MapProposal, RegionProposal, RoomMap, RoomWorld
+from rulehall.engines.sheet import PLAYER_ID
+from rulehall.engines.world import authoring_faults
 
 MAP_ASK = "Write the opening map."
 OPENING_SECTIONS: Sections = (
@@ -11,12 +13,12 @@ OPENING_SECTIONS: Sections = (
 )
 
 
-def check_map[N: Dweller](proposal: MapProposal[N]) -> None:
+def check_opening[P: Dweller](proposal: MapProposal[P]) -> None:
     if needs := _map_needs(proposal, start_known=True) + _named_needs(proposal):
         raise Refusal("the map needs " + "; ".join(needs))
 
 
-def check_next_map[N: Dweller](proposal: RegionProposal[N], world: RoomWorld[N]) -> None:
+def check_next[P: Dweller](proposal: RegionProposal[P], world: RoomWorld[P]) -> None:
     if not proposal.places:
         raise Refusal("the extension needs at least one new place")
     if needs := (
@@ -26,10 +28,10 @@ def check_next_map[N: Dweller](proposal: RegionProposal[N], world: RoomWorld[N])
         + _planted_needs(proposal)
     ):
         raise Refusal("the extension needs " + "; ".join(needs))
-    world.check_unnamed(proposal.recap)
+    world.refuse_unmet_names(proposal.recap)
 
 
-def _planted_needs[N: Dweller](proposal: MapProposal[N]) -> list[str]:
+def _planted_needs[P: Dweller](proposal: MapProposal[P]) -> list[str]:
     if planted := sorted(
         item.id for item in proposal.items.values() if item.holder_id == PLAYER_ID
     ):
@@ -37,12 +39,12 @@ def _planted_needs[N: Dweller](proposal: MapProposal[N]) -> list[str]:
     return []
 
 
-def _map_needs[N: Dweller](proposal: MapProposal[N], *, start_known: bool) -> list[str]:
+def _map_needs[P: Dweller](proposal: MapProposal[P], *, start_known: bool) -> list[str]:
     places = proposal.places
     if proposal.start_id not in places:
         return [f"a starting place {proposal.start_id!r}"]
     needs: list[str] = []
-    if broken := required_needs(proposal.npcs, ()):
+    if broken := authoring_faults(proposal.npcs, ()):
         needs.append(f"npcs as the worldsmith may write them: {broken}")
     if places[proposal.start_id].known != start_known:
         needs.append(
@@ -55,7 +57,7 @@ def _map_needs[N: Dweller](proposal: MapProposal[N], *, start_known: bool) -> li
     return needs
 
 
-def _overlap_needs[N: Dweller](proposal: MapProposal[N], world: Dungeon[N]) -> list[str]:
+def _overlap_needs[P: Dweller](proposal: MapProposal[P], world: RoomMap[P]) -> list[str]:
     existing = {*world.places, *world.npcs, *world.items}
     added = {*proposal.places, *proposal.npcs, *proposal.items}
     if overlap := sorted(existing & added):
@@ -63,18 +65,18 @@ def _overlap_needs[N: Dweller](proposal: MapProposal[N], world: Dungeon[N]) -> l
     return []
 
 
-def _named_needs[N: Dweller](proposal: MapProposal[N]) -> list[str]:
+def _named_needs[P: Dweller](proposal: MapProposal[P]) -> list[str]:
     leaked: set[str] = set()
     hidden = [
-        thing for thing in (*proposal.npcs.values(), *proposal.items.values()) if not thing.known
+        entity for entity in (*proposal.npcs.values(), *proposal.items.values()) if not entity.known
     ]
     for place_id, place in proposal.places.items():
-        things = [
-            *proposal.things_at(place_id),
+        entities = [
+            *proposal.entities_at(place_id),
             *(proposal.carried(PLAYER_ID) if place_id == proposal.start_id else ()),
         ]
         read = "\n".join((place.name, place.brief, place.description))
-        leaked.update(leaked_names(read, things, hidden))
+        leaked.update(leaked_names(read, entities, hidden))
     if named := sorted(leaked):
         return [f"places that do not name what the player has not met: {named}"]
     return []

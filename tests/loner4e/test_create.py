@@ -5,12 +5,12 @@ from support.game import ENGINE, loner_sheet
 from support.table import LIBRARY, NO_SHIPPED, narrowed
 
 from rulehall.core.creation import Picks
-from rulehall.core.io import Library
+from rulehall.core.stores import Library
 from rulehall.core.validation import Refusal, Slug
-from rulehall.engines.entities import PLAYER_ID
 from rulehall.engines.loner4e.rules import LUCK_MAX
 from rulehall.engines.loner4e.world import Loner4eGame
 from rulehall.engines.packs import SRD_PACK
+from rulehall.engines.sheet import PLAYER_ID
 
 
 def test_a_created_character_plays_through_the_authored_load_path(tmp_path: Path) -> None:
@@ -30,8 +30,8 @@ def test_a_created_character_plays_through_the_authored_load_path(tmp_path: Path
     )
     library = Library(tmp_path, tmp_path, NO_SHIPPED)
     library.write_character(created)
-    character = library.read_character("fen", ENGINE.id, ENGINE.character)
-    scenario = LIBRARY.read_scenario("whispering-vault", {ENGINE.id: ENGINE.scenario})
+    character = library.read_character("fen", ENGINE.id, ENGINE.character_model)
+    scenario = LIBRARY.read_scenario("whispering-vault", {ENGINE.id: ENGINE.scenario_model})
     state = ENGINE.begin("whispering-vault", scenario, character)
     state = narrowed(state, Loner4eGame)
     made = loner_sheet(state, PLAYER_ID)

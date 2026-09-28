@@ -108,7 +108,7 @@ def body(s: Session) -> None:
     # 3. A Harm & Luck exchange: cited tags on the card, luck moves, and no pause follows.
     submit(
         page,
-        'I fight Mara.\n!ask question="Do I force her back?" against_id=mara'
+        'I fight Mara.\n!ask question="Do I force her back?" opponent_id=mara'
         " helps='[\"Pry Bar\"]' hinders='[\"Knows the Catalogue\"]'",
     )
     wait_idle(page)
@@ -158,7 +158,7 @@ def body(s: Session) -> None:
     master = [e for e in log() if e["role"] == "master"][-1]
     s.check("# SETTLED THIS SCENE" in master["prompt"], "the master prompt shows no SETTLED")
 
-    # 4. Refused master calls do not kill the turn; the refusal reaches the log.
+    # 4. A refused call does not kill the turn; the refusal reaches the log.
     submit(
         page,
         "I do something the rules refuse.\n!enter target_id=nowhere"
@@ -237,7 +237,7 @@ def body(s: Session) -> None:
     for attempt in range(30):
         submit(
             page,
-            f'I fight on.\n!ask question="Do I hold Mara off ({attempt})?" against_id=mara '
+            f'I fight on.\n!ask question="Do I hold Mara off ({attempt})?" opponent_id=mara '
             'hinders=\'["Untrained", "Never Walks Away"]\'',
         )
         wait_idle(page)
@@ -535,7 +535,7 @@ def body(s: Session) -> None:
     sheet = WORK / "characters" / "mira" / "loner4e.json"
     kael = json.loads((WORK / "characters" / "kael" / "loner4e.json").read_text())
     kael["id"] = "mira"
-    kael["sheet"]["name"] = "Mira"
+    kael["person"]["name"] = "Mira"
     sheet.parent.mkdir(parents=True, exist_ok=True)
     sheet.write_text(json.dumps(kael))
     page.goto(BASE + "/game/whispering-vault/mira")
@@ -577,7 +577,7 @@ def body(s: Session) -> None:
     )
     s.check("The adventure is over." in clean(page.inner_text("body")), "no game-over label")
     s.check(composer(page).is_disabled(), "composer open after the end")
-    grown = json.loads(sheet.read_text())["sheet"]
+    grown = json.loads(sheet.read_text())["person"]
     s.check("Patient Watcher" in grown["tags"]["skill"], f"the growth is not on disk: {grown}")
     s.check(len(grown["living_world"]) == 3, f"no Living World lines on disk: {grown}")
     # A restart plays the grown sheet: the next scene's worldsmith reads what it carries forward.

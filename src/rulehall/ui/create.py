@@ -10,38 +10,39 @@ from tempfile import mkdtemp
 from nicegui import ui
 from nicegui.events import UploadEventArguments, ValueChangeEventArguments
 
-from rulehall.app.launch import LauncherCatalog, LaunchTarget
+from rulehall.app.catalog import SavedGameKey
 from rulehall.app.runtime import Runtime
-from rulehall.core.creation import CreationStep, drop_stale, option_of, picked
-from rulehall.core.model import ScenarioDescription
-from rulehall.core.play import DecisionOption
-from rulehall.core.source import SOURCE_SUFFIXES
+from rulehall.core.creation import CreationStep, drop_stale, find_option
+from rulehall.core.decisions import DecisionOption
+from rulehall.core.documents import SOURCE_SUFFIXES
+from rulehall.core.game import ScenarioDescription
 from rulehall.core.validation import EngineId, Refusal, Slug, content_id
 from rulehall.ui import theme
+from rulehall.ui.panel_parts import labeled_value
+from rulehall.ui.routes import HOME, assets_route, game_path
 from rulehall.ui.widgets import (
     action_bar,
     alert,
-    assets_route,
-    game_path,
+    attempt,
+    done,
+    entered_text,
     heading,
-    labeled_value,
-    note,
+    inform,
     page_body,
     page_header,
     page_intro,
-    typed,
     warn,
 )
 
 LOGGER = logging.getLogger(__name__)
+SCENARIO_FAILED = "Something went wrong. The scenario was not written. Look in the server log."
+PACK_FAILED = "Something went wrong. The pack was not written. Look in the server log."
 
 
 class DocumentUpload:
     def __init__(self) -> None:
         self.document: Path | None = None
         self.uploads: Path | None = None
-
-    def build(self) -> None:
         ui.upload(on_upload=self.uploaded, max_files=1, auto_upload=True).props(
             f'accept="{",".join(SOURCE_SUFFIXES)}"'
         )
@@ -56,7 +57,7 @@ class DocumentUpload:
         path = self.uploads / Path(event.file.name).name
         await event.file.save(path)
         self.document = path
-        note(f"Read {event.file.name}.")
+        inform(f"Read {event.file.name}.")
 
     def discard(self) -> None:
         if self.uploads is not None:
@@ -68,15 +69,6 @@ class CharacterForm:
         self.runtime = runtime
         self.use_engine(runtime.default_engine)
         self.picks: dict[Slug, str] = {}
-        self.name: ui.input
-        self.brief: ui.input
-        self.create_button: ui.button
-
-    @property
-    def engine(self):
-        return self.runtime.engine(self.engine_id)
-
-    def build(self) -> None:
         with _form_page(
             self.runtime,
             self.engine_id,
@@ -87,7 +79,7 @@ class CharacterForm:
             _engine_select(self.runtime, self.engine_id, self.choose_engine)
             self.name = ui.input(label="Name")
             self.brief = ui.input(label="Brief", placeholder="Who are they, in one sentence?")
-            self.steps()
+            self.draw_steps()
             heading("Preview")
             previewed = ui.column().classes("w-full game-gap-2xl")
             # Outside the preview refreshable: a rebuild on blur must not destroy button focus.
@@ -96,7 +88,11 @@ class CharacterForm:
                     "Create", icon="sym_r_person_add", on_click=self.create
                 ).props("color=primary")
             with previewed:
-                self.preview()
+                self.draw_preview()
+
+    @property
+    def engine(self):
+        return self.runtime.require_engine(self.engine_id)
 
     def use_engine(self, engine_id: EngineId) -> None:
         self.engine_id, self.pack_id = engine_id, _first_pack_id(self.runtime, engine_id)
@@ -104,14 +100,11 @@ class CharacterForm:
     def choose_engine(self, engine_id: EngineId) -> None:
         self.use_engine(engine_id)
         self.picks.clear()
-        self.steps.refresh()
-        self.preview.refresh()
+        self.draw_steps.refresh()
+        self.draw_preview.refresh()
 
-    def write(self, step_id: Slug, event: ValueChangeEventArguments[str | None]) -> None:
+    def type_answer(self, step_id: Slug, event: ValueChangeEventArguments[str | None]) -> None:
         self.picks[step_id] = (event.value or "").strip()
-
-    def choose(self, step_id: Slug, event: ValueChangeEventArguments[str]) -> None:
-        self.pick(step_id, event.value)
 
     def choose_pack(self, event: ValueChangeEventArguments[str]) -> None:
         self.pack_id = content_id(event.value)
@@ -119,19 +112,19 @@ class CharacterForm:
 
     def answered(self) -> None:
         drop_stale(self.engine.creation_steps(self.pack_id, self.picks), self.picks)
-        self.steps.refresh()
-        self.preview.refresh()
+        self.draw_steps.refresh()
+        self.draw_preview.refresh()
 
     def field(self, step: CreationStep) -> None:
-        given = picked(self.picks, step.id)
+        given = self.picks.get(step.id, "")
         if not step.options:
             box = ui.input(
                 label=step.name,
                 placeholder=step.hint or "In your own words",
                 value=given,
-                on_change=partial(self.write, step.id),
+                on_change=partial(self.type_answer, step.id),
             )
-            box.on("blur", self.preview.refresh)
+            box.on("blur", self.draw_preview.refresh)
             return
         if step.options[0].sprite:
             self.sprites(step, given)
@@ -144,14 +137,14 @@ class CharacterForm:
             for option in step.options
         }
         if step.allows_text and given:
-            offered = option_of(step.options, given)
+            offered = find_option(step.options, given)
             given = given if offered is None else offered.name
             _ = options.setdefault(given, given)
         chosen = ui.select(
             options=options,
             value=given or None,
             label=step.name,
-            on_change=partial(self.choose, step.id),
+            on_change=lambda event: self.pick(step.id, event.value),
             with_input=step.allows_text,
             new_value_mode="add-unique" if step.allows_text else None,
         )
@@ -176,33 +169,35 @@ class CharacterForm:
         self.answered()
 
     def create(self) -> None:
-        title = typed(self.name)
+        title = entered_text(self.name)
         if not title:
             warn("Name the character.")
             return
         try:
-            made = self.engine.create_character(title, typed(self.brief), self.pack_id, self.picks)
+            made = self.engine.create_character(
+                title, entered_text(self.brief), self.pack_id, self.picks
+            )
             self.runtime.library.write_character(made)
         except Refusal as refused:
             alert(str(refused))
             return
         LOGGER.info("character created: slug=%s engine=%s", made.id, made.engine_id)
-        ui.navigate.to("/")
+        ui.navigate.to(HOME)
 
     @ui.refreshable_method
-    def steps(self) -> None:
+    def draw_steps(self) -> None:
         _pack_select(self.engine.packs.options(), self.pack_id, self.choose_pack)
         for step in self.engine.creation_steps(self.pack_id, self.picks):
             self.field(step)
 
     @ui.refreshable_method
-    def preview(self) -> None:
+    def draw_preview(self) -> None:
         engine = self.engine
         try:
             preview = engine.preview_character(
                 engine.create_character(
-                    typed(self.name) or "Unnamed",
-                    typed(self.brief),
+                    entered_text(self.name) or "Unnamed",
+                    entered_text(self.brief),
                     self.pack_id,
                     self.picks,
                 )
@@ -217,30 +212,14 @@ class CharacterForm:
 
 
 class ScenarioForm:
-    def __init__(self, runtime: Runtime, catalog: LauncherCatalog) -> None:
+    def __init__(self, runtime: Runtime) -> None:
         self.runtime = runtime
-        self.catalog = catalog
+        self.catalog = runtime.catalog()
         self.use_engine(runtime.default_engine)
-        self.upload = DocumentUpload()
-        self.title: ui.input
         self.seed_button: ui.button
         self.backdrop_button: ui.button
         self.character: ui.select
-        self.backdrop: ui.textarea
-        self.premise: ui.textarea
-        self.scope: ui.textarea
-        self.style: ui.input
         self.button: ui.button
-
-    @property
-    def engine(self):
-        return self.runtime.engine(self.engine_id)
-
-    @property
-    def pack(self):
-        return self.engine.packs.require(self.pack_id)
-
-    def build(self) -> None:
         with _form_page(
             self.runtime,
             self.engine_id,
@@ -250,7 +229,7 @@ class ScenarioForm:
         ):
             _engine_select(self.runtime, self.engine_id, self.choose_engine)
             self.title = ui.input(label="Title")
-            self.character_fields()
+            self.draw_character_fields()
             self.backdrop = ui.textarea(
                 label="Backdrop",
                 placeholder="What kind of world is this? Give the genre, the era, what "
@@ -268,20 +247,28 @@ class ScenarioForm:
             self.style = ui.input(label="Art style")
             self._set_style_placeholder()
             heading("Or upload the adventure")
-            self.upload.build()
-            self.button_row()
+            self.upload = DocumentUpload()
+            self.draw_button_row()
+
+    @property
+    def engine(self):
+        return self.runtime.require_engine(self.engine_id)
+
+    @property
+    def pack(self):
+        return self.engine.packs.require(self.pack_id)
 
     def use_engine(self, engine_id: EngineId) -> None:
         self.engine_id, self.pack_id = engine_id, _first_pack_id(self.runtime, engine_id)
 
     def choose_engine(self, engine_id: EngineId) -> None:
         self.use_engine(engine_id)
-        self.character_fields.refresh()
+        self.draw_character_fields.refresh()
         self._set_style_placeholder()
-        self.button_row.refresh()
+        self.draw_button_row.refresh()
 
     @ui.refreshable_method
-    def character_fields(self) -> None:
+    def draw_character_fields(self) -> None:
         characters = self.catalog.characters_for(self.engine_id)
         _pack_select(self.engine.packs.options(), self.pack_id, self.choose_pack)
         with ui.row().classes("items-center game-gap-lg"):
@@ -310,49 +297,45 @@ class ScenarioForm:
         self.backdrop.value = self.pack.backdrop
 
     @ui.refreshable_method
-    def button_row(self) -> None:
+    def draw_button_row(self) -> None:
         characters = self.catalog.characters_for(self.engine_id)
         with action_bar():
             if not characters:
                 ui.label("Make a character first.").classes("text-sm text-negative")
             ui.label("Writing takes several minutes.").classes("game-hint")
             self.button = ui.button(
-                "Write the opening", icon="sym_r_auto_stories", on_click=self.write
+                "Write the opening", icon="sym_r_auto_stories", on_click=self.write_opening
             ).props("color=primary")
             if not characters:
                 self.button.disable()
 
-    async def write(self) -> None:
-        title = typed(self.title)
-        backdrop = typed(self.backdrop)
-        premise = typed(self.premise)
-        scope = typed(self.scope)
+    async def write_opening(self) -> None:
+        title = entered_text(self.title)
+        backdrop = entered_text(self.backdrop)
+        premise = entered_text(self.premise)
+        scope = entered_text(self.scope)
         character_id = self.character.value
         document = self.upload.document
         if not (title and backdrop and scope) or not (premise or document) or character_id is None:
             warn("A title, a backdrop, a scope, a character, and a premise or a document.")
             return
-        self.button.props("loading")
         description = ScenarioDescription(
             title=title,
             premise=premise,
             backdrop=backdrop,
             scope=scope,
-            art_style=typed(self.style),
+            art_style=entered_text(self.style),
         )
-        try:
-            character_id = content_id(character_id)
+
+        async def writing() -> None:
+            played_id = content_id(character_id)
             scenario_id = await self.runtime.new_scenario(
-                self.engine_id, description, document, self.pack_id, character_id
+                self.engine_id, description, document, self.pack_id, played_id
             )
-            opened = LaunchTarget(scenario_id=scenario_id, character_id=character_id)
-        except Refusal as refused:
-            alert(str(refused))
-            return
-        finally:
-            self.button.props(remove="loading")
-        LOGGER.info("scenario created: scenario_id=%s", scenario_id)
-        ui.navigate.to(game_path(opened))
+            LOGGER.info("scenario created: scenario_id=%s", scenario_id)
+            ui.navigate.to(game_path(SavedGameKey(scenario_id=scenario_id, character_id=played_id)))
+
+        _ = await attempt(writing, failed=SCENARIO_FAILED, loading=self.button)
 
     def _set_style_placeholder(self) -> None:
         art_style = self.engine.art_style
@@ -367,13 +350,6 @@ class PackForm:
     def __init__(self, runtime: Runtime) -> None:
         self.runtime = runtime
         self.engine_id = runtime.default_engine
-        self.upload = DocumentUpload()
-        self.name: ui.input
-        self.premise: ui.textarea
-        self.license: ui.input
-        self.button: ui.button
-
-    def build(self) -> None:
         with _form_page(
             self.runtime,
             self.engine_id,
@@ -388,65 +364,47 @@ class PackForm:
                 placeholder="What genre is this, and what is a story in it about?",
             )
             heading("Or upload a document")
-            self.upload.build()
+            self.upload = DocumentUpload()
             self.license = ui.input(
                 label="Licence", placeholder="Optional: who wrote the source, under what terms"
             )
             with action_bar():
                 ui.label("Writing takes several minutes.").classes("game-hint")
                 self.button = ui.button(
-                    "Write the pack", icon="sym_r_auto_fix_high", on_click=self.write
+                    "Write the pack", icon="sym_r_auto_fix_high", on_click=self.write_pack
                 ).props("color=primary")
 
     def choose_engine(self, engine_id: EngineId) -> None:
         self.engine_id = engine_id
 
-    async def write(self) -> None:
-        name = typed(self.name)
-        premise = typed(self.premise)
+    async def write_pack(self) -> None:
+        name = entered_text(self.name)
+        premise = entered_text(self.premise)
         document = self.upload.document
         if not name or not (premise or document):
             warn("A name, and a premise or a document.")
             return
-        self.button.props("loading")
-        try:
+
+        async def writing() -> None:
             pack_id = await self.runtime.new_pack(
-                self.engine_id, name, premise, document, typed(self.license)
+                self.engine_id, name, premise, document, entered_text(self.license)
             )
-        except Refusal as refused:
-            alert(str(refused))
-            return
-        finally:
-            self.button.props(remove="loading")
-        LOGGER.info("pack created: engine=%s slug=%s", self.engine_id, pack_id)
-        note(
-            f"Wrote {name}. Edit it in {self.runtime.packs.path(self.engine_id, pack_id)}.",
-            good=True,
-        )
-        ui.navigate.to("/")
+            LOGGER.info("pack created: engine=%s slug=%s", self.engine_id, pack_id)
+            done(f"Wrote {name}. Edit it in {self.runtime.packs.path(self.engine_id, pack_id)}.")
+            ui.navigate.to(HOME)
 
-
-def character_page(runtime: Runtime) -> None:
-    CharacterForm(runtime).build()
-
-
-def scenario_page(runtime: Runtime) -> None:
-    ScenarioForm(runtime, runtime.catalog()).build()
-
-
-def new_pack_page(runtime: Runtime) -> None:
-    PackForm(runtime).build()
+        _ = await attempt(writing, failed=PACK_FAILED, loading=self.button)
 
 
 def _first_pack_id(runtime: Runtime, engine_id: EngineId) -> Slug:
-    return runtime.engine(engine_id).packs.options()[0].id
+    return runtime.require_engine(engine_id).packs.options()[0].id
 
 
 @contextmanager
 def _form_page(
     runtime: Runtime, engine_id: EngineId, *, eyebrow: str, title: str, lead: str
 ) -> Generator[None]:
-    page_header(title, look=runtime.engine(engine_id).look)
+    page_header(title, look=runtime.require_engine(engine_id).look)
     with page_body():
         page_intro(eyebrow, title, lead)
         with ui.card().classes("w-full game-gap-2xl"):
@@ -460,7 +418,7 @@ def _engine_select(
 ) -> None:
     def chosen(event: ValueChangeEventArguments[str]) -> None:
         engine_id = EngineId(event.value)
-        theme.set_look(runtime.engine(engine_id).look)
+        theme.set_look(runtime.require_engine(engine_id).look)
         on_change(engine_id)
 
     ui.select(

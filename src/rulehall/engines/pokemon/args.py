@@ -2,7 +2,7 @@ from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.tools import Told
+from rulehall.core.tools import PlayerFacing
 from rulehall.core.validation import Frozen, Slug
 from rulehall.engines.args import Attempt
 from rulehall.engines.pokemon.rules import NICKNAME_MAX, BagId, ItemId, Skill, TmId
@@ -17,12 +17,12 @@ COUNT = "How many."
 class SkillCheck(Attempt):
     skill: Skill = Field(description="The skill the player uses.")
     difficulty: Difficulty = Field(description="easy is DC 10, hard is DC 15, very-hard is DC 20.")
-    helper_id: Slug | None = Field(
+    helper_mon_id: Slug | None = Field(
         default=None,
         description="Exact id of a team Pokemon that helps. It must not be fainted. Null when "
         "none helps.",
     )
-    reason: Told = Field(
+    reason: PlayerFacing = Field(
         default="",
         description="How the helper helps, such as 'Geodude breaks the rock'. The player reads "
         "it. Empty with no helper.",
@@ -30,8 +30,8 @@ class SkillCheck(Attempt):
 
     @model_validator(mode="after")
     def _helper_with_reason(self) -> Self:
-        if (self.helper_id is None) != (not self.reason):
-            raise ValueError("a helper_id and a reason come together")
+        if (self.helper_mon_id is None) != (not self.reason):
+            raise ValueError("a helper_mon_id and a reason come together")
         return self
 
 

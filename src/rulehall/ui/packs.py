@@ -3,8 +3,6 @@ from nicegui import ui
 from rulehall.app.runtime import Runtime
 from rulehall.ui.widgets import empty_state, entry_card, page_body, page_header, page_intro
 
-PACKS_ROUTE = "/packs"
-
 
 def packs_page(runtime: Runtime) -> None:
     packs = runtime.catalog().packs
@@ -20,5 +18,4 @@ def packs_page(runtime: Runtime) -> None:
                     if pack.written
                     else ""
                 )
-                with entry_card("sym_r_style", pack.name, sub, (pack.rules,)):
-                    pass
+                entry_card("sym_r_style", pack.name, sub, (pack.engine_title,))

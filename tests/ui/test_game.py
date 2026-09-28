@@ -1,5 +1,6 @@
 from asyncio import sleep
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 from random import Random
 
@@ -11,26 +12,24 @@ from support.table import (
     play_turn,
 )
 
-from rulehall.app.session import GameService
+from rulehall.app.game_session import GameSession, SessionSnapshot
 from rulehall.app.turn import Turn
 from rulehall.config import TranscriptConfig
+from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.facts import Fact
-from rulehall.core.model import AnyGame
-from rulehall.core.play import (
-    PendingDecision,
-    PendingOption,
-    Refused,
-    SpokenLine,
-)
+from rulehall.core.game import AnyGame
+from rulehall.core.log import RefusedCall, SpokenLine
 from rulehall.core.views import SCENE_TAB, PlayerView, Subject
+from rulehall.ui.composer import composer_lock
 from rulehall.ui.drawer import DrawerTab
-from rulehall.ui.game import DecisionPanel, GamePage, Snapshot, game_page
-from rulehall.ui.transcript import Chat, LiveTurn, TurnProgress, blocker
+from rulehall.ui.game import DecisionPanel, GamePage, game_page
+from rulehall.ui.transcript import Chat, LiveTurn
+from rulehall.ui.widgets import Sounds
 
 WREN = Subject(id="player", name="Wren", brief="A quiet scout")
 
 
-def _view(decision: PendingDecision | None = None, ending: str | None = None) -> PlayerView:
+def _view(decision: Decision | None = None, ending: str | None = None) -> PlayerView:
     return PlayerView(
         premise="",
         player=WREN,
@@ -46,20 +45,20 @@ def _told(card: str) -> Fact:
     return Fact(trace=card, told=True, card=card)
 
 
-def _suspend[G: AnyGame](table: Table[G], decision: PendingDecision) -> None:
+def _suspend[G: AnyGame](table: Table[G], decision: Decision) -> None:
     """A turn that ends on a pause, the way a suspending rule leaves one."""
-    service = table.service
+    service = table.session
     draft = service.state.draft()
     draft.pending = decision
     lines = (SpokenLine(text="Two doors, and no light under either."),)
     service.save(service.engine.record(draft, lines, (), words="I look."))
 
 
-def _pick(*, allows_text: bool) -> PendingDecision:
-    return PendingDecision(
+def _pick(*, allows_text: bool) -> Decision:
+    return Decision(
         kind="pick",
         prompt="Which door?",
-        options=(PendingOption(id="left", name="Left", action_name="pick"),),
+        options=(ActionOption(id="left", name="Left", action_name="pick"),),
         allows_text=allows_text,
     )
 
@@ -74,13 +73,15 @@ def _texts(held: ui.element, *, eased: bool = False) -> list[str]:
     ]
 
 
-def test_the_blocker_names_what_closes_the_composer() -> None:
-    assert blocker(_view(), None, in_battle=False) is None
-    assert blocker(_view(), "master", in_battle=False) == "master"
-    assert blocker(_view(), None, in_battle=True) == "battle"
-    assert blocker(_view(decision=_pick(allows_text=True)), None, in_battle=False) == "answer"
-    assert blocker(_view(decision=_pick(allows_text=False)), None, in_battle=False) == "choose"
-    assert blocker(_view(ending="Wren is dead"), "master", in_battle=False) == "over"
+def test_the_composer_lock_names_what_closes_the_composer(tmp_path: Path) -> None:
+    now = replace(open_game(tmp_path).session.snapshot(), working_role=None, in_battle=False)
+    assert composer_lock(replace(now, view=_view())) is None
+    assert composer_lock(replace(now, view=_view(), working_role="master")) == "master"
+    assert composer_lock(replace(now, view=_view(), in_battle=True)) == "battle"
+    assert composer_lock(replace(now, view=_view(decision=_pick(allows_text=True)))) == "answer"
+    assert composer_lock(replace(now, view=_view(decision=_pick(allows_text=False)))) == "choose"
+    ending = replace(now, view=_view(ending="Wren is dead"), working_role="master")
+    assert composer_lock(ending) == "over"
 
 
 async def test_a_tick_follows_only_on_the_readers_own_move(
@@ -91,17 +92,17 @@ async def test_a_tick_follows_only_on_the_readers_own_move(
     table = open_game(tmp_path)
     _ = await play_turn(table, "I wait.", narration="Nothing stirs.")
     page()
-    screen = GamePage(table.service)
+    screen = GamePage(table.session)
     screen.build()
     screen.at_end = False
     screen.own_move = True
 
-    table.service.working_role = "master"  # another tab's turn starting: not the reader's move
+    table.session.working_role = "master"  # another tab's turn starting: not the reader's move
     screen.tick()
     assert screen.new_activity.visible is False
 
     screen.own_move = False
-    table.service.working_role = "narrator"
+    table.session.working_role = "narrator"
     screen.tick()
     assert screen.new_activity.visible is True
 
@@ -110,41 +111,39 @@ async def test_the_live_turn_draws_each_fact_card_once_and_the_narration_heard_s
     tmp_path: Path, page: Callable[[], Client]
 ) -> None:
     table = open_game(tmp_path)
-    service = table.service
+    service = table.session
     page()
-    live = LiveTurn(service)
     held = ui.element("div")
-    drawn = TurnProgress.of(service)
+    drawn = service.snapshot()
     with held:
-        live.build(drawn)
+        live = LiveTurn(drawn, service.icon, Sounds())
 
-    async def synced() -> None:
-        nonlocal drawn
-        now = TurnProgress.of(service)
+    async def synced(drawn: SessionSnapshot) -> SessionSnapshot:
+        now = service.snapshot()
         live.sync(now, drawn)
-        drawn = now
         await sleep(0)  # A refresh runs on the next loop pass.
+        return now
 
     service.turn = Turn(
         engine=service.engine,
         draft=service.state.draft(),
         rng=Random(1),
-        words="I look.",
+        logged_words="I look.",
         facts=[_told("One"), _told("Two")],
     )
-    await synced()
-    await synced()
+    drawn = await synced(drawn)
+    drawn = await synced(drawn)
     assert len(live.cards.default_slot.children) == 2
 
     service.turn.facts.append(_told("Three"))
     service.live = (SpokenLine(text="Nothing"),)
-    await synced()
+    drawn = await synced(drawn)
     assert len(live.cards.default_slot.children) == 3
     assert _texts(held) == ["I look.", "Nothing"]
 
     service.turn = None
     service.live = ()
-    await synced()
+    drawn = await synced(drawn)
     assert live.cards.default_slot.children == []
     assert _texts(held) == []
 
@@ -157,24 +156,23 @@ async def test_the_live_turn_puts_a_refused_call_between_its_facts_only_when_sho
     tmp_path: Path, page: Callable[[], Client], *, shown: bool, heads: list[str]
 ) -> None:
     table = open_game(tmp_path)
-    service = table.service
-    service.settings = service.settings.model_copy(
+    service = table.session
+    service.live_settings.current = service.live_settings.current.model_copy(
         update={"transcript": TranscriptConfig(refusals=shown)}
     )
     page()
-    live = LiveTurn(service)
-    drawn = TurnProgress.of(service)
+    drawn = service.snapshot()
     with ui.element("div"):
-        live.build(drawn)
+        live = LiveTurn(drawn, service.icon, Sounds())
     service.turn = Turn(
         engine=service.engine, draft=service.state.draft(), rng=Random(1), facts=[_told("One")]
     )
-    now = TurnProgress.of(service)
+    now = service.snapshot()
     live.sync(now, drawn)
 
-    service.turn.refused.append(Refused(tool="reveal", reason="no such thing", after_facts=1))
+    service.turn.refused.append(RefusedCall(tool="reveal", reason="no such thing", after_facts=1))
     service.turn.facts.append(_told("Two"))
-    live.sync(TurnProgress.of(service), now)
+    live.sync(service.snapshot(), now)
 
     drawn_heads = [
         label.text
@@ -201,7 +199,8 @@ async def test_a_page_is_not_built_for_a_client_deleted_before_the_handshake(
     client = page()
     client.delete()
 
-    game_page(table.service)
+    key = table.session.key
+    await game_page(table.runtime, key.scenario_id, key.character_id)
 
     assert built == []
 
@@ -210,29 +209,28 @@ async def test_a_landed_exchange_appends_its_bubbles_and_a_rewind_redraws(
     tmp_path: Path, page: Callable[[], Client]
 ) -> None:
     table = open_game(tmp_path)
-    service = table.service
+    service = table.session
     _ = await play_turn(table, "I wait.", narration="Nothing stirs.")
     page()
-    chat = Chat(service)
     held = ui.element("div")
-    first = service.history()
+    first = service.snapshot()
     with held:
-        chat.build(service.player_view(), first)
+        chat = Chat(first, service.icon, Sounds())
     old = list(chat.column.default_slot.children)
     assert _texts(held, eased=True) == []
 
     before = service.state
     _ = await play_turn(table, "I listen.", narration="A drip.")
-    landed = service.history()
-    chat.sync(service.player_view(), landed, drawn_history=first)
+    landed = service.snapshot()
+    chat.sync(landed, first)
     assert chat.column.default_slot.children[: len(old)] == old
     assert _texts(held, eased=True) == ["A drip."]
 
-    chat.sync(service.player_view(), service.history(), drawn_history=landed)
+    chat.sync(service.snapshot(), landed)
     assert _texts(held) == ["I wait.", "Nothing stirs.", "I listen.", "A drip."]
 
     service.save(before)
-    chat.sync(service.player_view(), service.history(), drawn_history=landed)
+    chat.sync(service.snapshot(), landed)
     assert _texts(held) == ["I wait.", "Nothing stirs."]
     assert chat.column.default_slot.children[0] not in old
 
@@ -241,11 +239,10 @@ async def test_a_pause_line_is_hidden_on_load_while_its_decision_is_still_open(
     tmp_path: Path, page: Callable[[], Client]
 ) -> None:
     table = open_game(tmp_path)
-    service = table.service
+    service = table.session
     _suspend(table, _pick(allows_text=True))
     page()
-    chat = Chat(service)
-    chat.build(service.player_view(), service.history())
+    chat = Chat(service.snapshot(), service.icon, Sounds())
     assert chat.pause_line is not None
     assert chat.pause_line.visible is False
 
@@ -254,17 +251,16 @@ async def test_the_decision_panel_enters_on_the_tick_that_brings_it_and_not_the_
     tmp_path: Path, page: Callable[[], Client]
 ) -> None:
     table = open_game(tmp_path)
-    service = table.service
+    service = table.session
     page()
 
     async def play(_answer: object) -> None:
         return None
 
-    panel = DecisionPanel(play)
     held = ui.element("div")
-    drawn = Snapshot.of(service)
+    drawn = service.snapshot()
     with held:
-        panel.build(drawn)
+        panel = DecisionPanel(drawn, play)
 
     def entered() -> list[bool]:
         return [
@@ -276,13 +272,13 @@ async def test_the_decision_panel_enters_on_the_tick_that_brings_it_and_not_the_
     assert entered() == []
 
     _suspend(table, _pick(allows_text=True))
-    brought = Snapshot.of(service)
+    brought = service.snapshot()
     panel.sync(brought, drawn)
     await sleep(0)
     assert entered() == [True]
 
     service.working_role = "master"
-    panel.sync(Snapshot.of(service), brought)
+    panel.sync(service.snapshot(), brought)
     await sleep(0)
     assert entered() == [False]
 
@@ -290,18 +286,18 @@ async def test_the_decision_panel_enters_on_the_tick_that_brings_it_and_not_the_
 async def test_a_portrait_drawn_after_the_panel_shows_on_the_art_tick(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, page: Callable[[], Client]
 ) -> None:
-    service = open_game(tmp_path).service
+    service = open_game(tmp_path).session
     drawn: list[Path] = []
 
-    def icon(_session: GameService, _subject_id: str) -> Path | None:
+    def icon(_session: GameSession, _subject_id: str) -> Path | None:
         return drawn[0] if drawn else None
 
-    monkeypatch.setattr(GameService, "icon", icon)
+    monkeypatch.setattr(GameSession, "icon", icon)
     page()
     tab = DrawerTab(service, SCENE_TAB, lambda _row: None)
     held = ui.element("div")
     with held:
-        tab.panels(service.player_view())
+        tab.draw_panels(service.snapshot().view)
 
     def portraits() -> list[ui.image]:
         return [image for image in held.descendants() if isinstance(image, ui.image)]
@@ -309,6 +305,6 @@ async def test_a_portrait_drawn_after_the_panel_shows_on_the_art_tick(
     assert portraits() == []
 
     drawn.append(tmp_path / "wren.png")
-    tab.sync_icons(service.player_view())
+    tab.sync_icons(service.snapshot().view)
     await sleep(0)
     assert portraits() != []

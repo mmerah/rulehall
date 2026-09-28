@@ -5,9 +5,17 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
-from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, check_unique, refuse, slug
+from rulehall.core.validation import (
+    Frozen,
+    Mutable,
+    Refusal,
+    Slug,
+    check_unique,
+    refuse,
+    slug,
+    slugs,
+)
 from rulehall.core.views import Rows, tag_of
-from rulehall.engines.entities import Gauge, Sheeted, joined
 from rulehall.engines.pokemon.battle.models import (
     FRIENDSHIP_MAX,
     LEVEL_MAX,
@@ -19,7 +27,17 @@ from rulehall.engines.pokemon.battle.models import (
     Gender,
     Status,
 )
-from rulehall.engines.pokemon.dex import Move, Species, Stats, avatars, dex
+from rulehall.engines.pokemon.dex import (
+    ITEMS,
+    LINKING_CORD,
+    NATURES,
+    TYPE_BOOSTERS,
+    Move,
+    Species,
+    Stats,
+    avatars,
+    dex,
+)
 from rulehall.engines.pokemon.rules import (
     ATK_VS_DEF,
     BADGE_LEVELS,
@@ -29,17 +47,13 @@ from rulehall.engines.pokemon.rules import (
     FRIENDSHIP_EVOLVE,
     FRIENDSHIP_PER_LEVEL,
     FRIENDSHIP_START,
-    ITEMS,
     IV_MAX,
-    LINKING_CORD,
-    NATURES,
     NICKNAME_MARKS,
     NICKNAME_MAX,
     RANK_MAX,
     SKILLS,
     STAT_NAMES,
     TM_PREFIX,
-    TYPE_BOOSTERS,
     BagId,
     Challenge,
     ItemId,
@@ -56,6 +70,7 @@ from rulehall.engines.pokemon.rules import (
     tm_move,
 )
 from rulehall.engines.rooms.world import Dweller
+from rulehall.engines.sheet import Gauge, Sheeted, joined
 
 ROSTER = (
     "The Pokemon this person battles with, as species and level. Empty for a person who does "
@@ -170,7 +185,7 @@ class Mon(Mutable):
             species_id,
             species,
             level,
-            taken,
+            slug(species.name, taken),
             nature=rng.choice(NATURES),
             ability=rng.choice(species.abilities),
             gender=species.gender or ("M" if rng.random() < species.male_share else "F"),
@@ -181,14 +196,14 @@ class Mon(Mutable):
         )
 
     @classmethod
-    def built(cls, species_id: Slug, level: int, taken: Iterable[Slug], *, ace: bool) -> Self:
+    def built(cls, species_id: Slug, level: int, mon_id: Slug, *, ace: bool) -> Self:
         species = dex().require(species_id)
         physical = attacks_physically(species)
         return cls._made(
             species_id,
             species,
             level,
-            taken,
+            mon_id,
             nature="Adamant" if physical else "Modest",
             ability=species.abilities[0],
             gender=species.gender or ("M" if species.male_share >= 0.5 else "F"),
@@ -206,7 +221,7 @@ class Mon(Mutable):
         species_id: Slug,
         species: Species,
         level: int,
-        taken: Iterable[Slug],
+        mon_id: Slug,
         *,
         nature: str,
         ability: str,
@@ -218,7 +233,7 @@ class Mon(Mutable):
     ) -> Self:
         hp = stats(species, level, nature, ivs, evs)[0]
         return cls(
-            mon_id=slug(species.name, taken),
+            mon_id=mon_id,
             species_id=species_id,
             level=level,
             exp=level**3,
@@ -488,10 +503,10 @@ class TrainerSheet(Mutable):
     def nickname_refusal(self, mon: Mon, name: str) -> str:
         shaped = name == name.strip() and 0 < len(name) <= NICKNAME_MAX
         if not shaped or not all(char.isalnum() or char in NICKNAME_MARKS for char in name):
-            return f"A nickname is 1 to {NICKNAME_MAX} letters, digits, spaces, ' or -"
+            return f"a nickname is 1 to {NICKNAME_MAX} letters, digits, spaces, ' or -"
         folded = name.casefold()
         if any(other is not mon and other.name.casefold() == folded for other in self.owned()):
-            return f"Another Pokemon of the player is already called {name}"
+            return f"another Pokemon of the player is already called {name}"
         if any(species.name.casefold() == folded for species in dex().species.values()):
             return f"{name} is the name of a species"
         return ""
@@ -580,12 +595,12 @@ class TrainerSheet(Mutable):
     def store_refusal(self, mon: Mon) -> str:
         if any(other is not mon for other in self.able()):
             return ""
-        return "No other team Pokemon can fight"
+        return "no other team Pokemon can fight"
 
     def withdraw_refusal(self, mon: Mon) -> str:
         if len(self.team) < TEAM_MAX:
             return ""
-        return f"The team is full; swap {mon.name} in"
+        return f"the team is full; swap {mon.name} in"
 
     def lead_refusal(self, mon: Mon) -> str:
         return f"{mon.name} leads the team already" if self.team[0] is mon else ""
@@ -636,9 +651,9 @@ class Trainer(Sheeted[TrainerSheet], Dweller):
             *((("Memorial", "; ".join(sheet.memorial)),) if sheet.memorial else ()),
         )
 
-    def required(self) -> str:
+    def authoring_fault(self) -> str:
         return joined(
-            super().required(),
+            super().authoring_fault(),
             "no team" if self.team else "",
             "not beaten" if self.beaten else "",
             "last_battle_visit 0" if self.last_battle_visit else "",
@@ -647,11 +662,11 @@ class Trainer(Sheeted[TrainerSheet], Dweller):
 
 def built_team(roster: Sequence[RosterSlot]) -> list[Mon]:
     ordered = sorted(roster, key=lambda slot: slot.level)
-    team: list[Mon] = []
-    for index, slot in enumerate(ordered, 1):
-        taken = [mon.mon_id for mon in team]
-        team.append(Mon.built(slot.species_id, slot.level, taken, ace=index == len(ordered)))
-    return team
+    mon_ids = slugs(dex().require(slot.species_id).name for slot in ordered)
+    return [
+        Mon.built(slot.species_id, slot.level, mon_id, ace=index == len(ordered))
+        for index, (slot, mon_id) in enumerate(zip(ordered, mon_ids, strict=True), 1)
+    ]
 
 
 def _require_in(mons: list[Mon], mon_id: Slug, where: str) -> Mon:

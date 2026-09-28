@@ -3,8 +3,8 @@ from pydantic import BaseModel
 from support.table import TWENTYFOURXX, game, narrowed, stub_worldsmith
 from support.twentyfourxx import ENGINE, KESTREL, SABLE, SCENE_BASE, small_world
 
-from rulehall.core.model import Check, WorldsmithRequest
-from rulehall.core.play import Exchange
+from rulehall.core.game import Check, WorldsmithRequest
+from rulehall.core.log import LogEntry
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal
 from rulehall.engines.engine import AnyEngine
@@ -15,7 +15,7 @@ from rulehall.engines.twentyfourxx.world import TwentyFourXXGame
 COMM = "comm"
 CLIMBING_GEAR = "climbing-gear"
 NIGHT_VISION_GOGGLES = "night-vision-goggles"
-NEXT_FIELDS = {**SCENE_BASE, "present": (KESTREL,), "hidden": (SABLE,)}
+NEXT_FIELDS = {**SCENE_BASE, "present_ids": (KESTREL,), "hidden_ids": (SABLE,)}
 
 
 def _twentyfourxx_game() -> tuple[AnyEngine, TwentyFourXXGame]:
@@ -56,31 +56,31 @@ async def test_the_ship_stays_where_it_docked_unless_the_crew_flies_it() -> None
     assert draft.world.ship_here()
 
 
-async def test_install_scene_appends_a_run_ends_brief_hindrances_and_returns_the_opened_fact() -> (
+async def test_install_next_appends_a_run_ends_brief_hindrances_and_returns_the_opened_fact() -> (
     None
 ):
     draft = small_world().draft()
     draft.world.player.require_sheet().hindrances.extend(["Brief: a burn", "Limping"])
     # A chapter with no exchanges yet is dropped, not appended to; give it one first.
-    draft.log[-1].exchanges.append(Exchange(words="They wait.", lines=()))
-    chapters_before = len(draft.log)
+    draft.chapters[-1].entries.append(LogEntry(words="They wait.", lines=()))
+    chapters_before = len(draft.chapters)
     recap = "They leave the mess behind and press on toward what waits next."
     resolution = await ENGINE.request_handlers()[DEPARTURE].write(
         draft,
         WorldsmithRequest(kind=DEPARTURE, detail="Onward."),
         stub_worldsmith({**NEXT_FIELDS, "recap": recap}),
     )
-    assert len(draft.log) == chapters_before + 1
+    assert len(draft.chapters) == chapters_before + 1
     assert any(fact.card.startswith("New scene:") for fact in resolution.facts)
     assert draft.world.player.require_sheet().hindrances == ["Limping"]
-    # `install` stamps the recap on the chapter being left, not the fresh one it opens.
-    assert draft.log[-2].recap == recap
-    assert draft.log[-1].recap == ""
+    # `install_next` stamps the recap on the chapter being left, not the fresh one it opens.
+    assert draft.chapters[-2].recap == recap
+    assert draft.chapters[-1].recap == ""
 
 
 async def test_the_arrival_cue_carries_neither_the_pursuit_nor_the_players_words() -> None:
     draft = small_world().draft()
-    draft.log[-1].exchanges.append(Exchange(words="They slip out to the fuel tender.", lines=()))
+    draft.chapters[-1].entries.append(LogEntry(words="They slip out to the fuel tender.", lines=()))
     resolution = await ENGINE.request_handlers()[DEPARTURE].write(
         draft,
         WorldsmithRequest(kind=DEPARTURE, detail="fly the tender out to the platform"),

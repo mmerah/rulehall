@@ -1,9 +1,9 @@
 {
   "name": "Galar Dex",
-  "source": "The species of Pokemon Showdown 0.11.11 in the Galar regional dex (PokeAPI galar)",
+  "origin": "The species of Pokemon Showdown 0.11.11 in the Galar regional dex (PokeAPI galar)",
   "license": "MIT (Pokemon Showdown data); personal, non-commercial use",
   "backdrop": "The region is a land of factory towns, rolling hills and wide open grasslands where wild Pokemon live. Every town has a Pokemon Center that heals a trainer's team for free, and the larger towns have a shop and a gym. Trainers travel from town to town with up to six Pokemon, and a trainer who beats a gym leader earns that gym's badge.",
-  "species": [
+  "species_ids": [
     "charmander",
     "charmeleon",
     "charizard",

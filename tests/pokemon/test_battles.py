@@ -6,12 +6,12 @@ from support.showdown import WILD_SETUP, ScriptedSimulator
 from support.showdown import started as simulator_started
 from support.table import change, refused
 
-from rulehall.core.model import Check
+from rulehall.core.game import Check
 from rulehall.core.prompt import Prompt
-from rulehall.engines.entities import Gauge
 from rulehall.engines.pokemon.battle.models import Battle, BattleResult, BattleSetup
 from rulehall.engines.pokemon.sheet import Mon, Trainer
 from rulehall.engines.pokemon.world import PokemonGame
+from rulehall.engines.sheet import Gauge
 
 
 async def test_a_wild_battle_gets_no_model_opponent() -> None:
@@ -61,7 +61,7 @@ def test_a_trainer_win_pays_fifty_per_highest_foe_level_and_marks_the_trainer_be
     assert draft.world.player.require_sheet().money == 3000 + 50 * 4
     rook = draft.world.npcs["rook"]
     assert rook.beaten
-    assert rook.last_battle_visit == len(draft.world.visits)
+    assert rook.last_battle_visit == len(draft.world.visited_place_ids)
     assert draft.world.battle is None
     assert "already battled you on this visit" in refused(
         ENGINE, draft, "start_battle", trainer_id="rook"

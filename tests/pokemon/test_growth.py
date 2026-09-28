@@ -4,7 +4,7 @@ import pytest
 from support.pokemon import ENGINE, started
 from support.table import change, run_action
 
-from rulehall.core.play import PendingOption
+from rulehall.core.decisions import ActionOption
 from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.battle.models import BattleResult
 from rulehall.engines.pokemon.dex import dex
@@ -162,7 +162,7 @@ def _won(draft: PokemonGame) -> BattleResult:
     )
 
 
-def _option(draft: PokemonGame, option_id: str) -> PendingOption:
+def _option(draft: PokemonGame, option_id: str) -> ActionOption:
     decision = pending_decision(draft.world)
     assert decision is not None
     return next(option for option in decision.options if option.id == option_id)

@@ -8,6 +8,7 @@ from nicegui import Client, background_tasks, ui
 from support.showdown import ScriptedSimulator, started
 from support.table import POKEMON, narrated, open_table, play_turn, tool_call
 
+from rulehall.app.game_session import SessionSnapshot
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.pokemon.world import PokemonGame
 from rulehall.ui.battle import BattlePanel
@@ -35,28 +36,32 @@ async def test_a_refused_command_keeps_the_battle_screen_and_only_a_refused_open
     async def start(_engine: AnyEngine) -> ScriptedSimulator:
         return simulator
 
-    table.service.start_transport = start
+    table.session.start_transport = start
     page()
-    panel = BattlePanel(table.service, Sounds(), lambda: None)
+    panel = BattlePanel(table.session, Sounds(), lambda: None)
     panel.build_banner()
-    panel.build(ui.element("div"))
+    drawn = table.session.snapshot()
+    panel.build(ui.element("div"), drawn)
 
     panel.show()
-    await _synced(panel)
-    assert table.service.battle_run is not None
+    drawn = await _synced(panel, drawn)
+    drawn = await _synced(panel, drawn)
+    assert drawn.battle_run is not None
 
     await panel._choose("leave")  # pyright: ignore[reportPrivateUsage]
     assert notified == [NO_BLOCK_LEFT]
-    await _synced(panel)
+    drawn = await _synced(panel, drawn)
     assert panel.column.visible
 
     assert notified == [NO_BLOCK_LEFT, NO_BLOCK_LEFT]
-    await _synced(panel)
+    _ = await _synced(panel, drawn)
     assert not panel.column.visible
     assert panel.banner.visible
 
 
-async def _synced(panel: BattlePanel) -> None:
-    panel.sync(live=True)
+async def _synced(panel: BattlePanel, drawn: SessionSnapshot) -> SessionSnapshot:
+    now = panel.session.snapshot()
+    panel.sync(now, drawn)
     loop, tasks = get_running_loop(), cast(set[Task[object]], background_tasks.running_tasks)
     await gather(*(task for task in tasks.copy() if task.get_loop() is loop))
+    return now

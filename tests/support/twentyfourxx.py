@@ -1,12 +1,12 @@
 from collections.abc import Mapping, Sequence
 from functools import partial
 
-from rulehall.core.model import ScenarioDescription
-from rulehall.core.play import Chapter
+from rulehall.core.game import ScenarioDescription
+from rulehall.core.log import Chapter
 from rulehall.core.validation import EngineId, Slug
-from rulehall.engines.entities import PLAYER_ID
 from rulehall.engines.packs import SRD_PACK
 from rulehall.engines.scenes.world import Scene
+from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.twentyfourxx.engine import TwentyFourXXEngine
 from rulehall.engines.twentyfourxx.rules import SkillDie
 from rulehall.engines.twentyfourxx.sheet import Crewmate, CrewSheet, Gear
@@ -51,7 +51,7 @@ def small_world() -> TwentyFourXXGame:
         ),
         engine_id=EngineId("twentyfourxx"),
         pack_id=SRD_PACK,
-        log=[
+        chapters=[
             Chapter(
                 title="The Loading Bay",
             )
@@ -66,8 +66,8 @@ def hired(
     """Give a cast member a sheet and put them in the party, for tests that need a hired hand."""
     draft = state.draft()
     draft.world.cast[entity_id].sheet = CrewSheet(specialty="Muscle", skills=skills)
-    draft.world.party.append(entity_id)
-    return draft.commit()
+    draft.world.party_ids.append(entity_id)
+    return draft.validated()
 
 
 def _scene(*, here: Sequence[Slug] = ()) -> Scene:
@@ -76,7 +76,7 @@ def _scene(*, here: Sequence[Slug] = ()) -> Scene:
         location="The cargo station",
         title="The Loading Bay",
         situation=SITUATION,
-        here=list(here),
+        here_ids=list(here),
     )
 
 

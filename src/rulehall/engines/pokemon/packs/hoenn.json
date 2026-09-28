@@ -1,9 +1,9 @@
 {
   "name": "Hoenn Dex",
-  "source": "The species of Pokemon Showdown 0.11.11 in the Hoenn regional dex (PokeAPI hoenn)",
+  "origin": "The species of Pokemon Showdown 0.11.11 in the Hoenn regional dex (PokeAPI hoenn)",
   "license": "MIT (Pokemon Showdown data); personal, non-commercial use",
   "backdrop": "The region is a warm land of jungle routes, a smoking volcano and wide seas dotted with islands where wild Pokemon live. Every town has a Pokemon Center that heals a trainer's team for free, and the larger towns have a shop and a gym. Trainers travel from town to town with up to six Pokemon, and a trainer who beats a gym leader earns that gym's badge.",
-  "species": [
+  "species_ids": [
     "pikachu",
     "raichu",
     "sandshrew",

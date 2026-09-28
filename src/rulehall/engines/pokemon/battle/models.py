@@ -8,7 +8,7 @@ from rulehall.core.validation import Frozen, Mutable, Slug
 from rulehall.engines.pokemon.dex import Stats
 
 type BattleKind = Literal["trainer", "wild"]
-type Policy = Literal["random", "greedy", "model"]
+type Policy = Literal["random", "scripted", "model"]
 type Outcome = Literal["won", "lost", "fled", "caught"]
 type Status = Literal["", "brn", "frz", "par", "psn", "tox", "slp"]
 type Gender = Literal["M", "F", "N"]

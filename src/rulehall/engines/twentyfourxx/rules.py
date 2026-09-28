@@ -3,6 +3,7 @@ from typing import Literal
 type SkillDie = Literal[8, 10, 12]
 LADDER: tuple[SkillDie, ...] = (8, 10, 12)
 DEFAULT_DIE = 6
+SKILL_COUNT = 17
 HINDERED_DIE = 4
 HELP_DIE = 6
 BRIEF = "Brief: "
@@ -29,11 +30,11 @@ def brief_hindrance(hindrance: str) -> str:
     return f"{BRIEF}{hindrance}"
 
 
-def spared(*, deadly: bool) -> str:
+def lesser_hurt(*, deadly: bool) -> str:
     return CLOSE_CALL if deadly else MINOR_HURT
 
 
-def raised(current: SkillDie | None) -> SkillDie | None:
+def next_die(current: SkillDie | None) -> SkillDie | None:
     if current is None:
         return LADDER[0]
     if current == LADDER[-1]:

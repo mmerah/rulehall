@@ -1,27 +1,19 @@
 from pathlib import Path
 from random import Random
 
-from rulehall.core.creation import CreationStep, Picks, picked
+from rulehall.core.creation import CreationStep, Picks
+from rulehall.core.decisions import DecisionOption
 from rulehall.core.facts import Fact, roll
-from rulehall.core.model import AnyCharacter, Character
-from rulehall.core.play import DecisionOption
+from rulehall.core.game import AnyCharacter, Character
 from rulehall.core.tools import NoArgs, action, tool
-from rulehall.core.validation import EngineId, Refusal, Slug
+from rulehall.core.validation import EngineId, Refusal, Slug, parse
 from rulehall.core.views import Rows
-from rulehall.engines.entities import PLAYER_ID, Gauge
 from rulehall.engines.hiring import Hiring
 from rulehall.engines.rooms.engine import RoomEngine
-from rulehall.engines.rooms.world import MapProposal, Prop, RegionProposal
+from rulehall.engines.rooms.world import Item, MapProposal, RegionProposal
+from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.args import LevelUp, Roll
-from rulehall.engines.tunnelgoons.pack import (
-    HIRE_GUIDANCE,
-    HIRING,
-    WORLDSMITH_GUIDANCE,
-    AbilitiesProposal,
-    TunnelGoonsBody,
-    TunnelGoonsHead,
-    TunnelGoonsPack,
-)
+from rulehall.engines.tunnelgoons.pack import TunnelGoonsBody, TunnelGoonsHead, TunnelGoonsPack
 from rulehall.engines.tunnelgoons.panels import level_up_decision
 from rulehall.engines.tunnelgoons.sheet import (
     ABILITIES,
@@ -32,7 +24,12 @@ from rulehall.engines.tunnelgoons.sheet import (
     Goon,
     GoonSheet,
 )
-from rulehall.engines.tunnelgoons.world import TunnelGoonsGame, TunnelGoonsWorld
+from rulehall.engines.tunnelgoons.world import (
+    AbilitiesProposal,
+    TunnelGoonsGame,
+    TunnelGoonsWorld,
+)
+from rulehall.engines.tunnelgoons.worldsmith import HIRE_GUIDANCE, HIRING, WORLDSMITH_GUIDANCE
 
 POINT_OPTIONS: tuple[DecisionOption, ...] = tuple(
     DecisionOption(id=str(points), name=str(points)) for points in range(ABILITY_POINTS + 1)
@@ -40,21 +37,21 @@ POINT_OPTIONS: tuple[DecisionOption, ...] = tuple(
 
 
 class TunnelGoonsEngine(
-    Hiring[TunnelGoonsWorld, TunnelGoonsPack, Goon, AbilitiesProposal],
-    RoomEngine[Goon, TunnelGoonsWorld, TunnelGoonsPack],
+    Hiring[Goon, TunnelGoonsWorld, TunnelGoonsPack, RegionProposal[Goon], AbilitiesProposal],
+    RoomEngine[Goon, TunnelGoonsWorld, TunnelGoonsPack, RegionProposal[Goon]],
 ):
     id = EngineId("tunnelgoons")
     title = "TUNNEL GOONS"
     worldsmith_guidance = WORLDSMITH_GUIDANCE
     art_style = "Old-school fantasy illustration in black ink, cross-hatched, no text or lettering."
     directory = Path(__file__).parent
-    pack = TunnelGoonsPack
-    head = TunnelGoonsHead
-    body = TunnelGoonsBody
-    world = TunnelGoonsWorld
-    person = Goon
-    opening = MapProposal[Goon]
-    next_proposal = RegionProposal[Goon]
+    pack_model = TunnelGoonsPack
+    pack_head_model = TunnelGoonsHead
+    pack_body_model = TunnelGoonsBody
+    world_model = TunnelGoonsWorld
+    person_model = Goon
+    opening_model = MapProposal[Goon]
+    next_proposal_model = RegionProposal[Goon]
     hire_model = AbilitiesProposal
     hire_intent = HIRING
 
@@ -66,7 +63,7 @@ class TunnelGoonsEngine(
 
     @tool
     def rest(self, draft: TunnelGoonsGame, _args: NoArgs, _rng: Random) -> list[Fact]:
-        """The player and the party rest here for one night. Their Health goes to full."""
+        """Rest the player and the party here for one night. Their Health goes to full."""
         return draft.world.rest()
 
     def creation_steps(self, pack_id: Slug, _picks: Picks) -> tuple[CreationStep, ...]:
@@ -90,33 +87,37 @@ class TunnelGoonsEngine(
         self, name: str, brief: str, _pack_id: Slug, picks: Picks
     ) -> Character[Goon]:
         abilities: dict[Ability, int] = {
-            ability: int(picked(picks, ability)) for ability in ABILITIES
+            ability: int(picks.get(ability, "")) for ability in ABILITIES
         }
         if sum(abilities.values()) != ABILITY_POINTS:
             raise Refusal(f"the three abilities share exactly {ABILITY_POINTS} points")
-        sheet = Goon(
-            id=PLAYER_ID,
-            name=name,
-            brief=brief,
-            known=True,
-            place_id=PLAYER_ID,
-            hp=Gauge(current=HP_START, maximum=HP_START),
-            sheet=GoonSheet(abilities=abilities),
-            kit=tuple(picked(picks, f"item-{number}") for number in range(1, STARTING_ITEMS + 1)),
+        sheet = parse(
+            Goon,
+            {
+                "id": PLAYER_ID,
+                "name": name,
+                "brief": brief,
+                "known": True,
+                "place_id": PLAYER_ID,
+                "hp": Gauge(current=HP_START, maximum=HP_START),
+                "sheet": GoonSheet(abilities=abilities),
+                "kit": tuple(
+                    picks.get(f"item-{number}", "") for number in range(1, STARTING_ITEMS + 1)
+                ),
+            },
         )
-        sheet.unpack_kit(())
-        return self.sheet_character(name, sheet)
+        return self.character_of(name, sheet)
 
     def preview_character(self, character: AnyCharacter) -> Rows:
         sheet = self.player_of(character)
         return (*sheet.rows(), ("Items", ", ".join(sheet.kit)))
 
-    def starting_items(self, proposal: MapProposal[Goon], player: Goon) -> tuple[Prop, ...]:
+    def starting_items(self, proposal: MapProposal[Goon], player: Goon) -> tuple[Item, ...]:
         return player.unpack_kit((*proposal.places, *proposal.npcs, *proposal.items))
 
     @tool
     def roll(self, draft: TunnelGoonsGame, args: Roll, rng: Random) -> list[Fact]:
-        """Call this for an uncertain action that has a real cost. The engine rolls 2d6, adds
+        """Roll for an uncertain action that has a real cost. The engine rolls 2d6, adds
         the ability and the items, and reads the total."""
         world = draft.world
         actor = world.require_actor(args.actor_id)
@@ -160,7 +161,7 @@ class TunnelGoonsEngine(
     @tool
     @action
     def level_up(self, draft: TunnelGoonsGame, args: LevelUp, _rng: Random) -> list[Fact]:
-        """Call this one time, when the whole adventure ends. The engine gives the choice to the
+        """Level up one time, when the whole adventure ends. The engine gives the choice to the
         player first, then to each living hired member in turn."""
         world = draft.world
         player = world.player

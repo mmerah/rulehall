@@ -2,8 +2,8 @@
 
 The master reads PLAYER ACTION from its prompt like the real one. A line that starts with `!` is
 a script: `!ask question="Does the door give?"` calls that tool,
-`!crash` and `!refuse` fail the spawn, `!fail narrator` fails another role's next ask (its retry
-too), `!bad worldsmith` makes one answer garbage so the retry lands.
+`!crash` and `!refuse` fail the master's run, `!fail narrator` fails another role's next ask,
+`!bad worldsmith` makes one answer garbage so the retry lands.
 Plain words with no script get one engine-appropriate roll, so dice show up in the page; a
 Loner question the player asks is rolled as `ask(question: null)`.
 
@@ -24,9 +24,8 @@ from typing import Literal
 
 from pydantic import JsonValue
 
-from rulehall.app.roles import RETRIES
+from rulehall.app.roles import RoleReply
 from rulehall.app.runtime import Runtime
-from rulehall.app.spawn import RunResult
 from rulehall.app.turn import Turn
 from rulehall.config import Role
 from rulehall.core.prompt import Prompt
@@ -60,35 +59,43 @@ class ScriptedAgents:
     faults: dict[Role, list[Fault]] = field(default_factory=dict)
     log: list[Spoken] = field(default_factory=list)
     # The first prompt of each session: a resumed CLI still holds it, so a retry reads it too.
-    conversations: dict[str, str] = field(default_factory=dict)
+    first_prompts: dict[str, str] = field(default_factory=dict)
     scenes: "count[int]" = field(default_factory=lambda: count(1))
 
-    async def run(
+    async def answer(
         self,
         role: Role,
         prompt: Prompt,
-        conversation: str | None,
-        turn: Turn | None = None,
+        *,
+        resume_id: str | None = None,
         heard: Callable[[str], None] | None = None,
-    ) -> RunResult:
-        del turn, heard
+    ) -> RoleReply:
+        del heard
         text = prompt.text
-        spoken = Spoken(role=role, prompt=text, answer="")
-        self.log.append(spoken)
-        if conversation is None:
+        if resume_id is None:
             first = asked = text
         else:
-            first = self.conversations[conversation]
+            first = self.first_prompts[resume_id]
             asked = f"{first}\n\n{text}"
-        conversation_id = f"{role}-{len(self.log)}"
-        self.conversations[conversation_id] = first
+        next_resume_id = f"{role}-{len(self.log) + 1}"
+        self.first_prompts[next_resume_id] = first
+        spoken = await self._spoken(role, asked, text)
+        return RoleReply(spoken.answer, next_resume_id)
+
+    async def play_master_turn(self, prompt: Prompt, turn: Turn) -> None:
+        del turn
+        _ = await self._spoken("master", prompt.text, prompt.text)
+
+    async def _spoken(self, role: Role, asked: str, text: str) -> Spoken:
+        spoken = Spoken(role=role, prompt=text, answer="")
+        self.log.append(spoken)
         await sleep(self.delay)
         try:
             spoken.answer = await self._answer(role, asked, spoken)
         except (OSError, Refusal) as failed:
             spoken.error = f"{type(failed).__name__}: {failed}"
             raise
-        return RunResult(spoken.answer, conversation_id)
+        return spoken
 
     async def _answer(self, role: Role, prompt: str, spoken: Spoken) -> str:
         armed = self.faults.get(role, [])
@@ -132,16 +139,13 @@ class ScriptedAgents:
                 case "none":
                     continue
                 case "fail" | "bad" | "slow":
-                    role = _role(rest[0])
-                    # A failure holds through the retry: the ask fails, not one spawn of it.
-                    times = RETRIES + 1 if head == "fail" else 1
-                    self.faults.setdefault(role, []).extend([head] * times)
+                    self.faults.setdefault(_role(rest[0]), []).append(head)
                 case _:
                     await self._call(head, _args(rest), spoken)
 
     async def _call(self, name: str, args: dict[str, JsonValue], spoken: Spoken) -> None:
         try:
-            answered = self._runtime().gate.require_turn().call(name, args)
+            answered = self._runtime().gate.require_turn().call_tool(name, args)
         except Refusal as refused:
             answered = f"REFUSED: {refused}"
         spoken.calls.append((name, args, answered))
@@ -169,7 +173,8 @@ class ScriptedAgents:
         schema = _section(prompt, "ANSWER WITH")
         number = next(self.scenes)
         if '"boss_id"' in schema:
-            return self._pokemon_region(_section(prompt, "WHAT COMES NEXT"), number)
+            asked = f"{_section(prompt, 'WHAT COMES NEXT')}\n{_section(prompt, 'DUE')}"
+            return self._pokemon_region(asked, number)
         if '"ally"' in schema:
             return self._meanwhile(prompt, schema, number)
         if '"events"' in schema:
@@ -281,8 +286,8 @@ class ScriptedAgents:
             "place_id": f"qa-place-{number}",
             "title": f"QA Scene {number}",
             "situation": f"Scene {number}, written by the scripted worldsmith. Nothing is hidden.",
-            "present": [f"qa-npc-{number}"],
-            "hidden": [],
+            "present_ids": [f"qa-npc-{number}"],
+            "hidden_ids": [],
             "cast": {
                 f"qa-npc-{number}": {
                     "id": f"qa-npc-{number}",

@@ -1,22 +1,27 @@
 from collections import Counter
 from collections.abc import Sequence
-from typing import Self, cast
+from random import Random
+from typing import Annotated
 
 from pydantic import Field
 
-from rulehall.core.facts import Fact
-from rulehall.core.model import Game
+from rulehall.core.creation import ANSWER_MAX
+from rulehall.core.facts import Fact, roll
+from rulehall.core.game import Game
 from rulehall.core.prompt import lines_of
-from rulehall.core.validation import Refusal, Slug, slug
+from rulehall.core.validation import Frozen, Refusal, Slug, slug
 from rulehall.core.views import Rows
-from rulehall.engines.entities import (
-    PLAYER_ID,
-)
+from rulehall.engines.name_leaks import unmet_people_named
 from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld, stranger_name
+from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.twentyfourxx.rules import (
     BRIEF,
+    NO_WORK,
+    ODD_WORK,
+    TWO_JOBS_FOUND,
     brief_hindrance,
-    spared,
+    lesser_hurt,
+    outcome_band,
 )
 from rulehall.engines.twentyfourxx.sheet import MAIMED, SHIP_FUNCTIONS, SHIP_IDS, Crewmate, Gear
 
@@ -24,8 +29,8 @@ ALREADY_MAIMED = "{who} is already maimed: the engine writes no second maim"
 GEAR_KEPT = "a setback is a lesser consequence: the gear named for {who} stays whole"
 UPGRADE_COST = 10
 ALREADY_BROKEN = "{name} is already broken"
-BREAKS_HARMLESSLY = "{name} breaks harmlessly. Leave `hindrance` empty"
-SHIP_AWAY = "The ship is not here"
+BREAKS_HARMLESSLY = "{name} breaks harmlessly: leave `hindrance` empty"
+SHIP_AWAY = "the ship is not here"
 LET_GO = "let go from the crew"
 NO_PAY_FIGURE = (
     "Name no credit figure: each operator's pay is a d6 rolled when the job is finished."
@@ -39,11 +44,57 @@ FIND_FIRST = (
     "offer, then `take` the job the player agrees to"
 )
 WORK_AT = "Work at "
+TWO_JOBS = (
+    "offer two jobs with `direct`; the player picks in their words; `job` `take` records the pick"
+)
+ODD_JOB = (
+    "offer one job with `direct`, and let something about it seem off; write what seems off in "
+    "`terms` when the player takes it"
+)
+NO_JOB = (
+    "no work, unless the crew takes a job that leaves them owing somebody: offer that with "
+    "`direct`; write the debt in `terms` when the player takes it"
+)
 JOB_TAKEN = "Job taken"
-JOB_OPEN = "a job is open: {job}. Call `job` `finish` first if that job is over or failed for good"
+JOB_OPEN = "a job is open: {job}; call `job` `finish` first if that job is over or failed for good"
 
 
-class TwentyFourXXScene(SceneProposal[Crewmate]):
+class SheetProposal(Frozen):
+    """An operator's creation choices. The engine builds the sheet from them: the specialty's
+    skills and kit, the origin's increases, traits and body, the starting kit and ₡2."""
+
+    specialty: str = Field(description="One of the specialties in ENGINE GUIDANCE.")
+    specialty_skills: str = Field(
+        default="",
+        description="The specialty's skills option, when it offers one. Empty otherwise.",
+    )
+    weapon: str = Field(
+        default="",
+        description="The specialty's weapon option, when it offers one. Empty otherwise.",
+    )
+    origin: str = Field(description="One of the origins in ENGINE GUIDANCE.")
+    traits: tuple[Annotated[str, Field(max_length=ANSWER_MAX)], ...] = Field(
+        default=(),
+        description="One invented trait for each the origin gives, such as 'wings'. Empty "
+        "otherwise.",
+    )
+    body: str = Field(
+        default="", description="The origin's body option, when it offers one. Empty otherwise."
+    )
+    increases: tuple[Annotated[str, Field(max_length=ANSWER_MAX)], ...] = Field(
+        default=(),
+        description="One skill for each increase the origin gives: from the skills in ENGINE "
+        "GUIDANCE, or one you invent that fits. A skill named twice rises twice.",
+    )
+
+
+class NewcomerProposal(Frozen):
+    name: str = Field(min_length=1, description="The operator's name, as the player gave it.")
+    brief: str = Field(min_length=1, description="Who they are, in one line.")
+    sheet: SheetProposal
+
+
+class TwentyFourXXSceneProposal(SceneProposal[Crewmate]):
     job: str = Field(
         default="",
         description="The work the player already has when play starts, in the terms they "
@@ -71,15 +122,11 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
     work_rolled: bool = False
     dead_lead: str = ""
 
-    @classmethod
-    def opening(cls, proposal: SceneProposal[Crewmate], player: Crewmate) -> Self:
-        world = super().opening(filed_by_name(proposal), player)
-        # Safe: the engine writes only this proposal type.
-        opening = cast(TwentyFourXXScene, proposal)
-        world.job = opening.job
-        world.ship_at = opening.ship_at or world.scene.location
-        world.check_unnamed(world.job)
-        return world
+    def apply_proposal_extras(self, proposal: TwentyFourXXSceneProposal) -> None:
+        self.job = proposal.job
+        self.ship_at = proposal.ship_at or self.scene.location
+        self.hear(self.job)
+        self.refuse_unmet_names(self.job)
 
     def scene_lines(self) -> str:
         return "\n".join(line for line in (super().scene_lines(), self.new_lead_line()) if line)
@@ -143,7 +190,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
     ) -> list[Fact]:
         if not disaster and not deadly:
             kept = [actor.fact(GEAR_KEPT.format(who=actor.mention))] if item_id else []
-            hurt = actor.hinder(brief_hindrance(spared(deadly=False))) if harm else []
+            hurt = actor.hinder(brief_hindrance(lesser_hurt(deadly=False))) if harm else []
             return [*kept, *hurt]
         if item_id is not None:
             item = self.require_gear(actor, item_id)
@@ -266,8 +313,8 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         if member is dead:
             raise Refusal(f"{dead.name} is dead and cannot lead")
         del self.cast[member.id]
-        self.party.remove(member.id)
-        self.scene.here.remove(member.id)
+        self.party_ids.remove(member.id)
+        self.scene.here_ids.remove(member.id)
         return self.lead(member)
 
     def lead(self, member: Crewmate) -> list[Fact]:
@@ -278,7 +325,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         self.raise_owed = False
         self.dead_lead = dead.name
         self.cast[dead.id] = dead
-        self.scene.here.append(dead.id)
+        self.scene.here_ids.append(dead.id)
         trace = f"{member.mention} takes the lead; {dead.tag} is dead"
         facts = [member.fact(trace, card=f"{member.name} leads now")]
         carried = dead.require_sheet().items
@@ -295,17 +342,17 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         return facts
 
     def leave_party(self, entity_id: Slug) -> list[Fact]:
-        if entity_id not in self.party:
+        if entity_id not in self.party_ids:
             return []
         facts = super().leave_party(entity_id)
         member = self.cast[entity_id]
-        if not member.hired:
+        if not member.has_sheet:
             return facts
         trace = f"{member.tag} is no longer with the crew"
         return [member.fact(trace, card=f"{member.name} leaves the crew")]
 
     def was_let_go(self, entry: Crewmate) -> bool:
-        return entry.hired and entry.alive and entry.id not in self.party
+        return entry.has_sheet and entry.alive and entry.id not in self.party_ids
 
     def last_seen(self, entity_id: Slug) -> str:
         seen = super().last_seen(entity_id)
@@ -316,13 +363,9 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
             other.line(detail=LET_GO if self.was_let_go(other) else "") for other in self.others()
         )
 
-    def check_unnamed(self, *texts: str) -> None:
-        self.hear(*texts)
-        super().check_unnamed(*texts)
-
     def hear(self, *texts: str) -> None:
         hidden = self.hidden()
-        for person in self.unmet_named(*texts):
+        for person in unmet_people_named("\n".join(texts), self.people()):
             if person.id not in hidden:
                 person.known = True
 
@@ -332,7 +375,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
 
     def enter(self, entity_id: Slug) -> list[Fact]:
         if entity_id not in self.cast and entity_id != self.player.id:
-            super().check_unnamed(stranger_name(entity_id))
+            self.refuse_unmet_names(stranger_name(entity_id))
             self.file_stranger(entity_id, f"met at {self.scene.title}")
         return super().enter(entity_id)
 
@@ -347,6 +390,18 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
             if entry.question.startswith(WORK_AT):
                 return entry.question.removeprefix(WORK_AT)
         return ""
+
+    def find_work(self, where: str, rng: Random) -> list[Fact]:
+        self.require_no_job()
+        rolled = roll((6,), where, rng)
+        face = rolled.face
+        result = outcome_band(face, NO_WORK, ODD_WORK, TWO_JOBS_FOUND)
+        self.settle(f"{WORK_AT}{where}", result)
+        return [
+            rolled.fact,
+            self.player.card_fact(f"{where} — d6 → {result}", (rolled.event,)),
+            Fact(trace=outcome_band(face, NO_JOB, ODD_JOB, TWO_JOBS)),
+        ]
 
     def take_job(self, terms: str) -> list[Fact]:
         if not self.job and not self.looked_at():
@@ -364,13 +419,13 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         self.job = ""
 
 
-TwentyFourXXNext = NextProposal[Crewmate]
+TwentyFourXXNextProposal = NextProposal[Crewmate]
 
 
 TwentyFourXXGame = Game[TwentyFourXXWorld]
 
 
-def filed_by_name[P: SceneProposal[Crewmate]](proposal: P) -> P:
+def filed_by_name[S: SceneProposal[Crewmate]](proposal: S) -> S:
     filed: dict[Slug, Crewmate] = {}
     renamed: dict[str, Slug] = {}
     for key, entry in proposal.cast.items():
@@ -384,7 +439,7 @@ def filed_by_name[P: SceneProposal[Crewmate]](proposal: P) -> P:
     return proposal.model_copy(
         update={
             "cast": filed,
-            "present": placed(proposal.present),
-            "hidden": placed(proposal.hidden),
+            "present_ids": placed(proposal.present_ids),
+            "hidden_ids": placed(proposal.hidden_ids),
         }
     )

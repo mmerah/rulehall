@@ -5,8 +5,8 @@ from support.game import character, initialized, scenario
 from support.table import ENGINES_BUILT, LONER4E, NO_SHIPPED, SCENARIO_MODELS, updated
 
 from rulehall.core.facts import Fact
-from rulehall.core.io import ENCODING, FileStore, Library, publish, write_text
-from rulehall.core.play import Exchange, Line, partial_lines
+from rulehall.core.log import Line, LogEntry, RefusedCall, facts_and_refusals, partial_lines
+from rulehall.core.stores import ENCODING, Library, SaveStore, publish, write_text
 from rulehall.core.validation import EngineId, Refusal
 
 MIRROR = EngineId("mirror")
@@ -15,8 +15,8 @@ MIRROR = EngineId("mirror")
 def test_a_saved_games_history_round_trips(tmp_path: Path) -> None:
     engine, state = initialized()
     draft = state.draft()
-    draft.log[-1].exchanges = [
-        Exchange(
+    draft.chapters[-1].entries = [
+        LogEntry(
             words="I take the map.",
             lines=(),
             facts=(
@@ -28,19 +28,19 @@ def test_a_saved_games_history_round_trips(tmp_path: Path) -> None:
             ),
         ),
     ]
-    saved = draft.commit()
-    store = FileStore(tmp_path)
+    saved = draft.validated()
+    store = SaveStore(tmp_path)
 
     store.write("roundtrip", saved)
     reloaded = store.read("roundtrip")
 
     assert reloaded is not None
-    assert engine.restore(reloaded).exchanges() == saved.exchanges()
+    assert engine.restore(reloaded).log_entries() == saved.log_entries()
 
 
 @pytest.mark.parametrize("save_id", ("../escape", "/absolute", "bad slug", ""))
 def test_storage_rejects_unsafe_save_ids(tmp_path: Path, save_id: str) -> None:
-    store = FileStore(tmp_path)
+    store = SaveStore(tmp_path)
 
     with pytest.raises(ValueError, match="invalid save id"):
         store.read(save_id)
@@ -52,7 +52,7 @@ def test_content_paths_reject_an_unsafe_id(tmp_path: Path) -> None:
     with pytest.raises(Refusal, match="invalid content id"):
         library.read_scenario("../escape", SCENARIO_MODELS)
     with pytest.raises(Refusal, match="invalid content id"):
-        library.read_character("kael/../..", engine.id, engine.character)
+        library.read_character("kael/../..", engine.id, engine.character_model)
 
 
 def test_write_scenario_round_trips_and_refuses_a_duplicate(tmp_path: Path) -> None:
@@ -91,7 +91,7 @@ def test_shipped_content_is_read_only_and_wins_an_id_over_player_content(tmp_pat
     unshipped.write_scenario(
         "vault", updated(scenario(), description=updated(scenario().description, title="X"))
     )
-    unshipped.write_character(updated(character(), sheet=updated(character().sheet, name="Mira")))
+    unshipped.write_character(updated(character(), person=updated(character().person, name="Mira")))
     library = Library(player, player, tmp_path)
 
     library.write_scenario("mine", scenario())
@@ -102,7 +102,7 @@ def test_shipped_content_is_read_only_and_wins_an_id_over_player_content(tmp_pat
         "vault",
     ]
     assert library.read_scenario("vault", SCENARIO_MODELS) == scenario()
-    assert library.read_character("kael", engine.id, engine.character).sheet.name == "Kael"
+    assert library.read_character("kael", engine.id, engine.character_model).person.name == "Kael"
     with pytest.raises(Refusal, match="already exists"):
         library.write_scenario("vault", scenario())
     with pytest.raises(Refusal, match="ships with the game"):
@@ -115,12 +115,12 @@ def test_a_character_written_for_a_second_engine_must_keep_its_name(tmp_path: Pa
     library = Library(tmp_path, tmp_path, NO_SHIPPED)
     library.write_character(filed)
 
-    renamed = updated(filed, engine_id=MIRROR, sheet=updated(filed.sheet, name="Mira"))
+    renamed = updated(filed, engine_id=MIRROR, person=updated(filed.person, name="Mira"))
     with pytest.raises(Refusal, match="is 'Kael', not 'Mira'"):
         library.write_character(renamed)
 
     library.write_character(updated(filed, engine_id=MIRROR))
-    assert library.read_character("kael", engine.id, engine.character).sheet.name == "Kael"
+    assert library.read_character("kael", engine.id, engine.character_model).person.name == "Kael"
 
 
 def test_rewrite_character_overwrites_a_player_sheet_and_refuses_a_shipped_one(
@@ -129,11 +129,11 @@ def test_rewrite_character_overwrites_a_player_sheet_and_refuses_a_shipped_one(
     engine = ENGINES_BUILT[LONER4E]
     player = Library(tmp_path, tmp_path / "characters", NO_SHIPPED)
     player.write_character(character())
-    grown = updated(character(), sheet=updated(character().sheet, concept="A wiser thief"))
+    grown = updated(character(), person=updated(character().person, concept="A wiser thief"))
 
     player.rewrite_character(grown)
 
-    assert player.read_character("kael", engine.id, engine.character) == grown
+    assert player.read_character("kael", engine.id, engine.character_model) == grown
     with pytest.raises(Refusal, match="ships with the game"):
         Library(tmp_path, tmp_path / "characters", tmp_path).rewrite_character(grown)
 
@@ -177,3 +177,15 @@ def test_partial_lines_keeps_only_the_lines_finished_enough_to_show(
     raw: str, lines: tuple[Line, ...]
 ) -> None:
     assert partial_lines(raw) == lines
+
+
+def test_facts_and_refusals_put_a_refusal_before_the_next_fact_and_drop_hidden_refusals() -> None:
+    first, second = Fact(trace="first"), Fact(trace="second")
+    refused = RefusedCall(tool="hire", reason="not now", after_facts=1)
+
+    assert facts_and_refusals((first, second), (refused,), refusals=True) == (
+        first,
+        refused,
+        second,
+    )
+    assert facts_and_refusals((first, second), (refused,), refusals=False) == (first, second)

@@ -1,10 +1,8 @@
 import json
-import logging
 import re
 import unicodedata
 from collections import Counter
 from collections.abc import Iterable, Mapping
-from functools import cache
 from typing import Annotated, NewType, cast
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
@@ -14,10 +12,6 @@ SLUG_MAX = 64
 Slug = Annotated[str, Field(pattern=rf"^{SLUG_PATTERN}$", max_length=SLUG_MAX)]
 
 EngineId = NewType("EngineId", str)
-NULL_WORDS = ("null", "None", "")
-LOGGER = logging.getLogger(__name__)
-
-type Schema = Mapping[str, JsonValue]
 
 
 class Frozen(BaseModel):
@@ -58,12 +52,21 @@ def slug(text: str, taken: Iterable[str]) -> Slug:
     return _unused(_capped(words, SLUG_MAX), taken)
 
 
+def slugs(names: Iterable[str], taken: Iterable[str] = ()) -> list[Slug]:
+    used = set(taken)
+    made: list[Slug] = []
+    for name in names:
+        made.append(slug(name, used))
+        used.add(made[-1])
+    return made
+
+
 def check_unique(what: str, ids: Iterable[str]) -> None:
     if found := sorted(name for name, count in Counter(ids).items() if count > 1):
         raise Refusal(f"duplicate {what}: {found}")
 
 
-def listed(value: object) -> object:
+def as_tuple(value: object) -> object:
     if isinstance(value, str):
         return (value,)
     # Past a before-validator the input is Python, where strict mode takes a tuple, not a list.
@@ -93,16 +96,17 @@ def decode(raw: str) -> JsonValue:
         raise Refusal(f"not JSON: {broken}") from broken
 
 
-def routed[T](raw: str, by_engine: Mapping[EngineId, T]) -> T:
-    engine_id = parse(EngineHeader, decode(raw)).engine_id
+def parse_strict_json[T: BaseModel](model: type[T], raw: str) -> T:
+    decode(raw)
+    return parse_json(model, raw)
+
+
+def for_engine_of[T](raw: str, by_engine: Mapping[EngineId, T]) -> T:
+    engine_id = parse_strict_json(EngineHeader, raw).engine_id
     found = by_engine.get(engine_id)
     if found is None:
         raise Refusal(f"the {engine_id!r} engine is not installed")
     return found
-
-
-def parse_mended[T: BaseModel](model: type[T], value: JsonValue) -> T:
-    return parse_json(model, json.dumps(_mended(value, _schema(model), model)))
 
 
 def _refused(broken: ValidationError) -> Refusal:
@@ -131,55 +135,3 @@ def _unused(base: str, taken: Iterable[str]) -> str:
 
 def _capped(words: str, limit: int) -> str:
     return words[:limit].rstrip("-")
-
-
-@cache
-def _schema(model: type[BaseModel]) -> Schema:
-    return model.model_json_schema()
-
-
-def _shapes(schema: Schema, model: type[BaseModel]) -> list[Schema]:
-    ref = schema.get("$ref")
-    if isinstance(ref, str):
-        defs = _as_schema(_schema(model).get("$defs", {}))
-        return _shapes(_as_schema(defs[ref.rsplit("/", 1)[-1]]), model)
-    branches = schema.get("anyOf")
-    if not isinstance(branches, list):
-        return [schema]
-    return [shape for branch in branches for shape in _shapes(_as_schema(branch), model)]
-
-
-def _as_schema(node: JsonValue | Schema) -> Schema:
-    return node if isinstance(node, dict) else {}
-
-
-def _mended(value: JsonValue, schema: Schema, model: type[BaseModel]) -> JsonValue:
-    shapes = {shape.get("type"): shape for shape in _shapes(schema, model)}
-    if isinstance(value, str):
-        if "null" in shapes and value.strip() in NULL_WORDS:
-            return None
-        if "string" not in shapes and "array" in shapes:
-            return _mended([value], shapes["array"], model)
-        return value
-    if isinstance(value, list) and "array" in shapes:
-        items = _as_schema(shapes["array"].get("items"))
-        return [_mended(item, items, model) for item in value]
-    if isinstance(value, dict) and "object" in shapes:
-        shape = shapes["object"]
-        if extra := [key for key in value if _field(shape, key) is None]:
-            LOGGER.info("dropped fields %s from a %s answer", extra, model.__name__)
-        return {
-            key: _mended(item, field, model)
-            for key, item in value.items()
-            if (field := _field(shape, key)) is not None
-        }
-    return value
-
-
-def _field(schema: Schema, key: str) -> Schema | None:
-    if key in (fields := _as_schema(schema.get("properties"))):
-        return _as_schema(fields[key])
-    patterns = _as_schema(schema.get("patternProperties"))
-    matched = (shape for pattern, shape in patterns.items() if re.search(pattern, key))
-    other = next(matched, schema.get("additionalProperties"))
-    return None if other is False else _as_schema(other)

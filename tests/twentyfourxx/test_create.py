@@ -3,6 +3,7 @@ from support.twentyfourxx import ENGINE
 
 from rulehall.core.validation import Refusal
 from rulehall.engines.packs import SRD_PACK
+from rulehall.engines.twentyfourxx.world import SheetProposal
 
 SNEAK = {
     "specialty": "sneak",
@@ -36,7 +37,7 @@ def test_creation_steps_grow_with_picks(picks: dict[str, str], expected: list[st
 
 def test_create_character_builds_the_sheet() -> None:
     character = ENGINE.create_character("Rook", "A quiet operator", SRD_PACK, SNEAK)
-    sheet = character.sheet.require_sheet()
+    sheet = character.person.require_sheet()
     assert sheet.skills == {"Stealth": 12, "Climbing": 8, "Piloting": 8}
     assert sheet.specialty == "Sneak"
     assert sheet.origin == "Human"
@@ -48,3 +49,24 @@ def test_pick_past_d12_is_refused() -> None:
         ENGINE.create_character(
             "Rook", "A quiet operator", SRD_PACK, {**SNEAK, "increase-3": "stealth"}
         )
+
+
+def test_a_sheet_takes_answers_by_name_and_refuses_what_is_not_on_offer() -> None:
+    muscle = SheetProposal(
+        specialty="Muscle",
+        specialty_skills="shooting",
+        weapon="Cyber-arm",
+        origin="android",
+        body="Case",
+        increases=("Piloting",),
+    )
+    sheet = ENGINE.build_sheet(SRD_PACK, muscle)
+    assert sheet.skills == {"Intimidation": 8, "Shooting": 8, "Piloting": 8}
+    assert [item.name for item in sheet.items.values()] == ["Comm", "Cyber-arm", "Case"]
+    for refused in (
+        muscle.model_copy(update={"weapon": "Laser"}),
+        muscle.model_copy(update={"specialty": "Sneak"}),
+        muscle.model_copy(update={"increases": ()}),
+    ):
+        with pytest.raises(Refusal):
+            ENGINE.build_sheet(SRD_PACK, refused)

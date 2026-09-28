@@ -8,13 +8,13 @@ from typing import TypedDict
 from httpx import ASGITransport, AsyncClient
 from support.table import NO_PACKS, narrated, offline_settings
 
-from rulehall.app.launch import LaunchTarget
+from rulehall.app.catalog import SavedGameKey
 from rulehall.app.mcp import MountedLifespan, endpoint
+from rulehall.app.roles import RoleReply
 from rulehall.app.runtime import Runtime
-from rulehall.app.spawn import RunResult
 from rulehall.app.turn import Turn
 from rulehall.config import Role
-from rulehall.core.play import Answer
+from rulehall.core.decisions import PlayerInput
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import EngineId
 from rulehall.engines.loner4e.engine import Loner4eEngine
@@ -49,24 +49,24 @@ class HttpMaster:
     tools_seen: list[str] = field(default_factory=list)
     change_result: Result | None = None
 
-    async def run(
+    async def answer(
         self,
         role: Role,
         prompt: Prompt,
-        conversation: str | None,
-        turn: Turn | None = None,
+        *,
+        resume_id: str | None = None,
         heard: Callable[[str], None] | None = None,
-    ) -> RunResult:
+    ) -> RoleReply:
+        del role, prompt, resume_id, heard
+        return RoleReply(narrated("You wait."), None)
 
-        del heard, prompt, conversation, turn
-        if role != "master":
-            return RunResult(narrated("You wait."), None)
+    async def play_master_turn(self, prompt: Prompt, turn: Turn) -> None:
+        del prompt, turn
         assert self.client is not None
         listed = await rpc(self.client, "tools/list", {})
         self.tools_seen = [tool["name"] for tool in listed.get("result", {}).get("tools", [])]
         called = await rpc(self.client, "tools/call", ENTER_TOMAS)
         self.change_result = called.get("result")
-        return RunResult("done", None)
 
 
 async def rpc(client: AsyncClient, method: str, params: dict[str, object]) -> Reply:
@@ -83,7 +83,7 @@ async def rpc(client: AsyncClient, method: str, params: dict[str, object]) -> Re
 
 async def test_master_tools_over_the_mcp_endpoint(tmp_path: Path) -> None:
     master = HttpMaster()
-    runtime = Runtime(offline_settings(tmp_path), spawner=master)
+    runtime = Runtime(offline_settings(tmp_path), roles=master)
     asgi, manager = endpoint(runtime.gate)
     lifespan = MountedLifespan(manager)
     await lifespan.start()
@@ -107,24 +107,24 @@ async def test_master_tools_over_the_mcp_endpoint(tmp_path: Path) -> None:
             runtime.engines = {toolless.id: toolless, **runtime.engines}
 
             # Mid-turn: the engine's tools are published, and a landed call carries no error.
-            service = runtime.session(
-                LaunchTarget(scenario_id="whispering-vault", character_id="kael")
+            service = runtime.session_for(
+                SavedGameKey(scenario_id="whispering-vault", character_id="kael")
             )
-            await service.play(Answer(text="I search the vault."))
+            await service.play(PlayerInput(text="I search the vault."))
             assert "ask" in master.tools_seen
             assert "enter" in master.tools_seen
             change_result = master.change_result
             assert change_result is not None
             assert change_result.get("isError") is not True
 
-            facts = service.state.exchanges()[-1].facts
+            facts = service.state.log_entries()[-1].facts
             assert any("tomas" in fact.trace for fact in facts)
     finally:
         await lifespan.stop()
 
 
 async def test_a_lan_client_is_refused_at_the_mcp_endpoint(tmp_path: Path) -> None:
-    runtime = Runtime(offline_settings(tmp_path), spawner=HttpMaster())
+    runtime = Runtime(offline_settings(tmp_path), roles=HttpMaster())
     asgi, _ = endpoint(runtime.gate)
     lan = ASGITransport(app=asgi, client=("192.168.1.20", 50000))
     async with AsyncClient(transport=lan, base_url=BASE_URL) as client:

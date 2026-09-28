@@ -18,7 +18,7 @@
       "description": "The place as it stands: what the player sees, hears and smells here, and what the place offers or blocks. Describe the place. Never narrate an action, and never tell what the player does. Hold nothing hidden here.",
       "type": "string"
     },
-    "present": {
+    "present_ids": {
       "default": [],
       "description": "Ids of who and what is in the scene now.",
       "items": {
@@ -95,7 +95,7 @@
     },
     "arc": {
       "default": "",
-      "description": "The long game that spans the scenes: pressure, intent and what can come later. Never restate or change what happened, and never what is true in this scene now. The player never reads it.",
+      "description": "The long game that spans the scenes: pressure, intent and what can come later. Never restate or change what happened, and never what is true in this scene now. The player never reads it. Revise it only where what happened makes a change necessary, else leave it empty.",
       "type": "string"
     },
     "recap": {

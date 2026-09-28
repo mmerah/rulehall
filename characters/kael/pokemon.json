@@ -1,7 +1,7 @@
 {
   "id": "kael",
   "engine_id": "pokemon",
-  "sheet": {
+  "person": {
     "id": "player",
     "name": "Kael",
     "brief": "A quiet trainer from Tern Harbour who wants to see every island.",

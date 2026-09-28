@@ -1,37 +1,27 @@
 import string
 from collections.abc import Awaitable, Callable, Generator, Sequence
 from contextlib import contextmanager
-from functools import partial
 from hashlib import sha1
-from itertools import groupby
 from pathlib import Path
 from typing import Literal
 
 from nicegui import app, ui
-from nicegui.events import EChartPointClickEventArguments
 
-from rulehall.app.launch import LaunchTarget
-from rulehall.core.play import PendingOption
-from rulehall.core.validation import EngineId, Slug
-from rulehall.core.views import Choice, Look, MapNode, MapView, Meter, Sprite, Tag
+from rulehall.app.game_session import Busy
+from rulehall.core.validation import Refusal
+from rulehall.core.views import Look
 from rulehall.ui import theme
+from rulehall.ui.routes import HOME, SOUNDS
 
 type ClipName = Literal["roll"]
 
-DM_ICON = "sym_r_auto_stories"
 BRAND_ICON = "sym_r_casino"
 HOME_ICON = "sym_r_home"
 DANGER_ICON = "sym_r_warning"
 ARROW_ICON = "sym_r_arrow_forward"
 PASS_THROUGH = "display: contents"
-TURN_FAILED = "Something went wrong. The turn did not complete. Look in the server log."
-BATTLE_FAILED = "Something went wrong. The battle did not start. Look in the server log."
-GAME_ROUTE = "/game/{scenario}/{character}"
 SOUNDS_DIR = Path(__file__).parent / "sounds"
-SOUNDS_ROUTE = "/sounds/"
-ASSETS_ROUTE = "/assets"
 DICE_CLIP: ClipName = "roll"
-LIGHT_TAG_LUMINANCE = 0.4
 BLANK = string.whitespace + (
     "\xa0\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"
     "\u200b\u200c\u200d\u2060\ufeff"
@@ -42,7 +32,7 @@ _media_routes: dict[Path, str] = {}
 class Sounds(ui.element, component="sounds.js"):
     def __init__(self) -> None:
         super().__init__()
-        self._props["base"] = SOUNDS_ROUTE
+        self._props["base"] = SOUNDS
         self._props["clips"] = [DICE_CLIP]
         self._props["reeled"] = DICE_CLIP
 
@@ -82,14 +72,6 @@ class Banner(ui.column):
             self.actions = ui.row().classes("items-center no-wrap game-banner-actions game-gap-md")
 
 
-def game_path(target: LaunchTarget) -> str:
-    return GAME_ROUTE.format(scenario=target.scenario_id, character=target.character_id)
-
-
-def assets_route(engine_id: EngineId) -> str:
-    return f"{ASSETS_ROUTE}/{engine_id}"
-
-
 def media_url(path: Path) -> str:
     """One mount per directory: deleting one element must not break another's shared image."""
     directory = path.parent
@@ -100,6 +82,31 @@ def media_url(path: Path) -> str:
     return route + path.name
 
 
+async def attempt(
+    action: Callable[[], Awaitable[object]], *, failed: str, loading: ui.button | None = None
+) -> bool:
+    if loading is not None:
+        loading.props("loading")
+    try:
+        await action()
+    except Busy as busy:
+        # Silent when it is this game's own turn: a double-click guard, not a message.
+        if busy.elsewhere:
+            alert(str(busy))
+        return False
+    except Refusal as refused:
+        alert(str(refused))
+        return False
+    except Exception:
+        # Announced, not handled: the re-raise is what logs the detail kept off the screen.
+        alert(failed)
+        raise
+    finally:
+        if loading is not None:
+            loading.props(remove="loading")
+    return True
+
+
 def alert(message: str) -> None:
     _notify(message, "negative")
 
@@ -108,8 +115,12 @@ def warn(message: str) -> None:
     _notify(message, "warning")
 
 
-def note(message: str, *, good: bool = False) -> None:
-    _notify(message, "positive" if good else "info")
+def inform(message: str) -> None:
+    _notify(message, "info")
+
+
+def done(message: str) -> None:
+    _notify(message, "positive")
 
 
 def page_header(
@@ -119,7 +130,7 @@ def page_header(
     theme.set_look(look)
     with ui.header().classes("items-center no-wrap") as header:
         if home:
-            icon_button(HOME_ICON, "Home", lambda: ui.navigate.to("/"))
+            icon_button(HOME_ICON, "Home", lambda: ui.navigate.to(HOME))
         else:
             with ui.element("div").classes("game-brand"):
                 ui.icon(BRAND_ICON)
@@ -172,8 +183,13 @@ def action_tile(icon: str, title: str, caption: str, on_click: Callable[[], obje
         ui.icon(ARROW_ICON).classes("game-tile-arrow")
 
 
-@contextmanager
-def entry_card(icon: str, title: str, sub: str, badges: Sequence[str]) -> Generator[None]:
+def entry_card(
+    icon: str,
+    title: str,
+    sub: str,
+    badges: Sequence[str],
+    actions: Callable[[], object] | None = None,
+) -> None:
     with (
         ui.card().classes("w-full game-entry"),
         ui.row().classes("w-full items-center no-wrap game-entry-row game-gap-2xl"),
@@ -187,8 +203,9 @@ def entry_card(icon: str, title: str, sub: str, badges: Sequence[str]) -> Genera
                 with ui.row().classes("game-gap-md"):
                     for badge in badges:
                         ui.badge(badge)
-        with ui.row().classes("items-center no-wrap game-entry-actions game-gap-md"):
-            yield
+        if actions is not None:
+            with ui.row().classes("items-center no-wrap game-entry-actions game-gap-md"):
+                actions()
 
 
 def empty_state(icon: str, message: str) -> None:
@@ -217,205 +234,8 @@ def heading(title: str, count: int | None = None) -> None:
             ui.label(str(count)).classes("game-count")
 
 
-def entity_row(
-    icon: Sprite | Path | None,
-    name: str,
-    sub: str,
-    *,
-    alive: bool = True,
-    tags: Sequence[Tag] = (),
-    meters: Sequence[Meter] = (),
-) -> ui.element:
-    classes = "game-entity" + ("" if alive else " game-entity-dead")
-    with ui.element("div").classes(classes) as row:
-        avatar(icon, name)
-        with ui.column().classes("game-gap-0 game-entity-body"):
-            with ui.row().classes("items-center no-wrap game-gap-sm"):
-                ui.label(name).classes("game-entity-name game-title")
-                if not alive:
-                    ui.badge("dead").props("outline color=negative").classes("game-entity-badge")
-            if tags:
-                tag_row(tags)
-            if meters:
-                meter_grid(meters)
-            if sub:
-                ui.label(sub).classes("game-entity-sub")
-    return row
-
-
-def tag_row(tags: Sequence[Tag]) -> None:
-    with ui.element("div").classes("game-tags"):
-        for tag in tags:
-            chip = ui.label(tag.name).classes("game-tag")
-            if tag.hint:
-                chip.tooltip(tag.hint)
-            if tag.colour:
-                chip.style(f"--game-tag: {tag.colour}").classes("game-tag-coloured")
-                if _light(tag.colour):
-                    chip.classes("game-tag-light")
-
-
-def meter_grid(meters: Sequence[Meter]) -> None:
-    lead = meters[0]
-    with ui.element("div").classes("game-meters"):
-        for meter in meters:
-            share = min(meter.current, meter.maximum) / meter.maximum
-            colour = meter.colour or "var(--game-accent)"
-            with ui.element("div").classes("game-meter").style(f"--game-meter: {colour}") as box:
-                if meter.hint:
-                    box.tooltip(meter.hint)
-                ui.label(meter.name).classes("game-meter-label")
-                with ui.element("div").classes("game-meter-track"):
-                    ui.element("div").classes("game-meter-fill").style(f"width: {share:.1%}")
-                value = f"{meter.current}/{meter.maximum}" if meter is lead else str(meter.current)
-                ui.label(value).classes("game-meter-value")
-
-
-def avatar(icon: Sprite | Path | None, name: str | None) -> None:
-    if isinstance(icon, Sprite) and icon.width:
-        ui.element("div").classes("game-sprite-frame").style(
-            f"width: {icon.width}px; height: {icon.height}px; "
-            f"background-image: url({media_url(icon.path)}); "
-            f"background-position: -{icon.x}px -{icon.y}px"
-        )
-        return
-    with ui.avatar(size="42px", color=None).classes(
-        "game-avatar" + (" game-avatar-dm" if name is None else "")
-    ):
-        if isinstance(icon, Sprite):
-            ui.image(media_url(icon.path)).classes("game-pixelated")
-        elif icon is not None:
-            ui.image(media_url(icon))
-        elif name is None:
-            ui.icon(DM_ICON)
-        else:
-            ui.label(name[:1].upper()).classes("text-subtitle1")
-
-
-def labeled_value(
-    label: str, value: str, *, tags: Sequence[Tag] = (), meters: Sequence[Meter] = ()
-) -> ui.element:
-    stacked = len(value) > 28 or bool(tags or meters)
-    with ui.element("div").classes("game-stat" + (" game-stat-long" if stacked else "")) as row:
-        with ui.element("div").classes("game-stat-head"):
-            ui.label(label).classes("game-stat-label")
-            if tags:
-                tag_row(tags)
-        if value or not (tags or meters):
-            ui.label(value or "—").classes("game-stat-value")
-        if meters:
-            meter_grid(meters)
-    return row
-
-
-def typed(box: ui.input | ui.textarea) -> str:
-    return (box.value or "").strip(BLANK)
-
-
-def choice_groups[T: PendingOption | Choice](
-    items: Sequence[T],
-    pick: Callable[[T], Awaitable[object]],
-    *,
-    enabled: bool,
-    row_class: str,
-) -> None:
-    groups = [
-        (group, tuple(members)) for group, members in groupby(items, key=lambda item: item.group)
-    ]
-    for group, members in groups:
-        if len(groups) > 1 and group:
-            heading(group)
-        with ui.element("div").classes(row_class):
-            for item in members:
-                choice_button(
-                    item.name,
-                    item.refusal or item.brief,
-                    partial(pick, item),
-                    enabled=enabled and not item.refusal,
-                    tags=item.tags if isinstance(item, Choice) else (),
-                )
-
-
-def choice_button(
-    name: str,
-    brief: str,
-    on_click: Callable[[], Awaitable[object]],
-    *,
-    enabled: bool,
-    tags: Sequence[Tag] = (),
-) -> None:
-    button = ui.button(on_click=on_click).props("outline").classes("game-choice")
-    if tint := next((tag.colour for tag in tags if tag.colour), ""):
-        button.style(f"--game-tag: {tint}").classes("game-choice-tinted")
-    with button.set_enabled(enabled), ui.column().classes("w-full game-gap-0"):
-        with ui.row().classes("items-center w-full game-gap-sm game-choice-head"):
-            ui.label(name)
-            if tags:
-                tag_row(tags)
-        if brief:
-            ui.label(brief).classes("text-xs opacity-70")
-
-
-def map_chart(view: MapView, look: Look | None, pick: Callable[[int], None]) -> ui.echart:
-    def clicked(event: EChartPointClickEventArguments) -> None:
-        if event.data_type == "node":
-            pick(event.data_index)
-
-    # Inline, not a class: a hidden tab's chart falls back to its inline size, and a zero throws.
-    return ui.echart(map_options(view, look), on_point_click=clicked).style(
-        "width: 100%; height: 16rem"
-    )
-
-
-def map_options(view: MapView, look: Look | None) -> dict[str, object]:
-    colours = theme.palette(look)
-    index = {node.id: at for at, node in enumerate(view.nodes)}
-    # NiceGUI's point click reads args['value'] unguarded; every node and link must carry one.
-    nodes = [
-        {
-            "name": node.name,
-            "value": node.id,
-            "symbolSize": 18 if node.id == view.here_id else 12,
-            "itemStyle": _map_style(node, view.here_id, colours),
-            "label": _map_style(node, view.here_id, colours),
-        }
-        for node in view.nodes
-    ]
-    links = [
-        {
-            "source": index[edge.from_id],
-            "target": index[edge.to_id],
-            "value": 0,
-            "lineStyle": {"type": "dashed" if edge.locked else "solid"},
-        }
-        for edge in view.edges
-    ]
-    series = {
-        "type": "graph",
-        "layout": "force",
-        "roam": "move",
-        "force": {
-            "initLayout": "circular",
-            "repulsion": 300,
-            "edgeLength": 100,
-            "layoutAnimation": False,
-        },
-        "label": {"show": True, "position": "right", "fontFamily": colours["game-body"]},
-        "lineStyle": {"color": colours["game-muted"], "opacity": 0.6, "width": 2},
-        "data": nodes,
-        "links": links,
-    }
-    return {"animation": False, "series": [series]}
-
-
-def _map_style(node: MapNode, here_id: Slug, colours: dict[str, str]) -> dict[str, str | float]:
-    fill = "game-accent" if node.id == here_id else "game-text" if node.visited else "game-muted"
-    return {"color": colours[fill], "opacity": 1 if node.visited else 0.5}
-
-
-def _light(colour: str) -> bool:
-    red, green, blue = (int(colour[index : index + 2], 16) / 255 for index in (1, 3, 5))
-    return 0.2126 * red**2.2 + 0.7152 * green**2.2 + 0.0722 * blue**2.2 > LIGHT_TAG_LUMINANCE
+def entered_text(field: ui.input | ui.textarea) -> str:
+    return (field.value or "").strip(BLANK)
 
 
 def _notify(message: str, kind: Literal["negative", "warning", "positive", "info"]) -> None:

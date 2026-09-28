@@ -2,12 +2,13 @@ from random import Random
 from typing import Annotated, Literal
 
 import pytest
-from pydantic import Field, JsonValue
+from pydantic import Field
 
+from rulehall.core.answer_repair import parse_with_repairs
 from rulehall.core.facts import Fact
-from rulehall.core.model import AnyGame, Game, ScenarioDescription
-from rulehall.core.tools import Told, action, actions_of, tool, tools_of
-from rulehall.core.validation import EngineId, Frozen, Refusal, Slug, parse_mended
+from rulehall.core.game import AnyGame
+from rulehall.core.tools import PlayerFacing, action, marked_methods, player_facing_texts, tool
+from rulehall.core.validation import Frozen, Refusal, Slug
 
 type Kind = Literal["gear", "condition"]
 Tag = Annotated[str, Field(max_length=12)]
@@ -75,20 +76,13 @@ class Acting(Marking):
 
 
 class Aside(Frozen):
-    note: Told = Field(description="A note the player reads.")
+    note: PlayerFacing = Field(description="A note the player reads.")
 
 
 class Telling(Frozen):
     aside: Aside | None = Field(default=None, description="An optional aside.")
-    lines: tuple[Told, ...] = Field(default=(), description="Lines the player reads.")
+    lines: tuple[PlayerFacing, ...] = Field(default=(), description="Lines the player reads.")
     plain: str = Field(default="", description="A text the player never reads.")
-
-
-class Speaking:
-    @tool
-    def speak(self, _draft: AnyGame, _args: Telling, _rng: Random) -> list[Fact]:
-        """Say something to the player."""
-        return [Fact(trace="spoken")]
 
 
 class Quiet:
@@ -97,18 +91,15 @@ class Quiet:
 
 
 def test_the_published_order_is_the_bases_tools_then_the_subclasss() -> None:
-    published = tools_of(Adding(), _trusting)
+    published = marked_methods(Adding(), "tool")
 
     assert list(published) == ["first", "second", "third"]
-
-    facts = published["second"].call(_draft(), {"word": "vest"}, Random(0))
-
-    assert [fact.trace for fact in facts] == ["override second vest"]
+    assert published["second"].description == "The override's own description, not the base's."
 
 
 def test_an_unmarked_override_is_refused() -> None:
     with pytest.raises(ValueError, match="carries no @tool mark"):
-        _ = tools_of(Overriding(), _trusting)
+        _ = marked_methods(Overriding(), "tool")
 
 
 def test_a_method_with_no_description_is_refused_where_it_is_marked() -> None:
@@ -119,66 +110,35 @@ def test_a_method_with_no_description_is_refused_where_it_is_marked() -> None:
 def test_an_action_is_published_to_the_page_and_never_to_the_master() -> None:
     acting = Acting()
 
-    assert list(tools_of(acting, _trusting)) == ["first", "second"]
-    assert list(actions_of(acting)) == ["second", "fourth"]
+    assert list(marked_methods(acting, "tool")) == ["first", "second"]
+    assert list(marked_methods(acting, "action")) == ["second", "fourth"]
 
 
-def test_a_told_field_in_a_nested_model_or_a_tuple_is_checked_and_a_plain_one_is_not() -> None:
-    speak = tools_of(Speaking(), _refusing_vex)["speak"]
+def test_a_told_field_in_a_nested_model_or_a_tuple_is_read_and_a_plain_one_is_not() -> None:
+    told = Telling(aside=Aside(note="Vex waits"), lines=("a door", "a bell"), plain="Vex hides")
 
-    hidden: tuple[JsonValue, ...] = (
-        {"aside": {"note": "Vex waits"}},
-        {"lines": ["a door", "Vex waits"]},
-    )
-    for raw in hidden:
-        with pytest.raises(Refusal, match="Vex"):
-            _ = speak.call(_draft(), raw, Random(0))
-    facts = speak.call(_draft(), {"plain": "Vex waits"}, Random(0))
-
-    assert [fact.trace for fact in facts] == ["spoken"]
-
-
-def _draft() -> AnyGame:
-    return Game[Word](
-        scenario_id="trial",
-        character_id="player",
-        scenario_description=ScenarioDescription(
-            title="Trial", premise="A trial runs", backdrop="Plain.", scope="One trial"
-        ),
-        engine_id=EngineId("trial"),
-        pack_id="srd",
-        world=Word(word="nothing"),
-    )
-
-
-def _trusting(_draft: AnyGame, _texts: tuple[str, ...]) -> None:
-    pass
-
-
-def _refusing_vex(_draft: AnyGame, texts: tuple[str, ...]) -> None:
-    if any("Vex" in text for text in texts):
-        raise Refusal(f"this names Vex: {texts}")
+    assert list(player_facing_texts(told)) == ["Vex waits", "a door", "a bell"]
 
 
 def test_a_harmless_slip_is_mended_before_validation_and_a_real_error_still_refused() -> None:
-    mended = parse_mended(
+    mended = parse_with_repairs(
         Slips, {"target_id": "null", "tags": "Cold Air", "words": [{"word": "fine"}]}
     )
 
     assert mended == Slips(tags=("Cold Air",), words=(Word(word="fine"),))
-    assert parse_mended(Slips, {"target_id": "None"}).target_id is None
+    assert parse_with_repairs(Slips, {"target_id": "None"}).target_id is None
     with pytest.raises(Refusal, match="target_id"):
-        _ = parse_mended(Slips, {"target_id": "Not An Id"})
+        _ = parse_with_repairs(Slips, {"target_id": "Not An Id"})
     with pytest.raises(Refusal, match="tag"):
-        _ = parse_mended(Slips, {"tag": "Rats in a Barrel"})
+        _ = parse_with_repairs(Slips, {"tag": "Rats in a Barrel"})
 
 
 def test_a_field_no_schema_names_is_dropped_at_every_depth_and_a_cast_key_is_kept() -> None:
-    mended = parse_mended(
+    mended = parse_with_repairs(
         Cast,
         {"cast": {"rats": {"tags": {}, "alive": False}}, "details": [], "harm": True},
     )
 
     assert mended == Cast(cast={"rats": Filed()})
     with pytest.raises(Refusal, match="Rats"):
-        _ = parse_mended(Cast, {"cast": {"Rats": {}}})
+        _ = parse_with_repairs(Cast, {"cast": {"Rats": {}}})

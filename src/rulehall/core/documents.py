@@ -37,7 +37,7 @@ def whole_text(path: Path) -> str:
         raise Refusal(f"{path.name} holds no readable text")
     size = len(text.encode("utf-8"))
     if size > SOURCE_MAX_BYTES:
-        raise Refusal(f"{path.name} is {size} bytes. This is too large to give to a model.")
+        raise Refusal(f"{path.name} is {size} bytes, too large to give to a model")
     return text
 
 

@@ -1,13 +1,11 @@
-from collections.abc import Collection
 from pathlib import Path
 
-from rulehall.core.play import PendingDecision, PendingOption
+from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.validation import Slug
 from rulehall.core.views import Meter, Panel, PanelRow, Sprite, Tag
 from rulehall.engines.pokemon.battle.models import FRIENDSHIP_MAX, LEVEL_MAX
-from rulehall.engines.pokemon.dex import Species, dex
+from rulehall.engines.pokemon.dex import ITEMS, Species, dex
 from rulehall.engines.pokemon.rules import (
-    ITEMS,
     SKILL_USES,
     STAT_NAMES,
     TIMES,
@@ -16,8 +14,9 @@ from rulehall.engines.pokemon.rules import (
     nature_effect,
     tm_move,
 )
+from rulehall.engines.pokemon.scheme import SCHEME_STAGES
 from rulehall.engines.pokemon.sheet import Mon, MoveSlot, TrainerSheet
-from rulehall.engines.pokemon.world import SCHEME_STAGES, PokemonWorld
+from rulehall.engines.pokemon.world import PokemonWorld
 
 type StatLine = tuple[str, int, str]
 ICON_SHEET = Path("sprites/pokemonicons-sheet.png")
@@ -93,17 +92,15 @@ def type_tag(kind: str) -> Tag:
     return Tag(name=kind, colour=TYPE_COLOURS[kind])
 
 
-def team_panels(sheet: TrainerSheet, species_pool: Collection[Slug]) -> tuple[Panel, ...]:
+def team_panels(world: PokemonWorld) -> tuple[Panel, ...]:
+    sheet = world.player.require_sheet()
     bag = sorted(sheet.bag, key=_pocket_key)
     usable = [item_id for item_id in bag if item_of(item_id).kind != "ball"]
     cap = sheet.level_cap()
     return (
         Panel(
             title="Team",
-            rows=tuple(
-                mon_row(mon, cap, mon_options(mon, sheet, usable, species_pool, cap))
-                for mon in sheet.team
-            ),
+            rows=tuple(mon_row(mon, cap, mon_options(mon, world, usable)) for mon in sheet.team),
             tab="Team",
         ),
         Panel(
@@ -114,10 +111,7 @@ def team_panels(sheet: TrainerSheet, species_pool: Collection[Slug]) -> tuple[Pa
         Panel(
             title="Bag",
             rows=(
-                *(
-                    bag_row(item_id, sheet.bag[item_id], sheet.team, species_pool, cap)
-                    for item_id in bag
-                ),
+                *(bag_row(item_id, world) for item_id in bag),
                 PanelRow(name="Money", brief=f"₽{sheet.money}"),
                 PanelRow(name="Badges", brief=", ".join(sheet.badges) or "none"),
             ),
@@ -141,11 +135,11 @@ def scheme_panels(world: PokemonWorld) -> tuple[Panel, ...]:
     return (Panel(title=scheme.name, rows=rows),)
 
 
-def pending_decision(world: PokemonWorld) -> PendingDecision | None:
+def pending_decision(world: PokemonWorld) -> Decision | None:
     return _learning_decision(world) or _evolution_decision(world) or _rank_decision(world)
 
 
-def mon_row(mon: Mon, cap: int, options: tuple[PendingOption, ...] = ()) -> PanelRow:
+def mon_row(mon: Mon, cap: int, options: tuple[ActionOption, ...] = ()) -> PanelRow:
     stat_lines = _stat_lines(mon)
     lines = stat_lines[1:]
     top = max(value for _, value, _ in lines)
@@ -188,18 +182,17 @@ def move_row(slot: MoveSlot) -> PanelRow:
     )
 
 
-def bag_row(
-    item_id: BagId, count: int, team: list[Mon], species_pool: Collection[Slug], cap: int
-) -> PanelRow:
+def bag_row(item_id: BagId, world: PokemonWorld) -> PanelRow:
+    sheet = world.player.require_sheet()
     item = item_of(item_id)
     return PanelRow(
         name=item.name,
         brief=item_text(item_id),
         icon_id=item_id,
-        tags=(Tag(name=f"{TIMES}{count}"), Tag(name=POCKETS[item.kind])),
+        tags=(Tag(name=f"{TIMES}{sheet.bag[item_id]}"), Tag(name=POCKETS[item.kind])),
         options=()
         if item.kind == "ball"
-        else tuple(item_option(mon, item_id, species_pool, cap) for mon in team),
+        else tuple(item_option(mon, item_id, world) for mon in sheet.team),
     )
 
 
@@ -231,15 +224,14 @@ def nature_arrows(nature: str) -> dict[int, str]:
     return {} if effect is None else dict(zip(effect, (RAISED, LOWERED), strict=True))
 
 
-def mon_options(
-    mon: Mon, sheet: TrainerSheet, bag: list[BagId], species_pool: Collection[Slug], cap: int
-) -> tuple[PendingOption, ...]:
+def mon_options(mon: Mon, world: PokemonWorld, bag: list[BagId]) -> tuple[ActionOption, ...]:
+    sheet = world.player.require_sheet()
     name = mon.name
     take = (
         ()
         if mon.item_id is None
         else (
-            PendingOption(
+            ActionOption(
                 id=f"take-{mon.mon_id}",
                 name=f"Take the {ITEMS[mon.item_id].name} from {name}",
                 action_name="hold_item",
@@ -249,7 +241,7 @@ def mon_options(
         )
     )
     remembered = (
-        PendingOption(
+        ActionOption(
             id=f"remember-{move_id}",
             name=f"Remember {dex().moves[move_id].name}",
             action_name="relearn_move",
@@ -260,9 +252,9 @@ def mon_options(
     )
     return (
         *take,
-        *(item_option(mon, item_id, species_pool, cap) for item_id in bag),
+        *(item_option(mon, item_id, world) for item_id in bag),
         *remembered,
-        PendingOption(
+        ActionOption(
             id=f"store-mon-{mon.mon_id}",
             name=f"Send {name} to the Box",
             action_name="store_mon",
@@ -270,7 +262,7 @@ def mon_options(
             group=TEAM_GROUP,
             refusal=sheet.store_refusal(mon),
         ),
-        PendingOption(
+        ActionOption(
             id=f"lead-mon-{mon.mon_id}",
             name=f"{name} leads the team",
             action_name="lead_mon",
@@ -281,10 +273,10 @@ def mon_options(
     )
 
 
-def box_options(boxed: Mon, sheet: TrainerSheet) -> tuple[PendingOption, ...]:
+def box_options(boxed: Mon, sheet: TrainerSheet) -> tuple[ActionOption, ...]:
     name = boxed.name
     return (
-        PendingOption(
+        ActionOption(
             id=f"withdraw-mon-{boxed.mon_id}",
             name=f"Add {name} to the team",
             action_name="withdraw_mon",
@@ -293,7 +285,7 @@ def box_options(boxed: Mon, sheet: TrainerSheet) -> tuple[PendingOption, ...]:
             refusal=sheet.withdraw_refusal(boxed),
         ),
         *(
-            PendingOption(
+            ActionOption(
                 id=f"swap-{mate.mon_id}",
                 name=f"Swap with {mate.name}",
                 action_name="swap_mon",
@@ -305,9 +297,7 @@ def box_options(boxed: Mon, sheet: TrainerSheet) -> tuple[PendingOption, ...]:
     )
 
 
-def item_option(
-    mon: Mon, item_id: BagId, species_pool: Collection[Slug], cap: int
-) -> PendingOption:
+def item_option(mon: Mon, item_id: BagId, world: PokemonWorld) -> ActionOption:
     item = item_of(item_id)
     name = mon.name
     match item.kind:
@@ -318,29 +308,31 @@ def item_option(
             group = LEARN_GROUP
         case _:
             label, action_name, group = f"Use the {item.name} on {name}", "use_item", ITEMS_GROUP
-    return PendingOption(
+    return ActionOption(
         id=f"{item_id}-{mon.mon_id}",
         name=label,
         action_name=action_name,
         args={"mon_id": mon.mon_id, "item_id": item_id},
         group=group,
-        refusal=mon.item_refusal(item_id, species_pool, cap),
+        refusal=mon.item_refusal(
+            item_id, world.species_ids, world.player.require_sheet().level_cap()
+        ),
     )
 
 
-def _learning_decision(world: PokemonWorld) -> PendingDecision | None:
+def _learning_decision(world: PokemonWorld) -> Decision | None:
     if not world.learning:
         return None
     learning = world.learning[0]
     mon = world.player.require_sheet().require_mon(learning.mon_id)
     move = dex().moves[learning.move_id].name
-    return PendingDecision(
+    return Decision(
         kind="new-move",
         prompt=(
             f"{mon.name} wants to learn {move}. It knows four moves. Forget one, or skip {move}?"
         ),
         options=tuple(
-            PendingOption(
+            ActionOption(
                 id=forget_id or "skip",
                 name=name,
                 action_name="learn_move",
@@ -359,16 +351,16 @@ def _learning_decision(world: PokemonWorld) -> PendingDecision | None:
     )
 
 
-def _evolution_decision(world: PokemonWorld) -> PendingDecision | None:
+def _evolution_decision(world: PokemonWorld) -> Decision | None:
     if not world.evolving:
         return None
     evolving = world.evolving[0]
     mon = world.player.require_sheet().require_mon(evolving.mon_id)
-    return PendingDecision(
+    return Decision(
         kind="evolution",
         prompt=f"{mon.name} is ready to evolve. Into which?",
         options=tuple(
-            PendingOption(
+            ActionOption(
                 id=species_id,
                 name=dex().species[species_id].name,
                 action_name="evolve",
@@ -380,9 +372,9 @@ def _evolution_decision(world: PokemonWorld) -> PendingDecision | None:
     )
 
 
-def _rank_decision(world: PokemonWorld) -> PendingDecision | None:
+def _rank_decision(world: PokemonWorld) -> Decision | None:
     options = tuple(
-        PendingOption(
+        ActionOption(
             id=skill,
             name=skill.title(),
             brief=SKILL_USES[skill],
@@ -393,7 +385,7 @@ def _rank_decision(world: PokemonWorld) -> PendingDecision | None:
     )
     if not (world.ranks_due and options):
         return None
-    return PendingDecision(
+    return Decision(
         kind="badge-rank",
         prompt="Your new badge gives one skill rank. Which skill gains it?",
         options=options,

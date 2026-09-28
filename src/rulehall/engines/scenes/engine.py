@@ -3,20 +3,19 @@ from pathlib import Path
 from random import Random
 from typing import Any
 
-from pydantic import BaseModel
-
+from rulehall.core.decisions import ActionOption
 from rulehall.core.facts import Fact
-from rulehall.core.model import AnyCharacter, AnyScenario, Character, Check, Game, RoleAnswer
-from rulehall.core.play import PendingOption
-from rulehall.core.prompt import Sections, render_history, section_if
+from rulehall.core.game import AnyCharacter, AnyScenario, Game
+from rulehall.core.prompt import Sections, render_log, section_if
 from rulehall.core.tools import tool
 from rulehall.core.views import NarratorView, Panel, PlayerView
 from rulehall.engines.engine import Engine
-from rulehall.engines.entities import HIDDEN_TITLE, Person, party_section
 from rulehall.engines.packs import Pack
 from rulehall.engines.scenes.args import Enter, Leave
 from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
-from rulehall.engines.scenes.worldsmith import OPENING, OPENING_SECTIONS, check_opening
+from rulehall.engines.scenes.worldsmith import OPENING, OPENING_SECTIONS, check_next, check_opening
+from rulehall.engines.sheet import Person
+from rulehall.engines.world import ARC_SO_FAR_TITLE, HIDDEN_TITLE, party_section
 
 SCENE_ARC_TITLE = (
     "THE ARC (pressure and intent the player has not found; SCENE, the sheet and SETTLED THIS "
@@ -25,29 +24,15 @@ SCENE_ARC_TITLE = (
 FIXED_TITLE = "FIXED (settled or told in play: they stand, whatever the arc says)"
 
 
-class SceneEngine[C: Person, W: SceneWorld[Any], K: Pack](Engine[W, K]):
+class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](Engine[P, W, K, R]):
     family_dir = Path(__file__).parent
     opening_sections = OPENING_SECTIONS
     opening_intent = OPENING
-    person: type[C]
-
-    def __init__(self, player_packs: Path) -> None:
-        super().__init__(player_packs)
-        self.character = Character[self.person]
-
-    def player_of(self, character: AnyCharacter) -> C:
-        return self.player_as(character, self.person)
 
     def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> W:
-        # Copied: a restart reopens the same scenario file.
-        proposal: SceneProposal[C] = scenario.opening.model_copy(deep=True)
-        self.check_opening(proposal)
-        world = self.world.opening(proposal, self.player_of(character))
-        world.absorb(proposal)
-        return world
-
-    def check_opening(self, proposal: SceneProposal[C]) -> None:
+        proposal: SceneProposal[P] = scenario.opening
         check_opening(proposal)
+        return self.world_model.opening(proposal, self.player_of(character))
 
     def scene_text(self, state: Game[W]) -> str:
         scene = state.world.scene
@@ -69,12 +54,13 @@ class SceneEngine[C: Person, W: SceneWorld[Any], K: Pack](Engine[W, K]):
     def player_sections(self, state: Game[W]) -> Sections:
         return (("YOU PLAY FOR", state.world.player_line()),)
 
-    def worldsmith_sections(self, draft: Game[W]) -> Sections:
+    def worldsmith_sections(self, draft: Game[W], /) -> Sections:
         world = draft.world
-        history = draft.exchanges()
+        history = draft.log_entries()
         told = [f"- {fact.trace}" for fact in history[-1].facts if fact.told] if history else []
         return (
-            ("SCENES SO FAR", render_history(draft.log)),
+            *section_if(ARC_SO_FAR_TITLE, world.arc),
+            ("SCENES SO FAR", render_log(draft.chapters)),
             ("THE WHOLE CAST", world.cast_lines()),
             ("THE SCENE NOW", world.scene_lines()),
             *section_if(FIXED_TITLE, "\n".join((world.settled_lines(), *told)).strip()),
@@ -93,7 +79,7 @@ class SceneEngine[C: Person, W: SceneWorld[Any], K: Pack](Engine[W, K]):
             situation=scene.situation,
             subjects=tuple(member.subject() for member in here),
             speakers=tuple(member.id for member in here if member.alive),
-            party=(world.player.id, *world.party),
+            party=(world.player.id, *world.party_ids),
             sheet=world.sheet_rows(),
         )
 
@@ -113,7 +99,7 @@ class SceneEngine[C: Person, W: SceneWorld[Any], K: Pack](Engine[W, K]):
         )
 
     @abstractmethod
-    def composer(self, state: Game[W], /) -> tuple[PendingOption | None, bool]: ...
+    def composer(self, state: Game[W], /) -> tuple[ActionOption | None, bool]: ...
     @abstractmethod
     def scene_panels(self, state: Game[W], /) -> tuple[Panel, ...]: ...
 
@@ -127,33 +113,15 @@ class SceneEngine[C: Person, W: SceneWorld[Any], K: Pack](Engine[W, K]):
         """Send a cast member out of the scene."""
         return draft.world.leave(args.target_id)
 
-    async def ask_worldsmith_for_next_scene[A: BaseModel](
-        self,
-        draft: Game[W],
-        worldsmith: RoleAnswer,
-        intent: str,
-        answer_model: type[A],
-        check: Check[A],
-    ) -> A:
-        world = draft.world
-        if world.arc:
-            intent += (
-                f"\n\nThe arc as last written (FIXED and SCENES SO FAR override it):\n{world.arc}"
-            )
-            if "arc" in answer_model.model_fields:
-                intent += (
-                    "\nRevise `arc` only where what happened makes a change necessary. Leave "
-                    "`arc` empty to keep it."
-                )
-        return await self.ask_worldsmith(draft, worldsmith, intent, answer_model, check)
+    def check_next(self, draft: Game[W], proposal: R, /) -> None:
+        check_next(proposal, draft.world)
 
-    def install_scene(self, draft: Game[W], scene: NextProposal[Any]) -> list[Fact]:
+    def install_next(self, draft: Game[W], proposal: R, /) -> list[Fact]:
         world = draft.world
-        draft.log[-1].recap = scene.recap
-        world.apply_scene(scene)
-        world.absorb(scene)
+        draft.chapters[-1].recap = proposal.recap
+        world.apply_scene(proposal)
         self.open_chapter(draft)
-        trace = f"the scene opens: {scene.title}"
+        trace = f"the scene opens: {proposal.title}"
         if travelling := [member.name for member in world.party_members()]:
             trace += f", the player travelling with {', '.join(travelling)}"
-        return [Fact(trace=trace, told=True, card=f"New scene: {scene.title}")]
+        return [Fact(trace=trace, told=True, card=f"New scene: {proposal.title}")]

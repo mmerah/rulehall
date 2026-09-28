@@ -7,8 +7,8 @@ from support.golden import FIXTURES, golden, golden_json, golden_schema, masked,
 from support.golden_turn import ARRIVALS, NARRATION, SCRIPTS
 from support.table import ENGINE_IDS, ENGINES_BUILT, game, open_table, play_turn
 
-from rulehall.core.model import Check, Game, WorldsmithRequest
-from rulehall.core.play import Exchange
+from rulehall.core.game import Check, Game, WorldsmithRequest
+from rulehall.core.log import LogEntry
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import EngineId, Refusal
 from rulehall.engines.hiring import HIRE
@@ -24,25 +24,25 @@ async def test_a_scripted_turn_renders_and_records_unchanged(
     table = open_table(
         tmp_path,
         engine_id=engine_id,
-        state_type=Game[ENGINES_BUILT[engine_id].world],
+        state_type=Game[ENGINES_BUILT[engine_id].world_model],
         rng=Random(SEED),
     )
     script, behind = SCRIPTS[engine_id]
-    table.service.save(behind(table.state))
+    table.session.save(behind(table.state))
 
     arrival = ARRIVALS.get(engine_id)
-    table.spawner.answers["worldsmith"] = [] if arrival is None else [arrival]
+    table.roles.answers["worldsmith"] = [] if arrival is None else [arrival]
     arrived = None if arrival is None else NARRATION
     await play_turn(table, PROMPT, *script, narration=NARRATION, arrival=arrived)
 
-    engine = table.service.engine
+    engine = table.session.engine
     golden(
         FIXTURES / "prompts" / engine_id / "master.txt",
-        masked_master(table.spawner.prompt("master"), engine.instructions),
+        masked_master(table.roles.prompt("master"), engine.instructions),
     )
     golden(
         FIXTURES / "prompts" / engine_id / "narrator.txt",
-        masked(table.spawner.prompt("narrator")),
+        masked(table.roles.prompt("narrator")),
     )
     # The prompts live in their own fixtures; these are everything else the turn produced.
     golden_json(
@@ -66,7 +66,7 @@ async def test_a_worldsmith_request_renders_unchanged(engine_id: EngineId) -> No
     kind = next(kind for kind in engine.request_handlers() if kind != HIRE)
     request = WorldsmithRequest(kind=kind, detail="Deeper in, toward the sound.")
     draft = state.draft()
-    draft.log[-1].exchanges.append(Exchange(words="I head deeper in.", lines=()))
+    draft.chapters[-1].entries.append(LogEntry(words="I head deeper in.", lines=()))
     with pytest.raises(Refusal, match="recorded"):
         await engine.request_handlers()[kind].write(draft, request, recording)
     golden(FIXTURES / "prompts" / engine_id / "worldsmith.txt", masked(prompts[0]))

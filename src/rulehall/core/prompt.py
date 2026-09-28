@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
-from rulehall.core.play import Chapter, Exchange
+from rulehall.core.log import Chapter, LogEntry
 
 type Sections = tuple[tuple[str, str], ...]
 
@@ -36,11 +36,11 @@ def sentence(text: str) -> str:
     return text[:1].upper() + text[1:]
 
 
-def render_history(log: Sequence[Chapter]) -> str:
-    if not any(chapter.exchanges for chapter in log):
+def render_log(chapters: Sequence[Chapter]) -> str:
+    if not any(chapter.entries for chapter in chapters):
         return "(the game has not started yet)"
-    total = len(log)
-    return "\n\n".join(_block(chapter, index, total) for index, chapter in enumerate(log))
+    total = len(chapters)
+    return "\n\n".join(_block(chapter, index, total) for index, chapter in enumerate(chapters))
 
 
 def _block(chapter: Chapter, index: int, total: int) -> str:
@@ -59,20 +59,20 @@ def _heading(chapter: Chapter) -> str:
 
 
 def _told(chapter: Chapter, last: int) -> str:
-    exchanges = chapter.exchanges
-    start = max(len(exchanges) - last, 0)
-    before = [chapter.context, *(exchange.context for exchange in exchanges)]
+    log_entries = chapter.entries
+    start = max(len(log_entries) - last, 0)
+    before = [chapter.context, *(entry.context for entry in log_entries)]
     entries = (
-        _entry(exchange, before[index]) for index, exchange in enumerate(exchanges[start:], start)
+        _entry(entry, before[index]) for index, entry in enumerate(log_entries[start:], start)
     )
     return "\n\n".join(entries) or "(nothing yet)"
 
 
-def _entry(exchange: Exchange, before: str) -> str:
-    if exchange.cause is not None:
-        told = exchange.transcript()
+def _entry(entry: LogEntry, before: str) -> str:
+    if entry.cause is not None:
+        told = entry.transcript()
     else:
-        told = f"> {exchange.words}\n{exchange.transcript()}"
+        told = f"> {entry.words}\n{entry.transcript()}"
     kept = set(before.splitlines())
-    changed = (f"→ {line}" for line in exchange.context.splitlines() if line not in kept)
+    changed = (f"→ {line}" for line in entry.context.splitlines() if line not in kept)
     return "\n".join((told, *changed))

@@ -76,7 +76,7 @@ def test_only_a_pokemon_center_heals_the_team() -> None:
     charmander = draft.world.player.require_sheet().require_mon("charmander")
     charmander.hp.current = 1
 
-    assert refused(ENGINE, draft, "heal_team") == "No open Pokemon Center here"
+    assert refused(ENGINE, draft, "heal_team") == "no open Pokemon Center here"
     _ = draft.world.move("tern-harbour", ())
     _ = draft.world.move("pokemon-center", ())
     _ = change(ENGINE, draft, "heal_team")
@@ -91,7 +91,7 @@ def test_a_nickname_another_pokemon_has_is_refused() -> None:
     _ = change(ENGINE, draft, "nickname", mon_id="charmander", name="Blaze")
 
     assert refused(ENGINE, draft, "nickname", mon_id="squirtle", name="blaze") == (
-        "Another Pokemon of the player is already called blaze"
+        "another Pokemon of the player is already called blaze"
     )
     assert sheet.require_boxed("squirtle").name == "Squirtle"
 
@@ -99,12 +99,12 @@ def test_a_nickname_another_pokemon_has_is_refused() -> None:
 def test_the_team_sends_to_the_box_withdraws_and_sets_the_lead() -> None:
     draft = started().draft()
     sheet = draft.world.player.require_sheet()
-    with pytest.raises(Refusal, match="No other team Pokemon can fight"):
+    with pytest.raises(Refusal, match="no other team Pokemon can fight"):
         _ = run_action(ENGINE, draft, "store_mon", mon_id="charmander")
     pidgey = Mon.new("pidgey", 5, Random(0), sheet.mon_ids())
     pidgey.hp.current = 0
     sheet.team.append(pidgey)
-    with pytest.raises(Refusal, match="No other team Pokemon can fight"):
+    with pytest.raises(Refusal, match="no other team Pokemon can fight"):
         _ = run_action(ENGINE, draft, "store_mon", mon_id="charmander")
     with pytest.raises(Refusal, match="Charmander leads the team already"):
         _ = run_action(ENGINE, draft, "lead_mon", mon_id="charmander")
@@ -119,7 +119,7 @@ def test_the_team_sends_to_the_box_withdraws_and_sets_the_lead() -> None:
     sheet.box.append(rattata)
     for number in range(4):
         sheet.team.append(Mon.new("weedle", 5, Random(number), sheet.mon_ids()))
-    with pytest.raises(Refusal, match="The team is full; swap Rattata in"):
+    with pytest.raises(Refusal, match="the team is full; swap Rattata in"):
         _ = run_action(ENGINE, draft, "withdraw_mon", mon_id=rattata.mon_id)
 
 

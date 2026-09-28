@@ -3,15 +3,14 @@ from asyncio import timeout
 from collections.abc import Callable
 from typing import Literal
 
-from httpx import HTTPError, HTTPStatusError
 from pydantic import BaseModel, ConfigDict, JsonValue
 
-from rulehall.app.providers import post_bearer, stream_bearer
+from rulehall.app.http_client import post_bearer, stream_bearer
 from rulehall.app.turn import UNDIRECTED, Turn
 from rulehall.config import ProviderConfig, Role, RoleConfig
 from rulehall.core.prompt import Prompt
-from rulehall.core.tools import MasterTool, schema_of
-from rulehall.core.validation import Loose, Refusal, decode, parse_json
+from rulehall.core.tools import MasterTool
+from rulehall.core.validation import Loose, Refusal, parse_json
 
 LOGGER = logging.getLogger(__name__)
 ROUND_SHARE = 3
@@ -67,36 +66,16 @@ class _Chunk(Loose):
     error: _Error | None = None
 
 
-async def run_over_api(
+async def stream_answer(
     role: Role,
     config: RoleConfig,
     provider: ProviderConfig,
     prompt: Prompt,
-    turn: Turn | None,
     heard: Callable[[str], None] | None,
 ) -> str:
-    messages: list[JsonValue] = [
-        {"role": "system", "content": prompt.system},
-        {"role": "user", "content": prompt.user},
-    ]
-    try:
-        if turn is None:
-            return await _stream(role, config, provider, messages, heard)
-        return await _converse(role, config, provider, messages, turn)
-    except HTTPError as failed:
-        raise Refusal(f"the {role}'s provider failed: {_detail(failed)}") from failed
-
-
-async def _stream(
-    role: Role,
-    config: RoleConfig,
-    provider: ProviderConfig,
-    messages: list[JsonValue],
-    heard: Callable[[str], None] | None,
-) -> str:
-    body = _request(config, messages) | {"stream": True}
+    body = _request(config, _opening_messages(prompt)) | {"stream": True}
     said = ""
-    async with stream_bearer(provider, "/chat/completions", body, config.timeout) as lines:
+    async with stream_bearer(provider, "/chat/completions", body, None) as lines:
         async for line in lines:
             data = line.removeprefix("data:").strip()
             if not line.startswith("data:") or data == "[DONE]":
@@ -115,45 +94,41 @@ async def _stream(
     return said
 
 
-async def _converse(
-    role: Role,
-    config: RoleConfig,
-    provider: ProviderConfig,
-    messages: list[JsonValue],
-    turn: Turn,
-) -> str:
+async def converse_master(
+    config: RoleConfig, provider: ProviderConfig, prompt: Prompt, turn: Turn
+) -> None:
+    messages = _opening_messages(prompt)
     published: list[JsonValue] = [_declared(tool) for tool in turn.published_tools()]
     retried = False
     for rounds in range(1, config.max_rounds + 1):
-        said = await _round(role, config, provider, messages, published)
+        said = await _round(config, provider, messages, published)
         messages.append(said.model_dump(mode="json", exclude_none=True))
         messages.extend(
             {"role": "tool", "tool_call_id": call.id, "content": _answer(turn, call)}
             for call in said.tool_calls or ()
         )
-        if turn.over:
-            LOGGER.info("the %s ended its turn after %d rounds", role, rounds)
-            return said.content or ""
+        if turn.master_must_stop:
+            LOGGER.info("the master ended its turn after %d rounds", rounds)
+            return
         if not said.tool_calls:
             if retried:
-                raise Refusal(f"the {role} stopped with no `direct`, twice")
+                raise Refusal("the master stopped with no `direct`, twice")
             retried = True
             messages.append({"role": "user", "content": UNDIRECTED})
     raise Refusal(
-        f"the {role} made {config.max_rounds} rounds of tool calls without ending the turn"
+        f"the master made {config.max_rounds} rounds of tool calls without ending the turn"
     )
 
 
 def _answer(turn: Turn, call: _ToolCall) -> str:
     """A refusal is a result the model reads and continues from, not an error."""
     try:
-        return turn.call(call.function.name, decode(call.function.arguments))
+        return turn.call_tool(call.function.name, call.function.arguments)
     except Refusal as refused:
         return str(refused)
 
 
 async def _round(
-    role: Role,
     config: RoleConfig,
     provider: ProviderConfig,
     messages: list[JsonValue],
@@ -164,8 +139,8 @@ async def _round(
             async with timeout(config.timeout / ROUND_SHARE):
                 return await _complete(config, provider, messages, tools)
         except TimeoutError:
-            LOGGER.warning("the %s stalled on a round, attempt %d", role, attempt + 1)
-    raise Refusal(f"the {role} stalled on one round twice")
+            LOGGER.warning("the master stalled on a round, attempt %d", attempt + 1)
+    raise Refusal("the master stalled on one round twice")
 
 
 async def _complete(
@@ -174,13 +149,20 @@ async def _complete(
     body = _request(config, messages)
     if tools:
         body["tools"] = tools
-    raw = await post_bearer(provider, "/chat/completions", body, config.timeout)
+    raw = await post_bearer(provider, "/chat/completions", body, None)
     reply = parse_json(_Completion, raw)
     if reply.error is not None:
         raise Refusal(f"the provider answered an error: {reply.error.message}")
     if not reply.choices:
         raise Refusal("the provider answered no choices")
     return reply.choices[0].message
+
+
+def _opening_messages(prompt: Prompt) -> list[JsonValue]:
+    return [
+        {"role": "system", "content": prompt.system},
+        {"role": "user", "content": prompt.user},
+    ]
 
 
 def _request(config: RoleConfig, messages: list[JsonValue]) -> dict[str, JsonValue]:
@@ -193,15 +175,6 @@ def _declared(tool: MasterTool) -> JsonValue:
         "function": {
             "name": tool.name,
             "description": tool.description,
-            "parameters": schema_of(tool.args),
+            "parameters": tool.schema,
         },
     }
-
-
-def _detail(failed: HTTPError) -> str:
-    if isinstance(failed, HTTPStatusError):
-        status, body = failed.response.status_code, failed.response.text.strip()
-        LOGGER.warning("the provider answered %s: %s", status, body)
-        first = next(iter(body.splitlines()), "")[:120]
-        return f"{status} {first}".strip()
-    return str(failed)

@@ -18,8 +18,9 @@ from support.table import (
     tool_call,
 )
 
-from rulehall.core.model import Check, RoleAnswer, WorldsmithRequest
-from rulehall.core.play import Exchange, PendingDecision
+from rulehall.core.decisions import Decision
+from rulehall.core.game import Check, RoleAnswer, WorldsmithRequest
+from rulehall.core.log import LogEntry
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal
 from rulehall.engines.loner4e.args import CloseScene
@@ -29,8 +30,8 @@ from rulehall.engines.loner4e.rules import MEANWHILE_QUESTION, SceneKind, transi
 from rulehall.engines.loner4e.world import (
     OFF_SCREEN,
     Loner4eGame,
-    Loner4eNext,
-    Loner4eOpening,
+    Loner4eNextProposal,
+    Loner4eOpeningProposal,
 )
 from rulehall.engines.scenes.worldsmith import check_opening
 
@@ -47,9 +48,9 @@ CLOSED = tool_call("close_scene", reason="resolved")
 DIRECTED = tool_call("direct", text="he has what he came for")
 
 
-def _opening(**changes: object) -> Loner4eOpening:
+def _opening(**changes: object) -> Loner4eOpeningProposal:
     opening = LIBRARY.read_scenario("whispering-vault", SCENARIO_MODELS).opening
-    return narrowed(opening, Loner4eOpening).model_copy(update=changes)
+    return narrowed(opening, Loner4eOpeningProposal).model_copy(update=changes)
 
 
 def _checking(answer: Mapping[str, object]) -> RoleAnswer:
@@ -72,7 +73,7 @@ def _meanwhile(follow_up: SceneKind, ally: str = "yes") -> tuple[Loner4eGame, Wo
 
 def _played(state: Loner4eGame) -> Loner4eGame:
     draft = state.draft()
-    draft.log[-1].exchanges.append(Exchange(words="I pocket the ledger.", lines=()))
+    draft.chapters[-1].entries.append(LogEntry(words="I pocket the ledger.", lines=()))
     return draft
 
 
@@ -84,7 +85,7 @@ def _closed(state: Loner4eGame) -> Loner4eGame:
 
 def test_a_loner_scene_with_anything_hidden_is_refused() -> None:
     with pytest.raises(ValidationError, match="hidden"):
-        _ = Loner4eNext.model_validate(NEXT_SCENE | {"hidden": ["tomas"]})
+        _ = Loner4eNextProposal.model_validate(NEXT_SCENE | {"hidden_ids": ["tomas"]})
 
 
 @pytest.mark.parametrize(
@@ -119,7 +120,7 @@ def test_a_quiet_scene_does_not_close_as_resolved_on_the_turn_it_opens() -> None
 
 async def test_close_scene_then_direct_in_one_turn_both_land(tmp_path: Path) -> None:
     table = open_game(tmp_path, rng=Random(1))
-    table.spawner.answers["worldsmith"] = [json.dumps(NEXT_SCENE)]
+    table.roles.answers["worldsmith"] = [json.dumps(NEXT_SCENE)]
 
     _ = await play_turn(table, "I pocket the ledger.", CLOSED, DIRECTED, arrival="Frost.")
 
@@ -132,13 +133,13 @@ async def test_move_on_rolls_the_transition_and_the_worldsmith_writes_the_next_s
     tmp_path: Path,
 ) -> None:
     table = open_game(tmp_path, rng=Dice(2))
-    table.spawner.answers["worldsmith"] = [json.dumps(NEXT_SCENE)]
-    table.spawner.answers["narrator"] = [narrated("Frost.")]
+    table.roles.answers["worldsmith"] = [json.dumps(NEXT_SCENE)]
+    table.roles.answers["narrator"] = [narrated("Frost.")]
 
-    await table.service.use_panel_option(MOVE_ON)
+    await table.session.use_panel_option(MOVE_ON)
 
     state = table.state
-    closed = state.log[-2].exchanges[-1]
+    closed = state.chapters[-2].entries[-1]
     assert closed.facts[-1].card == "Scene closes: moved on. Next: dramatic"
     assert (state.world.frame.goal, state.world.scene.place_id) == (GOAL, "cloister")
 
@@ -161,7 +162,7 @@ async def test_end_turn_requests_the_dramatic_scene_and_the_handler_installs_its
 def test_end_turn_requests_nothing_while_a_decision_waits() -> None:
     _, state = initialized()
     draft = _closed(state)
-    draft.pending = PendingDecision(kind="test", prompt="Wait?", options=(), allows_text=True)
+    draft.pending = Decision(kind="test", prompt="Wait?", options=(), allows_text=True)
 
     ENGINE.end_turn(draft, acted=True)
 
@@ -175,9 +176,9 @@ async def test_the_breather_installs_a_quiet_scene_with_full_luck_and_records_it
     draft = table.state.draft()
     draft.world.frame.next = "quiet"
     draft.world.player.luck.current = 2
-    table.service.save(draft.commit())
-    assert table.service.player_view().composer_only
-    table.spawner.answers["worldsmith"] = [json.dumps(NEXT_SCENE | {"goal": "Rest at the inn"})]
+    table.session.save(draft.validated())
+    assert table.session.player_view().composer_only
+    table.roles.answers["worldsmith"] = [json.dumps(NEXT_SCENE | {"goal": "Rest at the inn"})]
 
     state = await play_turn(table, "I rest at the inn.", DIRECTED, composer=TAKE_BREATHER)
 
@@ -186,7 +187,7 @@ async def test_the_breather_installs_a_quiet_scene_with_full_luck_and_records_it
     assert world.player.luck.shortfall == 0
     assert any(
         fact.card == f"New scene: {NEXT_SCENE['title']}"
-        for exchange in state.exchanges()
+        for exchange in state.log_entries()
         for fact in exchange.facts
     )
 
@@ -199,7 +200,7 @@ async def test_a_failed_write_keeps_the_close_and_the_next_turn_asks_again_with_
     failed = await play_turn(table, "I pocket the ledger.", CLOSED, DIRECTED)
 
     assert failed.world.frame.next == "dramatic"
-    table.spawner.answers["worldsmith"] = [json.dumps(NEXT_SCENE)]
+    table.roles.answers["worldsmith"] = [json.dumps(NEXT_SCENE)]
     state = await play_turn(table, "I wait.", DIRECTED, arrival="Frost.")
     assert state.world.frame.goal == GOAL
     assert not any(fact.trace.startswith("scene transition") for fact in table.facts)

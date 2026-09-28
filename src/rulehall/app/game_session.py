@@ -5,30 +5,38 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from random import Random
 from time import monotonic
-from typing import Literal
 
+from rulehall.app.battle_process import start_battle_process
+from rulehall.app.catalog import SavedGameKey
 from rulehall.app.illustration import Illustrator
-from rulehall.app.launch import LaunchTarget
-from rulehall.app.line_process import start_process
-from rulehall.app.roles import OPENING_NARRATION, role_answer, run_debrief, run_master, run_narrator
-from rulehall.app.spawn import Spawner
-from rulehall.app.turn import NO_TURN, Turn, require_playable
-from rulehall.config import Settings
+from rulehall.app.roles import (
+    OPENING_NARRATION,
+    Debrief,
+    RoleRunner,
+    role_answer,
+    run_debrief,
+    run_master,
+    run_narrator,
+)
+from rulehall.app.turn import Turn
+from rulehall.config import LiveSettings, Role
+from rulehall.core.decisions import ActionOption, PlayerInput
 from rulehall.core.facts import Fact
-from rulehall.core.io import FileStore, Library
-from rulehall.core.model import AnyCharacter, AnyGame, AnyScenario
-from rulehall.core.play import Answer, Cause, Debrief, Exchange, PendingOption, SpokenLine
+from rulehall.core.game import AnyCharacter, AnyGame, AnyScenario
+from rulehall.core.log import Cause, LogEntry, RefusedCall, SpokenLine, facts_and_refusals
+from rulehall.core.stores import Library, SaveStore
 from rulehall.core.validation import Refusal, Slug
-from rulehall.core.views import NarratorView, PlayerView, Sprite
+from rulehall.core.views import BattleChoice, NarratorView, PlayerView, Sprite
 from rulehall.engines.engine import AnyEngine, BattleRun, Resolution, Transport
 
 LOGGER = logging.getLogger(__name__)
 
-IN_FLIGHT_HERE = "A turn is already running in this game."
-IN_FLIGHT_ELSEWHERE = "Another game is taking a turn. Wait for that turn to end, then try again."
-NOTHING_TO_REWIND = "There is no turn to rewind."
-
-type Step = Literal["master", "narrator", "worldsmith"]
+IN_FLIGHT_HERE = "a turn is already running in this game"
+IN_FLIGHT_ELSEWHERE = "another game is taking a turn: wait for that turn to end, then try again"
+NOTHING_TO_REWIND = "there is no turn to rewind"
+NO_TURN = "no turn is open: the player starts a turn from the page, so wait until you start again"
+BATTLE_ON = "a battle is on: finish it on the battle screen"
+GAME_OVER = "the game is over ({ending}): it continues only after a restart"
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,11 +45,29 @@ class Rewind:
     words: str
 
 
+@dataclass(frozen=True, kw_only=True, slots=True)
+class SessionSnapshot:
+    view: PlayerView
+    log_entries: tuple[LogEntry, ...]
+    working_role: Role | None
+    words: str
+    facts_and_refusals: tuple[Fact | RefusedCall, ...]
+    live: tuple[SpokenLine, ...]
+    held_elsewhere: bool
+    in_battle: bool
+    can_rewind: bool
+    show_refusals: bool
+    battle_run: BattleRun[AnyGame] | None = field(compare=False)
+    battle_log: tuple[str, ...]
+    battle_facts: tuple[Fact, ...]
+    battle_choices: tuple[BattleChoice, ...]
+
+
 @dataclass(slots=True)
 class StateCache[T]:
     held: tuple[AnyGame, T] | None = None
 
-    def get(self, state: AnyGame) -> T | None:
+    def find_cached(self, state: AnyGame) -> T | None:
         return self.held[1] if self.held is not None and self.held[0] is state else None
 
     def put(self, state: AnyGame, value: T) -> None:
@@ -54,22 +80,22 @@ class StateCache[T]:
 
 
 @dataclass(slots=True, kw_only=True)
-class GameService:
-    target: LaunchTarget
+class GameSession:
+    key: SavedGameKey
     scenario: AnyScenario
     character: AnyCharacter
     engine: AnyEngine
-    spawner: Spawner
-    store: FileStore
+    roles: RoleRunner
+    store: SaveStore
     library: Library
     state: AnyGame
     gate: "Gate" = field(repr=False, compare=False)
     illustrator: Illustrator
-    start_transport: Callable[[AnyEngine], Awaitable[Transport]] = start_process
-    settings: Settings
+    start_transport: Callable[[AnyEngine], Awaitable[Transport]] = start_battle_process
+    live_settings: LiveSettings
     rng: Random = field(default_factory=Random)
-    working_role: Step | None = None
-    intent: str = ""
+    working_role: Role | None = None
+    pending_words: str = ""
     live: tuple[SpokenLine, ...] = ()
     turn: Turn | None = None
     rewind_point: Rewind | None = None
@@ -80,31 +106,32 @@ class GameService:
     views: StateCache[PlayerView] = field(
         default_factory=StateCache[PlayerView], repr=False, compare=False
     )
-    histories: StateCache[tuple[Exchange, ...]] = field(
-        default_factory=StateCache[tuple[Exchange, ...]], repr=False, compare=False
+    log_entries_cache: StateCache[tuple[LogEntry, ...]] = field(
+        default_factory=StateCache[tuple[LogEntry, ...]], repr=False, compare=False
     )
 
     @property
     def unopened(self) -> bool:
-        return self.working_role is None and not self.history()
+        return self.working_role is None and not self.log_entries()
 
     async def open(self) -> None:
         # A second tab's timer must not run the page reset over an opening already in flight.
         if not self.unopened:
+            self.present()
             return
-        with self.gate.admit(self), self.working("narrator"):
+        with self.gate.admit(self), self.mark_working("narrator"):
             draft = self.state.draft()
             lines = await self._narrated(draft, (), OPENING_NARRATION)
             if lines:
                 self.save(self.engine.record(draft, lines, (), cause="opening"))
             self.present()
 
-    async def play(self, answer: Answer) -> None:
-        with self.gate.admit(self), self.remembered(answer.text):
+    async def play(self, answer: PlayerInput) -> None:
+        with self.gate.admit(self), self.remember_for_rewind(answer.text):
             await self._turn(answer, self.state)
 
-    async def use_composer_option(self, option: PendingOption, words: str) -> None:
-        with self.gate.admit(self), self.remembered(words):
+    async def use_composer_option(self, option: ActionOption, words: str) -> None:
+        with self.gate.admit(self), self.remember_for_rewind(words):
             self._require_free()
             if option != self.player_view().composer_option:
                 raise Refusal("the page changed; try again")
@@ -112,19 +139,19 @@ class GameService:
             chosen = option.model_copy(update={"args": {**option.args, "words": words}})
             _ = self.engine.play_option(draft, chosen, self.rng)
             if draft.request is None:
-                await self._turn(Answer(text=words), draft)
+                await self._turn(PlayerInput(text=words), draft)
                 return
-            self.intent = words
+            self.pending_words = words
             try:
                 self.save(self.engine.accept(draft))
                 grown = await self._write_request(words=words, cause=None)
             finally:
-                self.intent = ""
+                self.pending_words = ""
             if grown:
-                await self._turn(Answer(text=words), self.state)
+                await self._turn(PlayerInput(text=words), self.state)
 
-    async def use_panel_option(self, option: PendingOption) -> None:
-        with self.gate.admit(self), self.remembered(""):
+    async def use_panel_option(self, option: ActionOption) -> None:
+        with self.gate.admit(self), self.remember_for_rewind(""):
             self._require_free()
             panels = self.player_view().panels
             if not any(option in row.options for panel in panels for row in panel.rows):
@@ -140,7 +167,7 @@ class GameService:
             ):
                 return
             if option.told_in_turn:
-                await self._turn(Answer(text=option.name), self.state)
+                await self._turn(PlayerInput(text=option.name), self.state)
 
     async def open_battle(self) -> None:
         with self.gate.admit(self):
@@ -150,8 +177,8 @@ class GameService:
             transport = await self.start_transport(self.engine)
             draft = self.state.draft()
             opponent = (
-                role_answer(self.spawner, "opponent")
-                if self.settings.battle.opponent == "model"
+                role_answer(self.roles, "opponent")
+                if self.live_settings.current.battle.opponent == "model"
                 else None
             )
             try:
@@ -164,7 +191,7 @@ class GameService:
     async def battle_command(self, command: str) -> None:
         with self.gate.admit(self):
             if (run := self.battle_run) is None:
-                raise Refusal("The battle is still starting.")
+                raise Refusal("the battle is still starting")
             if command not in (choice.command for choice in run.choices() if not choice.refusal):
                 raise Refusal(f"{command!r} is not a choice now")
             draft = self.state.draft()
@@ -187,27 +214,57 @@ class GameService:
     async def restart(self) -> None:
         with self.gate.admit(self):
             await self._close_battle()
-            opening = self.engine.begin(self.target.scenario_id, self.scenario, self.character)
-            self.store.discard(self.target.save_id)
+            opening = self.engine.begin(self.key.scenario_id, self.scenario, self.character)
+            self.store.discard(self.key.save_id)
             self.state = opening
 
     async def debrief(self) -> Debrief:
-        state = self.state
-        if (cached := self.debriefs.get(state)) is not None:
-            return cached
-        answer = await run_debrief(self.spawner, self.engine, state)
-        self.debriefs.put(state, answer)
-        return answer
+        with self.gate.admit(self):
+            state = self.state
+            if (cached := self.debriefs.find_cached(state)) is not None:
+                return cached
+            answer = await run_debrief(self.roles, self.engine, state)
+            self.debriefs.put(state, answer)
+            return answer
+
+    def require_idle(self) -> None:
+        save_id = self.key.save_id
+        if self.working_role is not None:
+            raise Refusal(f"{save_id} is taking a turn: wait for that turn to end, then delete")
+        if self.battle_run is not None:
+            raise Refusal(f"{save_id} is in a battle: end that battle, then delete")
 
     def present(self) -> None:
         view = self.engine.narrator_view(self.state)
         self.illustrator.illustrate_later(view, self.player_view().player)
 
+    def snapshot(self) -> SessionSnapshot:
+        turn, run, admitted = self.turn, self.battle_run, self.gate.admitted
+        show_refusals = self.live_settings.current.transcript.refusals
+        return SessionSnapshot(
+            view=self.player_view(),
+            log_entries=self.log_entries(),
+            working_role=self.working_role,
+            words=self.pending_words if turn is None else turn.logged_words,
+            facts_and_refusals=()
+            if turn is None
+            else facts_and_refusals(turn.facts, turn.refused, refusals=show_refusals),
+            live=self.live,
+            held_elsewhere=admitted is not None and admitted is not self,
+            in_battle=self.engine.in_battle(self.state),
+            can_rewind=self.rewind_point is not None,
+            show_refusals=show_refusals,
+            battle_run=run,
+            battle_log=() if run is None else tuple(run.log),
+            battle_facts=() if run is None else tuple(run.facts),
+            battle_choices=() if run is None else run.choices(),
+        )
+
     def player_view(self) -> PlayerView:
         return self.views.read(self.state, self.engine.player_view)
 
-    def history(self) -> tuple[Exchange, ...]:
-        return self.histories.read(self.state, lambda state: state.exchanges())
+    def log_entries(self) -> tuple[LogEntry, ...]:
+        return self.log_entries_cache.read(self.state, lambda state: state.log_entries())
 
     def scene_art(self) -> Path | None:
         return self.illustrator.scene_art(self.engine.narrator_view(self.state))
@@ -220,7 +277,7 @@ class GameService:
         return sprite.model_copy(update={"path": path}) if path.is_file() else None
 
     def save(self, state: AnyGame) -> None:
-        self.store.write(self.target.save_id, state)
+        self.store.write(self.key.save_id, state)
         self.state = state
 
     async def close(self) -> None:
@@ -228,7 +285,7 @@ class GameService:
         await self.illustrator.close()
 
     @contextmanager
-    def working(self, role: Step) -> Generator[None]:
+    def mark_working(self, role: Role) -> Generator[None]:
         self.working_role = role
         try:
             yield
@@ -236,7 +293,7 @@ class GameService:
             self.working_role = None
 
     @contextmanager
-    def remembered(self, words: str) -> Generator[None]:
+    def remember_for_rewind(self, words: str) -> Generator[None]:
         before = self.state
         yield
         if self.state is not before:
@@ -247,19 +304,24 @@ class GameService:
         if self.state.pending is not None:
             raise Refusal("the rules wait on the player's decision first")
 
-    async def _turn(self, answer: Answer, state: AnyGame) -> None:
+    async def _turn(self, answer: PlayerInput, state: AnyGame) -> None:
+        require_playable(self.engine, state)
         turn = Turn.begin(self.engine, state, answer, self.rng)
         before = self.engine.narrator_view(state)
         self.turn = turn
         try:
-            with self.working("master"):
-                if turn.played:
-                    await run_master(self.spawner, turn)
+            with self.mark_working("master"):
+                if turn.master_plays_this_turn:
+                    await run_master(self.roles, turn)
             lines: tuple[SpokenLine, ...] = ()
-            if turn.narrates:
-                with self.working("narrator"):
+            if turn.needs_narration:
+                with self.mark_working("narrator"):
                     lines = await self._narrated(
-                        turn.draft, turn.told, turn.words, landed=turn.landed, before=before
+                        turn.draft,
+                        turn.told,
+                        turn.logged_words,
+                        landed=turn.state_changed,
+                        before=before,
                     )
             state = turn.finish(lines)
         finally:
@@ -282,9 +344,9 @@ class GameService:
         handler = self.engine.request_handlers()[request.kind]
         grown = True
         try:
-            with self.working("worldsmith"):
+            with self.mark_working("worldsmith"):
                 resolution = await handler.write(
-                    draft, request, role_answer(self.spawner, "worldsmith")
+                    draft, request, role_answer(self.roles, "worldsmith")
                 )
             landed = await self._land(draft, resolution, words=words, cause=cause)
         except Refusal as failed:
@@ -315,7 +377,7 @@ class GameService:
             if not resolution.facts:
                 return self.engine.accept(draft)
             return self.engine.record(draft, (), resolution.facts, cause="story")
-        with self.working("narrator"):
+        with self.mark_working("narrator"):
             lines = await self._narrated(draft, resolution.facts, resolution.narrator_cue)
         return self.engine.record(draft, lines, resolution.facts, words=words, cause=cause)
 
@@ -330,7 +392,7 @@ class GameService:
     ) -> tuple[SpokenLine, ...]:
         try:
             return await run_narrator(
-                self.spawner, self.engine, draft, facts, cue, self._hear, before
+                self.roles, self.engine, draft, facts, cue, self._hear, before
             )
         except Refusal as failed:
             if not landed:
@@ -366,7 +428,7 @@ class Busy(Refusal):
 
 @dataclass(slots=True)
 class Gate:
-    admitted: GameService | None = field(default=None, repr=False)
+    admitted: GameSession | None = field(default=None, repr=False)
     creating: int = 0
     active_at: float = field(default_factory=monotonic)
 
@@ -399,7 +461,7 @@ class Gate:
         return turn
 
     @contextmanager
-    def admit(self, session: GameService) -> Generator[None]:
+    def admit(self, session: GameSession) -> Generator[None]:
         if self.admitted is not None:
             raise Busy(elsewhere=self.admitted is not session)
         self.admitted = session
@@ -408,3 +470,10 @@ class Gate:
         finally:
             self.admitted = None
             self.active_at = monotonic()
+
+
+def require_playable(engine: AnyEngine, state: AnyGame) -> None:
+    if (ended := engine.ending(state)) is not None:
+        raise Refusal(GAME_OVER.format(ending=ended.rstrip(".")))
+    if engine.in_battle(state):
+        raise Refusal(BATTLE_ON)

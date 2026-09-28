@@ -5,12 +5,12 @@ from pydantic import JsonValue, ValidationError
 from support.table import change, refused, run_action
 from support.twentyfourxx import ENGINE, KESTREL, LOCKPICKS, SABLE, SCENE_BASE, hired, small_world
 
-from rulehall.core.creation import option_of
+from rulehall.core.creation import find_option
+from rulehall.core.decisions import ActionOption
 from rulehall.core.facts import Fact
-from rulehall.core.play import PendingOption
 from rulehall.core.validation import Refusal
-from rulehall.engines.entities import PLAYER_ID
 from rulehall.engines.scenes.world import SceneProposal
+from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.twentyfourxx.args import (
     Defence,
     Helper,
@@ -27,7 +27,7 @@ from rulehall.engines.twentyfourxx.world import SHIP_AWAY, UPGRADE_COST, TwentyF
 def _rolled(draft: TwentyFourXXGame, roll: Roll, *, seed: int = 0) -> list[Fact]:
     facts = ENGINE.roll(draft, roll.model_copy(update={"committed": True}), Random(seed))
     while draft.pending is not None and draft.pending.kind == "defence":
-        take_it = option_of(draft.pending.options, "take-it")
+        take_it = find_option(draft.pending.options, "take-it")
         assert take_it is not None
         draft.pending = None
         facts.extend(ENGINE.play_option(draft, take_it, Random(seed)))
@@ -86,7 +86,7 @@ def test_a_deadly_setback_pauses_for_gear_and_a_break_spares_the_hit() -> None:
     assert draft.pending is not None
     assert draft.pending.kind == "defence"
     assert [fact.card for fact in facts] == [""]
-    lockpicks = option_of(draft.pending.options, LOCKPICKS)
+    lockpicks = find_option(draft.pending.options, LOCKPICKS)
     assert lockpicks is not None
     draft.pending = None
     facts = ENGINE.play_option(draft, lockpicks, Random(0))
@@ -103,7 +103,7 @@ def test_every_deadly_hit_in_a_scene_can_break_gear() -> None:
     for item_id in (LOCKPICKS, "vest"):
         _ = ENGINE.roll(draft, knife, Random(1))
         assert draft.pending is not None
-        breaking = option_of(draft.pending.options, item_id)
+        breaking = find_option(draft.pending.options, item_id)
         assert breaking is not None
         draft.pending = None
         _ = ENGINE.play_option(draft, breaking, Random(0))
@@ -213,7 +213,7 @@ def test_a_name_told_to_the_player_makes_them_met_unless_they_are_hidden_here(
     draft.world.cast[buyer.id] = buyer
     _ = change(ENGINE, draft, "direct", text="Ilsa says the buyer is Bray Kell, on Anvil.")
     assert buyer.known
-    assert buyer.id not in draft.world.scene.here
+    assert buyer.id not in draft.world.scene.here_ids
     assert "not met" in refused(ENGINE, draft, "direct", text="Sable waits in the dark.")
     assert not draft.world.cast[SABLE].known
 
@@ -560,7 +560,7 @@ def test_a_take_while_a_job_is_open_amends_its_terms_and_closes_nothing() -> Non
     assert world.cast[KESTREL].require_sheet().skills == {"Shooting": 8}
 
 
-def _look_again(draft: TwentyFourXXGame) -> list[PendingOption]:
+def _look_again(draft: TwentyFourXXGame) -> list[ActionOption]:
     return [
         option
         for panel in ENGINE.player_view(draft).panels

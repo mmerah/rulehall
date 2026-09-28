@@ -35,7 +35,7 @@
   },
   {
     "name": "direct",
-    "description": "Call this last, once per turn. It ends the turn and gives notes to the narrator. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Apply world changes through the other tools before calling direct.",
+    "description": "End the turn and give notes to the narrator. Call this last, once per turn. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Apply world changes through the other tools before calling direct.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -103,7 +103,7 @@
   },
   {
     "name": "change_tags",
-    "description": "A character here, or the scene, gains tags, loses tags, or does both.",
+    "description": "Add tags to a character here or to the scene, remove tags, or do both.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -220,7 +220,7 @@
           },
           "type": "array"
         },
-        "against_id": {
+        "opponent_id": {
           "type": [
             "string",
             "null"
@@ -234,7 +234,7 @@
   },
   {
     "name": "withdraw",
-    "description": "The protagonist stops fighting and breaks off the Harm & Luck conflict: always allowed, never free. While the conflict is open every `ask` is an exchange, so call this first when the protagonist turns to anything else.",
+    "description": "Break off the Harm & Luck conflict when the protagonist stops fighting: always allowed, never free. While the conflict is open every `ask` is an exchange, so call this first when the protagonist turns to anything else.",
     "parameters": {
       "additionalProperties": false,
       "properties": {},
@@ -283,7 +283,7 @@
   },
   {
     "name": "spend_luck",
-    "description": "A character here spends luck.",
+    "description": "Spend luck for a character here.",
     "parameters": {
       "additionalProperties": false,
       "properties": {

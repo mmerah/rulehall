@@ -27,7 +27,7 @@ def test_the_shipped_game_begins_on_the_maps_start_with_the_starting_items() -> 
     _, state = _tunnelgoons_game()
     assert state.pack_id == "srd"
     world = state.world
-    assert world.visits[0] == world.current.id
+    assert world.visited_place_ids[0] == world.current.id
     assert {item.name for item in world.carried(world.player.id)} == {
         "Pry Bar (melee weapon)",
         "Rope",
@@ -37,8 +37,8 @@ def test_the_shipped_game_begins_on_the_maps_start_with_the_starting_items() -> 
 
 def test_create_character_on_the_legal_path() -> None:
     character = ENGINE.create_character("Kael", "A wiry scavenger", SRD_PACK, PICKS)
-    assert character.sheet.kit == ("Rope", "Torch", "Melee Weapon (dagger)")
-    assert character.sheet.sheet.abilities == {"brute": 1, "skulker": 1, "erudite": 1}
+    assert character.person.kit == ("Rope", "Torch", "Melee Weapon (dagger)")
+    assert character.person.sheet.abilities == {"brute": 1, "skulker": 1, "erudite": 1}
 
 
 def test_a_sum_not_equal_to_three_is_refused() -> None:
@@ -46,4 +46,11 @@ def test_a_sum_not_equal_to_three_is_refused() -> None:
     with pytest.raises(Refusal, match="share exactly 3 points"):
         _ = ENGINE.create_character(
             "Kael", "A wiry scavenger", SRD_PACK, dict(PICKS, brute="3", skulker="3")
+        )
+
+
+def test_an_item_name_that_makes_no_id_is_refused() -> None:
+    with pytest.raises(Refusal, match="makes no id"):
+        _ = ENGINE.create_character(
+            "Kael", "A wiry scavenger", SRD_PACK, dict(PICKS, **{"item-1": "!!!"})
         )

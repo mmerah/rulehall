@@ -3,9 +3,8 @@ from pathlib import Path
 
 from nicegui import Client, ui
 from nicegui.events import ValueChangeEventArguments
-from support.table import ENGINES_BUILT, LONER4E, ScriptedSpawner, offline_settings
+from support.table import ENGINES_BUILT, LONER4E, ScriptedRoles, offline_settings
 
-from rulehall.app.launch import CatalogEntry, LauncherCatalog
 from rulehall.app.runtime import Runtime
 from rulehall.engines.packs import SRD_PACK
 from rulehall.ui.create import CharacterForm, ScenarioForm
@@ -17,19 +16,9 @@ FANTASY_SKILL = "swordsmanship"  # ap01's alone: the SRD's tables never offer it
 def test_rolling_a_seed_writes_one_of_the_chosen_packs_seeds(
     tmp_path: Path, page: Callable[[], Client]
 ) -> None:
-    entry = CatalogEntry(
-        id="kael",
-        engine_id=LONER4E,
-        name="Kael",
-        brief="a wanderer",
-        rules="LONER 4E",
-        look=ENGINES_BUILT[LONER4E].look,
-    )
-    catalog = LauncherCatalog(scenarios=(), characters=(entry,), packs=(), saves=(), unresumable=())
-    runtime = Runtime(offline_settings(tmp_path), spawner=ScriptedSpawner())
-    form = ScenarioForm(runtime, catalog)
+    runtime = Runtime(offline_settings(tmp_path), roles=ScriptedRoles())
     page()
-    form.build()
+    form = ScenarioForm(runtime)
     form.pack_id = FANTASY
 
     form.roll_seed()
@@ -41,10 +30,9 @@ def test_rolling_a_seed_writes_one_of_the_chosen_packs_seeds(
 async def test_a_trait_no_pack_offers_is_kept_as_the_players_own_through_a_pack_change(
     tmp_path: Path, page: Callable[[], Client]
 ) -> None:
-    runtime = Runtime(offline_settings(tmp_path), spawner=ScriptedSpawner())
-    form = CharacterForm(runtime)
+    runtime = Runtime(offline_settings(tmp_path), roles=ScriptedRoles())
     client = page()
-    form.build()
+    form = CharacterForm(runtime)
     form.picks["skill-1"] = FANTASY_SKILL
     form.answered()
     assert form.picks["skill-1"] == FANTASY_SKILL

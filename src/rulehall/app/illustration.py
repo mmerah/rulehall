@@ -4,16 +4,13 @@ from asyncio import Task, create_task, gather
 from base64 import b64decode
 from collections.abc import Generator
 from contextlib import contextmanager
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from hashlib import sha1
 from pathlib import Path
-from typing import Self
 
-from httpx import HTTPError
-
-from rulehall.app.providers import post_bearer
-from rulehall.config import MediaConfig, ProviderConfig, Settings
-from rulehall.core.io import FileStore, publish
+from rulehall.app.http_client import post_bearer
+from rulehall.config import LiveSettings
+from rulehall.core.stores import publish
 from rulehall.core.validation import Loose, Refusal, Slug, parse_json
 from rulehall.core.views import NarratorView, Subject
 
@@ -49,8 +46,7 @@ class GeneratedImage:
 
 @dataclass(frozen=True, slots=True)
 class Illustrator:
-    config: MediaConfig
-    provider: ProviderConfig
+    live_settings: LiveSettings
     saves: Path
     icon_dirs: tuple[Path, ...]
     style: str
@@ -58,34 +54,13 @@ class Illustrator:
     claims: Claims = field(default_factory=Claims)
     tasks: set[Task[None]] = field(default_factory=set)
 
-    @classmethod
-    def open(
-        cls,
-        settings: Settings,
-        store: FileStore,
-        save_id: str,
-        *,
-        style: str,
-        icon_dirs: tuple[Path, ...],
-        portraits: bool,
-    ) -> Self:
-        return cls(
-            config=settings.media,
-            provider=_media_provider(settings),
-            saves=store.media_dir(save_id),
-            icon_dirs=icon_dirs,
-            style=style,
-            portraits=portraits,
-        )
-
-    def configured(self, settings: Settings) -> Self:
-        return replace(self, config=settings.media, provider=_media_provider(settings))
-
     def scene_art(self, scene: NarratorView) -> Path | None:
-        return _existing(self.saves, scene_key(scene)) if self.config.enabled else None
+        if not self.live_settings.current.media.enabled:
+            return None
+        return _existing(self.saves, scene_key(scene))
 
     def icon(self, entity_id: Slug) -> Path | None:
-        if not self.config.enabled:
+        if not self.live_settings.current.media.enabled:
             return None
         for directory in (*self.icon_dirs, self.saves / ICON_DIR):
             found = _existing(directory, entity_id)
@@ -106,7 +81,7 @@ class Illustrator:
         await gather(*tasks, return_exceptions=True)
 
     async def illustrate(self, scene: NarratorView, player: Subject) -> None:
-        if not self.config.enabled:
+        if not self.live_settings.current.media.enabled:
             return
         key = scene_key(scene)
         try:
@@ -116,7 +91,7 @@ class Illustrator:
                     await self._draw(scene, key)
                 for subject in scene.subjects:
                     await self._drawn_icon(subject)
-        except (HTTPError, Refusal) as failed:
+        except Refusal as failed:
             LOGGER.warning("image generation failed: %s", failed)
 
     def _finished(self, task: Task[None]) -> None:
@@ -145,16 +120,17 @@ class Illustrator:
             return path
 
     async def _generate(self, prompt: str, ratio: str) -> GeneratedImage:
+        settings = self.live_settings.current
         content = await post_bearer(
-            self.provider,
+            settings.providers.for_name(settings.media.provider),
             "/chat/completions",
             {
-                "model": self.config.model,
+                "model": settings.media.model,
                 "modalities": ["image", "text"],
                 "image_config": {"aspect_ratio": ratio},
                 "messages": [{"role": "user", "content": prompt}],
             },
-            self.config.timeout,
+            settings.media.timeout,
         )
         url = parse_json(_ImageReply, content).url()
         if url is None:
@@ -206,10 +182,6 @@ def _icon_request(subject: Subject, style: str) -> str:
         f"Put the subject alone in the centre and fill the square. Use a plain background. "
         f"Show only the items that the subject carries. {style}"
     )
-
-
-def _media_provider(settings: Settings) -> ProviderConfig:
-    return settings.providers.for_name(settings.media.provider)
 
 
 def _decode(url: str) -> GeneratedImage:

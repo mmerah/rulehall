@@ -99,7 +99,7 @@ def body(s: Session) -> None:
     s.note(f"loner close calls: {[(n, a[:70]) for n, _, a in calls]}")
     refusals = ["REFUSED" in answer for _, _, answer in calls]
     s.check(
-        refusals == [False, True, False] and "Call `direct` now" in calls[1][2],
+        refusals == [False, True, False] and "call `direct` now" in calls[1][2],
         f"after close_scene, enter landed or direct did not: {[a for _, _, a in calls]}",
     )
     closed = [card for card in cards(page) if "Scene closes" in card]

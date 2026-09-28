@@ -12,14 +12,14 @@ MOVED_CARD = "Elsewhere, something moves."
 
 class MoveItem(Frozen):
     item_id: Slug = Field(description="Exact id of an item here or carried.")
-    to_id: Slug = Field(description="Exact id of the player, an npc here, or this place.")
+    holder_id: Slug = Field(description="Exact id of the player, an npc here, or this place.")
 
 
 class DropHere(Frozen):
     item_id: Slug
 
 
-class Move(Frozen):
+class MoveTo(Frozen):
     to_id: Slug = Field(description="Exact id of the place to move to.")
     with_ids: tuple[Slug, ...] = Field(
         default=(),

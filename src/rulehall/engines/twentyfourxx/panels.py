@@ -1,15 +1,16 @@
 from collections.abc import Sequence
 
+from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.facts import notation
-from rulehall.core.play import PendingDecision, PendingOption
 from rulehall.core.validation import Slug, slug
 from rulehall.core.views import Panel, PanelRow, Tag
+from rulehall.engines.panels import character_panel
 from rulehall.engines.twentyfourxx.args import DefendHit, Roll
-from rulehall.engines.twentyfourxx.rules import raised
+from rulehall.engines.twentyfourxx.rules import next_die
 from rulehall.engines.twentyfourxx.sheet import Crewmate, CrewSheet, Gear
 from rulehall.engines.twentyfourxx.world import UPGRADE_COST, WORK_AT, TwentyFourXXWorld
 
-MOVE_ON = PendingOption(
+MOVE_ON = ActionOption(
     id="move-on",
     name="Move on",
     brief="Say where you go and move on.",
@@ -21,6 +22,11 @@ NEWCOMER_PROMPT = "{name} is dead. Who joins the crew? Describe them in your own
 CANNOT_SUCCEED = "Cannot succeed without help."
 
 
+def sheet_panel(world: TwentyFourXXWorld) -> Panel:
+    player = world.player
+    return character_panel(player.subject(), player.rows(), *gear_rows(world, player))
+
+
 def gear_rows(world: TwentyFourXXWorld, actor: Crewmate) -> tuple[PanelRow, ...]:
     if actor.sheet is None:
         return ()
@@ -30,14 +36,14 @@ def gear_rows(world: TwentyFourXXWorld, actor: Crewmate) -> tuple[PanelRow, ...]
             brief="",
             tags=_mark_tags(item),
             options=(
-                PendingOption(
+                ActionOption(
                     id="stow",
                     name="Stow in the hold",
                     action_name="stow_item",
                     args={"item_id": key, "actor_id": actor.id},
                     refusal=world.ship_refusal(),
                 ),
-                PendingOption(
+                ActionOption(
                     id="drop",
                     name="Drop",
                     action_name="drop_item",
@@ -50,9 +56,9 @@ def gear_rows(world: TwentyFourXXWorld, actor: Crewmate) -> tuple[PanelRow, ...]
 
 
 def crew_rows(world: TwentyFourXXWorld, member: Crewmate) -> tuple[PanelRow, ...]:
-    if not member.hired:
+    if not member.has_sheet:
         return ()
-    let_go = PendingOption(
+    let_go = ActionOption(
         id="let-go", name="Let go", action_name="leave_party", args={"target_id": member.id}
     )
     return (*gear_rows(world, member), PanelRow(name="Hired crew", brief="", options=(let_go,)))
@@ -65,7 +71,7 @@ def ship_panel(world: TwentyFourXXWorld) -> Panel:
             brief="",
             tags=_mark_tags(function),
             options=(
-                PendingOption(
+                ActionOption(
                     id="upgrade",
                     name=f"Upgrade (₡{UPGRADE_COST})",
                     action_name="ship_upgrade",
@@ -86,7 +92,7 @@ def ship_panel(world: TwentyFourXXWorld) -> Panel:
             brief="",
             tags=(Tag(name="in the hold"), *_mark_tags(item)),
             options=tuple(
-                PendingOption(
+                ActionOption(
                     id=f"retrieve-{crewmate.id}",
                     name=name,
                     action_name="retrieve_item",
@@ -106,7 +112,7 @@ def job_panel(world: TwentyFourXXWorld) -> tuple[Panel, ...]:
         return (Panel(title="Job", rows=(PanelRow(name=world.job, brief=""),)),)
     if not (where := world.looked_at()):
         return ()
-    look_again = PendingOption(
+    look_again = ActionOption(
         id="look-again",
         name="Pay ₡1 and look again",
         action_name="find_again",
@@ -118,8 +124,8 @@ def job_panel(world: TwentyFourXXWorld) -> tuple[Panel, ...]:
     return (Panel(title="Job", rows=(row,)),)
 
 
-def newcomer_decision(dead: Crewmate) -> PendingDecision:
-    return PendingDecision(
+def newcomer_decision(dead: Crewmate) -> Decision:
+    return Decision(
         kind=NEWCOMER,
         prompt=NEWCOMER_PROMPT.format(name=dead.name),
         options=(),
@@ -127,17 +133,17 @@ def newcomer_decision(dead: Crewmate) -> PendingDecision:
     )
 
 
-def succession_decision(members: Sequence[Crewmate]) -> PendingDecision:
-    return PendingDecision(
+def succession_decision(members: Sequence[Crewmate]) -> Decision:
+    return Decision(
         kind="succession",
         prompt="Who leads now?",
         options=tuple(
-            PendingOption(
+            ActionOption(
                 id=member.id,
                 name=member.name,
                 brief=member.brief,
                 action_name="take_lead",
-                args={"actor_id": member.id},
+                args={"member_id": member.id},
             )
             for member in members
         ),
@@ -145,19 +151,19 @@ def succession_decision(members: Sequence[Crewmate]) -> PendingDecision:
     )
 
 
-def raise_decision(sheet: CrewSheet) -> PendingDecision:
-    return PendingDecision(
+def raise_decision(sheet: CrewSheet) -> Decision:
+    return Decision(
         kind="raise",
         prompt=RAISE_PROMPT,
         options=tuple(
-            PendingOption(
+            ActionOption(
                 id=slug(skill, ()),
-                name=f"{skill} d{die} → d{next_die}",
+                name=f"{skill} d{die} → d{raised_die}",
                 action_name="raise_skill",
                 args={"skill": skill},
             )
             for skill, die in sheet.skills.items()
-            if (next_die := raised(die)) is not None
+            if (raised_die := next_die(die)) is not None
         ),
         allows_text=True,
     )
@@ -165,8 +171,8 @@ def raise_decision(sheet: CrewSheet) -> PendingDecision:
 
 def commit_decision(
     attempt: Roll, roll_line: str, actor: Crewmate, faces: tuple[int, ...]
-) -> PendingDecision:
-    return PendingDecision(
+) -> Decision:
+    return Decision(
         kind="risk",
         prompt=" ".join(
             part
@@ -179,7 +185,7 @@ def commit_decision(
             if part
         ),
         options=(
-            PendingOption(
+            ActionOption(
                 id="commit",
                 name="Commit",
                 action_name="roll",
@@ -192,8 +198,8 @@ def commit_decision(
 
 def defence_decision(
     headline: str, hit: DefendHit, defender_id: Slug, defences: Sequence[tuple[Slug, Gear]]
-) -> PendingDecision:
-    return PendingDecision(
+) -> Decision:
+    return Decision(
         kind="defence",
         prompt=f"{headline} Break an item to turn it into a brief hindrance, or take it.",
         options=(
@@ -211,9 +217,9 @@ def _mark_tags(gear: Gear) -> tuple[Tag, ...]:
     return tuple(Tag(name=mark) for mark in gear.marks())
 
 
-def _defence(name: str, hit: DefendHit, defender_id: Slug, item_id: Slug | None) -> PendingOption:
+def _defence(name: str, hit: DefendHit, defender_id: Slug, item_id: Slug | None) -> ActionOption:
     chosen = hit.model_copy(update={"choices": {**hit.choices, defender_id: item_id}})
-    return PendingOption(
+    return ActionOption(
         id=item_id or "take-it",
         name=name,
         action_name="defend_hit",

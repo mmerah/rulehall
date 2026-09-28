@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 
-from rulehall.core.play import DecisionOption
+from rulehall.core.decisions import DecisionOption
 from rulehall.core.validation import Frozen, Refusal, Slug
 
 type Picks = Mapping[Slug, str]
@@ -23,16 +23,12 @@ class CreationStep(Frozen):
         return not self.constrains or any(option.id == answer for option in self.options)
 
 
-def picked(picks: Picks, step_id: Slug) -> str:
-    return picks.get(step_id, "")
-
-
 def check_picks(steps: Sequence[CreationStep], picks: Picks) -> None:
     known = {step.id for step in steps}
     if unknown := sorted(set(picks) - known):
         raise Refusal(f"no creation step is called {unknown}")
     for step in steps:
-        answer = picked(picks, step.id)
+        answer = picks.get(step.id, "")
         if not answer.strip():
             if step.optional:
                 continue
@@ -45,7 +41,7 @@ def check_picks(steps: Sequence[CreationStep], picks: Picks) -> None:
 
 def drop_stale(steps: Sequence[CreationStep], picks: dict[Slug, str]) -> None:
     for step in steps:
-        if not step.offers(picked(picks, step.id)):
+        if not step.offers(picks.get(step.id, "")):
             picks.pop(step.id, None)
 
 
@@ -53,12 +49,5 @@ def other_than(options: Sequence[DecisionOption], taken: str) -> tuple[DecisionO
     return tuple(option for option in options if taken not in (option.id, option.name))
 
 
-def option_of[T: DecisionOption](options: Sequence[T], chosen: str) -> T | None:
+def find_option[T: DecisionOption](options: Sequence[T], chosen: str) -> T | None:
     return next((option for option in options if option.id == chosen), None)
-
-
-def chosen_option[T: DecisionOption](options: Sequence[T], chosen: str) -> T:
-    found = option_of(options, chosen)
-    if found is None:
-        raise Refusal(f"no option {chosen!r}")
-    return found

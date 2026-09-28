@@ -1,5 +1,5 @@
 import logging
-from asyncio import Event, Lock, Task, create_task
+from asyncio import Event, Task, create_task
 from dataclasses import dataclass, field
 
 import mcp_types as types
@@ -9,8 +9,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
-from rulehall.app.session import Gate
-from rulehall.core.tools import schema_of
+from rulehall.app.game_session import Gate
 from rulehall.core.validation import Refusal
 
 LOGGER = logging.getLogger(__name__)
@@ -79,8 +78,6 @@ def endpoint(gate: Gate) -> tuple[LoopbackOnly, StreamableHTTPSessionManager]:
 
 
 def _build_server(gate: Gate) -> Server[dict[str, object]]:
-    lock = Lock()
-
     async def on_list_tools(
         _ctx: ServerRequestContext[dict[str, object]],
         _params: types.PaginatedRequestParams | None,
@@ -91,7 +88,7 @@ def _build_server(gate: Gate) -> Server[dict[str, object]]:
                 types.Tool(
                     name=tool.name,
                     description=tool.description,
-                    input_schema=schema_of(tool.args),
+                    input_schema=tool.schema,
                 )
                 for tool in (() if turn is None else turn.published_tools())
             ]
@@ -100,16 +97,14 @@ def _build_server(gate: Gate) -> Server[dict[str, object]]:
     async def on_call_tool(
         _ctx: ServerRequestContext[dict[str, object]], params: types.CallToolRequestParams
     ) -> types.CallToolResult:
-        """The lock keeps the tools sequential: a CLI may call several tools at once."""
-        async with lock:
-            try:
-                answered = gate.require_turn().call(params.name, params.arguments or {})
-            except Refusal as refused:
-                return _content(str(refused), error=True)
-            except Exception:
-                # The mcp framework would otherwise swallow this traceback.
-                LOGGER.exception("tool %s failed", params.name)
-                raise
+        try:
+            answered = gate.require_turn().call_tool(params.name, params.arguments or {})
+        except Refusal as refused:
+            return _content(str(refused), error=True)
+        except Exception:
+            # The mcp framework would otherwise swallow this traceback.
+            LOGGER.exception("tool %s failed", params.name)
+            raise
         return _content(answered)
 
     return Server(SERVER_NAME, on_list_tools=on_list_tools, on_call_tool=on_call_tool)

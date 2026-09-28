@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 from support.table import ENGINES_BUILT, LONER4E
 
-from rulehall.core.io import ENCODING
-from rulehall.core.play import DecisionOption
+from rulehall.core.decisions import DecisionOption
+from rulehall.core.stores import ENCODING
 from rulehall.core.validation import EngineId, Refusal, parse
 from rulehall.engines.loner4e.pack import Loner4ePack
 from rulehall.engines.packs import SRD_PACK, Names, Pack, PackSet, read_packs
@@ -21,7 +21,7 @@ TEST_ENGINE = EngineId("test")
 def _loner4e_pack(name: str) -> Loner4ePack:
     return Loner4ePack(
         name=name,
-        source="",
+        origin="",
         license="",
         concepts=(DecisionOption(id="concept", name="Concept"),),
         skills=(DecisionOption(id="skill", name="Skill"),),
@@ -36,9 +36,8 @@ def test_read_packs_lists_a_written_pack_alongside_the_shipped_ones(tmp_path: Pa
 
     packs = read_packs(LONER4E, shipped, tmp_path, Loner4ePack)
 
-    assert "mine" in packs.written
+    assert "mine" in packs.written_ids
     assert "mine" in packs.installed
-    assert "mine" not in packs.shipped
 
 
 def test_read_packs_skips_a_written_pack_that_shadows_a_shipped_id(tmp_path: Path) -> None:
@@ -49,21 +48,21 @@ def test_read_packs_skips_a_written_pack_that_shadows_a_shipped_id(tmp_path: Pat
 
     packs = read_packs(LONER4E, shipped, tmp_path, Loner4ePack)
 
-    assert packs.written == {}
-    assert packs.installed[SRD_PACK] == packs.shipped[SRD_PACK]
+    assert packs.written_ids == frozenset()
+    assert packs.installed[SRD_PACK].name != "Fake SRD"
 
 
 def test_require_refuses_an_uninstalled_pack() -> None:
-    packs = PackSet(TEST_ENGINE, {SRD_PACK: Pack(name="SRD", source="", license="")}, {})
+    packs = PackSet(TEST_ENGINE, {SRD_PACK: Pack(name="SRD", origin="", license="")}, frozenset())
 
     with pytest.raises(Refusal, match="is not installed"):
         packs.require("gone")
 
 
 def test_played_reads_the_srd_once_then_the_chosen_pack() -> None:
-    srd = Pack(name="SRD", source="", license="")
-    second = Pack(name="Second", source="", license="")
-    packs = PackSet(TEST_ENGINE, {SRD_PACK: srd, "second": second}, {})
+    srd = Pack(name="SRD", origin="", license="")
+    second = Pack(name="Second", origin="", license="")
+    packs = PackSet(TEST_ENGINE, {SRD_PACK: srd, "second": second}, frozenset())
 
     assert packs.played(SRD_PACK) == (srd,)
     assert packs.played("second") == (srd, second)
@@ -81,7 +80,7 @@ def test_a_twentyfourxx_head_never_gives_two_picks_the_same_id() -> None:
     )
 
     made = parse(
-        TwentyFourXXPack, {"name": "Test", "source": "", "license": "", **head.pack_fields()}
+        TwentyFourXXPack, {"name": "Test", "origin": "", "license": "", **head.pack_fields()}
     )
 
     made_ids = tuple(option.id for option in (*made.specialties, *made.origins))

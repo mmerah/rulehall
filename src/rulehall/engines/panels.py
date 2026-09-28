@@ -1,22 +1,29 @@
 from collections.abc import Callable, Iterable, Sequence
 
+from rulehall.core.decisions import ActionOption
 from rulehall.core.views import Panel, PanelRow, Rows, Subject
-from rulehall.engines.entities import Thing
+from rulehall.engines.sheet import Entity
 
 
-def character_panel(rows: Rows, *extra: PanelRow) -> Panel:
+def character_panel(player: Subject, rows: Rows, *extra: PanelRow) -> Panel:
     return Panel(
         title="Character",
-        portrait=True,
-        rows=(*(PanelRow(name=name, brief=brief) for name, brief in rows), *extra),
+        rows=(
+            player.row(),
+            *(PanelRow(name=name, brief=brief) for name, brief in rows),
+            *extra,
+        ),
     )
 
 
-def here_panel(others: Iterable[Subject]) -> Panel:
-    return Panel(title="Also here", rows=tuple(other.row() for other in others))
+def here_panel(
+    others: Iterable[Subject],
+    options_for: Callable[[Subject], tuple[ActionOption, ...]] = lambda _other: (),
+) -> Panel:
+    return Panel(title="Also here", rows=tuple(other.row(options_for(other)) for other in others))
 
 
-def party_panel[T: Thing](
+def party_panel[T: Entity](
     members: Sequence[T], more: Callable[[T], Iterable[PanelRow]] = lambda _member: ()
 ) -> tuple[Panel, ...]:
     if not members:

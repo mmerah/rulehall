@@ -16,10 +16,10 @@ from support.tunnelgoons import (
     small_world,
 )
 
-from rulehall.core.play import Exchange
+from rulehall.core.log import LogEntry
 from rulehall.core.validation import Refusal
-from rulehall.engines.entities import PLAYER_ID
-from rulehall.engines.rooms.world import Place, Prop, RegionProposal
+from rulehall.engines.rooms.world import Item, Place, RegionProposal
+from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.tunnelgoons.args import LevelUp, Roll
 from rulehall.engines.tunnelgoons.sheet import Goon, GoonSheet
 from rulehall.engines.tunnelgoons.world import TunnelGoonsGame, TunnelGoonsWorld
@@ -56,8 +56,9 @@ def test_the_roll_adds_ability_and_items_and_penalizes_brute_and_skulker_over_in
 
 def test_a_what_naming_an_unmet_npc_is_refused(draft: TunnelGoonsGame) -> None:
     with pytest.raises(Refusal, match="names what the player has not met"):
-        _ = ENGINE.tools["roll"].call(
+        _ = ENGINE.call_tool(
             draft,
+            "roll",
             {"what": "Listen for Robo Mantis", "ability": "skulker", "difficulty": 8},
             Random(0),
         )
@@ -113,7 +114,7 @@ def test_dangerous_hurts_only_on_a_miss() -> None:
     world2.player.require_sheet().inventory = 0
     world2.items.update(
         {
-            f"junk-{n}": Prop(
+            f"junk-{n}": Item(
                 id=f"junk-{n}",
                 name=f"Junk {n}",
                 brief="Clutter",
@@ -157,7 +158,7 @@ def test_level_up_passes_the_choice_on_to_a_hired_member() -> None:
     draft = small_world().draft()
     world = draft.world
     world.npcs[MIRA].sheet = _sheeted(brute=1, skulker=1, erudite=1)
-    world.party.append(MIRA)
+    world.party_ids.append(MIRA)
 
     _ = ENGINE.level_up(draft, LevelUp(ability="brute", boost="health"), Random(0))
     assert draft.pending is not None
@@ -169,18 +170,18 @@ def test_level_up_passes_the_choice_on_to_a_hired_member() -> None:
 
 
 def test_move_refuses_a_locked_way(world: TunnelGoonsWorld) -> None:
-    world.visits.append(HALL)
+    world.visited_place_ids.append(HALL)
     with pytest.raises(Refusal, match="locked"):
         _ = world.move(VAULT, ())
 
 
 def test_move_reveals_the_destination_and_adds_a_visit(draft: TunnelGoonsGame) -> None:
     world = draft.world
-    before = len(world.visits)
+    before = len(world.visited_place_ids)
     _ = world.move(VAULT, ())
     assert world.current.id == VAULT
     assert world.places[VAULT].known
-    assert len(world.visits) == before + 1
+    assert len(world.visited_place_ids) == before + 1
 
 
 def test_two_moves_open_no_chapter_and_install_closes_with_the_recap(
@@ -188,8 +189,8 @@ def test_two_moves_open_no_chapter_and_install_closes_with_the_recap(
 ) -> None:
     _ = draft.world.move(HALL, ())
     _ = draft.world.move(START, ())
-    assert [chapter.title for chapter in draft.log] == ["Start"]
-    draft.log[-1].exchanges.append(Exchange(words="Look around.", lines=()))
+    assert [chapter.title for chapter in draft.chapters] == ["Start"]
+    draft.chapters[-1].entries.append(LogEntry(words="Look around.", lines=()))
 
     region = RegionProposal[Goon](
         places={
@@ -198,11 +199,11 @@ def test_two_moves_open_no_chapter_and_install_closes_with_the_recap(
         start_id="beyond",
         recap="They walked to the hall and back, finding nothing.",
     )
-    ENGINE.install(draft, region)
+    _ = ENGINE.install_next(draft, region)
 
-    assert [chapter.title for chapter in draft.log] == ["Start", "Start"]
-    assert draft.log[0].recap == region.recap
-    assert draft.log[1].recap == ""
+    assert [chapter.title for chapter in draft.chapters] == ["Start", "Start"]
+    assert draft.chapters[0].recap == region.recap
+    assert draft.chapters[1].recap == ""
 
 
 def test_move_with_ids_brings_an_npc_here_and_refuses_one_standing_elsewhere() -> None:
@@ -219,19 +220,19 @@ def test_move_with_ids_brings_an_npc_here_and_refuses_one_standing_elsewhere() -
 
 def test_move_item_to_the_player_to_an_npc_here_and_to_the_place(draft: TunnelGoonsGame) -> None:
     world = draft.world
-    _ = change(ENGINE, draft, "move_item", item_id=LANTERN, to_id=MIRA)
+    _ = change(ENGINE, draft, "move_item", item_id=LANTERN, holder_id=MIRA)
     assert world.items[LANTERN].holder_id == MIRA
 
-    _ = change(ENGINE, draft, "move_item", item_id=LANTERN, to_id=PLAYER_ID)
+    _ = change(ENGINE, draft, "move_item", item_id=LANTERN, holder_id=PLAYER_ID)
     assert world.items[LANTERN].holder_id == PLAYER_ID
 
-    _ = change(ENGINE, draft, "move_item", item_id=LANTERN, to_id=START)
+    _ = change(ENGINE, draft, "move_item", item_id=LANTERN, holder_id=START)
     assert world.items[LANTERN].holder_id == START
 
 
 def test_kill_drops_an_npcs_items_loose(draft: TunnelGoonsGame, world: TunnelGoonsWorld) -> None:
     blade = "mira-blade"
-    world.items[blade] = Prop(
+    world.items[blade] = Item(
         id=blade, name="Blade", brief="Mira's blade", known=True, holder_id=MIRA
     )
 
@@ -255,7 +256,7 @@ def test_action_roll_a_member_rolls_on_their_own_abilities_and_items() -> None:
     draft = small_world().draft()
     world = draft.world
     world.npcs[MIRA].sheet = _sheeted(skulker=2)
-    world.party.append(MIRA)
+    world.party_ids.append(MIRA)
     world.items[ROPE].holder_id = MIRA
     facts = ENGINE.roll(
         draft,
@@ -272,7 +273,7 @@ def test_a_members_miss_damages_them_and_kills_them_at_zero(draft: TunnelGoonsGa
     world = draft.world
     world.npcs[MIRA].sheet = _sheeted()
     world.npcs[MIRA].hp.current = 1
-    world.party.append(MIRA)
+    world.party_ids.append(MIRA)
     _ = ENGINE.roll(
         draft,
         Roll(what="Leap the gap", ability="brute", difficulty=20, dangerous=True, actor_id=MIRA),

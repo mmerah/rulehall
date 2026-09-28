@@ -1,10 +1,11 @@
-from rulehall.core.play import PendingOption
+from rulehall.core.decisions import ActionOption
 from rulehall.core.validation import Slug
 from rulehall.core.views import MapEdge, MapNode, MapView, Panel, PanelRow
+from rulehall.engines.panels import character_panel
 from rulehall.engines.rooms.world import Dweller, Place, RoomWorld
 
 EXTEND: Slug = "extend"
-MORE_MAP = PendingOption(
+MORE_MAP = ActionOption(
     id=EXTEND,
     name="More map",
     brief="The map runs out here: say where you push on.",
@@ -15,13 +16,17 @@ TRY_WAY = "I try the way to {name}"
 HEAD_BACK = "I head back to {name}"
 
 
-def carried_panel[N: Dweller](world: RoomWorld[N]) -> Panel:
+def sheet_panel[P: Dweller](world: RoomWorld[P]) -> Panel:
+    return character_panel(world.player.subject(), world.sheet_rows())
+
+
+def carried_panel[P: Dweller](world: RoomWorld[P]) -> Panel:
     return Panel(
         title="Carrying",
         rows=tuple(
             item.subject().row(
                 (
-                    PendingOption(
+                    ActionOption(
                         id="drop",
                         name="Drop here",
                         action_name="drop_here",
@@ -34,7 +39,7 @@ def carried_panel[N: Dweller](world: RoomWorld[N]) -> Panel:
     )
 
 
-def ways_panel[N: Dweller](world: RoomWorld[N]) -> Panel:
+def ways_panel[P: Dweller](world: RoomWorld[P]) -> Panel:
     return Panel(
         title="Ways out",
         rows=tuple(
@@ -48,7 +53,7 @@ def ways_panel[N: Dweller](world: RoomWorld[N]) -> Panel:
     )
 
 
-def map_view[N: Dweller](world: RoomWorld[N]) -> MapView:
+def map_view[P: Dweller](world: RoomWorld[P]) -> MapView:
     visited = world.visited_places()
     visited_ids = {place.id for place in visited}
     known = [
@@ -77,9 +82,9 @@ def map_view[N: Dweller](world: RoomWorld[N]) -> MapView:
     )
 
 
-def _map_node[N: Dweller](world: RoomWorld[N], place: Place, *, visited: bool) -> MapNode:
+def _map_node[P: Dweller](world: RoomWorld[P], place: Place, *, visited: bool) -> MapNode:
     here_id = world.current.id
-    way = world.way(here_id, place.id)
+    way = world.find_way(here_id, place.id)
     if place.id == here_id:
         text = ""
     elif way is not None and way.known:

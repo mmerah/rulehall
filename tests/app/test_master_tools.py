@@ -11,11 +11,14 @@ from support.table import (
     updated,
 )
 
-import rulehall.app.spawn as spawn_module
-from rulehall.app.spawn import CodexDriver, RoleRunner, final_message
-from rulehall.core.play import Answer, Narration
+import rulehall.app.processes as processes
+from rulehall.app.cli_roles import CodexDriver
+from rulehall.app.roles import ProviderRoleRunner, final_message
+from rulehall.config import LiveSettings
+from rulehall.core.decisions import PlayerInput
+from rulehall.core.log import Narration
 from rulehall.core.prompt import Prompt
-from rulehall.core.tools import schema_of
+from rulehall.core.tools import tool_schema
 from rulehall.core.validation import Frozen, Refusal, Slug
 from rulehall.engines.args import ACTOR
 
@@ -25,8 +28,8 @@ class _SchemaProbe(Frozen):
     title: str = Field(default="", description="a field whose name spells a noise key")
 
 
-def test_schema_of_drops_noise_and_collapses_a_nullable() -> None:
-    schema = schema_of(_SchemaProbe)
+def test_tool_schema_drops_noise_and_collapses_a_nullable() -> None:
+    schema = tool_schema(_SchemaProbe)
 
     dumped = json.dumps(schema)
     assert '"pattern"' not in dumped
@@ -49,19 +52,19 @@ async def test_a_change_lands_on_the_draft_as_it_is_made_and_on_disk_at_the_end(
     def script() -> None:
         _ = table.call("enter", {"target_id": "Not An Id"})
         _ = table.call("enter", {"target_id": TOMAS})
-        turn = table.service.turn
+        turn = table.session.turn
         assert turn is not None
         counts.append(len(turn.facts))
 
-    table.spawner.turns.append(script)
-    table.spawner.answers["narrator"] = [narrated("A monk steps in from the cold.")]
-    await table.service.play(Answer(text="I wait for whoever comes."))
+    table.roles.turns.append(script)
+    table.roles.answers["narrator"] = [narrated("A monk steps in from the cold.")]
+    await table.session.play(PlayerInput(text="I wait for whoever comes."))
 
     assert "target_id" in table.refusals[0]
     assert counts == [1]
     saved = table.saved()
-    assert TOMAS in saved.world.scene.here
-    assert len(saved.exchanges()[-1].facts) == 1
+    assert TOMAS in saved.world.scene.here_ids
+    assert len(saved.log_entries()[-1].facts) == 1
 
 
 async def test_abandoning_a_spawn_kills_the_process_group_it_started(
@@ -96,16 +99,18 @@ async def test_abandoning_a_spawn_kills_the_process_group_it_started(
         del path
         return name
 
-    monkeypatch.setattr(spawn_module.subprocess, "create_subprocess_exec", fake_create)
-    monkeypatch.setattr(spawn_module.shutil, "which", found)
-    monkeypatch.setattr(spawn_module, "_kill_tree", killed.append)
+    monkeypatch.setattr(processes.subprocess, "create_subprocess_exec", fake_create)
+    monkeypatch.setattr(processes.shutil, "which", found)
+    monkeypatch.setattr(processes, "_kill_tree", killed.append)
     settings = updated(
         offline_settings(tmp_path),
         roles={"master": {"timeout": 0.01}},
     )
 
     with pytest.raises(Refusal, match="answered nothing in"):
-        await RoleRunner(settings).run("master", Prompt(system="", user="go"), None)
+        _ = await ProviderRoleRunner(LiveSettings(settings)).answer(
+            "master", Prompt(system="", user="go")
+        )
     assert killed == [1234]
     assert reaped == [1234]
 

@@ -2,7 +2,7 @@ from asyncio import subprocess, timeout
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from rulehall.app.spawn import child_environment, stop_process
+from rulehall.app.processes import start_child, stop_process
 from rulehall.core.validation import Refusal
 from rulehall.engines.engine import AnyEngine
 
@@ -12,7 +12,7 @@ STOPPED = "the battle simulator stopped"
 
 
 @dataclass(slots=True)
-class LineProcess:
+class BattleProcess:
     process: subprocess.Process
 
     async def send(self, lines: Sequence[str]) -> None:
@@ -47,18 +47,8 @@ class LineProcess:
         await stop_process(self.process)
 
 
-async def start_process(engine: AnyEngine) -> LineProcess:
-    command = engine.simulator_argv()
-    try:
-        process = await subprocess.create_subprocess_exec(
-            *command,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            env=child_environment(()),
-            start_new_session=True,
-            limit=LINE_MAX,
-        )
-    except OSError as failed:
-        raise Refusal(f"{command[0]} is not installed") from failed
-    return LineProcess(process)
+async def start_battle_process(engine: AnyEngine) -> BattleProcess:
+    process = await start_child(
+        engine.simulator_argv(), secrets=(), cwd=None, stderr=subprocess.DEVNULL, limit=LINE_MAX
+    )
+    return BattleProcess(process)

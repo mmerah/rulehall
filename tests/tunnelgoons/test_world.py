@@ -2,7 +2,7 @@ import pytest
 from support.tunnelgoons import small_world
 
 from rulehall.core.validation import Refusal
-from rulehall.engines.rooms.world import Prop
+from rulehall.engines.rooms.world import Item
 from rulehall.engines.tunnelgoons.world import (
     TunnelGoonsGame,
 )
@@ -11,11 +11,11 @@ GHOST = "ghost"
 
 
 def test_an_item_on_nothing_is_refused(draft: TunnelGoonsGame) -> None:
-    draft.world.items["stray"] = Prop(
+    draft.world.items["stray"] = Item(
         id="stray", name="Stray", brief="Nobody's", known=True, holder_id=GHOST
     )
     with pytest.raises(Refusal, match="on nothing"):
-        _ = draft.commit()
+        _ = draft.validated()
 
 
 def test_the_player_levels_up_their_ability_and_health_with_no_name_prefix() -> None:

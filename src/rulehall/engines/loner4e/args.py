@@ -2,9 +2,8 @@ from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.tools import Told
+from rulehall.core.tools import PlayerFacing
 from rulehall.core.validation import Frozen, Slug, check_unique
-from rulehall.engines.entities import PLAYER_ID
 from rulehall.engines.loner4e.rules import (
     SCENE_ID,
     UNTRAINED,
@@ -14,6 +13,7 @@ from rulehall.engines.loner4e.rules import (
 )
 from rulehall.engines.loner4e.sheet import Tags
 from rulehall.engines.loner4e.world import TagChange
+from rulehall.engines.sheet import PLAYER_ID
 
 PLAYER_OR_HERE = (
     f"`{PLAYER_ID}` for the protagonist, never their name, or the exact id of a living character "
@@ -53,20 +53,20 @@ class ChangeTags(TagChange):
 
 class Drive(Frozen):
     actor_id: Slug = Field(description=f"{PLAYER_OR_HERE}, or `{SCENE_ID}` for the scene's goal.")
-    goal: Told = Field(
+    goal: PlayerFacing = Field(
         default="",
         description="What the character now wants, or what the protagonist is here for when "
         "`actor_id` is `scene`, in one line. Empty keeps the current goal.",
     )
-    motive: Told = Field(
+    motive: PlayerFacing = Field(
         default="",
         description="Why the character wants it, in one line. Empty keeps the current motive.",
     )
-    nemesis: Told = Field(
+    nemesis: PlayerFacing = Field(
         default="",
         description="Who or what is against the character. Empty keeps the current nemesis.",
     )
-    concept: Told = Field(
+    concept: PlayerFacing = Field(
         default="",
         description="The protagonist's concept rewritten by the growth, in one short phrase. "
         "Empty keeps it; the growth only.",
@@ -86,13 +86,13 @@ class Drive(Frozen):
 class SpendLuck(Frozen):
     actor_id: Slug = Field(description=f"{PLAYER_OR_HERE}.")
     amount: int = Field(ge=1, description="The luck to spend. SPECIAL RULES prints the cost.")
-    why: Told = Field(
+    why: PlayerFacing = Field(
         min_length=1, description="What the luck buys, in one line. The player reads this text."
     )
 
 
 class Ask(Frozen):
-    question: Told | None = Field(
+    question: PlayerFacing | None = Field(
         default=None,
         min_length=1,
         description="One closed question; yes is what the protagonist hopes. The player reads "
@@ -108,7 +108,7 @@ class Ask(Frozen):
         description="Exact tags here that bear on this moment and hinder, and "
         f"`{UNTRAINED}` when the task needs expertise the protagonist lacks.",
     )
-    against_id: Slug | None = Field(
+    opponent_id: Slug | None = Field(
         default=None,
         description="The id of the opponent in a Harm & Luck exchange; a new id, such as "
         "`dock-guard`, brings in an opponent the story just named. Null for one question or one "
@@ -121,8 +121,8 @@ class Ask(Frozen):
         check_unique("cited tags", [tag.casefold() for tag in (*self.helps, *self.hinders)])
         if UNTRAINED.casefold() in (tag.casefold() for tag in self.helps):
             raise ValueError(f"`{UNTRAINED}` hinders, never helps")
-        if self.against_id in (PLAYER_ID, SCENE_ID):
-            raise ValueError("`against_id` names an opponent, never the player or the scene")
+        if self.opponent_id in (PLAYER_ID, SCENE_ID):
+            raise ValueError("`opponent_id` names an opponent, never the player or the scene")
         return self
 
 
@@ -139,7 +139,7 @@ class ConfirmEnd(Frozen):
 
 
 class EndAdventure(Frozen):
-    why: Told = Field(
+    why: PlayerFacing = Field(
         min_length=1,
         description="The sign that shows, in one line the player reads.",
     )

@@ -2,7 +2,7 @@ from support.golden import FIXTURES, golden, masked
 from support.showdown import WILD_SETUP, assessed
 
 from rulehall.core.validation import parse_json
-from rulehall.core.views import Choice
+from rulehall.core.views import BattleChoice
 from rulehall.engines.pokemon.battle.opponent import Assessment, greedy_choice, render_opponent
 from rulehall.engines.pokemon.battle.simulator import DUMPED, Dump
 
@@ -17,10 +17,10 @@ TRAINER_SETUP = WILD_SETUP.model_copy(
 )
 CHOICES = (
     *(
-        Choice(command=f"move {number}", name=name)
+        BattleChoice(command=f"move {number}", name=name)
         for number, name in enumerate(("Vine Whip", "Tackle", "Leech Seed", "Growl"), 1)
     ),
-    Choice(command="switch 2", name="Rattata", group="Switch"),
+    BattleChoice(command="switch 2", name="Rattata", group="Switch"),
 )
 
 

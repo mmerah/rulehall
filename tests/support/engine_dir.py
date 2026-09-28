@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from rulehall.core.io import ENCODING
+from rulehall.core.stores import ENCODING
 
 
 def install_engine_dir(tmp_path: Path) -> None:
@@ -12,5 +12,5 @@ def install_engine_dir(tmp_path: Path) -> None:
     )
     (tmp_path / "packs").mkdir()
     (tmp_path / "packs" / "srd.json").write_text(
-        '{"name": "The SRD", "source": "the test", "license": "CC0"}', encoding=ENCODING
+        '{"name": "The SRD", "origin": "the test", "license": "CC0"}', encoding=ENCODING
     )

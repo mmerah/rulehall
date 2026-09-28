@@ -1,0 +1,135 @@
+from collections.abc import Collection
+from typing import Annotated, Literal, Self
+
+from pydantic import Field, model_validator
+
+from rulehall.core.validation import Frozen, Mutable, Slug
+from rulehall.engines.pokemon.battle.models import LEVEL_MAX, TEAM_MAX
+from rulehall.engines.pokemon.rules import BOSS_RISE, LEGENDARY_AT, RosterSlot, rescaled
+from rulehall.engines.pokemon.sheet import Trainer
+from rulehall.engines.rooms.world import RoomMap
+
+type Consequence = Literal["shut_way", "close_center"]
+type SchemeDue = Literal["operation", "lair"]
+type Stage = Annotated[str, Field(min_length=1)]
+
+SCHEME_STAGES = 4
+HELD_WAY = "Grunts hold the way from {start} to {end}"
+CENTER_STAKE = "a Pokemon Center closes"
+
+
+class Scheme(Frozen):
+    name: str = Field(min_length=1, description="The evil team's name, such as 'Team Tide'.")
+    goal: str = Field(min_length=1, description="What the team's boss wants in the end.")
+    stages: tuple[Stage, Stage, Stage, Stage] = Field(
+        description="What the player learns of the scheme as each of the four operations ends, "
+        "foiled or not, in order."
+    )
+    legendary_id: Slug | None = Field(
+        default=None,
+        description="A legendary species id from SPECIES that the team is after: it joins the "
+        "boss's team when three operations succeed. Null for none.",
+    )
+
+
+class Operation(Frozen):
+    place_id: Slug = Field(
+        description="Exact id of the place of this map where the team works. The map's start "
+        "reaches it without a lock."
+    )
+    leader_id: Slug = Field(
+        description="Exact id of its leader: a person of this map with a roster and no badge, or "
+        "an earlier leader that THE SCHEME names."
+    )
+    goal: str = Field(min_length=1, description="What the team does there.")
+    consequence: Consequence = Field(
+        description="What changes when it succeeds. shut_way: grunts hold the way from `place_id` "
+        "to `shut_to_id` for good. close_center: a Pokemon Center closes."
+    )
+    shut_to_id: Slug | None = Field(
+        default=None,
+        description="shut_way only: exact id of a place that an unlocked way from `place_id` "
+        "leads to. Every place of the map stays reachable from its start without that way. Null "
+        "for close_center.",
+    )
+
+    def stake(self, room_map: RoomMap[Trainer]) -> str:
+        if self.shut_to_id is None:
+            return CENTER_STAKE
+        return held_line(room_map, self.place_id, self.shut_to_id)
+
+
+class EvilTeam(Mutable):
+    scheme: Scheme | None = None
+    operation: Operation | None = None
+    foiled: int = Field(default=0, ge=0)
+    succeeded: int = Field(default=0, ge=0)
+    leader_ids: list[Slug] = Field(default_factory=list)
+    held_ways: list[tuple[Slug, Slug]] = Field(default_factory=list)
+    boss_id: Slug | None = None
+    boss_beaten: bool = False
+
+    @model_validator(mode="after")
+    def _a_consistent_scheme(self) -> Self:
+        if self.scheme is None and (self.operation or self.boss_id or self.held_ways):
+            raise ValueError("an operation, a boss or a held way needs a scheme")
+        if self.stage() > SCHEME_STAGES:
+            raise ValueError(f"the scheme has {SCHEME_STAGES} stages, not {self.stage()}")
+        operation = self.operation
+        if operation is not None and operation.leader_id not in self.leader_ids:
+            raise ValueError(f"the operation's leader is no leader: {operation.leader_id!r}")
+        return self
+
+    def require_scheme(self) -> Scheme:
+        assert self.scheme is not None
+        return self.scheme
+
+    def stage(self) -> int:
+        return self.foiled + self.succeeded
+
+    def due(self) -> SchemeDue | None:
+        if self.stage() < SCHEME_STAGES and self.operation is None:
+            return "operation"
+        if self.stage() == SCHEME_STAGES and self.boss_id is None:
+            return "lair"
+        return None
+
+    def key_ids(self) -> tuple[Slug, ...]:
+        return (*self.leader_ids, *filter(None, (self.boss_id,)))
+
+    def holds_way(self, start_id: Slug, end_id: Slug) -> bool:
+        return (start_id, end_id) in self.held_ways or (end_id, start_id) in self.held_ways
+
+    def joining_legendary_id(self) -> Slug | None:
+        if self.succeeded < LEGENDARY_AT:
+            return None
+        return self.require_scheme().legendary_id
+
+    def open_operation(self, operation: Operation) -> None:
+        self.operation = operation
+        if operation.leader_id not in self.leader_ids:
+            self.leader_ids.append(operation.leader_id)
+
+    def record_outcome(self, *, foiled: bool) -> Stage:
+        self.operation = None
+        if foiled:
+            self.foiled += 1
+        else:
+            self.succeeded += 1
+        return self.require_scheme().stages[self.stage() - 1]
+
+    def boss_roster(
+        self, boss: Trainer, table_level: int, species_ids: Collection[Slug]
+    ) -> tuple[RosterSlot, ...]:
+        ace_level = min(table_level + BOSS_RISE * self.succeeded, LEVEL_MAX)
+        roster = rescaled(boss.roster, ace_level, species_ids)
+        legendary_id = self.joining_legendary_id()
+        if legendary_id is None:
+            return roster
+        kept = sorted(roster, key=lambda slot: slot.level)[1 - TEAM_MAX :]
+        return (*kept, RosterSlot(species_id=legendary_id, level=ace_level))
+
+
+def held_line(room_map: RoomMap[Trainer], start_id: Slug, end_id: Slug) -> str:
+    places = room_map.places
+    return HELD_WAY.format(start=places[start_id].name, end=places[end_id].name)

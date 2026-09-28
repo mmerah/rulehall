@@ -3,7 +3,7 @@ from pathlib import Path
 
 from nicegui import ui
 
-from rulehall.core.io import read_cached_text
+from rulehall.core.stores import read_cached_text
 from rulehall.core.views import Look
 
 NEUTRAL_PALETTE: Mapping[str, str] = {
