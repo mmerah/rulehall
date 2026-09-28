@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Awaitable, Callable, Generator
 from contextlib import contextmanager
+from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
 from random import Random
@@ -35,6 +36,7 @@ IN_FLIGHT_HERE = "a turn is already running in this game"
 IN_FLIGHT_ELSEWHERE = "another game is taking a turn: wait for that turn to end, then try again"
 NOTHING_TO_REWIND = "there is no turn to rewind"
 NO_TURN = "no turn is open: the player starts a turn from the page, so wait until you start again"
+NO_WORDS_NOW = "the page takes one of its options now, not words"
 BATTLE_ON = "a battle is on: finish it on the battle screen"
 GAME_OVER = "the game is over ({ending}): it continues only after a restart"
 
@@ -126,48 +128,24 @@ class GameSession:
                 self.save(self.engine.record(draft, lines, (), cause="opening"))
             self.present()
 
-    async def play(self, answer: PlayerInput) -> None:
+    async def choose(self, answer: PlayerInput) -> None:
         with self.gate.admit(self), self.remember_for_rewind(answer.text):
-            await self._turn(answer, self.state)
-
-    async def use_composer_option(self, option: ActionOption, words: str) -> None:
-        with self.gate.admit(self), self.remember_for_rewind(words):
-            self._require_free()
-            if option != self.player_view().composer_option:
-                raise Refusal("the page changed; try again")
-            draft = self.state.draft()
-            chosen = option.model_copy(update={"args": {**option.args, "words": words}})
-            _ = self.engine.play_option(draft, chosen, self.rng)
-            if draft.request is None:
-                await self._turn(PlayerInput(text=words), draft)
+            if self.state.pending is not None:
+                await self._turn(answer, self.state, self.rng)
                 return
-            self.pending_words = words
-            try:
-                self.save(self.engine.accept(draft))
-                grown = await self._write_request(words=words, cause=None)
-            finally:
-                self.pending_words = ""
-            if grown:
-                await self._turn(PlayerInput(text=words), self.state)
-
-    async def use_panel_option(self, option: ActionOption) -> None:
-        with self.gate.admit(self), self.remember_for_rewind(""):
-            self._require_free()
-            panels = self.player_view().panels
-            if not any(option in row.options for panel in panels for row in panel.rows):
-                raise Refusal(f"{option.name!r} is not an option now")
-            draft = self.state.draft()
-            facts = self.engine.play_option(draft, option, self.rng)
-            if option.told_in_turn:
-                draft.unnarrated = list(facts)
-            accepted = self.engine.accept(draft)
-            self.save(self.engine.record(accepted, (), facts, words=option.name, by_option=True))
-            if self.state.request is not None and not await self._write_request(
-                words="", cause="story"
-            ):
+            require_playable(self.engine, self.state)
+            view = self.player_view()
+            if answer.option_id is None:
+                if not view.allows_text:
+                    raise Refusal(NO_WORDS_NOW)
+                await self._turn(answer, self.state, self.rng)
                 return
-            if option.told_in_turn:
-                await self._turn(PlayerInput(text=option.name), self.state)
+            offered = view.require_option(answer.option_id)
+            option = offered.with_words(answer.text)
+            if offered.needs_words or offered.told_in_turn:
+                await self._play_into_turn(option, answer.text or offered.name)
+            else:
+                await self._play_silent(option)
 
     async def open_battle(self) -> None:
         with self.gate.admit(self):
@@ -299,14 +277,35 @@ class GameSession:
         if self.state is not before:
             self.rewind_point = Rewind(state=before, words=words)
 
-    def _require_free(self) -> None:
-        require_playable(self.engine, self.state)
-        if self.state.pending is not None:
-            raise Refusal("the rules wait on the player's decision first")
+    async def _play_silent(self, option: ActionOption) -> None:
+        draft = self.state.draft()
+        facts = self.engine.play_option(draft, option, self.rng)
+        accepted = self.engine.accept(draft)
+        self.save(self.engine.record(accepted, (), facts, words=option.name, by_option=True))
+        await self._write_request(words="", cause="story")
 
-    async def _turn(self, answer: PlayerInput, state: AnyGame) -> None:
+    async def _play_into_turn(self, option: ActionOption, words: str) -> None:
+        draft, dice = self.state.draft(), deepcopy(self.rng)
+        played = self.engine.play_option(draft, option, dice)
+        state = self.engine.accept(draft)
+        if state.request is not None:
+            self.rng.setstate(dice.getstate())
+            self.save(state)
+            self.pending_words = words
+            try:
+                grown = await self._write_request(words=words, cause=None)
+            finally:
+                self.pending_words = ""
+            if not grown:
+                return
+            state = self.state
+        await self._turn(PlayerInput(text=words), state, dice, played)
+
+    async def _turn(
+        self, answer: PlayerInput, state: AnyGame, rng: Random, played: tuple[Fact, ...] = ()
+    ) -> None:
         require_playable(self.engine, state)
-        turn = Turn.begin(self.engine, state, answer, self.rng)
+        turn = Turn.begin(self.engine, state, answer, rng, played)
         before = self.engine.narrator_view(state)
         self.turn = turn
         try:

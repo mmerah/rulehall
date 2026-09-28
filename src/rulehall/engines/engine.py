@@ -4,7 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 from pathlib import Path
 from random import Random
-from typing import Any, Protocol
+from typing import Any, ClassVar, Protocol
 
 from pydantic import BaseModel, JsonValue
 
@@ -38,7 +38,15 @@ from rulehall.core.validation import (
     parse_strict_json,
     slug,
 )
-from rulehall.core.views import BattleChoice, Look, NarratorView, PlayerView, Rows, Sprite
+from rulehall.core.views import (
+    BattleChoice,
+    Look,
+    NarratorView,
+    PlayerActions,
+    PlayerView,
+    Rows,
+    Sprite,
+)
 from rulehall.engines.args import Direct, Kill, LeaveParty, Reveal
 from rulehall.engines.packs import (
     Pack,
@@ -99,6 +107,8 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     title: str
     worldsmith_guidance: str
     art_style: str
+    play_hint: str = "What does {name} do?"
+    sheet_help: ClassVar[Mapping[str, str]] = {}
     portraits: bool = True
     directory: Path
     family_dir: Path
@@ -200,6 +210,21 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
             raise Refusal(f"{chosen.name}: {chosen.refusal}")
         found = self.actions[chosen.action_name]
         return self._run_marked(draft, found.name, parse_with_repairs(found.args, chosen.args), rng)
+
+    def moves(self, _state: Game[W], /) -> tuple[ActionOption, ...]:
+        return ()
+
+    def allows_text(self, _state: Game[W], /) -> bool:
+        return True
+
+    def player_actions(self, state: Game[W]) -> PlayerActions:
+        pending = state.pending
+        return PlayerActions(
+            decision=pending,
+            moves=self.moves(state) if pending is None else (),
+            hint=self.play_hint.format(name=state.world.player.name),
+            allows_text=self.allows_text(state) if pending is None else pending.allows_text,
+        )
 
     def in_battle(self, _state: Game[W], /) -> bool:
         return False

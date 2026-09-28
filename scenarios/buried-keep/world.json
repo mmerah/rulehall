@@ -49,8 +49,7 @@
     "ways": {
       "entrance": [
         {
-          "to_id": "corridor",
-          "known": true
+          "to_id": "corridor"
         },
         {
           "to_id": "cellar",
@@ -59,26 +58,21 @@
       ],
       "corridor": [
         {
-          "to_id": "entrance",
-          "known": true
+          "to_id": "entrance"
         },
         {
-          "to_id": "storeroom",
-          "known": true
+          "to_id": "storeroom"
         },
         {
-          "to_id": "cellar",
-          "known": false
+          "to_id": "cellar"
         }
       ],
       "storeroom": [
         {
-          "to_id": "corridor",
-          "known": true
+          "to_id": "corridor"
         },
         {
           "to_id": "sealed-cell",
-          "known": false,
           "locked": true
         }
       ],
@@ -88,14 +82,12 @@
           "known": false
         },
         {
-          "to_id": "corridor",
-          "known": false
+          "to_id": "corridor"
         }
       ],
       "sealed-cell": [
         {
-          "to_id": "storeroom",
-          "known": false
+          "to_id": "storeroom"
         }
       ]
     },

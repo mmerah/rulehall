@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import Literal
 
 from pydantic import Field
 
@@ -7,6 +8,8 @@ from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, slug, slugs
 from rulehall.core.views import Rows, nonblank_rows, tag_of
 from rulehall.engines.sheet import Entity, Sheeted, changed_tags, tag_card
 from rulehall.engines.twentyfourxx.rules import DEFAULT_DIE, SkillDie, brief_hindrance, next_die
+
+type GearMark = Literal["bulky", "harmless", "broken", "upgraded"]
 
 STARTING_CREDITS = 2
 MAIMED = "Maimed"
@@ -42,20 +45,20 @@ class Gear(Mutable):
         return self.broken_times >= self.breaks
 
     def notes(self) -> str:
-        return ", ".join(self.marks())
+        return ", ".join(label for label, _ in self.marks())
 
-    def marks(self) -> tuple[str, ...]:
-        parts: list[str] = []
+    def marks(self) -> tuple[tuple[str, GearMark], ...]:
+        marks: list[tuple[str, GearMark]] = []
         if self.bulky:
-            parts.append("bulky")
+            marks.append(("bulky", "bulky"))
         if self.harmless:
-            parts.append("breaks harmlessly")
+            marks.append(("breaks harmlessly", "harmless"))
         if self.broken:
-            parts.append("broken")
+            marks.append(("broken", "broken"))
         elif self.breaks > 1 and self.broken_times > 0:
-            parts.append(f"broken {self.broken_times}/{self.breaks}")
-        parts.extend(f"upgraded: {name}" if name else "upgraded" for name in self.upgrades)
-        return tuple(parts)
+            marks.append((f"broken {self.broken_times}/{self.breaks}", "broken"))
+        marks.extend((f"upgraded: {name}", "upgraded") for name in self.upgrades)
+        return tuple(marks)
 
 
 class CrewSheet(Mutable):
@@ -66,9 +69,6 @@ class CrewSheet(Mutable):
     skills: dict[str, SkillDie] = Field(default_factory=dict)
     credits: int = Field(default=STARTING_CREDITS, ge=0)
     hindrances: list[str] = Field(default_factory=list)
-
-    def best_skill(self) -> tuple[str, int]:
-        return max(self.skills.items(), key=lambda skill: skill[1], default=("", DEFAULT_DIE))
 
     def match_skill(self, wanted: str, rulebook_skills: Sequence[str]) -> str | None:
         folded = wanted.casefold().split()

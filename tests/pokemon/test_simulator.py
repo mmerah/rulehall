@@ -68,7 +68,7 @@ async def test_a_recorded_battle_plays_to_its_result() -> None:
         await run.choose(draft, command, Random(0))
 
     assert run.result.outcome == "won"
-    assert run.result.fainted_foes == (RATTATA,)
+    assert [foe.mon_id for foe in run.result.fainted_foes()] == [RATTATA.mon_id]
     assert rules.ended is run.result
     assert run.resolution is not None
     assert draft.world.battle is None
@@ -251,12 +251,43 @@ def test_each_outcome_reads_the_dump(
     assert result.team[0].hp == player_hp
     assert [move.pp for move in result.team[0].moves] == [40, 60]
     assert result.on_field_mon_ids == ("pikachu",)
-    assert result.fainted_foes == ((RATTATA,) if foe_hp == 0 else ())
+    assert [foe.mon_id for foe in result.fainted_foes()] == (
+        [RATTATA.mon_id] if foe_hp == 0 else []
+    )
     if expected == "caught":
         assert result.caught is not None
         assert (result.caught.hp, result.caught.status) == (foe_hp, "par")
     else:
         assert result.caught is None
+
+
+def test_the_sent_out_foes_keep_their_team_order_and_leave_out_the_bench() -> None:
+    third = RATTATA.model_copy(update={"mon_id": "rattata-2"})
+    setup = BattleSetup.model_validate(
+        {
+            **WILD_SETUP.model_dump(),
+            "kind": "trainer",
+            "policy": "scripted",
+            "foe_id": "rook",
+            "foe_name": "Rook",
+            "foe_avatar_id": "camper",
+            "foes": (RATTATA, PIKACHU, third),
+        }
+    )
+    # Showdown lists the active Pokemon first: the one switched in, then the lead it replaced.
+    dump = Dump(
+        p1=(DumpMon(slot=0, hp=10, status="", pp=(40, 60), out=1, held=True),),
+        p2=(
+            DumpMon(slot=1, hp=5, status="", pp=(40, 60), out=1, held=True),
+            DumpMon(slot=0, hp=0, status="fnt", pp=(50,), out=1, held=True),
+            DumpMon(slot=2, hp=15, status="", pp=(56,), out=0, held=True),
+        ),
+    )
+
+    result = battle_result(setup, dump, "lost")
+
+    assert [foe.mon_id for foe in result.sent_out_foes] == [RATTATA.mon_id, PIKACHU.mon_id]
+    assert [foe.mon_id for foe in result.fainted_foes()] == [RATTATA.mon_id]
 
 
 def test_a_packed_pokemon_carries_its_spread_item_and_friendship() -> None:

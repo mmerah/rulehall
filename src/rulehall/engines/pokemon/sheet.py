@@ -532,7 +532,7 @@ class TrainerSheet(Mutable):
         return [mon.mon_id for mon in self.owned()]
 
     def exp_shares(self, result: BattleResult, *, trainer: bool) -> dict[Slug, int]:
-        total = sum(EXP_PER_LEVEL * foe.level for foe in result.fainted_foes)
+        total = sum(EXP_PER_LEVEL * foe.level for foe in result.fainted_foes())
         if trainer:
             total = total * 3 // 2
         if total == 0:

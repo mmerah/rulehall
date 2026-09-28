@@ -246,7 +246,7 @@ async def play_turn[G: AnyGame](
     *calls: Scripted,
     narration: str = "You wait.",
     arrival: str | None = None,
-    composer: ActionOption | None = None,
+    move: ActionOption | None = None,
     then: Sequence[str] = (),
 ) -> G:
     """`then` queues answers for a spawn after the turn, such as the battle-end narration."""
@@ -257,12 +257,9 @@ async def play_turn[G: AnyGame](
     if arrival is not None:
         canned.append(narrated(arrival))
     canned.extend(then)
-    if composer is not None:
-        assert isinstance(prompt, str)
-        await table.session.use_composer_option(composer, prompt)
-    else:
-        answer = PlayerInput(text=prompt) if isinstance(prompt, str) else prompt
-        await table.session.play(answer)
+    if isinstance(prompt, str):
+        prompt = PlayerInput(option_id=None if move is None else move.id, text=prompt)
+    await table.session.choose(prompt)
     return table.state
 
 

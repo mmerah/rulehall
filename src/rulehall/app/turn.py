@@ -52,18 +52,25 @@ class Turn:
     direct_fact: Fact | None = None
 
     @classmethod
-    def begin(cls, engine: AnyEngine, state: AnyGame, answer: PlayerInput, rng: Random) -> Self:
-        turn = cls(engine=engine, draft=state.draft(), rng=deepcopy(rng))
+    def begin(
+        cls,
+        engine: AnyEngine,
+        state: AnyGame,
+        answer: PlayerInput,
+        rng: Random,
+        played: tuple[Fact, ...] = (),
+    ) -> Self:
+        turn = cls(engine=engine, draft=state.draft(), rng=deepcopy(rng), facts=list(played))
         turn.facts_carried_from_last_turn, turn.draft.unnarrated = turn.draft.unnarrated, []
         consumed, turn.draft.pending = turn.draft.pending, None
         if answer.option_id is None:
             turn._answer_with_words(consumed, answer.text)
         else:
-            turn._answer_with_option(consumed, answer.option_id)
+            turn._answer_with_option(consumed, answer.option_id, answer.text)
         turn.master_plays_this_turn = turn.draft.pending is None and turn.draft.request is None
         if turn.master_plays_this_turn:
-            carried = turn.facts_carried_from_last_turn
-            held = [HELD.format(traces=render_traces(carried))] if carried else []
+            fixed = (*turn.facts_carried_from_last_turn, *played)
+            held = [HELD.format(traces=render_traces(fixed))] if fixed else []
             turn.notes, turn.draft.notes = [*held, *turn.draft.notes], []
         return turn
 
@@ -77,12 +84,13 @@ class Turn:
             )
         self.logged_words = self.master_action_text = text
 
-    def _answer_with_option(self, consumed: Decision | None, option_id: Slug) -> None:
+    def _answer_with_option(self, consumed: Decision | None, option_id: Slug, text: str) -> None:
         if consumed is None:
             raise Refusal(f"no decision is open, so option {option_id!r} answers nothing")
-        option = find_option(consumed.options, option_id)
-        if option is None:
+        offered = find_option(consumed.options, option_id)
+        if offered is None:
             raise Refusal(f"the {consumed.kind!r} decision offers no option {option_id!r}")
+        option = offered.with_words(text)
         # A refusal raises: the engine enumerated the option, so it is never model error.
         facts = self._apply(lambda draft, rng: self.engine.play_option(draft, option, rng))
         traces = render_traces(facts)

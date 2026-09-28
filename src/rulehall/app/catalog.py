@@ -1,13 +1,16 @@
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 from typing import Self
 
+from rulehall.app.illustration import ICON_DIR, find_cover, find_image
 from rulehall.core.game import AnyGame, AnyScenario, ScenarioDescription
 from rulehall.core.stores import Library, SaveStore
 from rulehall.core.validation import EngineId, Refusal, Slug, for_engine_of
-from rulehall.core.views import Look
 from rulehall.engines.engine import AnyEngine
+from rulehall.engines.sheet import PLAYER_ID
 
 LOGGER = logging.getLogger(__name__)
 
@@ -18,8 +21,7 @@ class CatalogEntry:
     engine_id: EngineId
     name: str
     brief: str
-    engine_title: str
-    look: Look
+    portrait: Path | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,7 +29,6 @@ class PackEntry:
     id: Slug
     engine_id: EngineId
     name: str
-    engine_title: str
     written: bool
 
 
@@ -47,8 +48,9 @@ class SaveOption:
     scenario_label: str
     character_label: str
     turn: int
-    where: str
-    engine_title: str
+    engine_id: EngineId
+    saved_at: datetime
+    cover: Path | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,20 +61,20 @@ class LauncherCatalog:
     saves: tuple[SaveOption, ...]
     unresumable: tuple[str, ...]
 
-    def require_scenario(self, scenario_id: Slug) -> CatalogEntry:
-        found = next((entry for entry in self.scenarios if entry.id == scenario_id), None)
-        if found is None:
-            raise Refusal(f"unknown scenario {scenario_id!r}")
-        return found
+    def scenarios_for(self, engine_id: EngineId) -> tuple[CatalogEntry, ...]:
+        return tuple(entry for entry in self.scenarios if entry.engine_id == engine_id)
 
     def characters_for(self, engine_id: EngineId) -> tuple[CatalogEntry, ...]:
         return tuple(entry for entry in self.characters if entry.engine_id == engine_id)
 
-    def key_for(self, scenario_id: Slug, character_id: Slug) -> SavedGameKey:
-        engine_id = self.require_scenario(scenario_id).engine_id
-        if character_id not in {entry.id for entry in self.characters_for(engine_id)}:
-            raise Refusal(f"no character {character_id!r} is written for the {engine_id!r} rules")
-        return SavedGameKey(scenario_id=scenario_id, character_id=character_id)
+    def packs_for(self, engine_id: EngineId) -> tuple[PackEntry, ...]:
+        return tuple(entry for entry in self.packs if entry.engine_id == engine_id)
+
+    def saves_for(self, engine_id: EngineId) -> tuple[SaveOption, ...]:
+        return tuple(save for save in self.saves if save.engine_id == engine_id)
+
+    def find_save(self, key: SavedGameKey) -> SaveOption | None:
+        return next((save for save in self.saves if save.key == key), None)
 
     @classmethod
     def read(
@@ -89,8 +91,6 @@ class LauncherCatalog:
                 engine_id=scenario.engine_id,
                 name=scenario.description.title,
                 brief=scenario.description.premise,
-                engine_title=engines[scenario.engine_id].title,
-                look=engines[scenario.engine_id].look,
             )
             for scenario_id, scenario in on_disk.items()
         )
@@ -103,8 +103,7 @@ class LauncherCatalog:
                 engine_id=engine_id,
                 name=header.person.name,
                 brief=header.person.brief,
-                engine_title=engines[engine_id].title,
-                look=engines[engine_id].look,
+                portrait=find_image(library.character_folder(character_id) / ICON_DIR, PLAYER_ID),
             )
             for character_id, engine_id, header in library.read_characters(engines)
         )
@@ -113,7 +112,6 @@ class LauncherCatalog:
                 id=pack_id,
                 engine_id=engine.id,
                 name=pack.name,
-                engine_title=engine.title,
                 written=pack_id in engine.packs.written_ids,
             )
             for engine in engines.values()
@@ -136,7 +134,7 @@ class LauncherCatalog:
             scenarios=scenarios,
             characters=characters,
             packs=packs,
-            saves=tuple(saves),
+            saves=tuple(sorted(saves, key=lambda save: save.saved_at, reverse=True)),
             unresumable=tuple(unresumable),
         )
 
@@ -162,8 +160,9 @@ def _save_option(
     descriptions: Mapping[Slug, ScenarioDescription],
 ) -> SaveOption | None:
     raw = store.read(save_id)
-    if raw is None:
-        # Gone between `save_ids()` and `read`: listing it would hide a Start that works.
+    saved_at = store.find_saved_at(save_id)
+    if raw is None or saved_at is None:
+        # Deleted since `save_ids()`: listing it would hide a Start that works.
         return None
     engine = for_engine_of(raw, engines)
     state = engine.restore(raw)
@@ -175,6 +174,7 @@ def _save_option(
         scenario_label=state.scenario_description.title,
         character_label=title,
         turn=len(state.log_entries()),
-        where=state.chapters[-1].title,
-        engine_title=engine.title,
+        engine_id=engine.id,
+        saved_at=saved_at,
+        cover=find_cover(store.media_dir(save_id)),
     )

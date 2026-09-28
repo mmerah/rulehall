@@ -7,35 +7,42 @@ from nicegui import app, ui
 from rulehall.app.mcp import MOUNT_PATH, MountedLifespan, endpoint
 from rulehall.app.runtime import Runtime
 from rulehall.config import ENV_FILE, read_settings
-from rulehall.core.validation import Refusal
+from rulehall.core.validation import EngineId, Refusal
 from rulehall.ui import theme
 from rulehall.ui.create import CharacterForm, PackForm, ScenarioForm
 from rulehall.ui.game import game_page
-from rulehall.ui.home import home_page
+from rulehall.ui.hall import hall_page
+from rulehall.ui.home import lobby_page
 from rulehall.ui.packs import packs_page
 from rulehall.ui.routes import (
-    CHARACTER,
     GAME,
+    HALL,
     HOME,
-    PACK,
+    NEW_CHARACTER,
+    NEW_PACK,
+    NEW_SCENARIO,
     PACKS,
-    SCENARIO,
     SETTINGS,
     SOUNDS,
     assets_route,
 )
 from rulehall.ui.settings import SettingsForm
-from rulehall.ui.widgets import SOUNDS_DIR
+from rulehall.ui.widgets import SOUNDS_DIR, refused_page
+
+type EnginePage = Callable[[Runtime, EngineId], object]
 
 
 def mount(runtime: Runtime) -> None:
     plain_pages: tuple[tuple[str, Callable[[Runtime], object]], ...] = (
-        (HOME, home_page),
-        (CHARACTER, CharacterForm),
-        (SCENARIO, ScenarioForm),
-        (PACK, PackForm),
-        (PACKS, packs_page),
+        (HOME, lobby_page),
         (SETTINGS, SettingsForm),
+    )
+    engine_pages: tuple[tuple[str, EnginePage], ...] = (
+        (HALL, hall_page),
+        (NEW_CHARACTER, CharacterForm),
+        (NEW_SCENARIO, ScenarioForm),
+        (NEW_PACK, PackForm),
+        (PACKS, packs_page),
     )
     asgi, manager = endpoint(runtime.gate)
     app.mount(MOUNT_PATH, asgi)
@@ -50,6 +57,8 @@ def mount(runtime: Runtime) -> None:
     app.on_shutdown(runtime.close)  # pyright: ignore[reportUnknownMemberType]
     for route, page in plain_pages:
         ui.page(route)(partial(page, runtime))
+    for route, page in engine_pages:
+        ui.page(route)(partial(_engine_page, runtime, page))
     ui.page(GAME)(partial(game_page, runtime))
 
 
@@ -72,3 +81,12 @@ def start() -> None:
         show=False,
         viewport="width=device-width, initial-scale=1, interactive-widget=resizes-content",
     )
+
+
+def _engine_page(runtime: Runtime, page: EnginePage, engine_id: str) -> None:
+    try:
+        found = runtime.require_engine(EngineId(engine_id))
+    except Refusal as refused:
+        refused_page(str(refused))
+        return
+    page(runtime, found.id)

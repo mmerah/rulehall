@@ -111,6 +111,25 @@ def test_a_gym_leader_battles_with_a_team_built_for_it_ace_last() -> None:
     assert not ines.team
 
 
+def test_the_facts_name_the_built_team_and_only_the_foes_that_were_sent_out() -> None:
+    draft = started().draft()
+    _ = _ines_here(draft)
+
+    challenge = change(ENGINE, draft, "start_battle", trainer_id="ines")
+    assert draft.world.battle is not None
+    setup = draft.world.battle.setup
+    horsea = setup.foes[0].model_copy(update={"hp": 0})
+    lost = BattleResult(
+        outcome="lost", team=setup.team, sent_out_foes=(horsea,), on_field_mon_ids=()
+    )
+    settled = ENGINE.end_battle(draft, lost).facts
+
+    assert all(foe.species_name in challenge[0].trace for foe in setup.foes)
+    told = " ".join(fact.trace for fact in settled if fact.told)
+    assert "Horsea" in told
+    assert "Staryu" not in told
+
+
 def test_after_a_badge_the_next_move_places_the_rival_and_notes_it() -> None:
     draft = started().draft()
     _ = _ines_here(draft)
@@ -129,7 +148,7 @@ def test_a_blackout_halves_the_money_and_heals_the_team() -> None:
     fainted = setup.team[0].model_copy(update={"hp": 0})
 
     _ = ENGINE.end_battle(
-        draft, BattleResult(outcome="lost", team=(fainted,), fainted_foes=(), on_field_mon_ids=())
+        draft, BattleResult(outcome="lost", team=(fainted,), sent_out_foes=(), on_field_mon_ids=())
     )
 
     sheet = draft.world.player.require_sheet()
@@ -145,9 +164,9 @@ def test_exp_stops_at_the_level_cap_and_a_rare_candy_is_refused_there() -> None:
     charmander = sheet.require_mon("charmander")
     charmander.level, charmander.exp = 11, 11**3
     setup = _wild(draft)
-    strong = setup.foes[0].model_copy(update={"level": 50})
+    strong = setup.foes[0].model_copy(update={"level": 50, "hp": 0})
 
-    _ = ENGINE.end_battle(draft, _won(setup).model_copy(update={"fainted_foes": (strong,)}))
+    _ = ENGINE.end_battle(draft, _won(setup).model_copy(update={"sent_out_foes": (strong,)}))
 
     assert (charmander.level, charmander.exp) == (12, 12**3)
     _ = change(ENGINE, draft, "gain_item", item_id="rare-candy")
@@ -174,7 +193,7 @@ def test_a_nuzlocke_buries_a_fainted_pokemon_and_a_wipe_ends_the_journey() -> No
     wild = _rolled_wild(draft)
     wiped = wild.team[0].model_copy(update={"hp": 0})
     _ = ENGINE.end_battle(
-        draft, BattleResult(outcome="lost", team=(wiped,), fainted_foes=(), on_field_mon_ids=())
+        draft, BattleResult(outcome="lost", team=(wiped,), sent_out_foes=(), on_field_mon_ids=())
     )
     assert sheet.mon_ids() == ["charmander"]
     assert ENGINE.ending(draft) == "Your whole team has fallen. The journey ends."
@@ -186,7 +205,7 @@ def test_a_nuzlocke_offers_balls_only_at_the_first_wild_battle_of_a_place() -> N
     first = _rolled_wild(draft)
     assert first.balls
     _ = ENGINE.end_battle(
-        draft, BattleResult(outcome="fled", team=first.team, fainted_foes=(), on_field_mon_ids=())
+        draft, BattleResult(outcome="fled", team=first.team, sent_out_foes=(), on_field_mon_ids=())
     )
 
     assert _rolled_wild(draft).balls == ()
@@ -221,7 +240,7 @@ def _won(setup: BattleSetup) -> BattleResult:
     return BattleResult(
         outcome="won",
         team=setup.team,
-        fainted_foes=setup.foes,
+        sent_out_foes=tuple(foe.model_copy(update={"hp": 0}) for foe in setup.foes),
         on_field_mon_ids=(setup.team[0].mon_id,),
     )
 

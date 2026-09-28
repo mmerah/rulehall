@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from html import escape
 from time import monotonic
 
 from nicegui import ui
@@ -7,7 +8,6 @@ from rulehall.app.game_session import SessionSnapshot
 from rulehall.config import Role
 from rulehall.core.facts import DiceEvent, Fact, told_cards
 from rulehall.core.log import Cause, LogEntry, RefusedCall, SpokenLine, facts_and_refusals
-from rulehall.core.validation import Slug
 from rulehall.core.views import PlayerView
 from rulehall.ui.panel_parts import IconOf, avatar
 from rulehall.ui.widgets import DICE_CLIP, PASS_THROUGH, Sounds
@@ -35,41 +35,112 @@ FACT_ICONS = {False: "sym_r_bolt", True: "sym_r_casino"}
 SPUN_LINES = 12
 
 
-class Chat:
+class TurnBlock:
+    def __init__(self, icon_of: IconOf) -> None:
+        self.icon_of = icon_of
+        self.head: tuple[str, Cause | None] = ("", None)
+        self.cards: tuple[Fact | RefusedCall, ...] = ()
+        self.lines: tuple[SpokenLine, ...] = ()
+        self.bubbles: list[tuple[ui.chat_message, ui.html]] = []
+        with ui.element("div").classes("game-turn"):
+            self.head_slot = ui.element("div").style(PASS_THROUGH)
+            self.card_slot = ui.element("div").style(PASS_THROUGH)
+            self.line_slot = ui.element("div").style(PASS_THROUGH)
+
+    def show_entry(
+        self, entry: LogEntry, *, refusals: bool, entering: bool
+    ) -> Sequence[Fact | RefusedCall]:
+        self.show_head(entry.words, entry.cause, entering=entering)
+        cards = facts_and_refusals(entry.facts, entry.refused, refusals=refusals)
+        fresh = self.show_cards(cards, entering=entering)
+        self.show_lines(entry.lines, entering=entering)
+        return fresh
+
+    def show_head(self, words: str, cause: Cause | None, *, entering: bool) -> None:
+        if (words, cause) == self.head:
+            return
+        self.head = (words, cause)
+        self.head_slot.clear()
+        with self.head_slot:
+            if cause is not None:
+                ui.label(CAUSE_LABELS[cause]).classes("game-cause" + _entering(on=entering))
+            elif words:
+                draw_player_message(words)
+
+    def show_cards(
+        self, cards: Sequence[Fact | RefusedCall], *, entering: bool
+    ) -> Sequence[Fact | RefusedCall]:
+        fresh = appended_since(cards, self.cards)
+        if fresh is None:
+            self.card_slot.clear()
+            fresh = cards
+        self.cards = tuple(cards)
+        with self.card_slot:
+            draw_fact_cards(fresh, live=entering)
+        return fresh
+
+    def show_lines(self, lines: Sequence[SpokenLine], *, entering: bool) -> None:
+        kept = 0
+        for drawn, line in zip(self.lines, lines, strict=False):
+            if (drawn.speaker_id, drawn.speaker) != (line.speaker_id, line.speaker):
+                break
+            if drawn.text != line.text:
+                self.bubbles[kept][1].set_content(_bubble_html(line.text))
+            kept += 1
+        for message, _ in self.bubbles[kept:]:
+            message.delete()
+        del self.bubbles[kept:]
+        with self.line_slot:
+            self.bubbles.extend(
+                draw_speaker_message(
+                    self.icon_of,
+                    lines[index],
+                    named=index == 0 or lines[index].speaker_id != lines[index - 1].speaker_id,
+                    entering=entering,
+                )
+                for index in range(kept, len(lines))
+            )
+        self.lines = tuple(lines)
+
+
+class Transcript:
     def __init__(self, now: SessionSnapshot, icon_of: IconOf, sounds: Sounds) -> None:
         self.icon_of = icon_of
         self.sounds = sounds
         self.premise: ui.label | None = None
         self.pause_line: ui.label | None = None
         self.column = ui.element("div").style(PASS_THROUGH)
+        self.live_block: TurnBlock
         self.redraw(now)
         self.show_pause(now.view)
+        self.step_started = monotonic()
+        self.ticker: ui.label | None = None
+        self.draw_working_status(now.working_role)
 
     def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
         appended = appended_since(now.log_entries, drawn.log_entries)
-        if appended is None:
+        if appended is None or now.show_refusals != drawn.show_refusals:
             self.redraw(now)
-        elif appended:
-            self.append(appended, refusals=now.show_refusals, entering=True)
-            newest = appended[-1]
-            seen = sum(isinstance(entry, Fact) for entry in drawn.facts_and_refusals)
-            if newest.cause != "battle" and rolled_since(newest.facts, seen):
-                self.sounds.play(DICE_CLIP)
+        else:
+            self.land(appended, refusals=now.show_refusals, entering=True)
+            self.show_live(now, entering=True)
         self.show_pause(now.view)
-
-    def show_pause(self, view: PlayerView) -> None:
-        if self.pause_line is not None:
-            self.pause_line.set_visibility(view.decision is None)
+        if now.working_role != drawn.working_role:
+            self.draw_working_status.refresh(now.working_role)
+        if self.ticker is not None:
+            self.ticker.set_text(clock(monotonic() - self.step_started))
 
     def redraw(self, now: SessionSnapshot) -> None:
         self.column.clear()
-        self.pause_line = None
-        if not now.log_entries:
-            with self.column:
+        self.premise = self.pause_line = None
+        with self.column:
+            if not now.log_entries:
                 self.premise = ui.label(now.view.premise).classes("game-lead text-sm italic")
-        self.append(now.log_entries, refusals=now.show_refusals, entering=False)
+            self.live_block = TurnBlock(self.icon_of)
+        self.land(now.log_entries, refusals=now.show_refusals, entering=False)
+        self.show_live(now, entering=False)
 
-    def append(self, entries: Sequence[LogEntry], *, refusals: bool, entering: bool) -> None:
+    def land(self, entries: Sequence[LogEntry], *, refusals: bool, entering: bool) -> None:
         if not entries:
             return
         if self.premise is not None:
@@ -77,55 +148,33 @@ class Chat:
             self.premise = None
         if self.pause_line is not None:
             self.pause_line.set_visibility(True)
-        with self.column:
-            for entry in entries:
-                draw_log_entry(entry, self.icon_of, refusals=refusals, entering=entering)
+        for entry in entries:
+            fresh = self.live_block.show_entry(entry, refusals=refusals, entering=entering)
+            if entering and entry.cause != "battle":
+                self.play_dice(fresh)
+            with self.column:
                 self.pause_line = (
                     ui.label(f"Paused: {entry.decision}").classes("game-paused")
                     if entry.decision
                     else None
                 )
+                self.live_block = TurnBlock(self.icon_of)
 
+    def show_live(self, now: SessionSnapshot, *, entering: bool) -> None:
+        block = self.live_block
+        block.show_head(now.words, None, entering=False)
+        fresh = block.show_cards(now.facts_and_refusals, entering=entering)
+        block.show_lines(now.live, entering=entering)
+        if entering:
+            self.play_dice(fresh)
 
-class LiveTurn:
-    def __init__(self, now: SessionSnapshot, icon_of: IconOf, sounds: Sounds) -> None:
-        self.icon_of = icon_of
-        self.sounds = sounds
-        self.step_started = monotonic()
-        self.ticker: ui.label | None = None
-        self.draw_player_words(now.words)
-        self.cards = ui.element("div").style(PASS_THROUGH)
-        with self.cards:
-            draw_fact_cards(now.facts_and_refusals)
-        self.draw_live_lines(now.live)
-        self.draw_working_status(now.working_role)
+    def show_pause(self, view: PlayerView) -> None:
+        if self.pause_line is not None:
+            self.pause_line.set_visibility(view.decision is None)
 
-    def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
-        fresh = appended_since(now.facts_and_refusals, drawn.facts_and_refusals)
-        if fresh is None or now.words != drawn.words:
-            self.draw_player_words.refresh(now.words)
-            self.cards.clear()
-            fresh = now.facts_and_refusals
-        if fresh:
-            with self.cards:
-                draw_fact_cards(fresh, live=True)
-            if rolled_since([entry for entry in fresh if isinstance(entry, Fact)], 0):
-                self.sounds.play(DICE_CLIP)
-        if now.live != drawn.live:
-            self.draw_live_lines.refresh(now.live)
-        if now.working_role != drawn.working_role:
-            self.draw_working_status.refresh(now.working_role)
-        if self.ticker is not None:
-            self.ticker.set_text(clock(monotonic() - self.step_started))
-
-    @ui.refreshable_method
-    def draw_player_words(self, words: str) -> None:
-        if words:
-            draw_player_message(words)
-
-    @ui.refreshable_method
-    def draw_live_lines(self, live: tuple[SpokenLine, ...]) -> None:
-        draw_speaker_messages(live, self.icon_of)
+    def play_dice(self, cards: Sequence[Fact | RefusedCall]) -> None:
+        if rolled(cards):
+            self.sounds.play(DICE_CLIP)
 
     @ui.refreshable_method
     def draw_working_status(self, working_role: Role | None) -> None:
@@ -138,29 +187,6 @@ def appended_since[T](now: Sequence[T], drawn: Sequence[T]) -> Sequence[T] | Non
     if len(now) < kept or (kept and now[kept - 1] != drawn[-1]):
         return None
     return now[kept:]
-
-
-def draw_log_entry(entry: LogEntry, icon_of: IconOf, *, refusals: bool, entering: bool) -> None:
-    if entry.cause is not None:
-        ui.label(CAUSE_LABELS[entry.cause]).classes("game-cause" + _entering(on=entering))
-    else:
-        draw_player_message(entry.words)
-    draw_fact_cards(facts_and_refusals(entry.facts, entry.refused, refusals=refusals))
-    draw_speaker_messages(entry.lines, icon_of, entering=entering)
-
-
-def draw_speaker_messages(
-    lines: Sequence[SpokenLine], icon_of: IconOf, *, entering: bool = False
-) -> None:
-    for index, line in enumerate(lines):
-        draw_speaker_message(
-            icon_of,
-            line.speaker_id,
-            line.speaker,
-            line.text,
-            named=index == 0 or line.speaker_id != lines[index - 1].speaker_id,
-            entering=entering,
-        )
 
 
 def draw_fact_cards(entries: Sequence[Fact | RefusedCall], *, live: bool = False) -> None:
@@ -212,7 +238,7 @@ def draw_dice_group(die: DiceEvent, *, live: bool) -> None:
                             "game-die-value"
                         )
                         if live:
-                            label.props(f'role=img aria-label="{value}"')
+                            label.props.update({"role": "img", "aria-label": str(value)})
 
 
 def draw_player_message(words: str) -> None:
@@ -220,27 +246,23 @@ def draw_player_message(words: str) -> None:
 
 
 def draw_speaker_message(
-    icon_of: IconOf,
-    speaker_id: Slug | None,
-    name: str,
-    text: str,
-    *,
-    named: bool = True,
-    entering: bool = False,
-) -> None:
-    narration = speaker_id is None
-    chat_name = "DM" if narration else name
-    message = ui.chat_message(text, name=chat_name if named else None).classes(
-        "w-full game-message" + _entering(on=entering)
-    )
+    icon_of: IconOf, line: SpokenLine, *, named: bool, entering: bool
+) -> tuple[ui.chat_message, ui.html]:
+    speaker_id = line.speaker_id
+    message = ui.chat_message(
+        name=("DM" if speaker_id is None else line.speaker) if named else None
+    ).classes("w-full game-message" + _entering(on=entering))
+    with message:
+        body = ui.html(_bubble_html(line.text), sanitize=False)
     if not named:
         message.classes("game-message-more")
-    elif narration:
+    elif speaker_id is None:
         with message.add_slot("avatar"):
             avatar(None, None)
     else:
         with message.add_slot("avatar"):
-            avatar(icon_of(speaker_id), name)
+            avatar(icon_of(speaker_id), line.speaker)
+    return message, body
 
 
 def draw_working_status_row(role: Role) -> ui.label:
@@ -261,14 +283,18 @@ def clock(seconds: float) -> str:
     return f"{minutes}:{rest:02d}"
 
 
-def rolled_since(facts: Sequence[Fact], seen: int) -> bool:
-    return any(fact.dice for fact in told_cards(facts[seen:]))
+def rolled(cards: Sequence[Fact | RefusedCall]) -> bool:
+    return any(fact.dice for fact in told_cards([card for card in cards if isinstance(card, Fact)]))
 
 
 def _draw_dots() -> None:
     with ui.element("div").classes("game-dots"):
         for _ in range(3):
             ui.element("span")
+
+
+def _bubble_html(text: str) -> str:
+    return escape(text).replace("\n", "<br />")
 
 
 def _entering(*, on: bool) -> str:

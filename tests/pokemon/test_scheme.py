@@ -48,7 +48,7 @@ def test_a_way_that_would_cut_a_place_off_closes_a_center_instead() -> None:
     setup = _battle(draft, "vesper")
 
     _ = ENGINE.end_battle(
-        draft, BattleResult(outcome="lost", team=setup.team, fainted_foes=(), on_field_mon_ids=())
+        draft, BattleResult(outcome="lost", team=setup.team, sent_out_foes=(), on_field_mon_ids=())
     )
 
     assert world.evil_team.succeeded == 1
@@ -133,6 +133,6 @@ def _won(setup: BattleSetup) -> BattleResult:
     return BattleResult(
         outcome="won",
         team=setup.team,
-        fainted_foes=setup.foes,
+        sent_out_foes=tuple(foe.model_copy(update={"hp": 0}) for foe in setup.foes),
         on_field_mon_ids=(setup.team[0].mon_id,),
     )

@@ -37,12 +37,12 @@ from rulehall.engines.loner4e.args import (
 )
 from rulehall.engines.loner4e.pack import Loner4eBody, Loner4eHead, Loner4ePack
 from rulehall.engines.loner4e.panels import (
-    ASK_ORACLE,
-    TAKE_BREATHER,
-    ending_decision,
-    fight_options,
+    SHEET_HELP,
     growth_decision,
     living_world_decision,
+    loner_moves,
+    own_ending_decision,
+    proposed_ending_decision,
     scene_panel,
     sheet_panel,
     status_mark_decision,
@@ -89,14 +89,13 @@ from rulehall.engines.scenes.worldsmith import OPENING, check_opening
 from rulehall.engines.sheet import PLAYER_ID
 
 QUIET_SCENE_REQUEST = "quiet"
-RECOVERY_SCENE_REQUEST = "recovery"
 DRAMATIC_SCENE_REQUEST = "dramatic"
 MEANWHILE_REQUEST = "meanwhile"
 LIVING_WORLD_REQUEST = "living-world"
 LET_PLAY_DECIDE = "Leave empty to let play decide"
 ELSEWHERE_TITLE = "MET, NOT HERE (use these ids when one of them comes back)"
 TWIST_NOTE = (
-    "A twist interrupts the scene: {subject} / {action}. The pair is one beat: read it in what "
+    "A twist arrives: {subject} / {action}. The pair is one beat: read it in what "
     "is already here, and develop it this turn. Read the room, then the table: if SETTLED and "
     "the sheet show pressure, land it hard; if the scene has been clean, it is a shift."
 )
@@ -113,7 +112,6 @@ MARK_ONLY = "The player picks only the lasting mark, never what the defeat means
 STILL_IN_IT = (
     "{name} is still in it: direct; the player's next words press on, change tack or break away"
 )
-RECOVERING = "Rest and recover from being {status}"
 BROKE_AWAY = "the protagonist broke away: name the cost with `change_tags`"
 CONFLICT_MARKS = (
     "a Harm & Luck conflict is open, so the protagonist gains no condition from it: luck is the "
@@ -189,12 +187,13 @@ class Loner4eEngine(
     opening_model = Loner4eOpeningProposal
     next_proposal_model = Loner4eNextProposal
     opening_intent = f"{OPENING} {OPENING_FRAME}"
+    play_hint = "What does {name} do? Or ask the oracle."
+    sheet_help = SHEET_HELP
 
     def request_handlers(self) -> Mapping[Slug, RequestHandler[Loner4eWorld]]:
         return {
             **super().request_handlers(),
             QUIET_SCENE_REQUEST: RequestHandler(self.write_quiet, SCENE_UNWRITTEN),
-            RECOVERY_SCENE_REQUEST: RequestHandler(self.write_quiet, SCENE_UNWRITTEN),
             DRAMATIC_SCENE_REQUEST: RequestHandler(self.write_dramatic, SCENE_UNWRITTEN),
             MEANWHILE_REQUEST: RequestHandler(self.write_meanwhile, SCENE_UNWRITTEN),
             LIVING_WORLD_REQUEST: RequestHandler(self.write_living_world, LIVING_WORLD_UNWRITTEN),
@@ -206,14 +205,11 @@ class Loner4eEngine(
             return tools
         return tuple(tool for tool in tools if tool.name != self.spend_luck.__name__)
 
-    def composer(self, state: Loner4eGame, /) -> tuple[ActionOption | None, bool]:
-        world = state.world
-        frame = world.frame
-        if world.end_why:
-            return None, False
-        if frame.open:
-            return ASK_ORACLE, False
-        return (TAKE_BREATHER, True) if frame.breather else (None, False)
+    def moves(self, state: Loner4eGame, /) -> tuple[ActionOption, ...]:
+        return loner_moves(state.world, played=_played_here(state))
+
+    def allows_text(self, state: Loner4eGame, /) -> bool:
+        return not state.world.frame.breather
 
     def scene_text(self, state: Loner4eGame) -> str:
         frame = state.world.frame
@@ -237,13 +233,11 @@ class Loner4eEngine(
     def scene_panels(self, state: Loner4eGame, /) -> tuple[Panel, ...]:
         world = state.world
         return (
-            sheet_panel(world),
-            scene_panel(world, played=_played_here(state)),
-            *party_panel(world.party_members()),
-            here_panel(
-                (other.subject() for other in world.others()),
-                lambda other: fight_options(world, other),
-            ),
+            sheet_panel(world, self.sheet_help),
+            scene_panel(world),
+            # The sheet help speaks of the player: a companion's luck and goal work otherwise.
+            *party_panel(world.party_members(), {}),
+            here_panel(other.subject() for other in world.others()),
             trail_panel(scene.title for scene in world.scenes),
         )
 
@@ -271,8 +265,7 @@ class Loner4eEngine(
             intent += f" {OFFSCREEN.format(offscreen=offscreen)}"
         facts = self.install_next(draft, await self.write_next(draft, intent, worldsmith))
         facts += draft.world.player.refill("a quiet scene")
-        if request.kind == RECOVERY_SCENE_REQUEST:
-            facts += draft.world.status.recover()
+        facts += draft.world.status.recover()
         draft.note(ARRIVING_QUIET)
         return Resolution(tuple(facts), None)
 
@@ -363,27 +356,36 @@ class Loner4eEngine(
                 id="concept",
                 name="Write a one-line concept",
                 hint=", ".join(entry.name for entry in concepts[:3]),
+                help=SHEET_HELP["Concept"],
             ),
             CreationStep(
                 id="goal",
                 name="What does your character want?",
                 hint=LET_PLAY_DECIDE,
+                help=SHEET_HELP["Goal"],
                 optional=True,
             ),
             CreationStep(
-                id="motive", name="Why do they want it?", hint=LET_PLAY_DECIDE, optional=True
+                id="motive",
+                name="Why do they want it?",
+                hint=LET_PLAY_DECIDE,
+                help=SHEET_HELP["Motive"],
+                optional=True,
             ),
             CreationStep(
                 id="nemesis",
                 name="Who or what stands against them?",
                 hint=LET_PLAY_DECIDE,
+                help=SHEET_HELP["Nemesis"],
                 optional=True,
             ),
-            _invented("skill-1", "Choose skill 1", skills),
-            _invented("skill-2", "Choose skill 2", other_than(skills, picks.get("skill-1", ""))),
-            _invented("frailty", "Choose a frailty", frailties),
-            _invented("gear-1", "Choose gear 1", gear),
-            _invented("gear-2", "Choose gear 2", other_than(gear, picks.get("gear-1", ""))),
+            _invented("skill-1", "Choose skill 1", skills, "Skills"),
+            _invented(
+                "skill-2", "Choose skill 2", other_than(skills, picks.get("skill-1", "")), "Skills"
+            ),
+            _invented("frailty", "Choose a frailty", frailties, "Frailties"),
+            _invented("gear-1", "Choose gear 1", gear, "Gear"),
+            _invented("gear-2", "Choose gear 2", other_than(gear, picks.get("gear-1", "")), "Gear"),
         )
 
     def build_character(
@@ -561,8 +563,13 @@ class Loner4eEngine(
         player ends it or plays on."""
         if draft.world.end_why:
             raise Refusal(ENDING_ASKS_NOTHING)
-        draft.pending = ending_decision(args.why)
+        draft.pending = proposed_ending_decision(args.why)
         return [Fact(trace=f"the end is proposed: {args.why}")]
+
+    @action
+    def offer_end(self, draft: Loner4eGame, _args: NoArgs, _rng: Random) -> list[Fact]:
+        draft.pending = own_ending_decision()
+        return [Fact(trace="the player offers to end the adventure")]
 
     @action
     def confirm_end(self, draft: Loner4eGame, args: ConfirmEnd, _rng: Random) -> list[Fact]:
@@ -590,12 +597,6 @@ class Loner4eEngine(
         draft.request = WorldsmithRequest(kind=QUIET_SCENE_REQUEST, detail=args.words)
         return []
 
-    @action
-    def recover(self, draft: Loner4eGame, _args: NoArgs, _rng: Random) -> list[Fact]:
-        aim = RECOVERING.format(status=draft.world.status.active)
-        draft.request = WorldsmithRequest(kind=RECOVERY_SCENE_REQUEST, detail=aim)
-        return []
-
     @tool
     def spend_luck(self, draft: Loner4eGame, args: SpendLuck, _rng: Random) -> list[Fact]:
         """Spend luck for a character here."""
@@ -606,8 +607,12 @@ class Loner4eEngine(
         return facts
 
 
-def _invented(step_id: Slug, name: str, options: tuple[DecisionOption, ...]) -> CreationStep:
-    return CreationStep(id=step_id, name=name, options=options, allows_text=True)
+def _invented(
+    step_id: Slug, name: str, options: tuple[DecisionOption, ...], sheet_row: str
+) -> CreationStep:
+    return CreationStep(
+        id=step_id, name=name, options=options, help=SHEET_HELP[sheet_row], allows_text=True
+    )
 
 
 def _await_living_world(draft: Loner4eGame) -> None:

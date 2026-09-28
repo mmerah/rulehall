@@ -13,21 +13,24 @@ from playwright.sync_api import Page
 sys.path.insert(0, str(Path(__file__).parent))
 from drive import (
     BASE,
+    PAGE_TICK_SECONDS,
     Session,
     SocketTraffic,
     cards,
     clean,
-    composer,
     decision,
     drawer_text,
     log,
+    move,
     notifications,
     run,
     select,
+    send_move,
+    start_turn,
     submit,
     text,
     wait_idle,
-    wait_working,
+    wait_server,
 )
 
 GAME = BASE + "/game/tern-isles/kael"
@@ -52,16 +55,14 @@ TURNS = (
 
 def create_trainer(s: Session, page: Page) -> None:
     """The challenge is a creation step after the starter; each option says what it changes."""
-    page.goto(BASE + "/character")
-    page.wait_for_timeout(1000)
-    select(page, "Rules", "POKEMON")
+    page.goto(BASE + "/rules/pokemon/character")
     text(page, "Name", "Nuzla")
     text(page, "Brief", "A careful trainer.")
     for number, skill in enumerate(("Athletics", "Nature", "Perception", "Lore"), start=1):
         select(page, f"Skill rank {number}", skill)
     select(page, "Starter", "Squirtle")
     page.locator(".q-select:has(.q-field__label:text-is('Challenge'))").first.click()
-    page.wait_for_timeout(200)
+    page.locator(".q-menu .q-item").first.wait_for()
     offered = [clean(t) for t in page.locator(".q-menu .q-item").all_inner_texts()]
     s.check(
         any("Nuzlocke" in o and "one catch per place" in o for o in offered)
@@ -69,12 +70,11 @@ def create_trainer(s: Session, page: Page) -> None:
         f"the challenge step offers: {offered}",
     )
     page.locator(".q-menu .q-item", has_text="Nuzlocke").first.click()
-    page.wait_for_timeout(400)
+    page.locator(".q-menu").wait_for(state="detached")
     page.get_by_role("button", name="Ethan").click()
-    page.wait_for_timeout(400)
     s.shot(page, "create-challenge")
     page.get_by_role("button", name="Create").click()
-    page.wait_for_url("**/")
+    page.wait_for_url("**/rules/pokemon?character=nuzla")
     s.check(not notifications(page), f"creating a Nuzlocke trainer: {notifications(page)}")
 
 
@@ -91,7 +91,7 @@ def body(s: Session) -> None:
     team_tab = page.locator(".game-rail-btn", has_text="Team")
     s.check(team_tab.count() == 1, "the rail shows no Team tab")
     team_tab.click()
-    page.wait_for_timeout(800)
+    page.locator(".game-drawer", has_text="Bag").wait_for()
     side = clean(drawer_text(page)).lower()
     for title in ("team", "box", "bag"):
         s.check(title in side, f"the Team tab shows no {title}: {side[:300]}")
@@ -99,8 +99,8 @@ def body(s: Session) -> None:
 
     # A Team row opens its dialog; the Potion on a full-HP Pokemon is greyed with its reason.
     page.locator(".game-drawer .game-opens", has_text="Charmander").first.click()
-    page.wait_for_timeout(800)
     dialog = page.locator(".q-dialog")
+    dialog.locator("button.game-choice").first.wait_for()
     potion = dialog.locator("button.game-choice", has_text="Use the Potion on Charmander")
     s.check(potion.count() == 1, f"no Potion option: {clean(dialog.inner_text())[:300]}")
     if potion.count() == 1:
@@ -111,12 +111,13 @@ def body(s: Session) -> None:
         )
     s.shot(page, "team-row")
     page.keyboard.press("Escape")
-    page.wait_for_timeout(400)
+    dialog.wait_for(state="detached")
 
     # The map on the Scene tab, which stays open for the turns.
     traffic.mark()
     page.locator(".game-rail-btn", has_text="Scene").click()
-    page.wait_for_timeout(800)
+    page.locator(".game-drawer canvas").first.wait_for()
+    page.wait_for_timeout(PAGE_TICK_SECONDS * 1000)
     s.note(f"timing pokemon open=scene-tab {traffic.mark().line()}")
     s.check(page.locator(".game-drawer canvas").count() > 0, "the Scene tab draws no map")
     s.check("Tamsin" in drawer_text(page), "the rival Tamsin is not here at the start")
@@ -145,11 +146,11 @@ def body(s: Session) -> None:
         f"the nickname drew no card: {cards(page)[-3:]}",
     )
     page.locator(".game-rail-btn", has_text="Team").click()
-    page.wait_for_timeout(800)
+    page.locator(".game-drawer", has_text="Bag").wait_for()
     s.check("Blaze" in drawer_text(page), "the Team tab does not show the nickname")
     s.shot(page, "nickname")
     page.locator(".game-rail-btn", has_text="Scene").click()
-    page.wait_for_timeout(400)
+    page.locator(".game-drawer canvas").first.wait_for()
 
     # A wild battle: the banner, then the battle screen or, without the simulator, the hint.
     submit(page, "I step into the tall grass.\n!start_wild_battle")
@@ -245,9 +246,8 @@ def answer_decisions(page: Page) -> None:
         for wanted in ("Forget Growl", "Skip", ""):
             button = pending.locator("button", has_text=wanted)
             if button.count():
-                button.first.click()
+                start_turn(button.first)
                 break
-        wait_working(page, timeout=2)
         wait_idle(page, timeout=60)
 
 
@@ -262,8 +262,10 @@ def fight(s: Session, page: Page, pick: str, shot: str) -> None:
     while screen.count() and time.time() < deadline:
         wanted = choices.filter(has_text=pick)
         if choices.count():
+            started = time.monotonic()
             (wanted if wanted.count() else choices).first.click()
-        page.wait_for_timeout(700)
+            wait_server(started)
+        page.wait_for_timeout(PAGE_TICK_SECONDS * 1000)
     s.check(not screen.count(), f"the {shot} battle never ended")
     wait_idle(page, timeout=60)
     s.shot(page, shot)
@@ -271,11 +273,8 @@ def fight(s: Session, page: Page, pick: str, shot: str) -> None:
 
 
 def more_map(s: Session, page: Page, words: str, asked: str) -> tuple[str, str]:
-    offered = page.locator(".game-banner button", has_text="More map")
-    s.check(offered.count() == 1, f"no More map offered before: {words}")
-    composer(page).fill(words)
-    offered.click()
-    wait_working(page)
+    s.check(move(page, "More map").count() == 1, f"no More map offered before: {words}")
+    send_move(page, "More map", words)
     wait_idle(page, timeout=60)
     smith = [entry for entry in log() if entry["role"] == "worldsmith"][-1]
     s.check(asked in smith["prompt"], f"the region request did not ask: {asked}")

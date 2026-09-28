@@ -14,7 +14,7 @@ from rulehall.engines.rooms.world import Item, MapProposal, RegionProposal
 from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.args import LevelUp, Roll
 from rulehall.engines.tunnelgoons.pack import TunnelGoonsBody, TunnelGoonsHead, TunnelGoonsPack
-from rulehall.engines.tunnelgoons.panels import level_up_decision
+from rulehall.engines.tunnelgoons.panels import SHEET_HELP, level_up_decision
 from rulehall.engines.tunnelgoons.sheet import (
     ABILITIES,
     ABILITY_POINTS,
@@ -54,6 +54,7 @@ class TunnelGoonsEngine(
     next_proposal_model = RegionProposal[Goon]
     hire_model = AbilitiesProposal
     hire_intent = HIRING
+    sheet_help = SHEET_HELP
 
     def hire_guidance(self, _draft: TunnelGoonsGame) -> str:
         return HIRE_GUIDANCE
@@ -73,12 +74,15 @@ class TunnelGoonsEngine(
                 name=f"Points in {ability.capitalize()}",
                 options=POINT_OPTIONS,
                 hint=f"{ABILITY_POINTS} points across the three",
+                help=SHEET_HELP[ability.capitalize()],
             )
             for ability in ABILITIES
         )
         hint = ", ".join(name for pack in self.packs.played(pack_id) for name in pack.items)
         item_steps = tuple(
-            CreationStep(id=f"item-{number}", name=f"Item {number}", hint=hint)
+            CreationStep(
+                id=f"item-{number}", name=f"Item {number}", hint=hint, help=SHEET_HELP["Items"]
+            )
             for number in range(1, STARTING_ITEMS + 1)
         )
         return (*ability_steps, *item_steps)

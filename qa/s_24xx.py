@@ -2,7 +2,6 @@
 newcomer after a lone death."""
 
 import sys
-import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -14,14 +13,14 @@ from drive import (
     drawer_text,
     open_drawer,
     run,
+    start_turn,
     submit,
     wait_idle,
-    working,
 )
 from playwright.sync_api import Page
 
 GAME = BASE + "/game/silent-relay/kael"
-DECISION = ".game-decision"
+DECISION = ".game-asking"
 CROSSING = '!roll what="Cross the fire" risk="burned to death" deadly=true hindered="Bruised"'
 
 
@@ -30,7 +29,7 @@ def body(s: Session) -> None:
     page.goto(GAME)
     wait_idle(page)
     s.check(
-        page.locator(".game-banner button", has_text="Move on").is_visible(),
+        page.locator(".game-moves button", has_text="Move on").is_visible(),
         "Move on is not on the page",
     )
     submit(page, "The beacon is lit already.\n!job verb=finish")
@@ -83,8 +82,7 @@ def body(s: Session) -> None:
     wait_idle(page)
     s.check("Which skill do you raise?" in decision_text(page), "no raise decision after a job")
     s.shot(page, "raise")
-    page.locator(f"{DECISION} button").first.click()
-    settle(page)
+    choose(page, "")
     s.check(any("Job done" in card for card in cards(page)), f"no raise card: {cards(page)[-3:]}")
     submit(page, 'We take the work.\n!job verb=find where="Relay"\n!job verb=take terms="Fix it"')
     wait_idle(page)
@@ -120,17 +118,8 @@ def decision_text(page: Page) -> str:
 
 
 def choose(page: Page, name: str) -> None:
-    page.locator(f"{DECISION} button", has_text=name).first.click()
-    settle(page)
-
-
-def settle(page: Page, timeout: float = 30) -> None:
-    """An option-only decision keeps the composer disabled, so this waits on the roles alone."""
-    page.wait_for_timeout(1500)
-    deadline = time.time() + timeout
-    while working(page).count() > 0 and time.time() < deadline:
-        page.wait_for_timeout(200)
-    page.wait_for_timeout(300)
+    start_turn(page.locator(f"{DECISION} .game-moves button", has_text=name).first)
+    wait_idle(page)
 
 
 run("24xx", body)

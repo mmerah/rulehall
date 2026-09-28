@@ -3,7 +3,6 @@ from pathlib import Path
 from random import Random
 from typing import Any
 
-from rulehall.core.decisions import ActionOption
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyCharacter, AnyScenario, Game
 from rulehall.core.prompt import Sections, render_log, section_if
@@ -85,21 +84,16 @@ class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](
 
     def player_view(self, state: Game[W]) -> PlayerView:
         world = state.world
-        option, only = self.composer(state) if state.pending is None else (None, False)
         return PlayerView(
             premise=state.scenario_description.premise,
             player=world.player.subject(),
             scene_title=world.scene.title,
             situation=world.scene.situation,
             panels=self.scene_panels(state),
-            decision=state.pending,
             ending=self.ending(state),
-            composer_option=option,
-            composer_only=only,
+            **self.player_actions(state),
         )
 
-    @abstractmethod
-    def composer(self, state: Game[W], /) -> tuple[ActionOption | None, bool]: ...
     @abstractmethod
     def scene_panels(self, state: Game[W], /) -> tuple[Panel, ...]: ...
 

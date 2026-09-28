@@ -10,7 +10,6 @@ SCENE_ID = "scene"
 UNTRAINED = "Untrained"
 MEANWHILE_QUESTION = "Does an ally or wildcard act independently?"
 LUCK_MAX = 6
-GROUP_LUCK = 8
 DIE_FACE = 6
 DOUBLES_PER_TWIST = 3
 STATUS_BOXES = 3

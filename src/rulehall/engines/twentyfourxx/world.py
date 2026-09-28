@@ -248,13 +248,6 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
     def ship_refusal(self) -> str:
         return "" if self.ship_here() else SHIP_AWAY
 
-    def upgrade_refusal(self) -> str:
-        if refusal := self.ship_refusal():
-            return refusal
-        if (credits := self.player.require_sheet().credits) < UPGRADE_COST:
-            return f"{self.player.name} has only ₡{credits}, not ₡{UPGRADE_COST}"
-        return ""
-
     def require_hold_item(self, item_id: Slug) -> Gear:
         item = self.hold.get(item_id)
         if item is None:
@@ -296,13 +289,12 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
 
     def upgrade_ship(self, function_id: Slug, upgrade: str) -> list[Fact]:
         function = self.require_function(function_id)
-        if refusal := self.upgrade_refusal():
+        if refusal := self.ship_refusal():
             raise Refusal(refusal)
         self.player.pay(UPGRADE_COST)
         function.upgrades.append(upgrade)
-        named = f": {upgrade}" if upgrade else ""
-        trace = f"the ship's {function.name} is upgraded{named} (₡{UPGRADE_COST})"
-        card = f"{function.name} upgraded{named} — ₡{UPGRADE_COST}"
+        trace = f"the ship's {function.name} is upgraded: {upgrade} (₡{UPGRADE_COST})"
+        card = f"{function.name} upgraded: {upgrade} — ₡{UPGRADE_COST}"
         return [self.player.fact(trace, card=card)]
 
     def take_lead(self, member_id: Slug) -> list[Fact]:

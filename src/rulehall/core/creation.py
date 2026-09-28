@@ -12,6 +12,7 @@ class CreationStep(Frozen):
     name: str
     options: tuple[DecisionOption, ...] = ()
     hint: str = ""
+    help: str = ""
     allows_text: bool = False
     optional: bool = False
 

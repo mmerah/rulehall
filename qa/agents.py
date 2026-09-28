@@ -3,7 +3,8 @@
 The master reads PLAYER ACTION from its prompt like the real one. A line that starts with `!` is
 a script: `!ask question="Does the door give?"` calls that tool,
 `!crash` and `!refuse` fail the master's run, `!fail narrator` fails another role's next ask,
-`!bad worldsmith` makes one answer garbage so the retry lands.
+`!bad worldsmith` makes one answer garbage so the retry lands, `!hold narrator` holds its next
+ask until `release`.
 Plain words with no script get one engine-appropriate roll, so dice show up in the page; a
 Loner question the player asks is rolled as `ask(question: null)`.
 
@@ -16,7 +17,7 @@ import json
 import logging
 import re
 import shlex
-from asyncio import sleep
+from asyncio import Event, sleep
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from itertools import count
@@ -33,7 +34,7 @@ from rulehall.core.validation import Refusal
 
 LOGGER = logging.getLogger("qa.agents")
 
-type Fault = Literal["fail", "bad", "slow"]
+type Fault = Literal["fail", "bad", "hold"]
 
 DEFAULT_ROLLS: dict[str, tuple[str, dict[str, JsonValue]]] = {
     "loner4e": ("ask", {"question": "Does the player get what they want?"}),
@@ -54,9 +55,10 @@ class Spoken:
 
 @dataclass(slots=True)
 class ScriptedAgents:
-    delay: float = 0.3
+    delay: float = 0
     runtime: Runtime | None = None
     faults: dict[Role, list[Fault]] = field(default_factory=dict)
+    holds: dict[Role, Event] = field(default_factory=dict)
     log: list[Spoken] = field(default_factory=list)
     # The first prompt of each session: a resumed CLI still holds it, so a retry reads it too.
     first_prompts: dict[str, str] = field(default_factory=dict)
@@ -86,6 +88,18 @@ class ScriptedAgents:
         del turn
         _ = await self._spoken("master", prompt.text, prompt.text)
 
+    def arm(self, role: str, fault: str) -> None:
+        self.faults.setdefault(_role(role), []).append(_fault(fault))
+
+    def release(self, role: str | None = None) -> None:
+        """Drops the armed holds of `role`, or of every role, and lets a waiting one answer."""
+        released_roles: list[Role] = [*self.faults, *self.holds] if role is None else [_role(role)]
+        for released in released_roles:
+            armed = self.faults.get(released, [])
+            self.faults[released] = [fault for fault in armed if fault != "hold"]
+            if (held := self.holds.pop(released, None)) is not None:
+                held.set()
+
     async def _spoken(self, role: Role, asked: str, text: str) -> Spoken:
         spoken = Spoken(role=role, prompt=text, answer="")
         self.log.append(spoken)
@@ -103,8 +117,9 @@ class ScriptedAgents:
             fault = armed.pop(0)
             if fault == "fail":
                 raise Refusal(f"scripted: the {role} failed")
-            if fault == "slow":
-                await sleep(6)
+            if fault == "hold":
+                held = self.holds[role] = Event()
+                await held.wait()
             if fault == "bad":
                 return "not json at all"
         if role == "master":
@@ -138,8 +153,8 @@ class ScriptedAgents:
                     raise Refusal("scripted: the game master refused")
                 case "none":
                     continue
-                case "fail" | "bad" | "slow":
-                    self.faults.setdefault(_role(rest[0]), []).append(head)
+                case "fail" | "bad" | "hold":
+                    self.arm(rest[0], head)
                 case _:
                     await self._call(head, _args(rest), spoken)
 
@@ -345,6 +360,14 @@ def _role(word: str) -> Role:
             return word
         case _:
             raise Refusal(f"scripted: no role {word!r}")
+
+
+def _fault(word: str) -> Fault:
+    match word:
+        case "fail" | "bad" | "hold":
+            return word
+        case _:
+            raise Refusal(f"scripted: no fault {word!r}")
 
 
 def _args(words: Sequence[str]) -> dict[str, JsonValue]:

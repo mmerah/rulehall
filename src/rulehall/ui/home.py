@@ -1,181 +1,121 @@
-import logging
+from datetime import UTC, datetime
 from functools import partial
+from pathlib import Path
 
 from nicegui import ui
-from nicegui.events import ValueChangeEventArguments
 
-from rulehall.app.catalog import LauncherCatalog, SavedGameKey, SaveOption
+from rulehall.app.catalog import LauncherCatalog, SaveOption
 from rulehall.app.runtime import Runtime
-from rulehall.core.validation import Slug, content_id
-from rulehall.ui import theme
-from rulehall.ui.routes import CHARACTER, PACK, PACKS, SCENARIO, SETTINGS, game_path
-from rulehall.ui.widgets import (
-    Confirm,
-    action_tile,
-    attempt,
-    empty_state,
-    entry_card,
-    heading,
-    icon_button,
-    nav_button,
-    page_body,
-    page_header,
-    page_intro,
-    section,
-)
+from rulehall.core.validation import EngineId
+from rulehall.core.views import Look
+from rulehall.ui.looks import art, die_glyph, link_box, pattern_classes
+from rulehall.ui.routes import SETTINGS, game_path, hall_path
+from rulehall.ui.saves import BROKEN_ICON, PLAY_ICON, delete_button, open_game, save_line
+from rulehall.ui.theme import look_style
+from rulehall.ui.widgets import entry_card, nav_button, page_body, page_header, section_title
 
-LOGGER = logging.getLogger(__name__)
-PLAY_ICON = "sym_r_play_arrow"
-DELETE_ICON = "sym_r_delete"
-DELETE_FAILED = "Something went wrong. The save was not deleted. Look in the server log."
-CREATE_TILES: tuple[tuple[str, str, str, str], ...] = (
-    ("sym_r_person_add", "New character", "Someone to play, built to the rules", CHARACTER),
-    ("sym_r_auto_stories", "New scenario", "An adventure the worldsmith opens", SCENARIO),
-    ("sym_r_auto_fix_high", "New pack", "Tables and seeds for a genre", PACK),
+SETTINGS_ICON = "sym_r_settings"
+OPEN_ICON = "sym_r_chevron_right"
+RECENT_SAVES = 3
+WELCOME = (
+    "Solo tabletop role-playing. You play one character; "
+    "AI roles and a rules engine play the rest of the table."
 )
 
 
-class LaunchForm:
-    def __init__(self, catalog: LauncherCatalog) -> None:
-        self.catalog = catalog
-        self.scenario_id: Slug = catalog.scenarios[0].id
-        self.character_id: Slug | None = None
-        self.draw()
-
-    def choose_scenario(self, event: ValueChangeEventArguments[str]) -> None:
-        self.scenario_id = content_id(event.value)
-        self.draw.refresh()
-
-    def choose_character(self, event: ValueChangeEventArguments[str]) -> None:
-        self.character_id = content_id(event.value)
-        self.draw_start_button.refresh()
-
-    @ui.refreshable_method
-    def draw(self) -> None:
-        catalog = self.catalog
-        scenario = catalog.require_scenario(self.scenario_id)
-        theme.set_look(scenario.look)
-        ui.select(
-            options={
-                entry.id: f"{entry.name} · {entry.engine_title}" for entry in catalog.scenarios
-            },
-            value=self.scenario_id,
-            label="Scenario",
-            on_change=self.choose_scenario,
-        )
-        ui.label(scenario.brief).classes("game-hint").style("font-size: .85rem; line-height: 1.5")
-        characters = {
-            entry.id: f"{entry.name} — {entry.brief}"
-            for entry in catalog.characters_for(scenario.engine_id)
-        }
-        if self.character_id not in characters:
-            self.character_id = next(iter(characters), None)
-        ui.select(
-            options=characters,
-            value=self.character_id,
-            label="Character",
-            on_change=self.choose_character,
-        )
-        self.draw_start_button()
-
-    @ui.refreshable_method
-    def draw_start_button(self) -> None:
-        catalog = self.catalog
-        if self.character_id is None:
-            ui.label("No character is written for these rules.").classes("text-negative")
-            return
-        key = catalog.key_for(self.scenario_id, self.character_id)
-        if key.save_id in catalog.unresumable:
-            ui.label(
-                f"A save file exists at {key.save_id!r} and cannot be resumed. "
-                "Nothing is deleted or migrated."
-            ).classes("text-negative")
-            return
-        started = any(save.key.save_id == key.save_id for save in catalog.saves)
-        ui.button(
-            "Continue game" if started else "Start game",
-            icon=PLAY_ICON,
-            on_click=partial(_open_game, key),
-        ).props("color=primary size=md").classes("q-mt-sm self-start")
-
-
-def home_page(runtime: Runtime) -> None:
+def lobby_page(runtime: Runtime) -> None:
     catalog = runtime.catalog()
-    with page_header("Rulehall", home=False):
+    now = datetime.now(UTC)
+    with page_header("Rulehall", back=None):
         ui.space()
-        nav_button("Packs", "sym_r_style", PACKS)
-        nav_button("Settings", "sym_r_settings", SETTINGS)
+        nav_button("Settings", SETTINGS_ICON, SETTINGS)
+    with page_body(classes="game-wide"):
+        if catalog.saves:
+            _continue(runtime, catalog.saves[:RECENT_SAVES], now)
+        else:
+            _welcome()
+        section_title("Choose your rules")
+        with ui.element("div").classes("game-doors"):
+            for engine in runtime.engines.values():
+                _door(catalog, engine.id, engine.title, engine.look)
+        if catalog.unresumable:
+            _unresumable(runtime, catalog.unresumable)
 
-    with page_body():
-        page_intro(
-            "Adventure",
-            "Begin an adventure",
-            "Choose a scenario, then a character written for its rules.",
+
+def _welcome() -> None:
+    with ui.column().classes("game-welcome game-gap-md"):
+        ui.label("Rulehall").classes("game-title game-hero-title").props(
+            'role="heading" aria-level="1"'
         )
-        with section("New or current game", classes="game-launch"):
-            if catalog.scenarios:
-                LaunchForm(catalog)
-            else:
-                ui.label("No playable scenario was found.").classes("text-negative")
-        _saved_games(runtime, catalog)
-        _new_content()
+        ui.label(WELCOME).classes("game-lead")
 
 
-def _new_content() -> None:
-    heading("Create")
-    with ui.element("div").classes("game-tiles"):
-        for icon, title, caption, route in CREATE_TILES:
-            action_tile(icon, title, caption, partial(ui.navigate.to, route))
+def _continue(runtime: Runtime, saves: tuple[SaveOption, ...], now: datetime) -> None:
+    newest, *older = saves
+    with ui.element("div").classes("game-continue"):
+        _hero(runtime, newest, now)
+        if older:
+            with ui.element("div").classes("game-recent"):
+                for save in older:
+                    _recent(runtime, save, now)
 
 
-def _saved_games(runtime: Runtime, catalog: LauncherCatalog) -> None:
-    heading("Saved games", len(catalog.saves))
-    with ui.column().classes("w-full game-gap-xl"):
-        for save_id in catalog.unresumable:
-            entry_card(
-                "sym_r_broken_image",
-                save_id,
-                "This save cannot be resumed. Nothing is deleted or migrated.",
-                (),
-                partial(_delete_button, runtime, save_id),
+def _hero(runtime: Runtime, save: SaveOption, now: datetime) -> None:
+    engine = runtime.require_engine(save.engine_id)
+    look = engine.look
+    with ui.element("div").classes("game-look game-hero").style(look_style(look)):
+        _cover(look, save.cover)
+        with ui.column().classes("game-hero-text game-gap-lg"):
+            ui.label(engine.title).classes("game-eyebrow")
+            ui.label(save.scenario_label).classes("game-title game-hero-title").props(
+                'role="heading" aria-level="1"'
             )
-        if not catalog.saves:
-            empty_state("sym_r_bookmarks", "No saved games yet.")
-        for saved in catalog.saves:
-            _saved_card(runtime, saved)
+            ui.label(save_line(save, now)).classes("game-hero-meta")
+            ui.button("Continue", icon=PLAY_ICON, on_click=partial(open_game, save.key)).props(
+                "color=primary size=lg"
+            ).classes("game-hero-play")
 
 
-def _saved_card(runtime: Runtime, saved: SaveOption) -> None:
-    def actions() -> None:
-        ui.button(
-            "Resume",
-            icon=PLAY_ICON,
-            on_click=partial(_open_game, saved.key),
-        ).props("color=primary")
-        _delete_button(runtime, saved.key.save_id)
-
-    where = f" · {saved.where}" if saved.where else ""
-    entry_card(
-        "sym_r_bookmark",
-        saved.scenario_label,
-        f"{saved.character_label} · turn {saved.turn}{where}",
-        (saved.engine_title,),
-        actions,
-    )
+def _recent(runtime: Runtime, save: SaveOption, now: datetime) -> None:
+    look = runtime.require_engine(save.engine_id).look
+    with link_box(game_path(save.key), "game-look game-save").style(look_style(look)):
+        _cover(look, save.cover)
+        with ui.column().classes("game-save-text game-gap-2xs"):
+            ui.label(save.scenario_label).classes("game-title game-save-title")
+            ui.label(save_line(save, now)).classes("game-save-meta")
+        ui.icon(OPEN_ICON).classes("game-save-open")
 
 
-def _delete_button(runtime: Runtime, save_id: str) -> None:
-    icon_button(DELETE_ICON, "Delete", partial(_confirm_delete, runtime, save_id))
+def _door(catalog: LauncherCatalog, engine_id: EngineId, title: str, look: Look) -> None:
+    adventures = len(catalog.scenarios_for(engine_id))
+    playing = len(catalog.saves_for(engine_id))
+    count = _counted(adventures, "adventure") + (f" · {playing} in play" if playing else "")
+    door = link_box(hall_path(engine_id), f"game-look game-door {pattern_classes(look)}")
+    with door.style(look_style(look)):
+        with ui.row().classes("w-full items-start no-wrap game-gap-md"):
+            ui.label(title).classes("game-title game-door-title col")
+            die_glyph(look)
+        ui.label(look.tagline).classes("game-door-tagline")
+        ui.label(count).classes("game-door-count")
 
 
-async def _confirm_delete(runtime: Runtime, save_id: str) -> None:
-    dialog = Confirm(keep="Keep", confirm="Delete")
-    confirmed = await dialog.ask(f"Delete the save {save_id!r}? It cannot be brought back.")
-    dialog.delete()
-    if confirmed and await attempt(partial(runtime.delete_save, save_id), failed=DELETE_FAILED):
-        ui.navigate.reload()
+def _unresumable(runtime: Runtime, save_ids: tuple[str, ...]) -> None:
+    section_title("Saves that cannot resume")
+    with ui.column().classes("w-full game-gap-xl"):
+        for save_id in save_ids:
+            entry_card(
+                BROKEN_ICON,
+                save_id,
+                "Its rules, scenario or character changed. Nothing is deleted or migrated.",
+                partial(delete_button, runtime, save_id),
+            )
 
 
-def _open_game(key: SavedGameKey) -> None:
-    LOGGER.info("launcher opening %r", key.save_id)
-    ui.navigate.to(game_path(key))
+def _cover(look: Look, cover: Path | None) -> None:
+    art(look, cover)
+    if cover is None:
+        die_glyph(look)
+
+
+def _counted(count: int, noun: str) -> str:
+    return f"{count} {noun}" + ("" if count == 1 else "s")

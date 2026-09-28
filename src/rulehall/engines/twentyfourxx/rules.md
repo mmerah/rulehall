@@ -9,6 +9,14 @@ The sign ₡ marks credits. GEAR lists the items that the player carries. A bulk
 space. Each item can break a set number of times; then it is broken and useless until somebody
 repairs it. A hindrance is a thing that slows the actor, for example an injury or a fear.
 
+## Gear
+
+The player buys in words: call `gain_item` with its `cost`. Most items and upgrades cost ₡1
+each. A thing as cheap as a knife or a meal costs ₡0, only the time to get it. A vest breaks once. Battle
+armor (₡2) and a hardsuit (₡3, vacuum-rated, with mag boots) are bulky and break up to 3 times. A
+flamethrower, a rifle, a shotgun and a survey pack are bulky. A cyber-ear, cyber-eye, cyber-limb
+or cranial jack takes upgrades, such as infrared on a cyber-eye.
+
 ## Before a roll
 
 The player says what they do. You rule:
@@ -82,8 +90,17 @@ The opinion of another person is not a hindrance. More than one bulky item can h
 ## The ship
 
 THE SHIP lists the seven starship functions of the crew with their ids. An item or a function
-marked harmless breaks with no hindrance. When you call `ship_upgrade`, name the upgrade in
-`upgrade`. A function can take several upgrades.
+marked harmless breaks with no hindrance. Each function starts basic. The player buys an upgrade
+in words for ₡10: call `ship_upgrade` and name it in `upgrade`. A function can take several
+upgrades. The rules name these:
+
+- Comms: eavesdropper, jammer, tachyon burst (no lag in-system).
+- Crafts (an escape pod): fighter, shuttle (reentry-rated).
+- Drive (FTL jumps, sublight speed): longer jumps, faster speed, greater agility.
+- Equipment (vac suits for the crew): armory, heavy loader, mining gear, tow cable.
+- Hull armor (breaks harmlessly): reentry-rated, sun shielding.
+- Sensors: deep-space, life-sign scan, planetary survey, tactical vessel scan.
+- Weapons (deflector turrets): laser cutter, military-grade turret, torpedoes.
 
 ## Jobs
 

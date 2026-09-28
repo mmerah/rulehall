@@ -58,7 +58,7 @@ async def test_a_change_lands_on_the_draft_as_it_is_made_and_on_disk_at_the_end(
 
     table.roles.turns.append(script)
     table.roles.answers["narrator"] = [narrated("A monk steps in from the cold.")]
-    await table.session.play(PlayerInput(text="I wait for whoever comes."))
+    await table.session.choose(PlayerInput(text="I wait for whoever comes."))
 
     assert "target_id" in table.refusals[0]
     assert counts == [1]

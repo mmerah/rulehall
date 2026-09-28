@@ -19,7 +19,7 @@ from support.table import (
 from rulehall.core.decisions import PlayerInput
 from rulehall.core.stores import Library
 from rulehall.core.validation import Refusal
-from rulehall.engines.loner4e.panels import END_HERE
+from rulehall.engines.loner4e.panels import END_ADVENTURE, OWN_ENDING_PROMPT
 from rulehall.engines.loner4e.sheet import Loner4eEntity
 from rulehall.engines.loner4e.world import Loner4eGame
 from rulehall.engines.sheet import PLAYER_ID
@@ -43,7 +43,7 @@ DIRECTED = tool_call("direct", text="It ends here.")
 
 async def _proposed_and_ended(table: Table[Loner4eGame]) -> None:
     _ = await play_turn(table, "I have it.", ENDED)
-    await table.session.play(PlayerInput(option_id="end-it"))
+    await table.session.choose(PlayerInput(option_id="end-it"))
 
 
 async def test_close_scene_and_end_adventure_leave_only_the_ending_and_play_on_hands_over(
@@ -66,18 +66,21 @@ async def test_a_typed_word_cannot_end_the_adventure(tmp_path: Path) -> None:
     _ = await play_turn(table, "I have it.", ENDED)
 
     with pytest.raises(Refusal, match="takes one of its options"):
-        await table.session.play(PlayerInput(text="Yes, end it: patience."))
+        await table.session.choose(PlayerInput(text="Yes, end it: patience."))
 
     assert table.state.pending is not None
     assert (table.state.pending.kind, table.state.world.end_why) == ("ending", "")
 
 
-async def test_the_player_ends_the_adventure_from_the_sheet_and_is_asked_the_growth_once(
+async def test_the_player_ends_the_adventure_confirms_it_and_is_asked_the_growth_once(
     tmp_path: Path,
 ) -> None:
     table = open_game(tmp_path, rng=Random(1))
 
-    await table.session.use_panel_option(END_HERE)
+    await table.session.choose(PlayerInput(option_id=END_ADVENTURE.id))
+    assert table.state.pending is not None
+    assert table.state.pending.prompt == OWN_ENDING_PROMPT
+    await table.session.choose(PlayerInput(option_id="end-it"))
 
     assert table.state.pending is not None
     assert (table.state.pending.kind, table.state.pending.prompt) == (
@@ -139,7 +142,7 @@ async def test_a_failed_living_world_is_retried_from_its_option_with_no_master_t
     masters = sum(role == "master" for role, _ in table.roles.prompts)
     table.roles.answers["worldsmith"] = [json.dumps(LIVING_WORLD)]
     table.roles.answers["narrator"] = [narrated("The end.")]
-    await table.session.play(PlayerInput(option_id="living-world"))
+    await table.session.choose(PlayerInput(option_id="living-world"))
     assert ENGINE.ending(table.state) == "The adventure is over."
     assert sum(role == "master" for role, _ in table.roles.prompts) == masters
 
@@ -157,11 +160,11 @@ async def test_a_living_world_that_fails_twice_still_waits_on_its_write(tmp_path
     await _proposed_and_ended(table)
     _ = await play_turn(table, "Yes: patience.", DIRECTED)
 
-    await table.session.play(PlayerInput(option_id="living-world"))
+    await table.session.choose(PlayerInput(option_id="living-world"))
 
     assert table.state.pending is not None
     assert table.state.pending.kind == "living-world"
-    assert table.session.player_view().composer_option is None
+    assert table.session.player_view().moves == ()
 
 
 def test_no_scene_closes_while_the_end_waits_and_an_ended_game_offers_no_option() -> None:
@@ -172,7 +175,7 @@ def test_no_scene_closes_while_the_end_waits_and_an_ended_game_offers_no_option(
     assert "adventure is ending" in refused(ENGINE, draft, "close_scene", reason="resolved")
     draft.world.ended = True
     draft.world.frame.next = "quiet"
-    assert ENGINE.composer(draft) == (None, False)
+    assert ENGINE.moves(draft) == ()
 
 
 def test_the_growth_after_a_closed_scene_writes_a_nemesis_and_rewords_the_concept() -> None:
@@ -182,7 +185,7 @@ def test_the_growth_after_a_closed_scene_writes_a_nemesis_and_rewords_the_concep
     reworded = {"actor_id": PLAYER_ID, "concept": "A scribe who stopped counting"}
     assert "only in the growth" in refused(ENGINE, draft, "drive", **reworded)
 
-    _ = run_action(ENGINE, draft, "confirm_end")
+    _ = run_action(ENGINE, draft, "confirm_end", why="The vault is found.")
     _ = change(ENGINE, draft, "drive", actor_id=PLAYER_ID, nemesis="The Order")
     _ = change(ENGINE, draft, "drive", **reworded)
 

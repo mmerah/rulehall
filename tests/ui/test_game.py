@@ -15,15 +15,15 @@ from support.table import (
 from rulehall.app.game_session import GameSession, SessionSnapshot
 from rulehall.app.turn import Turn
 from rulehall.config import TranscriptConfig
-from rulehall.core.decisions import ActionOption, Decision
+from rulehall.core.decisions import ActionOption, Decision, PlayerInput
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyGame
 from rulehall.core.log import RefusedCall, SpokenLine
-from rulehall.core.views import SCENE_TAB, PlayerView, Subject
-from rulehall.ui.composer import composer_lock
-from rulehall.ui.drawer import DrawerTab
-from rulehall.ui.game import DecisionPanel, GamePage, game_page
-from rulehall.ui.transcript import Chat, LiveTurn
+from rulehall.core.views import SCENE_TAB, Panel, PanelRow, PlayerView, Subject
+from rulehall.ui.composer import ActionBar, composer_lock
+from rulehall.ui.drawer import DrawerTab, choosing
+from rulehall.ui.game import GamePage, game_page
+from rulehall.ui.transcript import Transcript
 from rulehall.ui.widgets import Sounds
 
 WREN = Subject(id="player", name="Wren", brief="A quiet scout")
@@ -38,6 +38,7 @@ def _view(decision: Decision | None = None, ending: str | None = None) -> Player
         panels=(),
         decision=decision,
         ending=ending,
+        hint="Say what Wren does.",
     )
 
 
@@ -116,7 +117,8 @@ async def test_the_live_turn_draws_each_fact_card_once_and_the_narration_heard_s
     held = ui.element("div")
     drawn = service.snapshot()
     with held:
-        live = LiveTurn(drawn, service.icon, Sounds())
+        live = Transcript(drawn, service.icon, Sounds())
+    cards = live.live_block.card_slot
 
     async def synced(drawn: SessionSnapshot) -> SessionSnapshot:
         now = service.snapshot()
@@ -133,18 +135,24 @@ async def test_the_live_turn_draws_each_fact_card_once_and_the_narration_heard_s
     )
     drawn = await synced(drawn)
     drawn = await synced(drawn)
-    assert len(live.cards.default_slot.children) == 2
+    assert len(cards.default_slot.children) == 2
 
     service.turn.facts.append(_told("Three"))
     service.live = (SpokenLine(text="Nothing"),)
     drawn = await synced(drawn)
-    assert len(live.cards.default_slot.children) == 3
+    assert len(cards.default_slot.children) == 3
     assert _texts(held) == ["I look.", "Nothing"]
+    bubble = live.live_block.bubbles[0]
+
+    service.live = (SpokenLine(text="Nothing stirs"),)
+    drawn = await synced(drawn)
+    assert live.live_block.bubbles == [bubble]
+    assert _texts(held) == ["I look.", "Nothing stirs"]
 
     service.turn = None
     service.live = ()
     drawn = await synced(drawn)
-    assert live.cards.default_slot.children == []
+    assert cards.default_slot.children == []
     assert _texts(held) == []
 
 
@@ -163,7 +171,7 @@ async def test_the_live_turn_puts_a_refused_call_between_its_facts_only_when_sho
     page()
     drawn = service.snapshot()
     with ui.element("div"):
-        live = LiveTurn(drawn, service.icon, Sounds())
+        live = Transcript(drawn, service.icon, Sounds())
     service.turn = Turn(
         engine=service.engine, draft=service.state.draft(), rng=Random(1), facts=[_told("One")]
     )
@@ -176,7 +184,7 @@ async def test_the_live_turn_puts_a_refused_call_between_its_facts_only_when_sho
 
     drawn_heads = [
         label.text
-        for label in live.cards.descendants()
+        for label in live.live_block.card_slot.descendants()
         if isinstance(label, ui.label) and "game-fact-head" in label.classes
     ]
     assert drawn_heads == heads
@@ -205,7 +213,7 @@ async def test_a_page_is_not_built_for_a_client_deleted_before_the_handshake(
     assert built == []
 
 
-async def test_a_landed_exchange_appends_its_bubbles_and_a_rewind_redraws(
+async def test_a_landed_exchange_keeps_the_live_bubbles_and_a_rewind_redraws(
     tmp_path: Path, page: Callable[[], Client]
 ) -> None:
     table = open_game(tmp_path)
@@ -215,15 +223,21 @@ async def test_a_landed_exchange_appends_its_bubbles_and_a_rewind_redraws(
     held = ui.element("div")
     first = service.snapshot()
     with held:
-        chat = Chat(first, service.icon, Sounds())
+        chat = Transcript(first, service.icon, Sounds())
     old = list(chat.column.default_slot.children)
     assert _texts(held, eased=True) == []
+
+    service.live = (SpokenLine(text="A dr"),)
+    heard = service.snapshot()
+    chat.sync(heard, first)
+    streamed = chat.live_block.bubbles[0]
 
     before = service.state
     _ = await play_turn(table, "I listen.", narration="A drip.")
     landed = service.snapshot()
-    chat.sync(landed, first)
+    chat.sync(landed, heard)
     assert chat.column.default_slot.children[: len(old)] == old
+    assert streamed[0] in held.descendants()
     assert _texts(held, eased=True) == ["A drip."]
 
     chat.sync(service.snapshot(), landed)
@@ -242,45 +256,57 @@ async def test_a_pause_line_is_hidden_on_load_while_its_decision_is_still_open(
     service = table.session
     _suspend(table, _pick(allows_text=True))
     page()
-    chat = Chat(service.snapshot(), service.icon, Sounds())
+    chat = Transcript(service.snapshot(), service.icon, Sounds())
     assert chat.pause_line is not None
     assert chat.pause_line.visible is False
 
 
-async def test_the_decision_panel_enters_on_the_tick_that_brings_it_and_not_the_next(
-    tmp_path: Path, page: Callable[[], Client]
+async def test_the_action_bar_asks_on_the_tick_that_brings_a_decision_and_not_the_next(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, page: Callable[[], Client]
 ) -> None:
+    monkeypatch.setattr("nicegui.storage.Storage.tab", property(lambda _storage: {}))
     table = open_game(tmp_path)
     service = table.session
     page()
 
-    async def play(_answer: object) -> None:
-        return None
+    async def choose(_answer: PlayerInput) -> bool:
+        return True
 
-    held = ui.element("div")
     drawn = service.snapshot()
-    with held:
-        panel = DecisionPanel(drawn, play)
-
-    def entered() -> list[bool]:
-        return [
-            "game-enter" in banner.classes
-            for banner in held.descendants()
-            if isinstance(banner, ui.column) and "game-decision" in banner.classes
-        ]
-
-    assert entered() == []
+    bar = ActionBar(service, drawn, choose)
+    assert "game-asking" not in bar.bar.classes
 
     _suspend(table, _pick(allows_text=True))
     brought = service.snapshot()
-    panel.sync(brought, drawn)
-    await sleep(0)
-    assert entered() == [True]
+    bar.sync(brought, drawn)
+    assert {"game-asking", "game-enter"} <= set(bar.bar.classes)
+    assert [option.id for _, option in bar.chips] == ["left"]
 
     service.working_role = "master"
-    panel.sync(service.snapshot(), brought)
-    await sleep(0)
-    assert entered() == [False]
+    bar.sync(service.snapshot(), brought)
+    assert "game-asking" in bar.bar.classes
+    assert "game-enter" not in bar.bar.classes
+
+
+async def test_the_action_bar_hides_the_words_box_when_a_decision_takes_no_words(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, page: Callable[[], Client]
+) -> None:
+    monkeypatch.setattr("nicegui.storage.Storage.tab", property(lambda _storage: {}))
+    table = open_game(tmp_path)
+    service = table.session
+    page()
+
+    async def choose(_answer: PlayerInput) -> bool:
+        return True
+
+    idle = service.snapshot()
+    bar = ActionBar(service, idle, choose)
+    assert (bar.prompt_row.visible, bar.input_row.visible) == (False, True)
+    assert bar.composer_input.props["placeholder"] == idle.view.hint
+
+    _suspend(table, _pick(allows_text=False))
+    bar.sync(service.snapshot(), idle)
+    assert (bar.prompt_row.visible, bar.input_row.visible) == (True, False)
 
 
 async def test_a_portrait_drawn_after_the_panel_shows_on_the_art_tick(
@@ -294,10 +320,14 @@ async def test_a_portrait_drawn_after_the_panel_shows_on_the_art_tick(
 
     monkeypatch.setattr(GameSession, "icon", icon)
     page()
-    tab = DrawerTab(service, SCENE_TAB, lambda _row: None)
+
+    async def pick(_option: ActionOption) -> None:
+        return None
+
+    tab = DrawerTab(service, SCENE_TAB, lambda _row: None, pick)
     held = ui.element("div")
     with held:
-        tab.draw_panels(service.snapshot().view)
+        tab.draw_panels(service.snapshot().view, enabled=True)
 
     def portraits() -> list[ui.image]:
         return [image for image in held.descendants() if isinstance(image, ui.image)]
@@ -305,6 +335,33 @@ async def test_a_portrait_drawn_after_the_panel_shows_on_the_art_tick(
     assert portraits() == []
 
     drawn.append(tmp_path / "wren.png")
-    tab.sync_icons(service.snapshot().view)
+    tab.sync_icons()
     await sleep(0)
     assert portraits() != []
+
+
+async def test_a_rows_own_options_close_while_the_game_is_busy(
+    tmp_path: Path, page: Callable[[], Client]
+) -> None:
+    service = open_game(tmp_path).session
+    now = replace(service.snapshot(), working_role=None, in_battle=False, held_elsewhere=False)
+    assert choosing(replace(now, view=_view()))
+    assert not choosing(replace(now, view=_view(), working_role="master"))
+    assert not choosing(replace(now, view=_view(_pick(allows_text=False))))
+    assert not choosing(replace(now, view=_view(), held_elsewhere=True))
+    page()
+
+    async def pick(_option: ActionOption) -> None:
+        return None
+
+    stow = ActionOption(id="stow", name="Stow", action_name="stow")
+    rope = PanelRow(name="Rope", brief="", options=(stow,))
+    view = _view().model_copy(update={"panels": (Panel(title="Gear", rows=(rope,)),)})
+    tab = DrawerTab(service, SCENE_TAB, lambda _row: None, pick)
+    with ui.element("div"):
+        tab.draw_panels(view, enabled=True)
+    [(button, _)] = tab.sections[0].choices
+    assert button.enabled
+
+    tab.sync(view, enabled=False)
+    assert not button.enabled

@@ -41,7 +41,7 @@ def test_a_team_row_shows_types_hp_and_stats_as_tags_and_meters() -> None:
     stats = mon.stats()[1:]
 
     assert tuple(tag.name for tag in row.tags) == ("Lv5", "Fire", "BRN", "Jolly", "♥ 70")
-    assert row.tags[3].hint == "Spe ▲ · SpA ▼"
+    assert row.tags[3].help == "Spe ▲ · SpA ▼"
     assert [(meter.name, meter.current, meter.maximum) for meter in row.meters] == [
         ("HP", 8, 20),
         *(
@@ -49,10 +49,19 @@ def test_a_team_row_shows_types_hp_and_stats_as_tags_and_meters() -> None:
             for name, value in zip(("Atk", "Def", "SpA ▼", "SpD", "Spe ▲"), stats, strict=True)
         ),
     ]
-    assert row.meters[1].hint == f"base 52 · IV {mon.ivs[1]} · EV 0"
-    assert row.meters[5].hint == f"base 65 · IV {mon.ivs[5]} · EV 0 · Jolly +10%"
+    assert row.meters[1].help == f"base 52 · IV {mon.ivs[1]} · EV 0"
+    assert row.meters[5].help == f"base 65 · IV {mon.ivs[5]} · EV 0 · Jolly +10%"
     mon.hp.current = 0
     assert mon_row(mon, LEVEL_MAX).tags[2].name == "FNT"
+
+
+def test_the_cap_tag_shows_only_at_a_cap_a_badge_can_lift() -> None:
+    mon = started().world.player.require_sheet().require_mon("charmander")
+
+    assert "Cap" in {tag.name for tag in mon_row(mon, mon.level).tags}
+
+    mon.level = LEVEL_MAX
+    assert "Cap" not in {tag.name for tag in mon_row(mon, LEVEL_MAX).tags}
 
 
 def test_a_trainer_class_outside_the_list_is_refused() -> None:

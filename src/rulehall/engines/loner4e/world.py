@@ -335,7 +335,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         subject_face, action_face = rolled.event.rolled
         subject, action = TWIST_SUBJECTS[subject_face - 1], TWIST_ACTIONS[action_face - 1]
         card = Fact(
-            trace=f"a twist interrupts the scene: {subject} / {action}",
+            trace=f"a twist arrives: {subject} / {action}",
             told=True,
             card=f"Twist — {subject} / {action}",
             dice=(rolled.event,),

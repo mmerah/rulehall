@@ -31,10 +31,6 @@ class Runtime:
         self.packs = PackStore(settings.packs_dir)
         self._sessions: dict[str, GameSession] = {}
 
-    @property
-    def default_engine(self) -> EngineId:
-        return next(iter(self.engines))
-
     async def close(self) -> None:
         for session in list(self._sessions.values()):
             await session.close()

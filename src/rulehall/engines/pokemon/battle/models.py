@@ -5,7 +5,7 @@ from pydantic import Field, model_validator
 
 from rulehall.core.facts import Fact
 from rulehall.core.validation import Frozen, Mutable, Slug
-from rulehall.engines.pokemon.dex import Stats
+from rulehall.engines.pokemon.dex import Stats, dex
 
 type BattleKind = Literal["trainer", "wild"]
 type Policy = Literal["random", "scripted", "model"]
@@ -42,6 +42,10 @@ class Battler(Frozen):
     moves: tuple[BattleMove, ...] = Field(min_length=1, max_length=MOVES_MAX)
     hp: int = Field(ge=0)
     status: Status = ""
+
+    @property
+    def species_name(self) -> str:
+        return dex().species[self.species_id].name
 
 
 class Ball(Frozen):
@@ -85,7 +89,7 @@ class BattleSetup(Frozen):
 class BattleResult(Frozen):
     outcome: Outcome
     team: tuple[Battler, ...]
-    fainted_foes: tuple[Battler, ...]
+    sent_out_foes: tuple[Battler, ...]
     on_field_mon_ids: tuple[Slug, ...]
     caught: Battler | None = None
 
@@ -94,6 +98,9 @@ class BattleResult(Frozen):
         if (self.outcome == "caught") != (self.caught is not None):
             raise ValueError("a caught Pokemon comes with the outcome caught, and only with it")
         return self
+
+    def fainted_foes(self) -> tuple[Battler, ...]:
+        return tuple(foe for foe in self.sent_out_foes if foe.hp == 0)
 
 
 class Throw(Frozen):

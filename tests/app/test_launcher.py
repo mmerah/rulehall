@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -22,7 +23,7 @@ from support.table import (
     updated,
 )
 
-from rulehall.app.catalog import LauncherCatalog, scenario_models
+from rulehall.app.catalog import LauncherCatalog, SavedGameKey, scenario_models
 from rulehall.app.runtime import Runtime
 from rulehall.config import Settings
 from rulehall.core.game import ScenarioDescription
@@ -88,18 +89,16 @@ def _retitled(tmp_path: Path) -> Path:
 def test_the_catalog_pairs_a_scenario_with_a_character(tmp_path: Path) -> None:
     catalog = _catalog(offline_settings(tmp_path), ENGINES_BUILT)
 
-    assert catalog.require_scenario("whispering-vault").name == "The Whispering Vault"
+    assert [entry.name for entry in catalog.scenarios_for(LONER4E)] == ["The Whispering Vault"]
     assert [(entry.id, entry.engine_id) for entry in catalog.characters] == KAEL_FOR_EACH
-    assert catalog.key_for("whispering-vault", "kael") == KEY
 
 
 def test_a_character_is_offered_only_to_the_rules_it_is_written_for(tmp_path: Path) -> None:
     catalog = _catalog(offline_settings(tmp_path, _declaring(tmp_path, MIRROR)), INSTALLED)
 
     assert [entry.id for entry in catalog.characters_for(LONER4E)] == ["kael"]
+    assert [entry.id for entry in catalog.scenarios_for(MIRROR)] == ["whispering-vault"]
     assert catalog.characters_for(MIRROR) == ()
-    with pytest.raises(Refusal, match="no character 'kael' is written for the 'mirror' rules"):
-        _ = catalog.key_for("whispering-vault", "kael")
 
 
 def test_launcher_lists_and_resolves_an_existing_save(tmp_path: Path) -> None:
@@ -109,14 +108,34 @@ def test_launcher_lists_and_resolves_an_existing_save(tmp_path: Path) -> None:
     catalog = _catalog(settings, ENGINES_BUILT)
     (saved,) = catalog.saves
 
-    assert (saved.scenario_label, saved.character_label, saved.turn, saved.engine_title) == (
+    assert (saved.scenario_label, saved.character_label, saved.turn) == (
         "The Whispering Vault",
         "Kael",
         0,
-        "LONER 4E",
     )
-    assert catalog.require_scenario("whispering-vault").engine_title == "LONER 4E"
     assert saved.key == KEY
+
+
+def test_saves_are_listed_newest_first_and_grouped_by_rules(tmp_path: Path) -> None:
+    settings = offline_settings(tmp_path)
+    runtime = Runtime(settings, roles=ScriptedRoles())
+    keep = SavedGameKey(scenario_id="buried-keep", character_id="kael")
+    store = SaveStore(tmp_path)
+    for key, played_at in ((KEY, 1_000), (keep, 2_000)):
+        store.write(key.save_id, runtime.session_for(key).state)
+        os.utime(tmp_path / f"{key.save_id}.json", (played_at, played_at))
+    scenes = store.media_dir(keep.save_id)
+    (scenes / "icons").mkdir(parents=True)
+    for name, drawn_at in (("icons/player.png", 3_000), ("old.jpg", 1_000), ("new.png", 2_000)):
+        (scenes / name).write_bytes(b"")
+        os.utime(scenes / name, (drawn_at, drawn_at))
+
+    catalog = _catalog(settings, ENGINES_BUILT)
+
+    assert [save.key for save in catalog.saves] == [keep, KEY]
+    assert [save.key for save in catalog.saves_for(LONER4E)] == [KEY]
+    assert catalog.find_save(keep) is not None
+    assert [save.cover for save in catalog.saves] == [scenes / "new.png", None]
 
 
 type BadSave = tuple[Settings, Mapping[EngineId, AnyEngine], str]
@@ -243,7 +262,8 @@ async def test_a_written_opening_becomes_a_playable_scenario(tmp_path: Path) -> 
     # The selected pack is the setting's vocabulary, so the worldsmith is given its tables.
     assert "Quiet Hands" in roles.prompt("worldsmith")
     catalog = _catalog(settings, runtime.engines)
-    state = runtime.session_for(catalog.key_for(scenario_id, "kael")).state
+    assert scenario_id in {entry.id for entry in catalog.scenarios_for(LONER4E)}
+    state = runtime.session_for(SavedGameKey(scenario_id=scenario_id, character_id="kael")).state
     assert (scenario_id, len(state.log_entries())) == ("the-sunken-bell", 0)
     assert state.world.scene.title == "The Bell Under the Water"
     assert state.world.player.name == "Kael"
@@ -310,8 +330,7 @@ async def test_a_scenario_written_from_a_document_carries_its_text(tmp_path: Pat
         "kael",
     )
 
-    catalog = _catalog(runtime.live_settings.current, runtime.engines)
-    state = runtime.session_for(catalog.key_for(scenario_id, "kael")).state
+    state = runtime.session_for(SavedGameKey(scenario_id=scenario_id, character_id="kael")).state
     assert state.source.startswith("SOURCE DOCUMENT:")
     # The premise the player never wrote is the scene's own words.
     assert state.scenario_description.premise == _OPENING["situation"]

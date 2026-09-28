@@ -1,4 +1,7 @@
 {
+  "tagline": "A whole region on a map: d20 checks, catches, and turn-based battles.",
+  "die_faces": 20,
+  "pattern": "dots",
   "palette": {
     "game-bg": "#1a1d2b",
     "game-surface": "#23283a",

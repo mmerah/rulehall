@@ -9,8 +9,12 @@ export QA_WORK=/tmp/rulehall-qa-work
 qa/run_all.sh                 # every scenario, a fresh server each
 qa/run_all.sh loner mobile    # some of them
 qa/serve.sh                   # only the server, at http://localhost:8123 (/qa/log lists spawns)
+QA_PORT=8124 QA_WORK=/tmp/qa-8124 qa/run_all.sh loner   # a second harness next to the first
 qa/serve.sh --art             # the same, with placeholder 16:9 scene art drawn offline
+QA_DELAY=1.2 qa/serve.sh      # every role call waits 1.2 s, to watch a turn by hand
 ```
+
+The roles answer at once. A step waits on a condition, never on a fixed time: the server's `/status` for a turn taken and done, and the page for what it shows (`wait_idle`, `wait_until`, `still` for animations before a screenshot). A step that needs a role mid-work holds it (below).
 
 `--art` turns media on and swaps the provider call for a gradient keyed off the prompt, so the scene header can be looked at with a picture in it without a key or a network.
 
@@ -36,7 +40,9 @@ The master reads PLAYER ACTION from its prompt. Lines starting with `!` are scri
 | `!ask question="Does the door give?" action=true helps='["Quiet Hands"]'` | calls that tool (values parse as JSON, else strings; quote lists: `item_ids='["torch"]'`) |
 | `!none` | no tool call |
 | `!crash` / `!refuse` | the master fails with `OSError` / `Refusal` |
-| `!fail narrator`, `!bad worldsmith`, `!slow narrator` | that role's next ask fails, answers garbage once so the retry lands, or stalls 6 s |
+| `!fail narrator`, `!bad worldsmith`, `!hold narrator` | that role's next ask fails, answers garbage once so the retry lands, or waits until released |
+
+A scenario arms the same faults from outside with `POST /qa/faults?role=master&fault=hold`, which also reaches the master before its turn, and lifts holds with `POST /qa/release` (`?role=` for one role). A release also drops a hold that was armed but never reached. `drive.held(role)` wraps both around a block: send the turn, `wait_working`, screenshot or reload, and the block's end lets the role answer. `run` releases every hold when a scenario ends, even on a crash.
 
 Plain words with no script get one roll; a Loner question sent with **Ask the oracle** is rolled as `ask(question: null)`. The narrator echoes its prompt as `[narration]` and `[happened]` lines, so a screenshot shows what the page was told; `[say <id> "words"]` adds a spoken line. The worldsmith answers every request with a small valid draft; a Pokemon region carries the evil team's operation or lair when the request asks. The Pokemon opponent takes its first choice.
 

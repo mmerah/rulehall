@@ -12,10 +12,11 @@ from drive import (
     clean,
     composer,
     log,
+    move,
     run,
+    send_move,
     submit,
     wait_idle,
-    wait_working,
 )
 
 
@@ -67,7 +68,6 @@ def body(s: Session) -> None:
     # 3. A crash after the request landed: the request must not survive into the next turn.
     before = len([entry for entry in log() if entry["role"] == "worldsmith"])
     submit(page, 'I bolt.\n!next_scene pursuit="Down the service shaft"\n!crash')
-    page.wait_for_timeout(6000)
     wait_idle(page, timeout=60)
     s.note(
         f"crash after request: {len([e for e in log() if e['role'] == 'worldsmith']) - before}"
@@ -105,7 +105,7 @@ def body(s: Session) -> None:
     closed = [card for card in cards(page) if "Scene closes" in card]
     s.check(bool(closed), f"no close card: {cards(page)[-3:]}")
     handed = "QA Scene" in clean(page.inner_text(".game-scene")) or (
-        page.locator(".game-banner button", has_text="Take the breather").count() == 1
+        move(page, "Take the breather").count() == 1
     )
     s.check(handed, f"the close handed over nothing: {closed}")
     s.shot(page, "loner-close")
@@ -130,20 +130,20 @@ def body(s: Session) -> None:
 
     # The whole authored map is walked: More map is offered, and pushing on asks the worldsmith.
     text = clean(page.inner_text("body"))
-    offered = page.locator(".game-banner button", has_text="More map")
-    labels = [clean(t) for t in page.locator(".game-banner button").all_inner_texts()]
-    s.note(f"goons banner buttons: {labels}")
+    offered = move(page, "More map")
+    labels = [clean(t) for t in page.locator(".game-moves button").all_inner_texts()]
+    s.note(f"goons moves: {labels}")
     s.check(offered.count() == 1, f"no More map button once the map ran out: {text[-400:]}")
     if offered.count() == 1:
         before = len([entry for entry in log() if entry["role"] == "worldsmith"])
-        composer(page).fill("Deeper, past the rubble.")
-        offered.click()
-        s.check(wait_working(page), "More map never started a turn")
+        s.check(
+            send_move(page, "More map", "Deeper, past the rubble."), "More map never started a turn"
+        )
         wait_idle(page, timeout=60)
         smiths = len([entry for entry in log() if entry["role"] == "worldsmith"]) - before
         s.check(smiths == 1, f"pushing on spawned the worldsmith {smiths} times")
         s.check(
-            page.locator(".game-banner button", has_text="More map").count() == 0,
+            move(page, "More map").count() == 0,
             "the More map button stayed after the map was written",
         )
         s.check(

@@ -62,7 +62,7 @@ async def test_the_shipped_scenario_plays_several_turns(tmp_path: Path) -> None:
         table,
         pursuit,
         tool_call("next_scene", pursuit=pursuit),
-        composer=MOVE_ON,
+        move=MOVE_ON,
         arrival="The docking ring falls away, and stacked containers rise up around you.",
     )
 

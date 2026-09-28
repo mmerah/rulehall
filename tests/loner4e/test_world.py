@@ -7,7 +7,7 @@ from support.table import refused as change_refused
 from rulehall.engines.loner4e.rules import DOUBLES_PER_TWIST, position_for
 from rulehall.engines.loner4e.sheet import Loner4eEntity
 from rulehall.engines.loner4e.world import Loner4eGame
-from rulehall.engines.sheet import PLAYER_ID, Gauge
+from rulehall.engines.sheet import PLAYER_ID
 
 
 def changed(draft: Loner4eGame, name: str, **fields: JsonValue) -> list[str]:
@@ -88,13 +88,6 @@ def test_tick_twist_turns_over_on_the_third_call_and_resets() -> None:
 )
 def test_tags_net_to_one_die_at_most(helps: int, hinders: int, position: str) -> None:
     assert position_for(helps, hinders) == position
-
-
-def test_a_group_holds_eight_luck_and_anyone_else_six() -> None:
-    assert Loner4eEntity(id="mob", name="Mob", brief="", group=True).luck == Gauge(
-        current=8, maximum=8
-    )
-    assert Loner4eEntity(id="thug", name="Thug", brief="").luck == Gauge(current=6, maximum=6)
 
 
 def test_a_comma_inside_a_tag_reads_as_and() -> None:

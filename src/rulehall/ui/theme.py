@@ -54,9 +54,13 @@ def palette(look: Look | None) -> dict[str, str]:
     return {**NEUTRAL_PALETTE, **(look.palette if look is not None else {})}
 
 
+def look_style(look: Look | None) -> str:
+    return "; ".join(f"--{key}: {value}" for key, value in palette(look).items())
+
+
 def set_look(look: Look | None) -> None:
     colours = palette(look)
-    ui.query("body").style("; ".join(f"--{key}: {value}" for key, value in colours.items()))
+    ui.query("body").style(look_style(look))
     ui.colors(
         primary=colours["game-accent"],
         secondary=colours["game-muted"],

@@ -26,7 +26,9 @@ class Way(Mutable):
     """One way out, in one direction, from the place it is filed under."""
 
     to_id: Slug
-    known: bool = False
+    known: bool = Field(
+        default=True, description="False only for a secret way the story must find."
+    )
     locked: bool = False
 
 
@@ -124,8 +126,8 @@ class RoomMap[P: Dweller](Mutable):
                 pending.append(way.to_id)
         return reached
 
-    def add_way(self, from_id: Slug, to_id: Slug, *, known: bool) -> None:
-        self.ways.setdefault(from_id, []).append(Way(to_id=to_id, known=known))
+    def add_way(self, from_id: Slug, to_id: Slug) -> None:
+        self.ways.setdefault(from_id, []).append(Way(to_id=to_id))
 
 
 class MapProposal[P: Dweller](RoomMap[P], OpeningProposal):
@@ -182,10 +184,16 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
     def current(self) -> Place:
         return self.places[self.visited_place_ids[-1]]
 
-    def frontier(self) -> int:
-        return sum(
-            not self.require_place(place_id).known for place_id in self.reachable(self.current.id)
+    def has_frontier(self) -> bool:
+        visited = set(self.visited_place_ids)
+        return any(
+            way.known and not way.locked and way.to_id not in visited
+            for place_id in visited & self.reachable(self.current.id)
+            for way in self.ways.get(place_id, ())
         )
+
+    def is_unexplored(self, way: Way) -> bool:
+        return way.known and not self.require_place(way.to_id).known
 
     def find_entity(self, entity_id: Slug) -> Person | Item | Place | None:
         return self.player if entity_id == self.player.id else super().find_entity(entity_id)
@@ -307,7 +315,7 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
             back.locked = False
         trace = f"the way from {here.mention} to {destination.mention} is unlocked"
         card = f"{destination.name} unlocked"
-        return [here.fact(trace, card=card)]
+        return [*destination.reveal(), here.fact(trace, card=card)]
 
     def reveal_hidden(self, entity_id: Slug) -> list[Fact]:
         entity = self.require(entity_id)
@@ -414,8 +422,8 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
         self.npcs.update(region.npcs)
         self.items.update(region.items)
         self.arc = "\n".join(part for part in (self.arc, region.arc) if part)
-        self.add_way(anchor_id, start_id, known=False)
-        self.add_way(start_id, anchor_id, known=False)
+        self.add_way(anchor_id, start_id)
+        self.add_way(start_id, anchor_id)
 
     def line(self, entity: P | Item) -> str:
         return entity.line(rows=self.sheet_rows()) if entity.id == self.player.id else entity.line()
@@ -434,8 +442,8 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
 
     def ways_lines(self) -> str:
         return lines_of(
-            f"- {self.require_place(way.to_id).tag} — "
-            + ("known" if way.known else "unknown")
+            f"- {self.require_place(way.to_id).tag} — {'known' if way.known else 'unknown'}"
+            + ("; destination unknown to the player" if self.is_unexplored(way) else "")
             + ("; locked" if way.locked else "")
             for way in self.ways.get(self.current.id, ())
         )

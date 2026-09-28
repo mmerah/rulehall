@@ -7,8 +7,8 @@ Loner 4e: Core Rules © 2026 Roberto Bisceglie. Licensed under CC BY-SA 4.0.
 Every thing in the game is a character: a person, an object, a vehicle or a curse. Each
 character has a one-line concept, tags by kind (skills, frailties, gear, conditions and
 relationships) and 6 luck. Tags are words, not numbers. Luck is not health: it shows how long a
-character holds out in a conflict. A group, such as a squad or a mob, is one character with one
-pool of 8.
+character holds out in a conflict. A group, such as a squad or a mob, is one character with 6 luck,
+like any other.
 
 ## You interpret; the oracle answers
 

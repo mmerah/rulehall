@@ -3,6 +3,7 @@ import os
 import re
 from collections.abc import Callable, Collection, Iterator, Mapping
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from functools import cache
 from pathlib import Path
 from tempfile import mkstemp
@@ -49,6 +50,13 @@ class SaveStore:
 
     def media_dir(self, save_id: str) -> Path:
         return _safe_path(self.directory, save_id, ".media")
+
+    def find_saved_at(self, save_id: str) -> datetime | None:
+        try:
+            modified = self._save_path(save_id).stat().st_mtime
+        except FileNotFoundError:
+            return None
+        return datetime.fromtimestamp(modified, tz=UTC)
 
     def discard(self, save_id: str) -> None:
         try:

@@ -1,4 +1,4 @@
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from random import Random
 from typing import Literal, Self
 
@@ -398,12 +398,14 @@ class PokemonWorld(RoomWorld[Trainer]):
                 Mon.from_battler(caught, f"caught at {self.current.name} at L{caught.level}")
             )
         )
+        if setup.kind == "trainer" and result.sent_out_foes:
+            facts.append(player.fact(_sent_out_line(setup, result)))
         facts.append(player.card_fact(_outcome(setup, result, where)))
         cap = sheet.level_cap()
         shares = sheet.exp_shares(result, trainer=setup.kind == "trainer")
         for mon_id, exp in shares.items():
             mon = sheet.require_mon(mon_id)
-            mon.train(result.fainted_foes)
+            mon.train(result.fainted_foes())
             before = mon.exp
             reached, clipped = mon.gain(exp, cap)
             if gained := mon.exp - before:
@@ -713,8 +715,24 @@ class PokemonWorld(RoomWorld[Trainer]):
 PokemonGame = Game[PokemonWorld]
 
 
+def challenge_line(trainer_name: str, foes: Sequence[Battler]) -> str:
+    team = _listed([f"{foe.species_name} (L{foe.level})" for foe in foes])
+    # The foe side always picks `team 1` at team preview, so the first foe leads.
+    return f"{trainer_name} challenges you to a battle with {team}; {foes[0].species_name} leads"
+
+
 def unknown_wild_places(wild: Collection[Slug], places: Collection[Slug]) -> list[Slug]:
     return sorted(place_id for place_id in wild if place_id not in places)
+
+
+def _sent_out_line(setup: BattleSetup, result: BattleResult) -> str:
+    sent = _listed([foe.species_name for foe in result.sent_out_foes])
+    fainted = [foe.species_name for foe in result.fainted_foes()]
+    return f"{setup.foe_name} sent out {sent}; {_listed(fainted) if fainted else 'none'} fainted"
+
+
+def _listed(names: Sequence[str]) -> str:
+    return names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
 
 
 def _outcome(setup: BattleSetup, result: BattleResult, where: Literal["team", "box"] | None) -> str:

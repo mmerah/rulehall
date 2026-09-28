@@ -127,7 +127,7 @@ def test_a_conflict_marks_the_protagonist_with_no_condition() -> None:
 
 def test_a_withdraw_cost_passes_another_defeat() -> None:
     _, state = initialized()
-    mob = Loner4eEntity(id="mob", name="The Mob", brief="half the town", known=True, group=True)
+    mob = Loner4eEntity(id="mob", name="The Mob", brief="half the town", known=True)
     draft = with_entity(state, mob).draft()
     draft.pack_id = "ap01-fantasy"
     hurt: dict[str, JsonValue] = {"actor_id": PLAYER_ID, "kind": "condition", "gained": "Bleeding"}
@@ -241,7 +241,7 @@ def test_a_note_the_tool_answer_shows_is_not_shown_again_next_turn() -> None:
 
 def test_in_a_conflict_every_ask_is_an_exchange_against_the_one_fought_last() -> None:
     _, state = initialized()
-    mob = Loner4eEntity(id="mob", name="The Mob", brief="half the town", known=True, group=True)
+    mob = Loner4eEntity(id="mob", name="The Mob", brief="half the town", known=True)
     draft = with_entity(state, mob).draft()
     asked: dict[str, JsonValue] = {"question": "Do I break through?"}
 
@@ -250,7 +250,6 @@ def test_in_a_conflict_every_ask_is_an_exchange_against_the_one_fought_last() ->
     struck = change(ENGINE, draft, "ask", **asked)
     assert any("Mara" in fact.trace and "exchange" in fact.trace for fact in struck)
     assert draft.world.opponent_ids == ["mob", MARA]
-    assert loner_sheet(draft, "mob").luck.maximum == 8
     assert draft.world.scene.settled == []
 
     _ = change(ENGINE, draft, "withdraw")
@@ -264,7 +263,7 @@ def test_the_growth_waits_for_the_end_and_is_written_once() -> None:
     grown: dict[str, JsonValue] = {"actor_id": PLAYER_ID, "kind": "skill", "gained": "Patience"}
 
     assert "only after the player picks End it" in refused(ENGINE, draft, "change_tags", **grown)
-    _ = run_action(ENGINE, draft, "confirm_end")
+    _ = run_action(ENGINE, draft, "confirm_end", why="The vault is found.")
     _ = change(ENGINE, draft, "change_tags", **grown)
     again = grown | {"kind": "frailty", "gained": "Old Scars"}
     assert "it is written" in refused(ENGINE, draft, "change_tags", **again)

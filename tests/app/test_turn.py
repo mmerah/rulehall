@@ -103,7 +103,7 @@ async def test_a_narrator_failure_still_commits_the_turn_with_no_prose(tmp_path:
     table = open_game(tmp_path)
     table.roles.turns.append(table.plays((FOUND, TAKEN)))
 
-    await table.session.play(PlayerInput(text="I take the map."))
+    await table.session.choose(PlayerInput(text="I take the map."))
 
     exchange = table.session.state.log_entries()[-1]
     assert exchange.lines == ()
@@ -118,7 +118,7 @@ async def test_a_narrator_failure_with_nothing_landed_refuses_and_keeps_the_word
     before = len(table.session.state.log_entries())
 
     with pytest.raises(Refusal, match="narrator"):
-        await table.session.play(PlayerInput(text="I take the map."))
+        await table.session.choose(PlayerInput(text="I take the map."))
 
     assert len(table.session.state.log_entries()) == before
 
@@ -194,7 +194,7 @@ async def test_a_voice_not_here_is_narration_and_one_who_left_this_turn_still_sp
     table.roles.answers["narrator"] = [json.dumps({"lines": lines})]
     table.roles.turns.append(table.plays((tool_call("leave", target_id=MARA),)))
 
-    await table.session.play(PlayerInput(text="I wait."))
+    await table.session.choose(PlayerInput(text="I wait."))
 
     assert [role for role, _ in table.roles.prompts] == ["master", "narrator"]
     newest = table.session.state.log_entries()[-1]
@@ -224,7 +224,7 @@ async def test_a_master_that_crashes_after_applying_still_commits_what_it_applie
     table.roles.turns.append(_exploding_after_the_find(table))
     table.roles.answers["narrator"] = [narrated("The map is in hand.")]
 
-    await table.session.play(PlayerInput(text="I take the map and read it."))
+    await table.session.choose(PlayerInput(text="I take the map and read it."))
 
     assert len(table.session.state.log_entries()) == 1
     assert table.session.state.world.require(TOMAS).known
@@ -240,7 +240,7 @@ async def test_a_master_that_crashed_after_a_tool_landed_is_not_spawned_again(
     table.roles.answers["narrator"] = [narrated("The map is in hand.")]
     spawned = len(table.roles.prompts)
 
-    await table.session.play(PlayerInput(text="I take the map."))
+    await table.session.choose(PlayerInput(text="I take the map."))
 
     assert [role for role, _ in table.roles.prompts[spawned:]].count("master") == 1
 
@@ -251,7 +251,7 @@ async def test_a_turn_that_applied_nothing_and_failed_is_refused(tmp_path: Path)
     table.roles.turns += [_never_started, _never_started]
 
     with pytest.raises(Refusal, match="never started"):
-        await table.session.play(PlayerInput(text="I take the map."))
+        await table.session.choose(PlayerInput(text="I take the map."))
 
     assert table.session.state.model_dump_json() == before
 

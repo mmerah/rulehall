@@ -200,11 +200,21 @@ def test_a_region_reusing_an_id_already_in_the_world_is_refused() -> None:
         check_next(reused, state.world)
 
 
-def test_more_map_is_offered_only_once_every_place_is_known() -> None:
-    state = small_world()
-    assert ENGINE.player_view(state).composer_option is None
+def test_more_map_waits_for_no_open_way_and_a_joined_region_begins_as_an_unexplored_way() -> None:
+    draft = small_world().draft()
+    assert ENGINE.player_view(draft).moves == ()
 
-    draft = state.draft()
-    for place in draft.world.places.values():
-        place.known = True
-    assert ENGINE.player_view(draft.validated()).composer_option == MORE_MAP
+    _ = draft.world.move(HALL, ())
+    assert ENGINE.player_view(draft).moves == (MORE_MAP,)
+
+    region = _region()
+    draft.world.attach(region, region.start_id)
+    view = ENGINE.player_view(draft.validated())
+    assert view.moves == ()
+    assert view.map is not None
+    assert [node.name for node in view.map.nodes] == [
+        "Start",
+        "Hall",
+        "???",
+        "???",
+    ]

@@ -49,54 +49,44 @@
     "ways": {
       "harbour-road": [
         {
-          "to_id": "tern-harbour",
-          "known": true
+          "to_id": "tern-harbour"
         },
         {
-          "to_id": "gull-cove",
-          "known": false
+          "to_id": "gull-cove"
         }
       ],
       "tern-harbour": [
         {
-          "to_id": "harbour-road",
-          "known": true
+          "to_id": "harbour-road"
         },
         {
-          "to_id": "pokemon-center",
-          "known": false
+          "to_id": "pokemon-center"
         },
         {
-          "to_id": "gull-cove",
-          "known": false
+          "to_id": "gull-cove"
         },
         {
           "to_id": "tern-gym",
-          "known": true,
           "locked": true
         }
       ],
       "pokemon-center": [
         {
-          "to_id": "tern-harbour",
-          "known": false
+          "to_id": "tern-harbour"
         }
       ],
       "tern-gym": [
         {
           "to_id": "tern-harbour",
-          "known": true,
           "locked": true
         }
       ],
       "gull-cove": [
         {
-          "to_id": "harbour-road",
-          "known": false
+          "to_id": "harbour-road"
         },
         {
-          "to_id": "tern-harbour",
-          "known": false
+          "to_id": "tern-harbour"
         }
       ]
     },

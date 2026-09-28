@@ -157,7 +157,7 @@ def _won(draft: PokemonGame) -> BattleResult:
     return BattleResult(
         outcome="won",
         team=setup.team,
-        fainted_foes=setup.foes,
+        sent_out_foes=tuple(foe.model_copy(update={"hp": 0}) for foe in setup.foes),
         on_field_mon_ids=(setup.team[0].mon_id,),
     )
 

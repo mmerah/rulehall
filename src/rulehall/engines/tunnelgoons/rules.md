@@ -38,16 +38,16 @@ settled. A helpless target needs no roll.
 ## Moving
 
 WAYS OUT is the map that the player can use now. Only a way in WAYS OUT leads to another place.
-An `unknown` way is a way that the player has not found, and the player page does not show it. A
-`move` along that way makes the way known. Use `move` only after the story finds the way.
+The player page shows every known way. An `unknown` way is a secret that the player has not found,
+and the player page does not show it. A `move` along that way makes the way known. Use `move` on it
+only after the story finds the way.
 
 A locked way opens after a roll, or after the story uses a key that the player carries. Then call
 `unlock_way`. The `unlock_way` tool also makes the way known to the player. Only after that does
 `move` carry the player through. A missed roll leaves the way locked. The player can try again
 with another plan.
 
-When no way in WAYS OUT leads to a new place, the page gives the player more map. You call no
-tool.
+When no open known way leads to a new place, the page gives the player more map. You call no tool.
 
 ## Resting
 

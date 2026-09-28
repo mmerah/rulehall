@@ -1,11 +1,14 @@
 ## Ways and places
 
 A place is one location: a room, a hall, a street, a route or a cave. WAYS OUT lists every way that
-leads out of that place. Nothing else leads anywhere. Call `move` to walk a way out. Call `move`
-only after the story finds the way: the walk is what makes that way known to the player. A locked
-way carries nobody until `unlock_way` opens it, so open the lock first. Sometimes no way out leads
-to a place the player has not seen. The page then offers the player "More map", and the worldsmith
-writes what lies beyond. Never invent a place, a way, or what waits in them, yourself.
+leads out of that place. Nothing else leads anywhere. The page shows the player every `known` way.
+A way to a place the player has not seen shows as "???", and WAYS OUT marks its destination
+unknown to the player. An `unknown` way is a secret: the page does not show it. Call `move` to walk
+a way out. Call `move` along a secret way only after the story finds it: the walk makes it known to
+the player. A locked way carries nobody until `unlock_way` opens it, so open the lock first.
+Sometimes no open way that the player can see leads to a place they have not visited. The page then
+offers the player "More map", and the worldsmith writes what lies beyond. Never invent a place, a
+way, or what waits in them, yourself.
 
 ## Failure
 

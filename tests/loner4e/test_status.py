@@ -1,12 +1,12 @@
 from random import Random
 
 from support.game import ENGINE, MARA, initialized
-from support.table import run_action, stub_worldsmith
+from support.table import stub_worldsmith
 
 from rulehall.core.creation import find_option
 from rulehall.core.game import WorldsmithRequest
 from rulehall.engines.loner4e.args import Ask, SpendLuck
-from rulehall.engines.loner4e.panels import RECOVER, STATUS_PROMPT, sheet_panel
+from rulehall.engines.loner4e.panels import STATUS_PROMPT
 from rulehall.engines.loner4e.rules import LUCK_MAX
 from rulehall.engines.sheet import PLAYER_ID
 
@@ -20,7 +20,7 @@ QUIET_SCENE: dict[str, object] = {
 }
 
 
-async def test_a_defeat_fills_the_picked_box_and_only_a_recovery_scene_clears_one() -> None:
+async def test_a_defeat_fills_the_picked_box_and_each_quiet_scene_clears_one() -> None:
     _, state = initialized()
     draft = state.draft()
     draft.pack_id = "ap01-fantasy"
@@ -45,15 +45,5 @@ async def test_a_defeat_fills_the_picked_box_and_only_a_recovery_scene_clears_on
     planning = WorldsmithRequest(kind="quiet", detail="I plan the way in.")
     _ = await ENGINE.request_handlers()["quiet"].write(
         draft, planning, stub_worldsmith(QUIET_SCENE)
-    )
-    assert world.status.boxes == ["Hurt", "On the Back Foot"]
-
-    world.frame.next = "quiet"
-    assert any(RECOVER in row.options for row in sheet_panel(world).rows)
-    _ = run_action(ENGINE, draft, "recover")
-    request = draft.request
-    assert request is not None
-    _ = await ENGINE.request_handlers()[request.kind].write(
-        draft, request, stub_worldsmith(QUIET_SCENE)
     )
     assert world.status.boxes == ["Hurt"]

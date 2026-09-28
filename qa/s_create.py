@@ -1,23 +1,37 @@
-"""Character creation for every engine, scenario creation, and the launcher afterwards."""
+"""Character creation for every engine, scenario creation, and the lobby and hall afterwards."""
 
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from drive import BASE, Session, clean, notifications, run, select, text, wait_idle
+from drive import (
+    BASE,
+    Session,
+    clean,
+    notifications,
+    notified,
+    run,
+    select,
+    shows,
+    still,
+    text,
+    wait_idle,
+    wait_until,
+)
 
 SOURCE = Path(__file__).parents[1] / "tests/core/fixtures/source/drowned-road.md"
 
 
 def body(s: Session) -> None:
     page = s.page()
-    page.goto(BASE + "/character")
-    page.wait_for_timeout(1000)
+    page.goto(BASE + "/rules/loner4e/character")
+    still(page)
     s.shot(page, "create")
-    s.check("LONER 4E" in clean(page.inner_text("body")), "default rules not shown")
+    s.check("LONER 4E" in clean(page.inner_text("body")), "the route's rules not shown")
 
     # Tunnel Goons: the abilities and three items.
-    select(page, "Rules", "TUNNEL GOONS")
+    page.goto(BASE + "/rules/tunnelgoons/character")
+    still(page)
     s.shot(page, "create-goons")
     if page.get_by_role("button", name="Create").count():
         s.check(False, "Create offered before the form is filled")
@@ -28,6 +42,7 @@ def body(s: Session) -> None:
     for n in range(1, 4):
         text(page, f"Item {n}", f"Thing {n}")
     s.shot(page, "goons-filled")
+    shows(page, "exactly 3 points")
     body_text = clean(page.inner_text("body"))
     s.check(
         "Not ready yet" in body_text and "exactly 3 points" in body_text,
@@ -35,45 +50,34 @@ def body(s: Session) -> None:
     )
     s.check(page.get_by_role("button", name="Create").count() == 0, "Create offered on 4 points")
     select(page, "Points in Brute", "1")
-    page.wait_for_timeout(400)
-    s.check(page.get_by_role("button", name="Create").count() == 1, "no Create button once legal")
+    s.check(
+        wait_until(page, lambda: page.get_by_role("button", name="Create").count() == 1),
+        "no Create button once legal",
+    )
     s.shot(page, "goons-legal")
     page.get_by_role("button", name="Create").click()
-    page.wait_for_url("**/")
-    s.check(page.url.rstrip("/") == BASE, "not sent home after creating")
-    page.locator(".q-select", has_text="Character").click()
-    options = [clean(t) for t in page.locator(".q-menu .q-item").all_inner_texts()]
-    s.check(any("Quinn" in o for o in options), f"Quinn not offered on the launcher: {options}")
-    page.keyboard.press("Escape")
-    s.shot(page, "home-quinn")
+    page.wait_for_url("**/rules/tunnelgoons?character=quinn")
+    s.check("Quinn" in clean(page.inner_text(".game-chip-on")), "the hall did not select Quinn")
+    s.shot(page, "hall-quinn")
 
     # The same name again is refused; an empty name is refused before anything runs.
-    page.goto(BASE + "/character")
-    page.wait_for_timeout(800)
-    select(page, "Rules", "TUNNEL GOONS")
+    page.goto(BASE + "/rules/tunnelgoons/character")
     text(page, "Name", "Quinn")
     for ability, points in (("Brute", "1"), ("Skulker", "1"), ("Erudite", "1")):
         select(page, f"Points in {ability}", points)
     for n in range(1, 4):
         text(page, f"Item {n}", f"Thing {n}")
     page.get_by_role("button", name="Create").click()
-    page.wait_for_timeout(800)
-    s.check(
-        any("already exists" in n for n in notifications(page)),
-        f"duplicate not refused: {notifications(page)}",
-    )
+    s.check(notified(page, "already exists"), f"duplicate not refused: {notifications(page)}")
     text(page, "Name", "")
     page.get_by_role("button", name="Create").click()
-    page.wait_for_timeout(600)
-    s.check(any("Name the character." in n for n in notifications(page)), "empty name not refused")
+    s.check(notified(page, "Name the character."), "empty name not refused")
 
     # Loner: a chosen pack, then dependent skill and gear picks pooled over the SRD and it.
-    page.goto(BASE + "/character")
-    page.wait_for_timeout(800)
+    page.goto(BASE + "/rules/loner4e/character")
     text(page, "Name", "Wren")
     select(page, "Pack", "AP01 Fantasy")
     page.keyboard.press("Escape")
-    page.wait_for_timeout(400)
     s.shot(page, "loner-pack")
     text(page, "Write a one-line concept", "A quiet scout")
     text(page, "What does your character want?", "Out")
@@ -83,27 +87,25 @@ def body(s: Session) -> None:
     )
     select(page, "Choose skill 1", "Quiet Hands")
     page.locator(".q-select", has_text="Choose skill 2").first.click()
-    page.wait_for_timeout(200)
+    page.locator(".q-menu .q-item").first.wait_for()
     skills2 = [clean(t) for t in page.locator(".q-menu .q-item").all_inner_texts()]
     s.check("Quiet Hands" not in " ".join(skills2), "skill 2 offers skill 1 again")
     page.locator(".q-menu .q-item", has_text="Reads Old Stonework").first.click()
-    page.wait_for_timeout(300)
+    page.locator(".q-menu").wait_for(state="detached")
     select(page, "Choose a frailty", "Never Walks Away")
     select(page, "Choose gear 1", "Pry Bar")
     select(page, "Choose gear 2", "Chalk and Wire")
-    page.wait_for_timeout(400)
+    shows(page, "Quiet Hands, Reads Old Stonework")
     s.shot(page, "loner-filled")
     preview = clean(page.inner_text("body"))
     s.check(
         "Quiet Hands, Reads Old Stonework" in preview, f"preview missing skills: {preview[-400:]}"
     )
     page.get_by_role("button", name="Create").click()
-    page.wait_for_url("**/")
+    page.wait_for_url("**/rules/loner4e?character=wren")
 
     # 24XX: a specialty with a choice and a weapon, an origin with a body and an increase.
-    page.goto(BASE + "/character")
-    page.wait_for_timeout(800)
-    select(page, "Rules", "24XX")
+    page.goto(BASE + "/rules/twentyfourxx/character")
     text(page, "Name", "Wren")
     select(page, "Specialty", "Muscle")
     select(page, "Specialty skill", "Hand-to-hand")
@@ -111,15 +113,14 @@ def body(s: Session) -> None:
     select(page, "Origin", "Android")
     select(page, "Body", "Case")
     select(page, "Skill increase", "Piloting")
-    page.wait_for_timeout(400)
+    shows(page, "Piloting d8")
     s.shot(page, "24xx-filled")
     preview = clean(page.inner_text("body"))
     s.check(
         "Hand-to-hand d8" in preview and "Piloting d8" in preview, f"24xx preview: {preview[-500:]}"
     )
     page.get_by_role("button", name="Create").click()
-    page.wait_for_url("**/")
-    page.wait_for_timeout(600)
+    page.wait_for_url("**/rules/twentyfourxx?character=wren")
     s.check(
         (
             Path(__import__("os").environ.get("QA_WORK", "/tmp/rulehall-qa-work"))
@@ -128,29 +129,22 @@ def body(s: Session) -> None:
         "wren folder missing",
     )
 
-    # Home now pairs Wren with each scenario.
-    page.locator(".q-select", has_text="Scenario").click()
-    page.locator(".q-menu .q-item", has_text="The Silent Relay").first.click()
-    page.wait_for_timeout(400)
-    page.locator(".q-select", has_text="Character").click()
-    options = [clean(t) for t in page.locator(".q-menu .q-item").all_inner_texts()]
+    # The 24XX hall offers Wren beside Kael, and never the Tunnel Goons Quinn.
+    cast = [clean(t) for t in page.locator(".game-chip").all_inner_texts()]
     s.check(
-        any("Wren" in o for o in options) and not any("Quinn" in o for o in options),
-        f"24xx characters: {options}",
+        any("Wren" in c for c in cast) and not any("Quinn" in c for c in cast),
+        f"24xx characters: {cast}",
     )
-    page.keyboard.press("Escape")
+    s.check("The Silent Relay" in clean(page.inner_text("body")), "24xx hall lacks its adventure")
 
     # A scenario: the guard, then a written opening that lands on the game page.
-    page.goto(BASE + "/scenario")
-    page.wait_for_timeout(1000)
+    page.goto(BASE + "/rules/loner4e/scenario")
+    still(page)
     s.shot(page, "scenario")
     page.get_by_role("button", name="Write the opening").click()
-    page.wait_for_timeout(600)
     s.check(
-        any("A title, a backdrop, a scope" in n for n in notifications(page)),
-        f"scenario guard: {notifications(page)}",
+        notified(page, "A title, a backdrop, a scope"), f"scenario guard: {notifications(page)}"
     )
-    select(page, "Rules", "LONER 4E")
     text(page, "Title", "The Sunken Bell")
     text(page, "Backdrop", "A drowned coast of bells and ferries.")
     text(page, "Premise", "The tide took the lower town.")
@@ -171,9 +165,7 @@ def body(s: Session) -> None:
     )
 
     # A scenario from an uploaded document, for a room engine, with the same title (slug -2).
-    page.goto(BASE + "/scenario")
-    page.wait_for_timeout(1000)
-    select(page, "Rules", "TUNNEL GOONS")
+    page.goto(BASE + "/rules/tunnelgoons/scenario")
     s.check(
         page.locator(".q-select", has_text="Pack").count() == 0,
         "a room engine offers packs",
@@ -182,10 +174,8 @@ def body(s: Session) -> None:
     text(page, "Backdrop", "A drowned coast of bells and ferries.")
     text(page, "Scope", "One crossing.")
     page.locator("input[type=file]").set_input_files(str(SOURCE))
-    page.wait_for_timeout(1500)
     s.check(
-        any("Read drowned-road.md" in n for n in notifications(page)),
-        f"upload not acknowledged: {notifications(page)}",
+        notified(page, "Read drowned-road.md"), f"upload not acknowledged: {notifications(page)}"
     )
     s.shot(page, "scenario-upload")
     page.get_by_role("button", name="Write the opening").click()
@@ -194,20 +184,21 @@ def body(s: Session) -> None:
     s.check("QA Room" in clean(page.inner_text(".game-scene")), "the written map is not the scene")
     s.shot(page, "scenario-map-game")
 
-    # The launcher lists the saves with turn counts and Continue.
+    # The lobby continues the newest save; the hall continues a started game by its turn.
     page.goto(BASE + "/")
-    page.wait_for_timeout(1000)
+    still(page)
     s.shot(page, "home-saves")
     home = clean(page.inner_text("body"))
-    s.check("The Sunken Bell" in home and "turn 1" in home, f"saves list: {home[-600:]}")
-    select(page, "Scenario", "The Sunken Bell · LONER 4E")
+    s.check("The Sunken Bell" in home and "turn 1" in home, f"saves: {home[:600]}")
+    page.goto(BASE + "/rules/loner4e")
     s.check(
-        page.get_by_role("button", name="Continue game").count() == 1,
-        "Continue game label missing for a started game",
+        page.get_by_role("button", name="Continue · turn 1").count() == 1,
+        "the hall offers no Continue for the started game",
     )
-    page.get_by_role("button", name="Resume").first.click()
+    page.goto(BASE + "/")
+    page.locator(".game-hero").get_by_role("button", name="Continue").click()
     page.wait_for_url("**/game/**")
-    s.check("/game/" in page.url, "resume did not open the game")
+    s.check("/game/" in page.url, "the lobby's Continue did not open the game")
 
 
 run("create", body)

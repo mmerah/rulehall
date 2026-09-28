@@ -28,10 +28,11 @@ from rulehall.core.facts import Fact
 from rulehall.core.game import AnyGame, ScenarioDescription, WorldsmithRequest
 from rulehall.core.stores import SaveStore
 from rulehall.core.validation import Refusal
-from rulehall.engines.loner4e.panels import TAKE_BREATHER
+from rulehall.engines.loner4e.panels import ASK_ORACLE, TAKE_BREATHER
 from rulehall.engines.loner4e.sheet import Loner4eEntity
 from rulehall.engines.pokemon.world import PokemonGame
 from rulehall.engines.sheet import PLAYER_ID
+from rulehall.engines.twentyfourxx.sheet import STARTING_CREDITS
 
 
 class _UnsavableStore(SaveStore):
@@ -99,7 +100,7 @@ async def test_a_refused_input_leaves_the_rewind_on_the_turn_it_already_held(
     played = await play_turn(table, "I wait.", narration="Nothing stirs.")
 
     with pytest.raises(Refusal):
-        await table.session.play(PlayerInput(option_id="no-such-option"))
+        await table.session.choose(PlayerInput(option_id="no-such-option"))
     assert table.state == played
 
     assert await table.session.rewind() == "I wait."
@@ -275,11 +276,11 @@ async def test_two_concurrent_plays_on_different_sessions_cannot_both_open_a_tur
     roles.turns.append(lambda: None)
     roles.answers["narrator"] = [narrated("You wait.")]
 
-    first_play = create_task(first.play(PlayerInput(text="I wait.")))
+    first_play = create_task(first.choose(PlayerInput(text="I wait.")))
     await sleep(0)
 
     with pytest.raises(Refusal, match=re.escape(IN_FLIGHT_ELSEWHERE)):
-        await second.play(PlayerInput(text="I wait."))
+        await second.choose(PlayerInput(text="I wait."))
     assert runtime.gate.status()["busy"]
 
     gate.set()
@@ -289,15 +290,52 @@ async def test_two_concurrent_plays_on_different_sessions_cannot_both_open_a_tur
     assert runtime.gate.status()["busy"] is False
 
 
-async def test_a_composer_option_the_page_no_longer_offers_is_refused(tmp_path: Path) -> None:
+async def test_a_paid_look_again_is_the_turn_s_own_facts_in_its_log_entry(tmp_path: Path) -> None:
+    table = open_crew(tmp_path)
+    jobless = table.state.draft()
+    jobless.world.close_job()
+    table.session.save(jobless.validated())
+    _ = await play_turn(
+        table, "I ask around for work.", tool_call("job", verb="find", where="Docks")
+    )
+    (look_again,) = (
+        move for move in table.session.player_view().moves if move.action_name == "find_again"
+    )
+
+    state = await play_turn(table, PlayerInput(option_id=look_again.id))
+
+    entry = state.log_entries()[-1]
+    assert entry.words == look_again.name
+    assert any("another look for work" in fact.trace for fact in entry.facts)
+    assert entry.lines
+    assert state.world.player.require_sheet().credits == STARTING_CREDITS - 1
+
+
+async def test_an_option_the_page_no_longer_offers_is_refused(tmp_path: Path) -> None:
     table = open_game(tmp_path)
     before = table.state
 
-    with pytest.raises(Refusal, match="the page changed"):
-        await table.session.use_composer_option(TAKE_BREATHER, "I rest by the fire.")
+    with pytest.raises(Refusal, match="not an option now"):
+        await table.session.choose(
+            PlayerInput(option_id=TAKE_BREATHER.id, text="I rest by the fire.")
+        )
 
     assert table.state is before
     assert table.roles.prompts == []
+
+
+async def test_a_failed_turn_after_a_worded_move_saves_nothing(tmp_path: Path) -> None:
+    table = open_game(tmp_path)
+    before = table.state
+
+    def crash() -> None:
+        raise OSError("the game master fell over")
+
+    table.roles.turns.append(crash)
+    with pytest.raises(OSError):
+        await table.session.choose(PlayerInput(option_id=ASK_ORACLE.id, text="Is it locked?"))
+
+    assert table.state is before
 
 
 async def test_a_team_page_option_applies_at_once_with_no_turn(tmp_path: Path) -> None:
@@ -314,7 +352,7 @@ async def test_a_team_page_option_applies_at_once_with_no_turn(tmp_path: Path) -
         if option.args == {"mon_id": "charmander", "item_id": "oran-berry"}
     )
 
-    await table.session.use_panel_option(option)
+    await table.session.choose(PlayerInput(option_id=option.id))
 
     sheet = table.state.world.player.require_sheet()
     assert sheet.require_mon("charmander").item_id == "oran-berry"
@@ -340,7 +378,7 @@ async def test_a_team_page_option_that_opens_a_decision_records_it(tmp_path: Pat
         if option.args == {"mon_id": "charmander", "move_id": "dragonbreath"}
     )
 
-    await table.session.use_panel_option(option)
+    await table.session.choose(PlayerInput(option_id=option.id))
 
     pending = table.state.pending
     assert pending is not None
@@ -361,7 +399,7 @@ async def test_an_option_with_a_refusal_is_shown_but_never_runs(tmp_path: Path) 
     assert option.refusal
 
     with pytest.raises(Refusal):
-        await table.session.use_panel_option(option)
+        await table.session.choose(PlayerInput(option_id=option.id))
     assert table.state.log_entries() == ()
 
 

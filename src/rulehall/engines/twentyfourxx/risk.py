@@ -53,11 +53,11 @@ class DicePool:
                 helper = helper.model_copy(
                     update={"risk": args.risk, "harm": args.harm, "deadly": args.deadly}
                 )
-            sheet = who.require_sheet()
-            skill = sheet.best_skill()
-            if helper.skill:
-                skill = sheet.skill_die(helper.skill, rulebook_skills)
-            helper_die = HelperDie(who, helper, *skill)
+            rulebook_and_lead_skills = (*rulebook_skills, args.skill)
+            helper_skill = who.require_sheet().skill_die(
+                helper.skill or args.skill, rulebook_and_lead_skills
+            )
+            helper_die = HelperDie(who, helper, *helper_skill)
 
         label, die = actor.require_sheet().skill_die(args.skill, rulebook_skills)
         faces = [HINDERED_DIE if args.hindered else die]

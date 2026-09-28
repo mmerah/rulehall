@@ -57,13 +57,13 @@ class Illustrator:
     def scene_art(self, scene: NarratorView) -> Path | None:
         if not self.live_settings.current.media.enabled:
             return None
-        return _existing(self.saves, scene_key(scene))
+        return find_image(self.saves, scene_key(scene))
 
     def icon(self, entity_id: Slug) -> Path | None:
         if not self.live_settings.current.media.enabled:
             return None
         for directory in (*self.icon_dirs, self.saves / ICON_DIR):
-            found = _existing(directory, entity_id)
+            found = find_image(directory, entity_id)
             if found is not None:
                 return found
         return None
@@ -87,7 +87,7 @@ class Illustrator:
         try:
             with self.claims.hold(key) as drawing:
                 await self._drawn_icon(player)
-                if drawing and _existing(self.saves, key) is None:
+                if drawing and find_image(self.saves, key) is None:
                     await self._draw(scene, key)
                 for subject in scene.subjects:
                     await self._drawn_icon(subject)
@@ -166,6 +166,23 @@ def scene_key(scene: NarratorView) -> str:
     return sha1(scene.place_id.encode(), usedforsecurity=False).hexdigest()[:12]
 
 
+def find_image(directory: Path, stem: str) -> Path | None:
+    candidates = (directory / f"{stem}{suffix}" for suffix in SUFFIXES.values())
+    return next((path for path in candidates if path.is_file()), None)
+
+
+def find_cover(media: Path) -> Path | None:
+    try:
+        return max(
+            (path for path in media.iterdir() if path.suffix in SUFFIXES.values()),
+            key=lambda path: path.stat().st_mtime,
+            default=None,
+        )
+    except FileNotFoundError:
+        # Nothing drawn yet, or the save was deleted from another tab meanwhile.
+        return None
+
+
 def illustration_request(scene: NarratorView, style: str) -> str:
     return (
         "Draw one wide view of this place, with no border. Use the eye level of a person who "
@@ -194,8 +211,3 @@ def _decode(url: str) -> GeneratedImage:
     except binascii.Error as broken:
         raise Refusal(f"image reply is not base64: {broken}") from broken
     return GeneratedImage(data=data, suffix=suffix)
-
-
-def _existing(directory: Path, stem: str) -> Path | None:
-    candidates = (directory / f"{stem}{suffix}" for suffix in SUFFIXES.values())
-    return next((path for path in candidates if path.is_file()), None)

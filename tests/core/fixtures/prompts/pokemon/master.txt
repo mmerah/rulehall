@@ -51,7 +51,7 @@ Tall grass grows beside a road that runs above the ferry dock.
 
 # WAYS OUT
 - Tern Harbour[tern-harbour] — known
-- Gull Cove[gull-cove] — unknown
+- Gull Cove[gull-cove] — known; destination unknown to the player
 
 # CHALLENGE
 relaxed

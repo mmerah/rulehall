@@ -8,11 +8,14 @@ from nicegui import ui
 from rulehall.core.decisions import ActionOption
 from rulehall.core.validation import Slug
 from rulehall.core.views import BattleChoice, Meter, PanelRow, Sprite, Tag
-from rulehall.ui.widgets import heading, media_url
+from rulehall.ui.widgets import heading, help_tip, media_url
 
 type IconOf = Callable[[Slug], Sprite | Path | None]
+type PickOption = Callable[[ActionOption], Awaitable[object]]
 
 DM_ICON = "sym_r_auto_stories"
+CHOICES_ROW = "row w-full items-start game-choices game-gap-md"
+ROW_OPTIONS = "row items-center game-row-options game-gap-md"
 LIGHT_TAG_LUMINANCE = 0.4
 
 
@@ -24,13 +27,15 @@ def entity_row(
     alive: bool = True,
     tags: Sequence[Tag] = (),
     meters: Sequence[Meter] = (),
+    help: str = "",
+    opens: bool = False,
 ) -> ui.element:
     classes = "game-entity" + ("" if alive else " game-entity-dead")
     with ui.element("div").classes(classes) as row:
         avatar(icon, name)
         with ui.column().classes("game-gap-0 game-entity-body"):
             with ui.row().classes("items-center no-wrap game-gap-sm"):
-                ui.label(name).classes("game-entity-name game-title")
+                _help_label(name, "game-entity-name game-title", help, opens=opens)
                 if not alive:
                     ui.badge("dead").props("outline color=negative").classes("game-entity-badge")
             if tags:
@@ -46,8 +51,7 @@ def tag_row(tags: Sequence[Tag]) -> None:
     with ui.element("div").classes("game-tags"):
         for tag in tags:
             chip = ui.label(tag.name).classes("game-tag")
-            if tag.hint:
-                chip.tooltip(tag.hint)
+            help_tip(tag.help, chip)
             if tag.colour:
                 chip.style(f"--game-tag: {tag.colour}").classes("game-tag-coloured")
                 if _light(tag.colour):
@@ -60,10 +64,8 @@ def meter_grid(meters: Sequence[Meter]) -> None:
         for meter in meters:
             share = min(meter.current, meter.maximum) / meter.maximum
             colour = meter.colour or "var(--game-accent)"
-            with ui.element("div").classes("game-meter").style(f"--game-meter: {colour}") as box:
-                if meter.hint:
-                    box.tooltip(meter.hint)
-                ui.label(meter.name).classes("game-meter-label")
+            with ui.element("div").classes("game-meter").style(f"--game-meter: {colour}"):
+                help_tip(meter.help, ui.label(meter.name).classes("game-meter-label"))
                 with ui.element("div").classes("game-meter-track"):
                     ui.element("div").classes("game-meter-fill").style(f"width: {share:.1%}")
                 value = f"{meter.current}/{meter.maximum}" if meter is lead else str(meter.current)
@@ -92,12 +94,18 @@ def avatar(icon: Sprite | Path | None, name: str | None) -> None:
 
 
 def labeled_value(
-    label: str, value: str, *, tags: Sequence[Tag] = (), meters: Sequence[Meter] = ()
+    label: str,
+    value: str,
+    *,
+    tags: Sequence[Tag] = (),
+    meters: Sequence[Meter] = (),
+    help: str = "",
+    opens: bool = False,
 ) -> ui.element:
     stacked = len(value) > 28 or bool(tags or meters)
     with ui.element("div").classes("game-stat" + (" game-stat-long" if stacked else "")) as row:
         with ui.element("div").classes("game-stat-head"):
-            ui.label(label).classes("game-stat-label")
+            _help_label(label, "game-stat-label", help, opens=opens)
             if tags:
                 tag_row(tags)
         if value or not (tags or meters):
@@ -113,22 +121,30 @@ def choice_groups[T: ActionOption | BattleChoice](
     *,
     enabled: bool,
     row_class: str,
-) -> None:
+) -> list[tuple[ui.button, T]]:
     groups = [
         (group, tuple(members)) for group, members in groupby(items, key=lambda item: item.group)
     ]
+    drawn: list[tuple[ui.button, T]] = []
     for group, members in groups:
         if len(groups) > 1 and group:
             heading(group)
         with ui.element("div").classes(row_class):
-            for item in members:
-                choice_button(
-                    item.name,
-                    item.refusal or item.brief,
-                    partial(pick, item),
-                    enabled=enabled and not item.refusal,
-                    tags=item.tags if isinstance(item, BattleChoice) else (),
+            drawn.extend(
+                (
+                    choice_button(
+                        item.name,
+                        item.refusal or item.brief,
+                        partial(pick, item),
+                        enabled=enabled and not item.refusal,
+                        help=item.help,
+                        tags=item.tags if isinstance(item, BattleChoice) else (),
+                    ),
+                    item,
                 )
+                for item in members
+            )
+    return drawn
 
 
 def choice_button(
@@ -137,45 +153,73 @@ def choice_button(
     on_click: Callable[[], Awaitable[object]],
     *,
     enabled: bool,
+    help: str = "",
     tags: Sequence[Tag] = (),
-) -> None:
+) -> ui.button:
     button = ui.button(on_click=on_click).props("outline").classes("game-choice")
     if tint := next((tag.colour for tag in tags if tag.colour), ""):
         button.style(f"--game-tag: {tint}").classes("game-choice-tinted")
     with button.set_enabled(enabled), ui.column().classes("w-full game-gap-0"):
         with ui.row().classes("items-center w-full game-gap-sm game-choice-head"):
-            ui.label(name)
+            with ui.label(name):
+                help_tip(help)
             if tags:
                 tag_row(tags)
         if brief:
             ui.label(brief).classes("text-xs opacity-70")
+    return button
 
 
 def panel_row(
     row: PanelRow,
     icon_of: IconOf,
     open_row: Callable[[PanelRow], None] | None = None,
-) -> None:
-    if row.icon_id is not None:
-        drawn = entity_row(
-            icon_of(row.icon_id),
-            row.name,
-            row.brief,
-            alive=row.alive,
-            tags=row.tags,
-            meters=row.meters,
-        )
-    elif row.brief or row.tags or row.meters:
-        drawn = labeled_value(row.name, row.brief, tags=row.tags, meters=row.meters)
-    else:
-        drawn = ui.label(row.name).classes("text-sm")
-    if open_row is not None and (row.detail or row.options):
+    pick: PickOption | None = None,
+) -> list[tuple[ui.button, ActionOption]]:
+    if pick is not None and row.options and not row.detail:
+        with ui.element("div").classes("game-row-line"):
+            _row_body(row, icon_of, opens=False)
+            return choice_groups(row.options, pick, enabled=True, row_class=ROW_OPTIONS)
+    opens = open_row is not None and bool(row.detail)
+    drawn = _row_body(row, icon_of, opens=opens)
+    if open_row is not None and opens:
         opened = partial(open_row, row)
         drawn.classes("game-opens").props("tabindex=0 role=button")
         drawn.on("click", opened).on("keydown.enter", opened)
         drawn.on("keydown.space.prevent", opened)
         with drawn:
             ui.icon("sym_r_chevron_right").classes("game-opens-cue")
+    return []
+
+
+def _row_body(row: PanelRow, icon_of: IconOf, *, opens: bool) -> ui.element:
+    if row.icon_id is not None:
+        return entity_row(
+            icon_of(row.icon_id),
+            row.name,
+            row.brief,
+            alive=row.alive,
+            tags=row.tags,
+            meters=row.meters,
+            help=row.help,
+            opens=opens,
+        )
+    if row.brief or row.tags or row.meters:
+        return labeled_value(
+            row.name, row.brief, tags=row.tags, meters=row.meters, help=row.help, opens=opens
+        )
+    return _help_label(row.name, "text-sm", row.help, opens=opens)
+
+
+def _help_label(text: str, classes: str, help: str, *, opens: bool) -> ui.label:
+    """A row that opens a dialog on a tap takes the icon, so a tap on its name still opens it."""
+    label = ui.label(text).classes(classes)
+    if opens:
+        with label:
+            help_tip(help)
+    else:
+        help_tip(help, label)
+    return label
 
 
 def _light(colour: str) -> bool:

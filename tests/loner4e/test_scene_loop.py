@@ -18,7 +18,7 @@ from support.table import (
     tool_call,
 )
 
-from rulehall.core.decisions import Decision
+from rulehall.core.decisions import Decision, PlayerInput
 from rulehall.core.game import Check, RoleAnswer, WorldsmithRequest
 from rulehall.core.log import LogEntry
 from rulehall.core.prompt import Prompt
@@ -136,7 +136,7 @@ async def test_move_on_rolls_the_transition_and_the_worldsmith_writes_the_next_s
     table.roles.answers["worldsmith"] = [json.dumps(NEXT_SCENE)]
     table.roles.answers["narrator"] = [narrated("Frost.")]
 
-    await table.session.use_panel_option(MOVE_ON)
+    await table.session.choose(PlayerInput(option_id=MOVE_ON.id))
 
     state = table.state
     closed = state.chapters[-2].entries[-1]
@@ -177,10 +177,10 @@ async def test_the_breather_installs_a_quiet_scene_with_full_luck_and_records_it
     draft.world.frame.next = "quiet"
     draft.world.player.luck.current = 2
     table.session.save(draft.validated())
-    assert table.session.player_view().composer_only
+    assert not table.session.player_view().allows_text
     table.roles.answers["worldsmith"] = [json.dumps(NEXT_SCENE | {"goal": "Rest at the inn"})]
 
-    state = await play_turn(table, "I rest at the inn.", DIRECTED, composer=TAKE_BREATHER)
+    state = await play_turn(table, "I rest at the inn.", DIRECTED, move=TAKE_BREATHER)
 
     world = state.world
     assert (world.frame.kind, world.frame.goal) == ("quiet", "Rest at the inn")

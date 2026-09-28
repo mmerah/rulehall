@@ -4,8 +4,9 @@ from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.validation import Slug
 from rulehall.core.views import Meter, Panel, PanelRow, Sprite, Tag
 from rulehall.engines.pokemon.battle.models import FRIENDSHIP_MAX, LEVEL_MAX
-from rulehall.engines.pokemon.dex import ITEMS, Species, dex
+from rulehall.engines.pokemon.dex import ITEMS, Move, Species, dex
 from rulehall.engines.pokemon.rules import (
+    FRIENDSHIP_EVOLVE,
     SKILL_USES,
     STAT_NAMES,
     TIMES,
@@ -64,6 +65,26 @@ POCKETS = {
     "tm": "TMs",
 }
 POCKET_ORDER = tuple(dict.fromkeys(POCKETS.values()))
+SHEET_HELP = {
+    "Skills": "Trainer skills ranked 0 to 3: a check rolls a d20 plus twice the rank, and each "
+    "badge adds a rank.",
+    "Money": "Pokedollars (₽) to spend in shops; blacking out costs half of it.",
+    "Badges": "Won from gym leaders: each adds a skill rank and, on a hard or Nuzlocke run, lifts "
+    "the level cap.",
+    "Team": "The Pokemon that travel and battle with this trainer, up to six; the first one leads.",
+    "Rival": "Your record against your rival, who battles you before the first badge and after "
+    "each one.",
+    "Memorial": "Pokemon that fainted on a Nuzlocke run and are gone for good.",
+}
+SCHEME_HELP = {
+    "Stage": "How many of the evil team's four operations have ended.",
+    "Foiled": "Operations you stopped by beating their leader.",
+    "Succeeded": "Operations that went through: each one makes the boss's team stronger.",
+    "Now": "The operation the evil team runs now; beat its leader before your next badge.",
+}
+FRIENDSHIP_HELP = (
+    f"Grows as this Pokemon levels up; at {FRIENDSHIP_EVOLVE} some species are ready to evolve."
+)
 KIND_TEXT = {
     "ball": "Thrown at a wild Pokemon on the battle screen.",
     "potion": "Restores {heal} HP.",
@@ -101,20 +122,27 @@ def team_panels(world: PokemonWorld) -> tuple[Panel, ...]:
         Panel(
             title="Team",
             rows=tuple(mon_row(mon, cap, mon_options(mon, world, usable)) for mon in sheet.team),
+            help=SHEET_HELP["Team"],
             tab="Team",
         ),
         Panel(
             title="Box",
             rows=tuple(mon_row(mon, cap, box_options(mon, sheet)) for mon in sheet.box),
+            help="Pokemon kept in storage, off the team; swap them in from here.",
             tab="Team",
         ),
         Panel(
             title="Bag",
             rows=(
                 *(bag_row(item_id, world) for item_id in bag),
-                PanelRow(name="Money", brief=f"₽{sheet.money}"),
-                PanelRow(name="Badges", brief=", ".join(sheet.badges) or "none"),
+                PanelRow(name="Money", brief=f"₽{sheet.money}", help=SHEET_HELP["Money"]),
+                PanelRow(
+                    name="Badges",
+                    brief=", ".join(sheet.badges) or "none",
+                    help=SHEET_HELP["Badges"],
+                ),
             ),
+            help="Your items: use one on a Pokemon from its row; balls are thrown in battle.",
             tab="Team",
         ),
     )
@@ -126,13 +154,15 @@ def scheme_panels(world: PokemonWorld) -> tuple[Panel, ...]:
     if scheme is None or not any(world.npcs[leader_id].known for leader_id in evil_team.leader_ids):
         return ()
     operation = evil_team.operation
-    rows = (
-        PanelRow(name="Stage", brief=f"{evil_team.stage()}/{SCHEME_STAGES}"),
-        PanelRow(name="Foiled", brief=str(evil_team.foiled)),
-        PanelRow(name="Succeeded", brief=str(evil_team.succeeded)),
-        *(() if operation is None else (PanelRow(name="Now", brief=operation.goal),)),
+    shown = (
+        ("Stage", f"{evil_team.stage()}/{SCHEME_STAGES}"),
+        ("Foiled", str(evil_team.foiled)),
+        ("Succeeded", str(evil_team.succeeded)),
+        *(() if operation is None else (("Now", operation.goal),)),
     )
-    return (Panel(title=scheme.name, rows=rows),)
+    rows = tuple(PanelRow(name=name, brief=brief, help=SCHEME_HELP[name]) for name, brief in shown)
+    help_text = "The evil team's scheme: stop each operation by beating its leader."
+    return (Panel(title=scheme.name, rows=rows, help=help_text),)
 
 
 def pending_decision(world: PokemonWorld) -> Decision | None:
@@ -152,18 +182,18 @@ def mon_row(mon: Mon, cap: int, options: tuple[ActionOption, ...] = ()) -> Panel
         icon_id=mon.mon_id,
         tags=(
             Tag(name=f"Lv{mon.level}"),
-            *((Tag(name="Cap", hint=f"At the level cap, L{cap}"),) if mon.level >= cap else ()),
+            *((_cap_tag(cap),) if cap < LEVEL_MAX and mon.level >= cap else ()),
             *(type_tag(kind) for kind in mon.species.types),
             *((Tag(name=status.upper(), colour=STATUS_COLOURS[status]),) if status else ()),
             nature_tag(mon.nature),
             *((Tag(name=ITEMS[mon.item_id].name),) if mon.item_id else ()),
-            Tag(name=f"♥ {mon.friendship}"),
+            Tag(name=f"♥ {mon.friendship}", help=FRIENDSHIP_HELP),
         ),
         meters=(
             Meter(name="HP", current=mon.hp.current, maximum=mon.hp.maximum, colour=hp_colour),
             *(
-                Meter(name=name, current=value, maximum=top, colour="#6890f0", hint=hint)
-                for name, value, hint in lines
+                Meter(name=name, current=value, maximum=top, colour="#6890f0", help=help_text)
+                for name, value, help_text in lines
             ),
         ),
         options=options,
@@ -173,13 +203,17 @@ def mon_row(mon: Mon, cap: int, options: tuple[ActionOption, ...] = ()) -> Panel
 
 def move_row(slot: MoveSlot) -> PanelRow:
     move = slot.move
-    accuracy = "never misses" if move.accuracy is None else f"{move.accuracy}% accuracy"
     return PanelRow(
         name=move.name,
-        brief=" · ".join((*((f"Power {move.power}",) if move.power else ()), accuracy, move.text)),
+        brief=move_summary(move),
         tags=(type_tag(move.type), Tag(name=move.category)),
         meters=(Meter(name="PP", current=slot.pp, maximum=move.pp),),
     )
+
+
+def move_summary(move: Move) -> str:
+    accuracy = "never misses" if move.accuracy is None else f"{move.accuracy}% accuracy"
+    return " · ".join((*((f"Power {move.power}",) if move.power else ()), accuracy, move.text))
 
 
 def bag_row(item_id: BagId, world: PokemonWorld) -> PanelRow:
@@ -209,7 +243,7 @@ def item_text(item_id: BagId) -> str:
 
 
 def nature_tag(nature: str) -> Tag:
-    return Tag(name=nature, hint=nature_text(nature))
+    return Tag(name=nature, help=nature_text(nature))
 
 
 def nature_text(nature: str) -> str:
@@ -242,7 +276,7 @@ def mon_options(mon: Mon, world: PokemonWorld, bag: list[BagId]) -> tuple[Action
     )
     remembered = (
         ActionOption(
-            id=f"remember-{move_id}",
+            id=f"remember-{mon.mon_id}-{move_id}",
             name=f"Remember {dex().moves[move_id].name}",
             action_name="relearn_move",
             args={"mon_id": mon.mon_id, "move_id": move_id},
@@ -286,7 +320,7 @@ def box_options(boxed: Mon, sheet: TrainerSheet) -> tuple[ActionOption, ...]:
         ),
         *(
             ActionOption(
-                id=f"swap-{mate.mon_id}",
+                id=f"swap-{boxed.mon_id}-{mate.mon_id}",
                 name=f"Swap with {mate.name}",
                 action_name="swap_mon",
                 args={"team_mon_id": mate.mon_id, "box_mon_id": boxed.mon_id},
@@ -377,7 +411,7 @@ def _rank_decision(world: PokemonWorld) -> Decision | None:
         ActionOption(
             id=skill,
             name=skill.title(),
-            brief=SKILL_USES[skill],
+            help=f"Used to {SKILL_USES[skill]}; each rank adds 2 to its d20 checks.",
             action_name="raise_skill",
             args={"skill": skill},
         )
@@ -390,6 +424,12 @@ def _rank_decision(world: PokemonWorld) -> Decision | None:
         prompt="Your new badge gives one skill rank. Which skill gains it?",
         options=options,
         allows_text=False,
+    )
+
+
+def _cap_tag(cap: int) -> Tag:
+    return Tag(
+        name="Cap", help=f"At the level cap, L{cap}: no more EXP until the next badge lifts it."
     )
 
 
@@ -438,11 +478,19 @@ def _mon_detail(mon: Mon, stat_lines: tuple[StatLine, ...]) -> tuple[Panel, ...]
                     brief="",
                     meters=()
                     if mon.level == LEVEL_MAX
-                    else (Meter(name="EXP", current=mon.exp - floor, maximum=ceiling - floor),),
+                    else (
+                        Meter(
+                            name="EXP",
+                            current=mon.exp - floor,
+                            maximum=ceiling - floor,
+                            help="Experience toward the next level, won in battle.",
+                        ),
+                    ),
                 ),
                 PanelRow(
                     name="Friendship",
                     brief="",
+                    help=FRIENDSHIP_HELP,
                     meters=(
                         Meter(
                             name="♥",
@@ -458,7 +506,8 @@ def _mon_detail(mon: Mon, stat_lines: tuple[StatLine, ...]) -> tuple[Panel, ...]
         Panel(
             title="Stats",
             rows=tuple(
-                PanelRow(name=name, brief=f"{value} · {hint}") for name, value, hint in stat_lines
+                PanelRow(name=name, brief=f"{value} · {breakdown}")
+                for name, value, breakdown in stat_lines
             ),
         ),
         Panel(title="Moves", rows=tuple(move_row(slot) for slot in mon.moves)),

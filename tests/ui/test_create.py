@@ -18,7 +18,7 @@ def test_rolling_a_seed_writes_one_of_the_chosen_packs_seeds(
 ) -> None:
     runtime = Runtime(offline_settings(tmp_path), roles=ScriptedRoles())
     page()
-    form = ScenarioForm(runtime)
+    form = ScenarioForm(runtime, LONER4E)
     form.pack_id = FANTASY
 
     form.roll_seed()
@@ -32,7 +32,7 @@ async def test_a_trait_no_pack_offers_is_kept_as_the_players_own_through_a_pack_
 ) -> None:
     runtime = Runtime(offline_settings(tmp_path), roles=ScriptedRoles())
     client = page()
-    form = CharacterForm(runtime)
+    form = CharacterForm(runtime, LONER4E)
     form.picks["skill-1"] = FANTASY_SKILL
     form.answered()
     assert form.picks["skill-1"] == FANTASY_SKILL

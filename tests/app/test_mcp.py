@@ -110,7 +110,7 @@ async def test_master_tools_over_the_mcp_endpoint(tmp_path: Path) -> None:
             service = runtime.session_for(
                 SavedGameKey(scenario_id="whispering-vault", character_id="kael")
             )
-            await service.play(PlayerInput(text="I search the vault."))
+            await service.choose(PlayerInput(text="I search the vault."))
             assert "ask" in master.tools_seen
             assert "enter" in master.tools_seen
             change_result = master.change_result

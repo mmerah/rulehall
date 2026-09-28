@@ -1,4 +1,7 @@
 {
+  "tagline": "Scenes and an oracle: ask yes or no, and decide where the story goes next.",
+  "die_faces": 6,
+  "pattern": "rings",
   "palette": {
     "game-bg": "#14121e",
     "game-surface": "#201c2d",

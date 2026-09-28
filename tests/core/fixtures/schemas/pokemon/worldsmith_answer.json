@@ -46,7 +46,8 @@
                 "type": "string"
               },
               "known": {
-                "default": false,
+                "default": true,
+                "description": "False only for a secret way the story must find.",
                 "type": "boolean"
               },
               "locked": {

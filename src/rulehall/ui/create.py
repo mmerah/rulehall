@@ -17,9 +17,8 @@ from rulehall.core.decisions import DecisionOption
 from rulehall.core.documents import SOURCE_SUFFIXES
 from rulehall.core.game import ScenarioDescription
 from rulehall.core.validation import EngineId, Refusal, Slug, content_id
-from rulehall.ui import theme
 from rulehall.ui.panel_parts import labeled_value
-from rulehall.ui.routes import HOME, assets_route, game_path
+from rulehall.ui.routes import assets_route, game_path, hall_path
 from rulehall.ui.widgets import (
     action_bar,
     alert,
@@ -27,6 +26,7 @@ from rulehall.ui.widgets import (
     done,
     entered_text,
     heading,
+    help_tip,
     inform,
     page_body,
     page_header,
@@ -37,6 +37,9 @@ from rulehall.ui.widgets import (
 LOGGER = logging.getLogger(__name__)
 SCENARIO_FAILED = "Something went wrong. The scenario was not written. Look in the server log."
 PACK_FAILED = "Something went wrong. The pack was not written. Look in the server log."
+NEW_CHARACTER_ICON = "sym_r_person_add"
+NEW_ADVENTURE_ICON = "sym_r_auto_stories"
+NEW_PACK_ICON = "sym_r_auto_fix_high"
 
 
 class DocumentUpload:
@@ -65,18 +68,17 @@ class DocumentUpload:
 
 
 class CharacterForm:
-    def __init__(self, runtime: Runtime) -> None:
+    def __init__(self, runtime: Runtime, engine_id: EngineId) -> None:
         self.runtime = runtime
-        self.use_engine(runtime.default_engine)
+        self.engine = engine = runtime.require_engine(engine_id)
+        self.pack_id = engine.packs.options()[0].id
         self.picks: dict[Slug, str] = {}
         with _form_page(
-            self.runtime,
-            self.engine_id,
-            eyebrow="Character",
+            runtime,
+            engine_id,
             title="New character",
-            lead="Name them, pick their rules, and answer what the rules ask.",
+            lead="Name them, and answer what the rules ask.",
         ):
-            _engine_select(self.runtime, self.engine_id, self.choose_engine)
             self.name = ui.input(label="Name")
             self.brief = ui.input(label="Brief", placeholder="Who are they, in one sentence?")
             self.draw_steps()
@@ -85,23 +87,10 @@ class CharacterForm:
             # Outside the preview refreshable: a rebuild on blur must not destroy button focus.
             with action_bar():
                 self.create_button = ui.button(
-                    "Create", icon="sym_r_person_add", on_click=self.create
+                    "Create", icon=NEW_CHARACTER_ICON, on_click=self.create
                 ).props("color=primary")
             with previewed:
                 self.draw_preview()
-
-    @property
-    def engine(self):
-        return self.runtime.require_engine(self.engine_id)
-
-    def use_engine(self, engine_id: EngineId) -> None:
-        self.engine_id, self.pack_id = engine_id, _first_pack_id(self.runtime, engine_id)
-
-    def choose_engine(self, engine_id: EngineId) -> None:
-        self.use_engine(engine_id)
-        self.picks.clear()
-        self.draw_steps.refresh()
-        self.draw_preview.refresh()
 
     def type_answer(self, step_id: Slug, event: ValueChangeEventArguments[str | None]) -> None:
         self.picks[step_id] = (event.value or "").strip()
@@ -125,6 +114,7 @@ class CharacterForm:
                 on_change=partial(self.type_answer, step.id),
             )
             box.on("blur", self.draw_preview.refresh)
+            _append_help(box, step.help)
             return
         if step.options[0].sprite:
             self.sprites(step, given)
@@ -150,6 +140,7 @@ class CharacterForm:
         )
         if step.hint:
             chosen.props(f'hint="{step.hint}"')
+        _append_help(chosen, step.help)
 
     def sprites(self, step: CreationStep, given: str) -> None:
         ui.label(step.name).classes("game-eyebrow")
@@ -160,9 +151,8 @@ class CharacterForm:
                     .props(f'flat aria-label="{option.name}"')
                     .classes("game-sprite" + (" game-sprite-on" if option.id == given else ""))
                 ):
-                    ui.element("img").props(
-                        f'src="{assets_route(self.engine_id)}/{option.sprite}" alt=""'
-                    )
+                    sprite = ui.element("img").props('alt=""')
+                    sprite.props["src"] = f"{assets_route(self.engine.id)}/{option.sprite}"
 
     def pick(self, step_id: Slug, option_id: Slug) -> None:
         self.picks[step_id] = option_id
@@ -182,7 +172,7 @@ class CharacterForm:
             alert(str(refused))
             return
         LOGGER.info("character created: slug=%s engine=%s", made.id, made.engine_id)
-        ui.navigate.to(HOME)
+        ui.navigate.to(hall_path(self.engine.id, made.id))
 
     @ui.refreshable_method
     def draw_steps(self) -> None:
@@ -207,27 +197,26 @@ class CharacterForm:
             self.create_button.set_visibility(False)
         else:
             for label, text in preview:
-                labeled_value(label, text)
+                labeled_value(label, text, help=engine.sheet_help.get(label, ""))
             self.create_button.set_visibility(True)
 
 
 class ScenarioForm:
-    def __init__(self, runtime: Runtime) -> None:
+    def __init__(self, runtime: Runtime, engine_id: EngineId) -> None:
         self.runtime = runtime
-        self.catalog = runtime.catalog()
-        self.use_engine(runtime.default_engine)
+        self.engine = engine = runtime.require_engine(engine_id)
+        self.characters = runtime.catalog().characters_for(engine_id)
+        self.pack_id = engine.packs.options()[0].id
         self.seed_button: ui.button
         self.backdrop_button: ui.button
         self.character: ui.select
         self.button: ui.button
         with _form_page(
-            self.runtime,
-            self.engine_id,
-            eyebrow="Scenario",
-            title="New scenario",
+            runtime,
+            engine_id,
+            title="New adventure",
             lead="Describe the adventure, or upload one, and the worldsmith writes its opening.",
         ):
-            _engine_select(self.runtime, self.engine_id, self.choose_engine)
             self.title = ui.input(label="Title")
             self.draw_character_fields()
             self.backdrop = ui.textarea(
@@ -244,32 +233,18 @@ class ScenarioForm:
                 label="Scope",
                 placeholder="How far does this go, and does it tend toward an ending?",
             )
-            self.style = ui.input(label="Art style")
-            self._set_style_placeholder()
+            self.style = ui.input(
+                label="Art style", placeholder=f"Leave empty for: {engine.art_style}"
+            )
             heading("Or upload the adventure")
             self.upload = DocumentUpload()
             self.draw_button_row()
 
     @property
-    def engine(self):
-        return self.runtime.require_engine(self.engine_id)
-
-    @property
     def pack(self):
         return self.engine.packs.require(self.pack_id)
 
-    def use_engine(self, engine_id: EngineId) -> None:
-        self.engine_id, self.pack_id = engine_id, _first_pack_id(self.runtime, engine_id)
-
-    def choose_engine(self, engine_id: EngineId) -> None:
-        self.use_engine(engine_id)
-        self.draw_character_fields.refresh()
-        self._set_style_placeholder()
-        self.draw_button_row.refresh()
-
-    @ui.refreshable_method
     def draw_character_fields(self) -> None:
-        characters = self.catalog.characters_for(self.engine_id)
         _pack_select(self.engine.packs.options(), self.pack_id, self.choose_pack)
         with ui.row().classes("items-center game-gap-lg"):
             self.seed_button = ui.button(
@@ -279,8 +254,8 @@ class ScenarioForm:
                 "Use the pack's backdrop", icon="sym_r_public", on_click=self.use_pack_backdrop
             ).props("outline dense")
         self.character = ui.select(
-            options={entry.id: f"{entry.name} — {entry.brief}" for entry in characters},
-            value=characters[0].id if characters else None,
+            options={entry.id: f"{entry.name} — {entry.brief}" for entry in self.characters},
+            value=self.characters[0].id if self.characters else None,
             label="Character",
         )
         self._show_pack_buttons()
@@ -296,17 +271,15 @@ class ScenarioForm:
     def use_pack_backdrop(self) -> None:
         self.backdrop.value = self.pack.backdrop
 
-    @ui.refreshable_method
     def draw_button_row(self) -> None:
-        characters = self.catalog.characters_for(self.engine_id)
         with action_bar():
-            if not characters:
+            if not self.characters:
                 ui.label("Make a character first.").classes("text-sm text-negative")
             ui.label("Writing takes several minutes.").classes("game-hint")
             self.button = ui.button(
-                "Write the opening", icon="sym_r_auto_stories", on_click=self.write_opening
+                "Write the opening", icon=NEW_ADVENTURE_ICON, on_click=self.write_opening
             ).props("color=primary")
-            if not characters:
+            if not self.characters:
                 self.button.disable()
 
     async def write_opening(self) -> None:
@@ -330,16 +303,12 @@ class ScenarioForm:
         async def writing() -> None:
             played_id = content_id(character_id)
             scenario_id = await self.runtime.new_scenario(
-                self.engine_id, description, document, self.pack_id, played_id
+                self.engine.id, description, document, self.pack_id, played_id
             )
             LOGGER.info("scenario created: scenario_id=%s", scenario_id)
             ui.navigate.to(game_path(SavedGameKey(scenario_id=scenario_id, character_id=played_id)))
 
         _ = await attempt(writing, failed=SCENARIO_FAILED, loading=self.button)
-
-    def _set_style_placeholder(self) -> None:
-        art_style = self.engine.art_style
-        self.style.props(f'placeholder="Leave empty for: {art_style}"')
 
     def _show_pack_buttons(self) -> None:
         self.seed_button.set_visibility(bool(self.pack.seeds))
@@ -347,17 +316,15 @@ class ScenarioForm:
 
 
 class PackForm:
-    def __init__(self, runtime: Runtime) -> None:
+    def __init__(self, runtime: Runtime, engine_id: EngineId) -> None:
         self.runtime = runtime
-        self.engine_id = runtime.default_engine
+        self.engine_id = engine_id
         with _form_page(
-            self.runtime,
-            self.engine_id,
-            eyebrow="Pack",
+            runtime,
+            engine_id,
             title="New pack",
             lead="Name a genre, or upload a document, and the worldsmith writes the whole kit.",
         ):
-            _engine_select(self.runtime, self.engine_id, self.choose_engine)
             self.name = ui.input(label="Name")
             self.premise = ui.textarea(
                 label="Premise",
@@ -371,11 +338,8 @@ class PackForm:
             with action_bar():
                 ui.label("Writing takes several minutes.").classes("game-hint")
                 self.button = ui.button(
-                    "Write the pack", icon="sym_r_auto_fix_high", on_click=self.write_pack
+                    "Write the pack", icon=NEW_PACK_ICON, on_click=self.write_pack
                 ).props("color=primary")
-
-    def choose_engine(self, engine_id: EngineId) -> None:
-        self.engine_id = engine_id
 
     async def write_pack(self) -> None:
         name = entered_text(self.name)
@@ -391,42 +355,25 @@ class PackForm:
             )
             LOGGER.info("pack created: engine=%s slug=%s", self.engine_id, pack_id)
             done(f"Wrote {name}. Edit it in {self.runtime.packs.path(self.engine_id, pack_id)}.")
-            ui.navigate.to(HOME)
+            ui.navigate.to(hall_path(self.engine_id))
 
         _ = await attempt(writing, failed=PACK_FAILED, loading=self.button)
 
 
-def _first_pack_id(runtime: Runtime, engine_id: EngineId) -> Slug:
-    return runtime.require_engine(engine_id).packs.options()[0].id
-
-
 @contextmanager
-def _form_page(
-    runtime: Runtime, engine_id: EngineId, *, eyebrow: str, title: str, lead: str
-) -> Generator[None]:
-    page_header(title, look=runtime.require_engine(engine_id).look)
+def _form_page(runtime: Runtime, engine_id: EngineId, *, title: str, lead: str) -> Generator[None]:
+    engine = runtime.require_engine(engine_id)
+    page_header(title, look=engine.look, back=hall_path(engine_id))
     with page_body():
-        page_intro(eyebrow, title, lead)
+        page_intro(engine.title, title, lead)
         with ui.card().classes("w-full game-gap-2xl"):
             yield
 
 
-def _engine_select(
-    runtime: Runtime,
-    chosen_id: EngineId,
-    on_change: Callable[[EngineId], None],
-) -> None:
-    def chosen(event: ValueChangeEventArguments[str]) -> None:
-        engine_id = EngineId(event.value)
-        theme.set_look(runtime.require_engine(engine_id).look)
-        on_change(engine_id)
-
-    ui.select(
-        options={engine.id: engine.title for engine in runtime.engines.values()},
-        value=chosen_id,
-        label="Rules",
-        on_change=chosen,
-    )
+def _append_help(field: ui.input | ui.select, text: str) -> None:
+    if text:
+        with field.add_slot("append"):
+            help_tip(text)
 
 
 def _pack_select(

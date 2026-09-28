@@ -11,6 +11,7 @@ from drive import (
     open_drawer,
     reach_breather,
     run,
+    still,
     submit,
     take_breather,
     wait_idle,
@@ -44,9 +45,10 @@ DEVICES: tuple[tuple[str, Device], ...] = (
 )
 PLAIN_PAGES = (
     ("/", "home"),
-    ("/character", "create"),
-    ("/scenario", "scenario"),
-    ("/packs", "packs"),
+    ("/rules/loner4e", "hall"),
+    ("/rules/loner4e/character", "create"),
+    ("/rules/loner4e/scenario", "scenario"),
+    ("/rules/loner4e/packs", "packs"),
     ("/settings", "settings"),
 )
 
@@ -59,28 +61,28 @@ def body(s: Session) -> None:
         page.on("pageerror", lambda e: s.issues.append(f"pageerror: {e}"))
         for path, label in PLAIN_PAGES:
             page.goto(BASE + path)
-            page.wait_for_timeout(900)
+            still(page)
             s.shot(page, f"{name}-{label}")
             _no_sideways(s, page, f"{name} {label}")
         page.goto(GAME)
         wait_idle(page, timeout=40)
         submit(page, "I search the desk.")
         wait_idle(page)
-        page.wait_for_timeout(2600)
+        still(page)
         s.shot(page, f"{name}-game")
         _no_sideways(s, page, f"{name} game")
         submit(page, 'I fight.\n!ask question="Do I land it?" opponent_id=mara')
         wait_idle(page)
-        page.wait_for_timeout(2600)
+        still(page)
         s.shot(page, f"{name}-conflict")
         submit(page, "I break off.\n!withdraw")
         wait_idle(page)
         reach_breather(page)
-        page.wait_for_timeout(600)
+        still(page, ".game-action-bar")
         s.shot(page, f"{name}-composer")
         take_breather(page, 'I rest.\n!direct text="He rests."')
         open_drawer(page)
-        page.wait_for_timeout(500)
+        still(page, ".game-drawer")
         s.shot(page, f"{name}-drawer")
         context.close()
 

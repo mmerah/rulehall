@@ -1,4 +1,7 @@
 {
+  "tagline": "A dungeon crawl on a map that grows each time you reach its edge.",
+  "die_faces": 6,
+  "pattern": "grid",
   "palette": {
     "game-bg": "#191411",
     "game-surface": "#261e18",

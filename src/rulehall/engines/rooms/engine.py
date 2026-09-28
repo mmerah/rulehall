@@ -3,6 +3,7 @@ from pathlib import Path
 from random import Random
 from typing import Any
 
+from rulehall.core.decisions import ActionOption
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyCharacter, AnyScenario, Game, RoleAnswer, WorldsmithRequest
 from rulehall.core.prompt import Sections, lines_of, render_log, section_if
@@ -12,7 +13,7 @@ from rulehall.core.views import NarratorView, Panel, PlayerView
 from rulehall.engines.args import Words
 from rulehall.engines.engine import Engine, RequestHandler, Resolution, Revealing
 from rulehall.engines.packs import Pack
-from rulehall.engines.panels import here_panel, party_panel
+from rulehall.engines.panels import character_panel, here_panel, party_panel
 from rulehall.engines.rooms.args import (
     ELSEWHERE,
     MOVED_CARD,
@@ -29,7 +30,6 @@ from rulehall.engines.rooms.panels import (
     MORE_MAP,
     carried_panel,
     map_view,
-    sheet_panel,
     ways_panel,
 )
 from rulehall.engines.rooms.world import Dweller, Item, MapProposal, RegionProposal, RoomWorld
@@ -49,6 +49,7 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
     family_dir = Path(__file__).parent
     opening_sections = OPENING_SECTIONS
     opening_intent = MAP_ASK
+    play_hint = "What does {name} do? Or tap the map."
 
     def __init__(self, player_packs: Path) -> None:
         super().__init__(player_packs)
@@ -113,24 +114,25 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
 
     def player_view(self, state: Game[W]) -> PlayerView:
         world = state.world
-        player = world.player
         return PlayerView(
             premise=state.scenario_description.premise,
-            player=player.subject(),
+            player=world.player.subject(),
             scene_title=world.current.name,
             situation=world.current.description,
             panels=self.scene_panels(state),
-            decision=state.pending,
             ending=self.ending(state),
             map=map_view(world),
-            composer_option=MORE_MAP if world.frontier() == 0 else None,
+            **self.player_actions(state),
         )
+
+    def moves(self, state: Game[W], /) -> tuple[ActionOption, ...]:
+        return () if state.world.has_frontier() else (MORE_MAP,)
 
     def scene_panels(self, state: Game[W], /) -> tuple[Panel, ...]:
         world = state.world
         return (
-            sheet_panel(world),
-            *party_panel(world.party_members()),
+            character_panel(world.player.subject(), world.sheet_rows(), sheet_help=self.sheet_help),
+            *party_panel(world.party_members(), self.sheet_help),
             here_panel(other.subject() for other in world.others()),
             carried_panel(world),
             ways_panel(world),

@@ -49,9 +49,12 @@ from rulehall.engines.twentyfourxx.pack import (
 from rulehall.engines.twentyfourxx.panels import (
     MOVE_ON,
     NEWCOMER,
+    SHEET_HELP,
+    SKILL_INCREASE_HELP,
     commit_decision,
     crew_rows,
     job_panel,
+    look_again_move,
     newcomer_decision,
     raise_decision,
     sheet_panel,
@@ -156,6 +159,7 @@ class TwentyFourXXEngine(
     next_proposal_model = TwentyFourXXNextProposal
     hire_model = SheetProposal
     hire_intent = HIRING
+    sheet_help = SHEET_HELP
 
     def __init__(self, player_packs: Path) -> None:
         super().__init__(player_packs)
@@ -190,8 +194,8 @@ class TwentyFourXXEngine(
         world.apply_proposal_extras(opening)
         return world
 
-    def composer(self, _state: TwentyFourXXGame, /) -> tuple[ActionOption | None, bool]:
-        return MOVE_ON, False
+    def moves(self, state: TwentyFourXXGame, /) -> tuple[ActionOption, ...]:
+        return (MOVE_ON, *look_again_move(state.world))
 
     def hire_guidance(self, draft: TwentyFourXXGame) -> str:
         specialties, origins = self._offered(draft.pack_id)
@@ -216,7 +220,14 @@ class TwentyFourXXEngine(
     def creation_steps(self, pack_id: Slug, picks: Picks) -> tuple[CreationStep, ...]:
         specialties, origins = self._offered(pack_id)
         skills = self.packs.srd().skills
-        steps = [CreationStep(id="specialty", name="Specialty", options=specialties)]
+        steps = [
+            CreationStep(
+                id="specialty",
+                name="Specialty",
+                options=specialties,
+                help=SHEET_HELP["Specialty"],
+            )
+        ]
         specialty = find_option(specialties, picks.get("specialty", ""))
         if specialty is None:
             return tuple(steps)
@@ -228,12 +239,19 @@ class TwentyFourXXEngine(
             )
         if specialty.kit_choice:
             steps.append(CreationStep(id="weapon", name="Weapon", options=specialty.kit_choice))
-        steps.append(CreationStep(id="origin", name="Origin", options=origins))
+        steps.append(
+            CreationStep(id="origin", name="Origin", options=origins, help=SHEET_HELP["Origin"])
+        )
         origin = find_option(origins, picks.get("origin", ""))
         if origin is None:
             return tuple(steps)
         steps.extend(
-            CreationStep(id=f"trait-{number}", name=f"Trait {number}", hint=origin.brief)
+            CreationStep(
+                id=f"trait-{number}",
+                name=f"Trait {number}",
+                hint=origin.brief,
+                help=SHEET_HELP["Traits"],
+            )
             for number in range(1, origin.invents + 1)
         )
         if origin.choice:
@@ -243,6 +261,7 @@ class TwentyFourXXEngine(
                 id=f"increase-{number}",
                 name="Skill increase",
                 options=skills,
+                help=SKILL_INCREASE_HELP,
                 allows_text=True,
             )
             for number in range(1, origin.increases + 1)
@@ -329,10 +348,12 @@ class TwentyFourXXEngine(
     def scene_panels(self, state: TwentyFourXXGame, /) -> tuple[Panel, ...]:
         world = state.world
         return (
-            sheet_panel(world),
+            sheet_panel(world, self.sheet_help),
             *job_panel(world),
             ship_panel(world),
-            *party_panel(world.party_members(), lambda member: crew_rows(world, member)),
+            *party_panel(
+                world.party_members(), self.sheet_help, lambda member: crew_rows(world, member)
+            ),
             here_panel(other.subject() for other in world.others()),
             trail_panel(scene.title for scene in world.scenes),
         )
@@ -388,7 +409,6 @@ class TwentyFourXXEngine(
         return draft.world.take_lead(args.member_id)
 
     @tool
-    @action
     def ship_upgrade(self, draft: TwentyFourXXGame, args: ShipUpgrade, _rng: Random) -> list[Fact]:
         """Upgrade one ship function for the player."""
         return draft.world.upgrade_ship(args.function_id, args.upgrade)

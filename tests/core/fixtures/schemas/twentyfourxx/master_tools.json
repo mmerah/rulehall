@@ -305,13 +305,13 @@
           "type": "string"
         },
         "upgrade": {
-          "default": "",
           "description": "What the upgrade is. Name it in three or four words, never more than 48 characters.",
           "type": "string"
         }
       },
       "required": [
-        "function_id"
+        "function_id",
+        "upgrade"
       ],
       "type": "object"
     }
@@ -528,7 +528,7 @@
             },
             "skill": {
               "default": "",
-              "description": "The skill the helper rolls; a d6 when their sheet lacks it. Empty rolls their best skill die.",
+              "description": "The skill the helper rolls. Empty rolls the roll's own `skill`. A d6 when their sheet lacks it.",
               "type": "string"
             }
           },

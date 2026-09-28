@@ -1,7 +1,7 @@
 from collections.abc import Sequence
-from typing import Annotated, cast
+from typing import Annotated
 
-from pydantic import BeforeValidator, Field, model_validator
+from pydantic import BeforeValidator, Field
 from pydantic.json_schema import SkipJsonSchema
 
 from rulehall.core.facts import Fact
@@ -9,7 +9,6 @@ from rulehall.core.validation import Mutable, Refusal, as_tuple
 from rulehall.core.views import Rows, nonblank_rows
 from rulehall.engines.args import ShortName
 from rulehall.engines.loner4e.rules import (
-    GROUP_LUCK,
     LUCK_MAX,
     STATUS_BOXES,
     STATUS_TAGS,
@@ -35,21 +34,10 @@ class Loner4eEntity(Person):
     goal: str = ""
     motive: str = ""
     nemesis: str = ""
-    group: bool = False
     luck: SkipJsonSchema[Gauge] = Field(
         default_factory=lambda: Gauge(current=LUCK_MAX, maximum=LUCK_MAX)
     )
     living_world: SkipJsonSchema[list[str]] = Field(default_factory=list)
-
-    @model_validator(mode="before")
-    @classmethod
-    def _a_group_pool_by_default(cls, data: object) -> object:
-        if not isinstance(data, dict):
-            return data
-        fields = cast("dict[str, object]", data)
-        if fields.get("group") is not True or "luck" in fields:
-            return fields
-        return {**fields, "luck": {"current": GROUP_LUCK, "maximum": GROUP_LUCK}}
 
     def tagged(self, kind: TagKind) -> list[str]:
         return self.tags.get(kind, [])
@@ -68,7 +56,6 @@ class Loner4eEntity(Person):
             ("Goal", self.goal),
             ("Motive", self.motive),
             ("Nemesis", self.nemesis),
-            ("Group", "yes" if self.group else ""),
         )
 
     def authoring_fault(self) -> str:

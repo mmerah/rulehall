@@ -26,6 +26,7 @@ from rulehall.core.facts import Fact, told_cards
 from rulehall.core.validation import Refusal
 from rulehall.engines.rooms.args import MOVED_CARD, MOVES_OFFSCREEN
 from rulehall.engines.rooms.panels import map_view
+from rulehall.engines.rooms.world import Way
 from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
 from rulehall.engines.tunnelgoons.world import TunnelGoonsGame, TunnelGoonsWorld
@@ -71,32 +72,67 @@ def test_a_dead_npc_drops_only_its_known_items_into_the_telling() -> None:
     assert draft.world.items[KEY].holder_id == START
 
 
-def test_frontier_skips_places_behind_a_locked_way() -> None:
-    world = small_world().world
-    world.visited_place_ids.append(HALL)
-    for way in world.ways[START]:
-        way.locked = way.to_id == VAULT
-
-    assert world.frontier() == 0
-
-
-def test_the_map_holds_visited_places_and_the_far_ends_of_known_ways_only() -> None:
+def test_the_frontier_skips_a_locked_way_and_a_place_the_player_cannot_reach() -> None:
     world = small_world().world
     _ = world.move(HALL, ())
+    assert not world.has_frontier()
+
+    world.ways[START][1].known = True
+    assert world.has_frontier()
+
+    for way in world.ways[HALL]:
+        way.locked = True
+    assert not world.has_frontier()
+
+
+def test_a_known_way_into_an_unknown_place_is_a_stub_that_hides_its_end() -> None:
+    world = small_world().world
+    _ = world.move(HALL, ())
+    world.ways[HALL].append(Way(to_id=CRYPT))
 
     view = map_view(world)
 
-    assert [(node.id, node.visited, node.prefill) for node in view.nodes] == [
-        (START, True, "I go to Start"),
-        (HALL, True, ""),
-        (VAULT, False, "I try the way to Vault"),
+    assert [(node.id, node.name, node.visited, node.prefill) for node in view.nodes] == [
+        (START, "Start", True, "I go to Start"),
+        (HALL, "Hall", True, ""),
+        ("way-2-2", "???", False, "I take the unknown way out of Hall"),
+        ("way-2-3", "???", False, "I take the unknown way out of Hall"),
     ]
-    assert CRYPT not in {node.id for node in view.nodes}
     assert {(edge.from_id, edge.to_id, edge.locked) for edge in view.edges} == {
         (HALL, START, False),
-        (HALL, VAULT, True),
+        (HALL, "way-2-2", True),
+        (HALL, "way-2-3", False),
     }
     assert view.here_id == HALL
+    shown = view.model_dump_json().lower()
+    assert VAULT not in shown
+    assert CRYPT not in shown
+    assert "- Vault[vault] — known; destination unknown to the player; locked" in (
+        world.ways_lines().splitlines()
+    )
+
+
+def test_walking_one_stub_leaves_the_other_stub_its_id() -> None:
+    world = small_world().world
+    _ = world.move(HALL, ())
+    world.ways[HALL].append(Way(to_id=CRYPT))
+    before = [node.id for node in map_view(world).nodes]
+
+    _ = world.unlock_way(VAULT)
+    _ = world.move(VAULT, ())
+
+    assert before == [START, HALL, "way-2-2", "way-2-3"]
+    assert [node.id for node in map_view(world).nodes] == [START, HALL, VAULT, "way-2-3"]
+
+
+def test_an_unlocked_stub_names_the_place_its_card_names() -> None:
+    world = small_world().world
+    _ = world.move(HALL, ())
+
+    facts = world.unlock_way(VAULT)
+
+    assert [fact.card for fact in told_cards(facts)] == ["Vault unlocked"]
+    assert [node.name for node in map_view(world).nodes] == ["Start", "Hall", "Vault"]
 
 
 def test_the_map_edge_follows_the_way_from_here_when_the_way_back_is_locked() -> None:

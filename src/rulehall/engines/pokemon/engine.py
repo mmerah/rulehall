@@ -34,6 +34,7 @@ from rulehall.engines.pokemon.battle.simulator import SHOWDOWN, ShowdownRun
 from rulehall.engines.pokemon.dex import ITEMS, avatars, dex
 from rulehall.engines.pokemon.pack import PokemonHead, PokemonPack
 from rulehall.engines.pokemon.panels import (
+    SHEET_HELP,
     item_sprite,
     mon_sprite,
     pending_decision,
@@ -66,6 +67,7 @@ from rulehall.engines.pokemon.world import (
     PokemonOpeningProposal,
     PokemonRegionProposal,
     PokemonWorld,
+    challenge_line,
 )
 from rulehall.engines.pokemon.worldsmith import (
     DUE_ASKS,
@@ -122,6 +124,7 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack, Poke
     person_model = Trainer
     opening_model = PokemonOpeningProposal
     next_proposal_model = PokemonRegionProposal
+    sheet_help = SHEET_HELP
 
     def creation_steps(self, pack_id: Slug, picks: Picks) -> tuple[CreationStep, ...]:
         ranks = _rank_picks(picks)
@@ -129,6 +132,7 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack, Poke
             CreationStep(
                 id=f"rank-{number}",
                 name=f"Skill rank {number}",
+                help=SHEET_HELP["Skills"],
                 options=tuple(
                     DecisionOption(id=skill, name=skill.title(), brief=SKILL_USES[skill])
                     for skill in SKILLS
@@ -153,8 +157,18 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack, Poke
         )
         return (
             *rank_steps,
-            CreationStep(id=STARTER, name="Starter", options=starters),
-            CreationStep(id=CHALLENGE, name="Challenge", options=challenges),
+            CreationStep(
+                id=STARTER,
+                name="Starter",
+                options=starters,
+                help="Your first Pokemon; your rival picks the starter that beats it.",
+            ),
+            CreationStep(
+                id=CHALLENGE,
+                name="Challenge",
+                options=challenges,
+                help="How hard the journey is; it holds for the whole game.",
+            ),
             CreationStep(id=AVATAR, name="Look", options=looks),
         )
 
@@ -449,9 +463,9 @@ class PokemonEngine(Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack, Poke
             raise Refusal(f"{trainer.name} will battle you again after your next badge")
         if trainer.last_battle_visit == len(world.visited_place_ids):
             raise Refusal(f"{trainer.name} already battled you on this visit; come back later")
-        team = world.trainer_team(trainer, rng)
-        world.setup_battle(trainer, tuple(mon.battler() for mon in team), rng)
-        return [trainer.card_fact(f"{trainer.name} challenges you to a battle")]
+        foes = tuple(mon.battler() for mon in world.trainer_team(trainer, rng))
+        world.setup_battle(trainer, foes, rng)
+        return [trainer.card_fact(challenge_line(trainer.name, foes))]
 
     @tool
     def start_wild_battle(

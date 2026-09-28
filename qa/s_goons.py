@@ -12,9 +12,9 @@ from drive import (
     composer,
     drawer_text,
     open_drawer,
-    placeholder,
     run,
     send,
+    start_turn,
     submit,
     wait_idle,
 )
@@ -27,18 +27,17 @@ def body(s: Session) -> None:
     page.goto(GAME)
     wait_idle(page)
 
-    # Level up: an option-only decision, the composer closed, then it lands.
+    # Level up: an option-only decision, the words box hidden, then it lands.
     submit(page, "The adventure ends here.\n!level_up")
-    page.wait_for_timeout(4000)
+    wait_idle(page)
     text = clean(page.inner_text("body"))
     s.check("Level up: Kael" in text, "level-up decision missing")
     s.check(
-        composer(page).is_disabled() and send(page).is_disabled(),
-        "composer open on an option-only decision",
+        not composer(page).is_visible() and not send(page).is_visible(),
+        "the words box shows on an option-only decision",
     )
-    s.check(placeholder(page) == "Choose an option above.", f"placeholder: {placeholder(page)!r}")
-    page.locator(".game-decision button", has_text="Brute +1, Health +1").click()
-    page.wait_for_timeout(4000)
+    start_turn(page.locator(".game-asking .game-moves button", has_text="Brute +1, Health +1"))
+    wait_idle(page)
     s.check(
         "Level 2: Brute +1, Health +1" in " ".join(cards(page)),
         f"level card missing: {cards(page)[-3:]}",

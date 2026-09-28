@@ -1,6 +1,6 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
-from typing import Self
+from typing import Literal, Self, TypedDict
 
 from pydantic import Field, model_validator
 
@@ -16,7 +16,7 @@ type Rows = tuple[tuple[str, str], ...]
 class Tag(Frozen):
     name: str
     colour: str = ""
-    hint: str = ""
+    help: str = ""
 
 
 class Meter(Frozen):
@@ -24,7 +24,7 @@ class Meter(Frozen):
     current: int = Field(ge=0)
     maximum: int = Field(gt=0)
     colour: str = ""
-    hint: str = ""
+    help: str = ""
 
 
 class Sprite(Frozen):
@@ -38,6 +38,7 @@ class Sprite(Frozen):
 class PanelRow(Frozen):
     name: str
     brief: str
+    help: str = ""
     icon_id: Slug | None = None
     alive: bool = True
     tags: tuple[Tag, ...] = ()
@@ -50,6 +51,7 @@ class BattleChoice(Frozen):
     command: str
     name: str
     brief: str = ""
+    help: str = ""
     group: str = ""
     refusal: str = ""
     tags: tuple[Tag, ...] = ()
@@ -74,7 +76,14 @@ class Subject(Frozen):
 class Panel(Frozen):
     title: str
     rows: tuple[PanelRow, ...]
+    help: str = ""
     tab: str = SCENE_TAB
+
+    def options(self) -> Iterator[ActionOption]:
+        for row in self.rows:
+            yield from row.options
+            for panel in row.detail:
+                yield from panel.options()
 
 
 PanelRow.model_rebuild()
@@ -134,6 +143,7 @@ class MapNode(Frozen):
     id: Slug
     name: str
     visited: bool
+    unexplored: bool
     prefill: str
 
 
@@ -149,6 +159,13 @@ class MapView(Frozen):
     here_id: Slug
 
 
+class PlayerActions(TypedDict):
+    decision: Decision | None
+    moves: tuple[ActionOption, ...]
+    hint: str
+    allows_text: bool
+
+
 class PlayerView(Frozen):
     premise: str
     player: Subject
@@ -158,12 +175,39 @@ class PlayerView(Frozen):
     decision: Decision | None
     ending: str | None
     map: MapView | None = None
-    composer_option: ActionOption | None = None
-    composer_only: bool = False
+    moves: tuple[ActionOption, ...] = ()
+    hint: str
+    allows_text: bool = True
+
+    @model_validator(mode="after")
+    def _options_are_unambiguous(self) -> Self:
+        named: dict[str, ActionOption] = {}
+        clashing = {
+            option.id for option in self.options() if named.setdefault(option.id, option) != option
+        }
+        if clashing:
+            raise ValueError(f"option ids that name two options: {sorted(clashing)}")
+        return self
+
+    def options(self) -> Iterator[ActionOption]:
+        yield from self.moves
+        if self.decision is not None:
+            yield from self.decision.options
+        for panel in self.panels:
+            yield from panel.options()
+
+    def require_option(self, option_id: Slug) -> ActionOption:
+        found = next((option for option in self.options() if option.id == option_id), None)
+        if found is None:
+            raise Refusal(f"{option_id!r} is not an option now")
+        return found
 
 
 class Look(Frozen):
     palette: Mapping[str, str]
+    tagline: str = Field(min_length=1)
+    die_faces: int = Field(ge=2)
+    pattern: Literal["dots", "grid", "scanlines", "rings"]
 
 
 def nonblank_rows(*pairs: tuple[str, str]) -> Rows:

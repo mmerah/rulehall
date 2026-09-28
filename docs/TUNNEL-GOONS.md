@@ -31,7 +31,7 @@ Packs. A Tunnel Goons pack holds items, factions, people with their `hp`, monste
 
 Every tool makes one change, rolls dice, opens a decision, or ends the turn.
 
-- `reveal`, `move_item`, `kill`, `leave_party`, `unlock_way` (open a locked way once the story has dealt with it) and `rest` (heal the player and every party member to full Health in a safe spot).
+- `reveal`, `move_item`, `kill`, `leave_party`, `unlock_way` (open a locked way once the story has dealt with it; the map then names the place beyond) and `rest` (heal the player and every party member to full Health in a safe spot).
 - `move` — carry the player, the party, and any NPCs named in `with_ids`, through an unlocked way listed in WAYS OUT.
 - `meanwhile` — move a dweller, move a loose item and shut a known way, offscreen, on a turn ELSEWHERE is shown.
 - `roll` — 2d6 plus an ability and helpful items, against a Difficulty Score or an npc; `actor_id` when a hired member acts instead of the player.
@@ -44,7 +44,7 @@ Every tool makes one change, rolls dice, opens a decision, or ends the turn.
 
 ## What the AI game master adds
 
-Every entity has `known`, and a `Way` is known once the player has walked it: what the player has found stays legible turn to turn without the master having to restate it. Every non-player character — friend or foe — is one shape, exactly as the SRD prints: an id, a name, a Health that is also its Difficulty Score, and whether it is still alive. The party follows the player through `move` on its own. A hired npc carries the same three abilities as the player and rolls, rests and levels beside them; one without a sheet still cannot roll on its own. The map's extension bar lets the worldsmith write a new region once the authored map is fully walked. `kill` ends a helpless npc outright, no roll needed.
+Every entity has `known`, and a `Way` is known unless it is a secret the story must find: the page shows every known way, one into a place the player has not seen as "???", and a secret way turns known once walked. Every non-player character — friend or foe — is one shape, exactly as the SRD prints: an id, a name, a Health that is also its Difficulty Score, and whether it is still alive. The party follows the player through `move` on its own. A hired npc carries the same three abilities as the player and rolls, rests and levels beside them; one without a sheet still cannot roll on its own. The map's extension bar lets the worldsmith write a new region once no open known way leads to a place the player has not visited. `kill` ends a helpless npc outright, no roll needed.
 
 ## Where the rules live
 

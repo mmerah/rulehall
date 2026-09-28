@@ -135,7 +135,7 @@ class Fight(Frozen):
 
 
 class ConfirmEnd(Frozen):
-    why: str = "the player chose to end it here"
+    why: str
 
 
 class EndAdventure(Frozen):

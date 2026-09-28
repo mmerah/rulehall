@@ -1,5 +1,5 @@
 import string
-from collections.abc import Awaitable, Callable, Generator, Sequence
+from collections.abc import Awaitable, Callable, Generator
 from contextlib import contextmanager
 from hashlib import sha1
 from pathlib import Path
@@ -17,8 +17,11 @@ type ClipName = Literal["roll"]
 
 BRAND_ICON = "sym_r_casino"
 HOME_ICON = "sym_r_home"
+BACK_ICON = "sym_r_arrow_back"
+REFUSED_ICON = "sym_r_explore_off"
 DANGER_ICON = "sym_r_warning"
-ARROW_ICON = "sym_r_arrow_forward"
+HELP_ICON = "sym_r_info"
+ON_TOUCH = "matchMedia('(hover: none)').matches"
 PASS_THROUGH = "display: contents"
 SOUNDS_DIR = Path(__file__).parent / "sounds"
 DICE_CLIP: ClipName = "roll"
@@ -70,6 +73,33 @@ class Banner(ui.column):
                 ui.label(label).classes("game-banner-label")
                 self.text = ui.label(text).classes("game-banner-body")
             self.actions = ui.row().classes("items-center no-wrap game-banner-actions game-gap-md")
+
+
+def help_tip(text: str, anchor: ui.element | None = None) -> None:
+    """Hover shows a tooltip; a touch screen, where a tooltip shows only while pressed, taps."""
+    if not text:
+        return
+    target = (
+        ui.icon(HELP_ICON)
+        .classes("game-help-icon")
+        .props('tabindex=0 role=button aria-hidden=false aria-label="What this means"')
+        if anchor is None
+        else anchor.classes("game-help")
+    )
+    # Children, not `.tooltip()`: its `#id` target is missing when a hidden tab redraws.
+    with target:
+        ui.tooltip(text).classes("game-help-tip")
+        with ui.menu().props("no-parent-event").classes("game-help-pop") as pop:
+            ui.label(text)
+    show = f"runMethod({pop.id}, 'show', [])"
+    if anchor is not None:
+        target.on(
+            "click", js_handler=f"(e) => {{ if ({ON_TOUCH}) {{ e.stopPropagation(); {show} }} }}"
+        )
+        return
+    target.on("click.stop", js_handler=f"() => {{ if ({ON_TOUCH}) {show} }}")
+    for key in ("enter", "space"):
+        target.on(f"keydown.{key}.stop.prevent", js_handler=f"() => {show}")
 
 
 def media_url(path: Path) -> str:
@@ -124,26 +154,45 @@ def done(message: str) -> None:
 
 
 def page_header(
-    title: str, badge: str | None = None, *, home: bool = True, look: Look | None = None
+    title: str,
+    badge: str | None = None,
+    *,
+    back: str | None = HOME,
+    look: Look | None = None,
 ) -> ui.header:
     ui.dark_mode(value=True)
     theme.set_look(look)
     with ui.header().classes("items-center no-wrap") as header:
-        if home:
-            icon_button(HOME_ICON, "Home", lambda: ui.navigate.to(HOME))
-        else:
+        if back is None:
             with ui.element("div").classes("game-brand"):
                 ui.icon(BRAND_ICON)
+        elif back == HOME:
+            icon_button(HOME_ICON, "Home", lambda: ui.navigate.to(HOME))
+        else:
+            icon_button(BACK_ICON, "Back", lambda: ui.navigate.to(back))
         ui.label(title).classes("game-title ellipsis")
         if badge is not None:
             ui.badge(badge).classes("gt-xs")
     return header
 
 
-@contextmanager
-def page_body() -> Generator[None]:
+def refused_page(message: str) -> None:
+    page_header("Rulehall")
     with (
-        ui.column().classes("w-full q-pa-lg items-center"),
+        page_body(),
+        ui.card().classes("w-full"),
+        ui.column().classes("w-full items-center game-gap-2xl"),
+    ):
+        empty_state(REFUSED_ICON, message)
+        ui.button("Home", icon=HOME_ICON, on_click=lambda: ui.navigate.to(HOME)).props(
+            "color=primary"
+        )
+
+
+@contextmanager
+def page_body(*, classes: str = "") -> Generator[None]:
+    with (
+        ui.column().classes(f"w-full q-pa-lg items-center {classes}"),
         ui.column().classes("w-full game-gap-3xl").style("max-width: var(--game-measure)"),
     ):
         yield
@@ -174,20 +223,10 @@ def nav_button(label: str, icon: str, route: str) -> ui.button:
     return button
 
 
-def action_tile(icon: str, title: str, caption: str, on_click: Callable[[], object]) -> None:
-    with ui.button(on_click=on_click).props("outline").classes("game-tile"):
-        ui.icon(icon).classes("game-tile-icon")
-        with ui.column().classes("game-gap-3xs"):
-            ui.label(title).classes("game-tile-title")
-            ui.label(caption).classes("game-tile-caption")
-        ui.icon(ARROW_ICON).classes("game-tile-arrow")
-
-
 def entry_card(
     icon: str,
     title: str,
     sub: str,
-    badges: Sequence[str],
     actions: Callable[[], object] | None = None,
 ) -> None:
     with (
@@ -199,10 +238,6 @@ def entry_card(
             ui.label(title).classes("game-entry-title game-title")
             if sub:
                 ui.label(sub).classes("game-entry-sub")
-            if badges:
-                with ui.row().classes("game-gap-md"):
-                    for badge in badges:
-                        ui.badge(badge)
         if actions is not None:
             with ui.row().classes("items-center no-wrap game-entry-actions game-gap-md"):
                 actions()
@@ -221,15 +256,19 @@ def action_bar() -> Generator[None]:
 
 
 @contextmanager
-def section(title: str, *, classes: str = "") -> Generator[None]:
+def section(title: str, *, classes: str = "", help: str = "") -> Generator[None]:
     with ui.card().classes(f"w-full game-gap-lg {classes}"):
-        heading(title)
+        heading(title, help=help)
         yield
 
 
-def heading(title: str, count: int | None = None) -> None:
+def section_title(title: str) -> None:
+    ui.label(title).classes("game-section-title").props('role="heading" aria-level="2"')
+
+
+def heading(title: str, count: int | None = None, *, help: str = "") -> None:
     with ui.element("div").classes("game-section-head"):
-        ui.label(title).classes("game-eyebrow")
+        help_tip(help, ui.label(title).classes("game-eyebrow"))
         if count is not None:
             ui.label(str(count)).classes("game-count")
 

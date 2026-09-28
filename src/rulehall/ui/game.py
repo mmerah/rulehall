@@ -8,34 +8,30 @@ from nicegui.events import GenericEventArguments, ScrollEventArguments
 from rulehall.app.catalog import SavedGameKey
 from rulehall.app.game_session import Busy, GameSession, SessionSnapshot
 from rulehall.app.runtime import Runtime
-from rulehall.core.decisions import ActionOption, Decision, PlayerInput
+from rulehall.core.decisions import ActionOption, PlayerInput
 from rulehall.core.validation import Refusal, content_id
 from rulehall.core.views import PanelRow, PlayerView
 from rulehall.ui.battle import BattlePanel
-from rulehall.ui.composer import CLOSED_REASONS, Composer, composer_lock
+from rulehall.ui.composer import CLOSED_REASONS, ActionBar, composer_lock
 from rulehall.ui.drawer import Drawer
-from rulehall.ui.panel_parts import choice_groups, panel_row
-from rulehall.ui.routes import HOME
-from rulehall.ui.transcript import Chat, LiveTurn
+from rulehall.ui.panel_parts import CHOICES_ROW, choice_groups, panel_row
+from rulehall.ui.routes import hall_path
+from rulehall.ui.transcript import Transcript
 from rulehall.ui.widgets import (
-    HOME_ICON,
     PASS_THROUGH,
-    Banner,
     Confirm,
     Sounds,
     attempt,
-    empty_state,
     heading,
     icon_button,
     media_url,
-    page_body,
     page_header,
+    refused_page,
 )
 
 TURN_FAILED = "Something went wrong. The turn did not complete. Look in the server log."
 REWIND_FAILED = "Something went wrong. The rewind did not complete. Look in the server log."
 RESTART_FAILED = "Something went wrong. The restart did not complete. Look in the server log."
-CHOICES_ROW = "row w-full items-start game-choices game-gap-md"
 NEAR_END = 48
 SOUND_ICONS = {True: "sym_r_volume_up", False: "sym_r_volume_off"}
 
@@ -74,51 +70,15 @@ class SceneHeader:
         ui.icon("sym_r_expand_more").classes("game-scene-chevron lt-sm")
 
 
-class DecisionPanel:
-    def __init__(
-        self, now: SessionSnapshot, play: Callable[[PlayerInput], Awaitable[object]]
-    ) -> None:
-        self.play = play
-        self.draw(now.view.decision, enabled=now.working_role is None, entering=False)
-
-    def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
-        entering = now.view.decision != drawn.view.decision
-        idle = now.working_role is None
-        if entering or idle != (drawn.working_role is None):
-            self.draw.refresh(now.view.decision, enabled=idle, entering=entering)
-
-    @ui.refreshable_method
-    def draw(self, pending: Decision | None, *, enabled: bool, entering: bool) -> None:
-        if pending is None:
-            return
-        banner = Banner("sym_r_help", pending.kind, pending.prompt)
-        if entering:
-            banner.classes("game-enter")
-        if not pending.options:
-            return
-        with banner:
-            choice_groups(
-                pending.options,
-                lambda option: self.play(PlayerInput(option_id=option.id)),
-                enabled=enabled,
-                row_class=CHOICES_ROW,
-            )
-            if pending.allows_text:
-                ui.label("Or answer in your own words below.").classes("game-hint")
-
-
 class GamePage:
     def __init__(self, session: GameSession) -> None:
         self.session = session
         self.drawn: SessionSnapshot
         self.scene: SceneHeader
-        self.decision: DecisionPanel
-        self.composer: Composer
+        self.action_bar: ActionBar
         self.drawer: Drawer
         self.battle_panel: BattlePanel | None = None
-        self.parts: tuple[
-            SceneHeader | Chat | LiveTurn | DecisionPanel | Composer | Drawer | BattlePanel, ...
-        ]
+        self.parts: tuple[SceneHeader | Transcript | ActionBar | Drawer | BattlePanel, ...]
         self.sounds: Sounds
         self.sound: ui.button
         self.scroll: ui.scroll_area
@@ -136,7 +96,11 @@ class GamePage:
         session = self.session
         now = self.drawn = session.snapshot()
         self.drawer = Drawer(
-            session, now.view, self.open_row, lambda words: self.composer.prefill(words)
+            session,
+            now.view,
+            self.open_row,
+            self.pick_option,
+            lambda words: self.action_bar.prefill(words),
         )
         self.sounds = Sounds()
         self.sounds.on("sound", self.sound_state)
@@ -157,8 +121,7 @@ class GamePage:
                     self.scene = SceneHeader(session, now)
                     # No padding class: NiceGUI pads the scroll content; twice would misalign.
                     with ui.scroll_area().classes("w-full flex-grow game-transcript") as scroll:
-                        chat = Chat(now, session.icon, self.sounds)
-                        live_turn = LiveTurn(now, session.icon, self.sounds)
+                        transcript = Transcript(now, session.icon, self.sounds)
                     self.scroll = scroll
                     scroll.on_scroll(self.scrolled)
                     ui.timer(0.5, lambda: scroll.scroll_to(percent=1.0), once=True)
@@ -168,7 +131,7 @@ class GamePage:
         self.drawer.build(now)
         self.restart_dialog = Confirm(keep="Keep playing", confirm="Restart")
 
-        self.parts = (self.scene, chat, live_turn, self.decision, self.composer, self.drawer)
+        self.parts = (self.scene, transcript, self.action_bar, self.drawer)
         if self.battle_panel is not None:
             self.parts += (self.battle_panel,)
         self.tick()
@@ -189,7 +152,7 @@ class GamePage:
     def sync_images(self) -> None:
         view = self.drawn.view
         self.scene.sync_images(view)
-        self.drawer.sync_icons(view)
+        self.drawer.sync_icons()
 
     def sync_controls(self, now: SessionSnapshot) -> None:
         idle = now.working_role is None
@@ -200,13 +163,18 @@ class GamePage:
     def draw_header(self) -> None:
         session = self.session
         with page_header(
-            session.state.scenario_description.title, session.engine.title, look=session.engine.look
+            session.state.scenario_description.title,
+            session.engine.title,
+            back=hall_path(session.engine.id, session.key.character_id),
+            look=session.engine.look,
         ):
             ui.space()
             self.rewind_button = icon_button("sym_r_undo", "Rewind last turn", self.rewind)
             self.debrief_button = icon_button("sym_r_summarize", "Story so far", self.show_debrief)
             self.sound = icon_button(SOUND_ICONS[True], "Sound", self.toggle_sound)
-            icon_button("sym_r_menu_book", "Scene and journal", self.drawer.toggle)
+            ui.button("Sheet", icon="sym_r_menu_book", on_click=self.drawer.toggle).props(
+                "flat no-caps aria-label=Sheet"
+            ).classes("game-sheet-button")
             with (
                 icon_button("sym_r_more_vert", "More"),
                 ui.menu(),
@@ -227,14 +195,9 @@ class GamePage:
             ).props("dense color=primary")
             self.new_activity.classes("game-activity")
             self.show_activity(visible=False)
-            self.decision = DecisionPanel(now, self.play)
-            battle = self.battle_panel
-            self.composer = Composer(
-                self.session,
-                now,
-                self.move,
-                build_battle_banner=(lambda: None) if battle is None else battle.build_banner,
-            )
+            if self.battle_panel is not None:
+                self.battle_panel.build_banner()
+            self.action_bar = ActionBar(self.session, now, self.choose)
 
     def open_row(self, row: PanelRow) -> None:
         self.row_dialog.clear()
@@ -243,24 +206,19 @@ class GamePage:
             panel_row(row, self.session.icon)
             if reason and row.options:
                 ui.label(reason).classes("game-hint")
-            choice_groups(
-                row.options,
-                self.use_panel_option,
-                enabled=not reason,
-                row_class=CHOICES_ROW,
-            )
+            choice_groups(row.options, self.pick_option, enabled=not reason, row_class=CHOICES_ROW)
             for panel in row.detail:
-                heading(panel.title)
+                heading(panel.title, help=panel.help)
                 for each in panel.rows:
                     panel_row(each, self.session.icon)
         self.row_dialog.open()
 
-    async def use_panel_option(self, option: ActionOption) -> None:
+    async def pick_option(self, option: ActionOption) -> bool:
         self.row_dialog.close()
-        await self.move(lambda: self.session.use_panel_option(option))
+        return await self.choose(PlayerInput(option_id=option.id))
 
-    async def play(self, answer: PlayerInput) -> bool:
-        return await self.move(lambda: self.session.play(answer))
+    async def choose(self, answer: PlayerInput) -> bool:
+        return await self.move(lambda: self.session.choose(answer))
 
     async def move(self, action: Callable[[], Awaitable[None]]) -> bool:
         self.own_move = True
@@ -345,7 +303,7 @@ class GamePage:
 
     async def _rewound(self) -> None:
         if words := await self.session.rewind():
-            self.composer.set_input(words)
+            self.action_bar.set_input(words)
 
     async def _open_game(self, opener: ui.timer) -> None:
         # A raise must still stop the timer: NiceGUI swallows it and fires again in 0.1s.
@@ -359,11 +317,11 @@ class GamePage:
         opener.cancel()
 
     async def _run(self, action: Callable[[], Awaitable[None]]) -> bool:
-        self.composer.set_enabled(enabled=False)
+        self.action_bar.set_enabled(enabled=False)
         try:
             return await attempt(action, failed=TURN_FAILED)
         finally:
-            if not self.composer.composer_input.is_deleted:
+            if not self.action_bar.composer_input.is_deleted:
                 self.tick()
             self.own_move = False
 
@@ -374,7 +332,7 @@ async def game_page(runtime: Runtime, scenario: str, character: str) -> None:
             SavedGameKey(scenario_id=content_id(scenario), character_id=content_id(character))
         )
     except Refusal as refused:
-        _refused_page(str(refused))
+        refused_page(str(refused))
         return
     # Tab storage (the composer draft) is readable only after the handshake.
     await ui.context.client.connected()
@@ -392,20 +350,5 @@ def moved_since(now: SessionSnapshot, drawn: SessionSnapshot) -> bool:
         or now.facts_and_refusals != drawn.facts_and_refusals
         or now.words != drawn.words
         or now.live != drawn.live
-        or now.view.composer_option != drawn.view.composer_option
-        or now.view.composer_only != drawn.view.composer_only
         or now.view.ending != drawn.view.ending
     )
-
-
-def _refused_page(message: str) -> None:
-    page_header("Rulehall")
-    with (
-        page_body(),
-        ui.card().classes("w-full"),
-        ui.column().classes("w-full items-center game-gap-2xl"),
-    ):
-        empty_state("sym_r_explore_off", message)
-        ui.button("Home", icon=HOME_ICON, on_click=lambda: ui.navigate.to(HOME)).props(
-            "color=primary"
-        )

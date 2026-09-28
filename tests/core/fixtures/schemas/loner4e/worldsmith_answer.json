@@ -76,10 +76,6 @@
             "nemesis": {
               "default": "",
               "type": "string"
-            },
-            "group": {
-              "default": false,
-              "type": "boolean"
             }
           },
           "required": [

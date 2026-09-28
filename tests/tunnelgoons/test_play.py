@@ -92,11 +92,11 @@ async def test_the_shipped_map_plays_start_to_finish(tmp_path: Path) -> None:
         tool_call("move", to_id="corridor"),
         tool_call("move", to_id="cellar"),
     )
-    assert table.session.player_view().composer_option == MORE_MAP
+    assert table.session.player_view().moves == (MORE_MAP,)
 
     before_turn = len(state.log_entries())
     table.roles.answers["worldsmith"] = [json.dumps(REGION)]
-    after = await play_turn(table, "Deeper in.", composer=MORE_MAP)
+    after = await play_turn(table, "Deeper in.", move=MORE_MAP)
 
     # The region lands hidden, then the words play as a turn that sees the new way out.
     assert set(REGION["places"]) <= set(after.world.places)
@@ -104,7 +104,7 @@ async def test_the_shipped_map_plays_start_to_finish(tmp_path: Path) -> None:
     assert [role for role, _ in table.roles.prompts[-3:]] == ["worldsmith", "master", "narrator"]
     assert "Deep Vault" in table.roles.prompts[-2][1]
     assert after.log_entries()[before_turn].words == "Deeper in."
-    assert table.session.player_view().composer_option is None
+    assert table.session.player_view().moves == ()
 
 
 async def test_a_region_that_cannot_be_written_files_the_players_words(tmp_path: Path) -> None:
@@ -120,10 +120,10 @@ async def test_a_region_that_cannot_be_written_files_the_players_words(tmp_path:
         tool_call("move", to_id="corridor"),
         tool_call("move", to_id="cellar"),
     )
-    assert table.session.player_view().composer_option == MORE_MAP
+    assert table.session.player_view().moves == (MORE_MAP,)
     before = len(table.state.log_entries())
 
-    await table.session.use_composer_option(MORE_MAP, "Deeper in.")
+    await table.session.choose(PlayerInput(option_id=MORE_MAP.id, text="Deeper in."))
     after = table.state
 
     unwritten = after.log_entries()
@@ -133,7 +133,7 @@ async def test_a_region_that_cannot_be_written_files_the_players_words(tmp_path:
         unwritten[-1].facts[0].card == "The map could not be written. You are still where you were."
     )
     assert table.roles.prompts[-1][0] == "worldsmith"
-    assert table.session.player_view().composer_option == MORE_MAP
+    assert table.session.player_view().moves == (MORE_MAP,)
 
 
 async def test_the_clock_does_not_count_a_turn_the_master_never_played(tmp_path: Path) -> None:

@@ -1,4 +1,7 @@
 {
+  "tagline": "Science fiction in scenes: one skill die, and gear that breaks to soften a hit.",
+  "die_faces": 6,
+  "pattern": "scanlines",
   "palette": {
     "game-bg": "#0f1624",
     "game-surface": "#182236",

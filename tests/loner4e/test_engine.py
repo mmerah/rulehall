@@ -2,19 +2,13 @@ from random import Random
 
 from support.game import ENGINE, MARA, initialized, loner_sheet
 
-from rulehall.core.views import Panel
 from rulehall.engines.loner4e.args import Ask, SpendLuck
 from rulehall.engines.loner4e.engine import BROKE_AWAY, DEFEATED
 from rulehall.engines.loner4e.panels import BREAK_AWAY, MOVE_ON
 from rulehall.engines.loner4e.rules import DOUBLES_PER_TWIST, LUCK_MAX, outcome_for
-from rulehall.engines.loner4e.world import Loner4eGame
 from rulehall.engines.sheet import PLAYER_ID
 
 DUEL = Ask(question="Does he force her back from the door?", opponent_id=MARA)
-
-
-def _panel(state: Loner4eGame, title: str) -> Panel:
-    return next(panel for panel in ENGINE.scene_panels(state) if panel.title == title)
 
 
 def test_the_outcome_ladder_covers_every_pair_of_dice() -> None:
@@ -96,25 +90,21 @@ def test_break_away_ends_the_conflict_and_move_on_waits_until_it_is_over() -> No
     _, state = initialized()
     draft = state.draft()
     _ = ENGINE.ask(draft, DUEL, Random(0))
-    goal, _place, conflict = _panel(draft, "Dramatic scene").rows
-    assert (goal.options, conflict.options) == ((), (BREAK_AWAY,))
+    assert BREAK_AWAY in ENGINE.moves(draft)
+    assert MOVE_ON not in ENGINE.moves(draft)
 
     _ = ENGINE.play_option(draft, BREAK_AWAY, Random(0))
 
     assert draft.world.opponent_ids == []
     assert BROKE_AWAY in draft.notes
-    assert _panel(draft, "Dramatic scene").rows[0].options == (MOVE_ON,)
+    assert MOVE_ON in ENGINE.moves(draft)
+    assert BREAK_AWAY not in ENGINE.moves(draft)
 
 
 def test_fight_opens_the_conflict_and_the_lone_opponent_gets_the_next_ask() -> None:
     _, state = initialized()
     draft = state.draft()
-    (fight,) = (
-        option
-        for row in _panel(draft, "Also here").rows
-        for option in row.options
-        if option.args == {"opponent_id": MARA}
-    )
+    (fight,) = (move for move in ENGINE.moves(draft) if move.args == {"opponent_id": MARA})
 
     _ = ENGINE.play_option(draft, fight, Random(0))
     _ = ENGINE.ask(draft, Ask(question="Does he force her back from the door?"), Random(0))

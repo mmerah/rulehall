@@ -321,21 +321,21 @@ def test_both_participants_defend_with_their_own_separate_items(draft: TwentyFou
     assert any(fact.card == "Kestrel: Vest breaks — Brief: ringing ears" for fact in facts)
 
 
-def test_a_helper_rolls_the_named_skill_else_their_best_and_shares_the_risk() -> None:
+def test_a_helper_rolls_the_named_skill_else_the_rolled_one_and_shares_the_risk() -> None:
     draft = hired(small_world(), KESTREL, skills={"Piloting": 12, "Stealth": 8}).draft()
     slip = Roll(what="Slip past", skill="Stealth", risk="Bruised ribs", harm=True)
 
-    for helper, shown in (
-        (Helper(actor_id=KESTREL), "Piloting d12"),
-        (Helper(actor_id=KESTREL, skill="stealth"), "Stealth d8"),
-        (Helper(actor_id=KESTREL, skill="Hacking"), "Hacking d6"),
+    for roll, helper, shown in (
+        (slip, Helper(actor_id=KESTREL), "Stealth d8"),
+        (slip, Helper(actor_id=KESTREL, skill="piloting"), "Piloting d12"),
+        (slip.model_copy(update={"skill": "Hacking"}), Helper(actor_id=KESTREL), "Hacking d6"),
     ):
-        facts = _rolled(draft, slip.model_copy(update={"helped_by": helper}))
+        facts = _rolled(draft, roll.model_copy(update={"helped_by": helper}))
         assert f"helped by Kestrel ({shown})" in facts[1].trace
 
     facts = _rolled(draft, slip.model_copy(update={"helped_by": Helper(actor_id=KESTREL)}), seed=2)
     assert "Kestrel risking Bruised ribs (harm)" in facts[1].trace
-    assert draft.world.cast[KESTREL].require_sheet().hindrances == ["Bruised ribs"]
+    assert "Bruised ribs" in draft.world.cast[KESTREL].require_sheet().hindrances
 
 
 def test_helper_with_risk_takes_their_own_consequence_on_a_bad_roll() -> None:
@@ -561,13 +561,7 @@ def test_a_take_while_a_job_is_open_amends_its_terms_and_closes_nothing() -> Non
 
 
 def _look_again(draft: TwentyFourXXGame) -> list[ActionOption]:
-    return [
-        option
-        for panel in ENGINE.player_view(draft).panels
-        for row in panel.rows
-        for option in row.options
-        if option.action_name == "find_again"
-    ]
+    return [move for move in ENGINE.player_view(draft).moves if move.action_name == "find_again"]
 
 
 def test_every_find_can_be_looked_again_for_1_credit_until_a_job_is_taken() -> None:
@@ -732,7 +726,8 @@ def test_a_ship_function_takes_several_named_upgrades_at_10_each(draft: TwentyFo
     assert draft.world.ship["sensors"].upgrades == ["Deep scanner", "Cloak sniffer"]
     ship = dict(ENGINE.master_sections(draft))["THE SHIP"]
     assert "upgraded: Deep scanner, upgraded: Cloak sniffer" in ship
-    assert "only ₡1" in refused(ENGINE, draft, "ship_upgrade", function_id="sensors")
+    refusal = refused(ENGINE, draft, "ship_upgrade", function_id="sensors", upgrade="Ion sail")
+    assert "only ₡1" in refusal
 
 
 def test_next_scene_with_a_pursuit_requests_the_crossing(draft: TwentyFourXXGame) -> None:
@@ -768,13 +763,9 @@ def test_every_hold_option_is_refused_while_the_ship_is_away() -> None:
         for panel in ENGINE.player_view(draft).panels
         for row in panel.rows
         for option in row.options
-        if option.action_name in {"stow_item", "retrieve_item", "ship_upgrade"}
+        if option.action_name in {"stow_item", "retrieve_item"}
     ]
-    assert {option.action_name for option in options} == {
-        "stow_item",
-        "retrieve_item",
-        "ship_upgrade",
-    }
+    assert {option.action_name for option in options} == {"stow_item", "retrieve_item"}
     assert all(option.refusal == SHIP_AWAY for option in options)
 
 

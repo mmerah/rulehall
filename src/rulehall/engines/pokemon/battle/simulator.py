@@ -33,7 +33,7 @@ from rulehall.engines.pokemon.battle.opponent import (
     render_opponent,
 )
 from rulehall.engines.pokemon.dex import dex
-from rulehall.engines.pokemon.panels import type_tag
+from rulehall.engines.pokemon.panels import move_summary, type_tag
 from rulehall.engines.pokemon.rules import TIMES, max_hp
 from rulehall.engines.pokemon.world import PokemonGame
 
@@ -425,6 +425,7 @@ def choices_of(request: SideRequest, battlers: Sequence[Battler]) -> tuple[Battl
             command=f"move {number}",
             name=move.move,
             brief="" if move.pp is None else f"{move.pp}/{move.maxpp} PP",
+            help="" if (known := dex().moves.get(move.id)) is None else move_summary(known),
             refusal="Disabled" if move.disabled else "",
             tags=(type_tag(kind),) if (kind := move_types.get(move.id)) else (),
         )
@@ -451,7 +452,11 @@ def battle_result(setup: BattleSetup, dump: Dump, outcome: Outcome | None) -> Ba
     return BattleResult(
         outcome=decided,
         team=tuple(as_dumped(setup.team[mon.slot], mon) for mon in dump.p1),
-        fainted_foes=tuple(setup.foes[mon.slot] for mon in dump.p2 if mon.hp == 0),
+        sent_out_foes=tuple(
+            as_dumped(setup.foes[mon.slot], mon)
+            for mon in sorted(dump.p2, key=lambda foe: foe.slot)
+            if mon.out > 0
+        ),
         on_field_mon_ids=tuple(setup.team[mon.slot].mon_id for mon in dump.p1 if mon.out > 0),
         caught=_first_foe(setup, dump) if decided == "caught" else None,
     )

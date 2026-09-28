@@ -3,34 +3,29 @@ from pathlib import Path
 
 from nicegui import Client, ui
 from support.game import KEY
-from support.table import ENGINES_BUILT, offline_settings
+from support.table import LONER4E, ScriptedRoles, offline_settings
 
-from rulehall.app.catalog import LauncherCatalog, scenario_models
-from rulehall.core.stores import Library, SaveStore
-from rulehall.ui.home import LaunchForm
+from rulehall.app.runtime import Runtime
+from rulehall.ui.hall import Hall
 from rulehall.ui.widgets import DICE_CLIP, SOUNDS_DIR
 
 
-async def test_an_unresumable_save_renders_no_start_button(
+def test_an_unresumable_save_renders_no_play_button(
     tmp_path: Path, page: Callable[[], Client]
 ) -> None:
-    settings = offline_settings(tmp_path)
     _ = (tmp_path / f"{KEY.save_id}.json").write_bytes(b"\xff\xfe not text")
-    library = Library(settings.scenarios_dir, settings.characters_dir)
-    catalog = LauncherCatalog.read(
-        library, SaveStore(settings.saves_dir), ENGINES_BUILT, scenario_models(ENGINES_BUILT)
-    )
-    assert catalog.unresumable == (KEY.save_id,)
-
+    runtime = Runtime(offline_settings(tmp_path), roles=ScriptedRoles())
     client = page()
-    form = LaunchForm(catalog)
-    form.scenario_id = KEY.scenario_id
-    form.character_id = KEY.character_id
 
-    await form.draw.refresh()
+    hall = Hall(runtime, LONER4E, KEY.character_id)
+    hall.draw()
 
     elements = client.elements.values()
-    assert not any(isinstance(element, ui.button) for element in elements)
+    assert hall.catalog.unresumable == (KEY.save_id,)
+    assert not any(
+        isinstance(element, ui.button) and element.text.startswith(("Start", "Continue"))
+        for element in elements
+    )
     assert any(
         isinstance(element, ui.label) and "cannot be resumed" in element.text
         for element in elements

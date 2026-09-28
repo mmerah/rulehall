@@ -3,7 +3,8 @@
     uv run python qa/server.py --port 8123 --work /tmp/rulehall-qa
 
 The work directory gets copies of the shipped scenarios and characters, an empty saves folder,
-and the `.env` the settings page writes. `/qa/log` lists every spawn the roles answered.
+and the `.env` the settings page writes. `/qa/log` lists every spawn the roles answered;
+`POST /qa/faults?role=narrator&fault=hold` arms a fault and `POST /qa/release[?role=…]` lifts holds.
 """
 
 import argparse
@@ -34,7 +35,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8123)
     parser.add_argument("--work", type=Path, required=True)
-    parser.add_argument("--delay", type=float, default=0.3)
+    parser.add_argument("--delay", type=float, default=0)
     parser.add_argument("--fresh", action="store_true", help="wipe the work directory first")
     parser.add_argument("--art", action="store_true", help="draw placeholder scene art offline")
     parsed = parser.parse_args()
@@ -82,6 +83,15 @@ def main() -> None:
     @app.get("/qa/faults")
     def _faults() -> dict[str, list[str]]:  # pyright: ignore[reportUnusedFunction]
         return {role: list(armed) for role, armed in agents.faults.items()}
+
+    # Async, so they run on the event loop that the held roles wait on.
+    @app.post("/qa/faults")
+    async def _arm(role: str, fault: str) -> None:  # pyright: ignore[reportUnusedFunction]
+        agents.arm(role, fault)
+
+    @app.post("/qa/release")
+    async def _release(role: str | None = None) -> None:  # pyright: ignore[reportUnusedFunction]
+        agents.release(role)
 
     theme.install()
     ui.run(  # pyright: ignore[reportUnknownMemberType]

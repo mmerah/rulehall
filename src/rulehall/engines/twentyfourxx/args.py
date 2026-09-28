@@ -93,7 +93,7 @@ class TakeLead(Frozen):
 
 class ShipUpgrade(Frozen):
     function_id: Slug = Field(description="Exact id of a ship function. The player pays ₡10.")
-    upgrade: ShortName = Field(default="", description=f"What the upgrade is. {BE_SHORT}")
+    upgrade: ShortName = Field(min_length=1, description=f"What the upgrade is. {BE_SHORT}")
 
 
 class Defence(Frozen):
@@ -162,8 +162,8 @@ class Helper(Staked):
     )
     skill: str = Field(
         default="",
-        description="The skill the helper rolls; a d6 when their sheet lacks it. Empty rolls their "
-        "best skill die.",
+        description="The skill the helper rolls. Empty rolls the roll's own `skill`. A d6 when "
+        "their sheet lacks it.",
     )
 
 

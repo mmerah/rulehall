@@ -18,13 +18,14 @@ from drive import (
     clean,
     composer,
     run,
+    start_turn,
     submit,
     wait_idle,
-    wait_working,
 )
 
 WORK = Path(os.environ.get("QA_WORK", "/tmp/rulehall-qa-work"))
 LONG_TURNS = 30
+QUIET_MS = 5000
 
 RUNS: dict[str, tuple[str, ...]] = {
     "whispering-vault": (
@@ -80,13 +81,15 @@ def body(s: Session) -> None:
     wait_idle(page, timeout=40)
     page.locator(".q-header button").last.click()
     page.get_by_text("Restart this game").click()
-    page.get_by_role("button", name="Restart", exact=True).click()
-    s.check(wait_working(page), "long: the restart did not re-open the game")
+    s.check(
+        start_turn(page.get_by_role("button", name="Restart", exact=True)),
+        "long: the restart did not re-open the game",
+    )
     wait_idle(page, timeout=40)
     scripts = tuple(islice(cycle(RUNS["buried-keep"]), LONG_TURNS))
     play(s, page, traffic, "long", scripts, reload_after={10, 20})
     traffic.mark()
-    page.wait_for_timeout(5000)
+    page.wait_for_timeout(QUIET_MS)
     idle = traffic.mark()
     s.note(f"idle kb={idle.kilobytes:.1f} frames={idle.frames}")
     s.shot(page, "endure-long")
@@ -128,8 +131,8 @@ def play(
             )
     s.check(
         not composer(page).is_disabled()
-        or page.locator(".game-decision:visible").count() > 0
-        or page.locator(".game-over:visible").count() > 0,
+        or page.locator(".game-asking:visible, .game-banner:visible").count() > 0
+        or page.locator(".game-action-over:visible").count() > 0,
         f"{name} left the composer shut with no decision and no ending",
     )
     s.note(f"{name}: {len(bubbles(page))} bubbles after {len(scripts)} turns")

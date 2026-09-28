@@ -55,6 +55,7 @@ The player also acts without the master, from the Team tab and from decisions: h
 - Six trainer skills, ranked 0 to 3: Athletics, Stealth, Perception, Nature, Lore, Charm. A check is d20 + 2 × rank, +2 with a helper, against DC 10, 15 or 20. Each badge gives one rank.
 - EXP is `20 × foe level` per fainted foe, 1.5 times for a trainer's Pokemon. One growth curve for every species: `level³`. Showdown has no EXP data, so these rules stay simple.
 - Stats use the formulas of gen 3 and later, and match Showdown's for the same IVs, EVs and nature.
+- A trainer's challenge names its team and the Pokemon it leads with, as team preview shows them. The battle's end names the foes it sent out and which of them fainted.
 - HP, status and PP carry over between battles. When the whole team faints outside a Nuzlocke, the player blacks out, loses half their money and heals where they stand.
 - In a wild battle, the player can throw one ball a turn for free, then still picks a move.
 - The badge table sets the levels: the ace of the first gym is level 12, then 18, 24, 30, 36, 42, 48 and 54. The worldsmith writes each gym leader's ace within 2 of it, and at most three other trainers per map.

@@ -4,7 +4,10 @@ import json
 import os
 import re
 import sys
+import time
 from pathlib import Path
+
+from playwright.sync_api import Locator, Page
 
 sys.path.insert(0, str(Path(__file__).parent))
 from drive import (
@@ -17,51 +20,74 @@ from drive import (
     composer,
     decision,
     drawer_text,
+    gate_status,
+    held,
     log,
+    move,
     open_drawer,
     placeholder,
     reach_breather,
     run,
+    scrolled_down,
     send,
+    send_move,
+    shows,
+    start_turn,
     submit,
     take_breather,
-    use_row_option,
+    use_move,
     wait_idle,
+    wait_started,
+    wait_until,
     wait_working,
     working,
 )
 
 GAME = BASE + "/game/whispering-vault/kael"
+PLAY_HINT = "What does Kael do? Or ask the oracle."
 WORK = Path(os.environ.get("QA_WORK", "/tmp/rulehall-qa-work"))
 
 
 def body(s: Session) -> None:
     page = s.page()
-    page.goto(GAME)
     # Opening: the narrator works, then the story begins.
-    s.check(wait_working(page), "no working indicator during the opening")
-    s.check(
-        "Narrator is working" in placeholder(page),
-        f"placeholder during opening: {placeholder(page)!r}",
-    )
-    s.check(composer(page).is_disabled(), "composer enabled while the opening is narrated")
-    s.shot(page, "opening-working")
+    with held("narrator"):
+        page.goto(GAME)
+        s.check(wait_working(page), "no working indicator during the opening")
+        s.check(
+            "Narrator is working" in placeholder(page),
+            f"placeholder during opening: {placeholder(page)!r}",
+        )
+        s.check(composer(page).is_disabled(), "composer enabled while the opening is narrated")
+        s.shot(page, "opening-working")
     wait_idle(page)
     s.shot(page, "opened")
     text = clean(page.inner_text(".game-transcript"))
     s.check("(the story begins)" in text, "opening cause missing")
     s.check("[narration]" in text, "opening narration missing")
-    s.check(placeholder(page) == "What do you do?", f"idle placeholder: {placeholder(page)!r}")
+    s.check(placeholder(page) == PLAY_HINT, f"idle placeholder: {placeholder(page)!r}")
+    bar = clean(page.inner_text(".game-composer"))
+    for offered in ("Ask the oracle", "Move on", "Fight Mara", "End the adventure"):
+        s.check(offered in bar, f"{offered} is not above the send box: {bar[:300]}")
     # The drawer is open at 1280px with the sheet.
     side = clean(drawer_text(page))
     s.check("Luck 6/6" in side, f"sheet missing luck: {side[:200]}")
     s.check("Mara" in side and "trail" in side.lower(), "here/trail panels missing")
 
     s.check("Twist Counter" in side, f"sheet missing the twist counter: {side[:300]}")
+    # A rule term explains itself on hover.
+    page.locator(".game-drawer .game-stat-label.game-help", has_text="Luck").first.hover()
+    tip = page.locator(".game-help-tip")
+    tip.first.wait_for()
+    s.check(tip.count() == 1 and "fight" in tip.inner_text(), "no help tooltip on Luck")
+    s.shot(page, "luck-help")
+    page.mouse.move(640, 300)
 
     # 1. A plain turn: the default question to the oracle.
-    s.check(submit(page, "I search the desk."), "no working indicator after submit")
-    s.check(composer(page).is_disabled(), "composer stayed enabled during the turn")
+    with held("master"):
+        s.check(submit(page, "I search the desk."), "the send started no turn")
+        s.check(wait_working(page), "no working indicator after submit")
+        s.check(composer(page).is_disabled(), "composer stayed enabled during the turn")
     wait_idle(page)
     s.shot(page, "turn-ask")
     s.check(
@@ -71,12 +97,22 @@ def body(s: Session) -> None:
     s.check(composer(page).input_value() == "", "composer not cleared after an accepted turn")
 
     # 1b. The player asks the oracle: the card shows their own words, rolled as they wrote them.
-    ask = page.locator(".game-banner button", has_text="Ask the oracle")
-    s.check(ask.is_visible(), "no Ask the oracle button in an open scene")
-    s.check(send(page).is_visible(), "the send button hides beside Ask the oracle")
-    composer(page).fill("Is the abbot's desk unlocked?")
-    ask.click()
-    s.check(wait_working(page), "Ask the oracle did not start a turn")
+    s.check(move(page, "Ask the oracle").is_visible(), "no Ask the oracle move in an open scene")
+    move(page, "Ask the oracle").click()
+    send(page).filter(has_text="Ask the oracle").wait_for()
+    s.check(
+        placeholder(page) == "Type a yes/no question for the dice.",
+        f"armed: {placeholder(page)!r}",
+    )
+    s.check("Ask the oracle" in send(page).inner_text(), "the send is not the armed move")
+    s.shot(page, "oracle-armed")
+    move(page, "Ask the oracle").click()
+    send(page).filter(has_text="Ask the oracle").wait_for(state="detached")
+    s.check(placeholder(page) == PLAY_HINT, f"the lit cell did not disarm: {placeholder(page)!r}")
+    s.check(
+        send_move(page, "Ask the oracle", "Is the abbot's desk unlocked?"),
+        "Ask the oracle did not start a turn",
+    )
     wait_idle(page)
     s.shot(page, "player-asks")
     s.check(
@@ -120,9 +156,8 @@ def body(s: Session) -> None:
         f"cited tags missing: {exchange}",
     )
     s.check(bool(exchange) and "Luck" in exchange[-1], f"no luck line: {exchange}")
-    decisions = page.locator(".game-decision:visible")
-    s.check(decisions.count() == 0, "a conflict opened a decision")
-    s.check(placeholder(page) == "What do you do?", f"conflict placeholder: {placeholder(page)!r}")
+    s.check(decision(page).count() == 0, "a conflict opened a decision")
+    s.check(placeholder(page) == PLAY_HINT, f"conflict placeholder: {placeholder(page)!r}")
     # With one opponent, an ask that names none is the next exchange.
     submit(page, 'I press on.\n!ask question="Do I drive her to the wall?"')
     wait_idle(page)
@@ -130,10 +165,8 @@ def body(s: Session) -> None:
     s.check("# CONFLICT" in master["prompt"], "the master prompt in a conflict shows no CONFLICT")
     lone = [c for c in cards(page) if "Do I drive her to the wall?" in c]
     s.check(bool(lone) and "Luck" in lone[-1], f"the lone opponent got no exchange: {lone}")
-    open_drawer(page)
-    goal_opens = page.locator(".game-drawer .game-opens", has_text="Goal").count()
-    s.check(goal_opens == 0, "Move on is offered during a conflict")
-    use_row_option(page, "Conflict", "Break away")
+    s.check(move(page, "Move on").count() == 0, "Move on is offered during a conflict")
+    use_move(page, "Break away")
     s.shot(page, "broke-away")
     s.check(
         any("Breaks away" in c for c in cards(page)),
@@ -174,7 +207,6 @@ def body(s: Session) -> None:
     # 5. The master crashes before anything lands: the draft is kept and the state unchanged.
     before = len(bubbles(page))
     submit(page, "I try something.\n!crash")
-    page.wait_for_timeout(1500)
     wait_idle(page)
     s.shot(page, "crash-notified")
     s.check(
@@ -186,7 +218,6 @@ def body(s: Session) -> None:
 
     # 6. A narrator that fails does not cost the turn: it lands with no prose.
     submit(page, 'I look around.\n!fail narrator\n!drive actor_id=player goal="Get out"')
-    page.wait_for_timeout(1500)
     wait_idle(page)
     s.check("I look around." in clean(page.inner_text(".game-transcript")), "the turn was lost")
     s.check(not composer(page).is_disabled(), "composer stuck after a narrator failure")
@@ -205,21 +236,16 @@ def body(s: Session) -> None:
     composer(page).press("Shift+Enter")
     composer(page).type("line two")
     s.check("\n" in composer(page).input_value(), "shift+enter did not add a newline")
+    started = time.monotonic()
     composer(page).press("Enter")
-    started = False
-    for _ in range(50):
-        if working(page).count() > 0 or composer(page).is_disabled():
-            started = True
-            break
-        page.wait_for_timeout(50)
-    s.check(started, "enter did not send")
+    s.check(wait_started(started), "enter did not send")
     wait_idle(page)
     s.check("line one\nline two" in "\n".join(bubbles(page)), "multi-line prompt not shown whole")
 
     # 9. The journal and the scene tab.
     open_drawer(page)
     page.get_by_role("tab", name="journal").click()
-    page.wait_for_timeout(400)
+    journal_heading(page).wait_for()
     s.shot(page, "journal")
     journal = clean(drawer_text(page))
     s.check(
@@ -227,7 +253,7 @@ def body(s: Session) -> None:
         f"journal missing turns: {journal[:200]}",
     )
     page.locator(".q-expansion-item").first.click()
-    page.wait_for_timeout(400)
+    page.locator(".q-expansion-item--expanded").first.wait_for()
     s.shot(page, "journal-open")
     page.get_by_role("tab", name="scene").click()
 
@@ -244,8 +270,7 @@ def body(s: Session) -> None:
         pick = decision(page).filter(has_text="lasting mark")
         if pick.count():
             s.shot(page, "status-pick")
-            pick.locator("button", has_text="Physical").click()
-            wait_working(page)
+            start_turn(pick.locator("button", has_text="Physical"))
             wait_idle(page)
             marked = True
             break
@@ -255,8 +280,8 @@ def body(s: Session) -> None:
     narrator = [e for e in log() if e["role"] == "narrator"][-1]
     s.check("Hurt (1/3)" in narrator["prompt"], "the narrator's sheet shows no status")
 
-    # 9c. Move on: the player leaves the scene from its panel; the transition rolls.
-    use_row_option(page, "Goal", "Move on")
+    # 9c. Move on: the player leaves the scene with a move; the transition rolls.
+    use_move(page, "Move on")
     s.shot(page, "moved-on")
     s.check(
         any("Scene closes: moved on" in c for c in cards(page)),
@@ -266,19 +291,18 @@ def body(s: Session) -> None:
     # 10. Close the scene: the engine rolls the transition and hands over. A dramatic scene is
     # written at once; the dice are seeded per game, so close until a quiet one opens the breather.
     before = clean(page.inner_text(".game-scene"))
-    submit(page, 'I have what I came for.\n!close_scene reason=resolved\n!direct text="He has it."')
-    seen_phases: set[str] = set()
-    for _ in range(60):
-        seen_phases.add(placeholder(page))
-        if not composer(page).is_disabled():
-            break
-        page.wait_for_timeout(200)
+    with held("worldsmith"):
+        submit(
+            page, 'I have what I came for.\n!close_scene reason=resolved\n!direct text="He has it."'
+        )
+        wait_until(page, lambda: "Worldsmith" in placeholder(page) or not gate_status()["busy"])
+        writing = "Worldsmith" in placeholder(page)
     wait_idle(page, timeout=60)
     s.shot(page, "closed")
     closes = [c for c in cards(page) if "Scene closes: resolved" in c]
     s.check(bool(closes), f"close card missing: {cards(page)[-3:]}")
     if "Next: dramatic" in closes[-1]:
-        s.check(any("Worldsmith" in p for p in seen_phases), "worldsmith phase never shown")
+        s.check(writing, "worldsmith phase never shown")
         after = clean(page.inner_text(".game-scene"))
         s.check("QA Scene" in after and after != before, "no dramatic scene")
         s.check(
@@ -287,14 +311,14 @@ def body(s: Session) -> None:
         )
     s.check(reach_breather(page), "no breather after eight closes")
     s.shot(page, "breather")
-    s.check(page.locator(".game-composer-option:visible").count() == 1, "composer banner missing")
-    s.check(not send(page).is_visible(), "the send button shows beside the breather")
+    s.check(move(page, "Take the breather").count() == 1, "no Take the breather move")
+    s.check(move(page, "Ask the oracle").count() == 0, "other moves beside the breather")
     s.check(
-        page.locator(".game-banner button", has_text="Take the breather").count() == 1,
-        "no Take the breather banner",
+        "Take the breather" in send(page).inner_text(),
+        "the breather is not armed on the send",
     )
-    # Recover: the Status row frames the quiet scene around rest; it clears a box.
-    use_row_option(page, "Status", "Recover")
+    # Every quiet scene clears the newest status box.
+    take_breather(page, 'I rest and bind the wound.\n!direct text="He rests."')
     s.shot(page, "quiet")
     scene = clean(page.inner_text(".game-scene"))
     side = clean(drawer_text(page))
@@ -307,7 +331,7 @@ def body(s: Session) -> None:
     s.check(send(page).is_visible(), "the send button did not come back after the breather")
 
     # 11. A turning point closes the quiet scene into a dramatic one, with no die, once the
-    # player has acted there (Recover is a pick, not an action).
+    # player has acted there.
     submit(page, 'I bind the wound.\n!direct text="He rests."')
     wait_idle(page, timeout=60)
     submit(page, 'Trouble finds me.\n!close_scene reason=turning_point\n!direct text="Boots."')
@@ -323,7 +347,7 @@ def body(s: Session) -> None:
     # played turn asks again with no new die (or, after a quiet roll, the breather is retried).
     submit(page, 'I leave.\n!fail worldsmith\n!close_scene reason=blocked\n!direct text="Out."')
     wait_idle(page, timeout=60)
-    if page.locator(".game-banner button", has_text="Take the breather").count():
+    if move(page, "Take the breather").count():
         take_breather(page, 'I hide.\n!direct text="He hides."')
     s.shot(page, "unwritten")
     s.check(
@@ -331,7 +355,7 @@ def body(s: Session) -> None:
         f"unwritten card missing: {cards(page)[-2:]}",
     )
     s.check(not composer(page).is_disabled(), "composer stuck after an unwritten scene")
-    if page.locator(".game-banner button", has_text="Take the breather").count():
+    if move(page, "Take the breather").count():
         take_breather(page, 'I hide again.\n!direct text="He hides."')
     else:
         submit(page, "I wait.\n!none")
@@ -362,7 +386,7 @@ def body(s: Session) -> None:
         s.check("act independently" not in narrated, "the narrator read the ally question")
         if follow_up == "quiet":
             s.check(
-                page.locator(".game-banner button", has_text="Take the breather").count() == 1,
+                move(page, "Take the breather").count() == 1,
                 "no breather after a quiet meanwhile",
             )
             take_breather(page, 'I lie low.\n!direct text="He lies low."')
@@ -375,26 +399,22 @@ def body(s: Session) -> None:
             )
 
     # 13. Reload mid-turn: the live turn shows; the draft survives.
-    submit(page, 'I take my time.\n!slow narrator\n!drive actor_id=player goal="Get out"')
-    page.wait_for_timeout(800)
-    composer(page).fill("a draft typed mid-turn") if not composer(page).is_disabled() else None
-    page.reload()
-    page.wait_for_timeout(1500)
-    s.shot(page, "reload-mid-turn")
-    body_text = clean(page.inner_text("body"))
-    s.check(
-        "is working" in placeholder(page) or working(page).count() > 0,
-        "no live turn after a reload mid-turn",
-    )
-    s.check("I take my time." in body_text, "the live prompt bubble missing after reload")
+    with held("narrator"):
+        submit(page, 'I take my time.\n!drive actor_id=player goal="Get out"')
+        wait_working(page)
+        composer(page).fill("a draft typed mid-turn") if not composer(page).is_disabled() else None
+        page.reload()
+        s.check(wait_working(page), "no live turn after a reload mid-turn")
+        wait_until(page, lambda: scrolled_down(page))
+        s.shot(page, "reload-mid-turn")
+        s.check("is working" in placeholder(page), f"placeholder mid-turn: {placeholder(page)!r}")
+        s.check(shows(page, "I take my time."), "the live prompt bubble missing after reload")
     wait_idle(page, timeout=60)
     s.shot(page, "reload-settled")
 
     # 14. Draft survives a reload.
     composer(page).fill("a saved draft")
-    page.wait_for_timeout(500)
     page.reload()
-    page.wait_for_timeout(1500)
     wait_idle(page)
     s.check(
         composer(page).input_value() == "a saved draft",
@@ -404,15 +424,14 @@ def body(s: Session) -> None:
 
     # 15. Scroll up, then another tab's turn lands: New activity button.
     page.locator(".game-transcript .q-scrollarea__container").evaluate("el => el.scrollTop = 0")
-    page.wait_for_timeout(600)
     other = page.context.new_page()
     other.goto(GAME)
-    other.wait_for_timeout(1200)
+    wait_idle(other)
     submit(other, "I look about.")
     wait_idle(other)
-    page.wait_for_timeout(1500)
     s.check(
-        "I look about." in " ".join(bubbles(page)), "the other tab's turn did not reach this tab"
+        wait_until(page, lambda: "I look about." in " ".join(bubbles(page))),
+        "the other tab's turn did not reach this tab",
     )
     other.close()
     s.shot(page, "new-activity")
@@ -422,14 +441,16 @@ def body(s: Session) -> None:
     )
     if new_activity.is_visible():
         new_activity.click()
-        page.wait_for_timeout(500)
-        s.check(not new_activity.is_visible(), "New activity button stayed after catching up")
+        s.check(
+            wait_until(page, lambda: not new_activity.is_visible()),
+            "New activity button stayed after catching up",
+        )
 
     # 16. Sound toggle.
     sound = page.get_by_role("button", name="Sound")
     icon_before = sound.locator("i").inner_text()
     sound.click()
-    page.wait_for_timeout(300)
+    wait_until(page, lambda: sound.locator("i").inner_text() != icon_before)
     icon_after = sound.locator("i").inner_text()
     s.check(icon_before != icon_after, f"sound icon did not toggle: {icon_before} -> {icon_after}")
     sound.click()
@@ -456,17 +477,21 @@ def body(s: Session) -> None:
     # 18. Restart: dialog, keep playing, then confirm.
     page.locator(".q-header button").last.click()
     page.get_by_text("Restart this game").click()
-    page.wait_for_timeout(400)
+    page.locator(".q-dialog").wait_for()
     s.shot(page, "restart-dialog")
     dialog = clean(page.locator(".q-dialog").inner_text())
     s.check("turns are erased" in dialog, f"restart dialog text: {dialog}")
     page.get_by_role("button", name="Keep playing").click()
-    page.wait_for_timeout(600)
-    s.check(not page.locator(".q-dialog").is_visible(), "dialog stayed after keep playing")
+    s.check(
+        wait_until(page, lambda: not page.locator(".q-dialog").is_visible()),
+        "dialog stayed after keep playing",
+    )
     page.locator(".q-header button").last.click()
     page.get_by_text("Restart this game").click()
-    page.get_by_role("button", name="Restart", exact=True).click()
-    s.check(wait_working(page), "restart did not re-open the game")
+    s.check(
+        start_turn(page.get_by_role("button", name="Restart", exact=True)),
+        "restart did not re-open the game",
+    )
     wait_idle(page)
     s.shot(page, "restarted")
     text = clean(page.inner_text(".game-transcript"))
@@ -478,14 +503,12 @@ def body(s: Session) -> None:
 
     # 19. Death: the game is over, the composer closes, the only way on is restart.
     submit(page, "I die.\n!kill target_id=player")
-    wait_idle(page) if False else page.wait_for_timeout(3000)
+    s.check(shows(page, "You died."), "over label missing")
     s.shot(page, "dead")
-    text = clean(page.inner_text("body"))
-    s.check("You died." in text, "over label missing")
     s.check(composer(page).is_disabled() and send(page).is_disabled(), "composer open after death")
     s.check("You are dead" in " ".join(cards(page)), "death card missing")
     page.reload()
-    page.wait_for_timeout(1500)
+    composer(page).wait_for()
     s.check(composer(page).is_disabled(), "composer open after death and a reload")
     page.locator(".q-header button").last.click()
     page.get_by_text("Restart this game").click()
@@ -500,10 +523,7 @@ def body(s: Session) -> None:
     s.note(f"chat bubble: {chat!r}")
     s.check("**bold**" in chat and "<b>tag</b>" in chat, "chat did not show the text verbatim")
     open_drawer(page)
-    page.get_by_role("tab", name="journal").click()
-    page.wait_for_timeout(400)
-    page.locator(".q-expansion-item").first.click()
-    page.wait_for_timeout(400)
+    open_journal(page)
     s.shot(page, "journal-markdown")
     journal_html = page.locator(".q-expansion-item").first.inner_html()
     s.note(
@@ -549,13 +569,17 @@ def body(s: Session) -> None:
         "no ending decision",
     )
     s.check(composer(page).is_disabled(), "words can answer the ending decision")
-    page.locator(".game-decision button:visible", has_text="Play on").click()
-    s.check(wait_working(page), "Play on did not start a turn")
+    s.check(start_turn(move(page, "Play on")), "Play on did not start a turn")
     wait_idle(page)
     s.shot(page, "played-on")
-    played_on = page.locator(".game-decision:visible").count() == 0
+    played_on = decision(page).count() == 0
     s.check(played_on, "Play on left the decision")
-    use_row_option(page, "The adventure", "End the adventure")
+    use_move(page, "End the adventure")
+    s.check(
+        "End the adventure here, or play on?" in clean(page.inner_text("body")),
+        "End the adventure asked no confirmation",
+    )
+    use_move(page, "End it")
     s.shot(page, "ending-by-player")
     s.check(
         "What did Mira learn?" in clean(page.inner_text("body")),
@@ -587,13 +611,24 @@ def body(s: Session) -> None:
     wait_idle(page, timeout=30)
     s.check("Patient Watcher" in clean(drawer_text(page)), "the restart forgot the growth")
     close_until(page, "Next:", tries=1)
-    if page.locator(".game-banner button", has_text="Take the breather").count():
+    if move(page, "Take the breather").count():
         take_breather(page, 'I rest.\n!direct text="She rests."')
     carried = [e for e in log() if e["role"] == "worldsmith"][-1]["prompt"]
     s.check(
         "# WHAT THE PROTAGONIST CARRIES FORWARD" in carried,
         "the next game's worldsmith does not see the Living World",
     )
+
+
+def journal_heading(page: Page) -> Locator:
+    return page.locator(".game-drawer").get_by_text(re.compile("chronicle", re.I)).first
+
+
+def open_journal(page: Page) -> None:
+    page.get_by_role("tab", name="journal").click()
+    journal_heading(page).wait_for()
+    page.locator(".q-expansion-item").first.click()
+    page.locator(".q-expansion-item--expanded").first.wait_for()
 
 
 run("loner", body)
