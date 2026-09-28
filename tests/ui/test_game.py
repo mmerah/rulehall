@@ -280,7 +280,7 @@ async def test_the_action_bar_asks_on_the_tick_that_brings_a_decision_and_not_th
     brought = service.snapshot()
     bar.sync(brought, drawn)
     assert {"game-asking", "game-enter"} <= set(bar.bar.classes)
-    assert [option.id for _, option in bar.chips] == ["left"]
+    assert [member.id for _, members in bar.chips for member in members] == ["left"]
 
     service.working_role = "master"
     bar.sync(service.snapshot(), brought)

@@ -2,6 +2,7 @@ import json
 import re
 from asyncio import Event, create_task, sleep
 from pathlib import Path
+from random import Random
 
 import pytest
 from support.game import KEY, open_game, session, with_entity
@@ -17,7 +18,7 @@ from support.table import (
     tool_call,
     updated,
 )
-from support.twentyfourxx import open_crew
+from support.twentyfourxx import TROUBLE_SEED, open_crew
 
 from rulehall.app.catalog import SavedGameKey
 from rulehall.app.game_session import IN_FLIGHT_ELSEWHERE, NOTHING_TO_REWIND
@@ -187,7 +188,7 @@ def _scene() -> str:
 
 
 async def test_a_complication_writes_and_installs_at_the_same_place(tmp_path: Path) -> None:
-    table = open_crew(tmp_path)
+    table = open_crew(tmp_path, rng=Random(TROUBLE_SEED))
     place = table.state.world.scene.place_id
     here_before = list(table.state.world.scene.here_ids)
     table.roles.answers["worldsmith"] = [_scene()]
@@ -205,14 +206,15 @@ async def test_a_complication_writes_and_installs_at_the_same_place(tmp_path: Pa
     assert exchanges[1].cause == "story"
     assert state.world.scene.place_id == place
     assert all(entity_id in state.world.cast for entity_id in here_before)
-    assert [role for role, _ in table.roles.prompts] == ["master", "worldsmith", "narrator"]
+    roles = [role for role, _ in table.roles.prompts]
+    assert roles == ["master", "narrator", "worldsmith", "narrator"]
     assert state.request is None
 
 
 async def test_a_failed_write_after_a_complication_leaves_the_turn_committed(
     tmp_path: Path,
 ) -> None:
-    table = open_crew(tmp_path)
+    table = open_crew(tmp_path, rng=Random(TROUBLE_SEED))
     title = table.state.world.scene.title
 
     state = await play_turn(

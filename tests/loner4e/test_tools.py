@@ -83,8 +83,6 @@ def test_a_tag_helps_or_hinders_bare_or_listed_and_is_lost_in_any_case_or_kind()
 
     _ = change(ENGINE, draft, "change_tags", actor_id=PLAYER_ID, kind="gear", lost="quiet hands")
     assert loner_sheet(draft, PLAYER_ID).tagged("skill") == ["Reads Old Stonework"]
-    _ = run_action(ENGINE, draft, "mark_status", column="physical")
-    _ = change(ENGINE, draft, "ask", **asked, hinders=["Hurt (1/3)"])
 
 
 def test_a_new_id_files_a_met_stranger_someone_elsewhere_enters_and_a_repeat_changes_nothing() -> (
@@ -107,22 +105,6 @@ def test_a_new_id_files_a_met_stranger_someone_elsewhere_enters_and_a_repeat_cha
     assert loner_sheet(draft, "old-monk").tagged("condition") == ["Wary"]
     _ = change(ENGINE, draft, "kill", target_id=TOMAS)
     assert change(ENGINE, draft, "leave", target_id=TOMAS) == []
-
-
-def test_a_conflict_marks_the_protagonist_with_no_condition() -> None:
-    _, state = initialized()
-    draft = state.draft()
-    _ = run_action(ENGINE, draft, "fight", opponent_id=MARA)
-    hurt: dict[str, JsonValue] = {
-        "actor_id": PLAYER_ID,
-        "kind": "condition",
-        "gained": ["Bleeding"],
-    }
-    assert "Status pick" in refused(ENGINE, draft, "change_tags", **hurt)
-
-    _ = change(ENGINE, draft, "withdraw")
-    _ = change(ENGINE, draft, "change_tags", **hurt)
-    assert loner_sheet(draft, PLAYER_ID).tagged("condition") == ["Bleeding"]
 
 
 def test_a_withdraw_cost_passes_another_defeat() -> None:

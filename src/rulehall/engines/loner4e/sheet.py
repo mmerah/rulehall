@@ -5,20 +5,15 @@ from pydantic import BeforeValidator, Field
 from pydantic.json_schema import SkipJsonSchema
 
 from rulehall.core.facts import Fact
-from rulehall.core.validation import Mutable, Refusal, as_tuple
+from rulehall.core.validation import Refusal, as_tuple
 from rulehall.core.views import Rows, nonblank_rows
 from rulehall.engines.args import ShortName
 from rulehall.engines.loner4e.rules import (
     LUCK_MAX,
-    STATUS_BOXES,
-    STATUS_TAGS,
-    StatusColumn,
     TagKind,
     and_for_commas,
 )
 from rulehall.engines.sheet import Gauge, Person, changed_tags, joined, tag_card, tag_delta
-
-OVERCOME = "the protagonist is overcome; the story decides what that means"
 
 Tag = Annotated[str, BeforeValidator(and_for_commas)]
 TagName = Annotated[ShortName, BeforeValidator(and_for_commas)]
@@ -106,31 +101,3 @@ class Loner4eEntity(Person):
         if amount > self.luck.current:
             raise Refusal(f"{self.name} has {self.luck.current} luck, not {amount}")
         return self.change(self.luck, -amount, "Luck", why)
-
-
-class StatusTrack(Mutable):
-    boxes: list[str] = Field(default_factory=list, max_length=STATUS_BOXES)
-
-    @property
-    def active(self) -> str:
-        return self.boxes[-1] if self.boxes else ""
-
-    @property
-    def full(self) -> bool:
-        return len(self.boxes) == STATUS_BOXES
-
-    def line(self) -> str:
-        return f"{self.active or 'clear'} ({len(self.boxes)}/{STATUS_BOXES})"
-
-    def mark(self, column: StatusColumn) -> list[Fact]:
-        self.boxes.append(STATUS_TAGS[column][len(self.boxes)])
-        card = f"Status: {self.line()}"
-        overcome = f"; {OVERCOME}" if self.full else ""
-        return [Fact(trace=f"{card}{overcome}", told=True, card=card)]
-
-    def recover(self) -> list[Fact]:
-        if not self.boxes:
-            return []
-        self.boxes.pop()
-        card = f"Status: {self.line()}"
-        return [Fact(trace=f"the protagonist recovers: a box clears; {card}", told=True, card=card)]

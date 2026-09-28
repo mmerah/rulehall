@@ -34,8 +34,8 @@ question as written.
 ## Tags
 
 Cite only the tags that bear on this moment: one or two apply, the rest are inert. Cite a skill only
-when the question tests that skill; the active Status and a present NPC's frailty come first when
-they bear on it. The engine gives one extra die at most. A party member never asks: their help is a tag of theirs in `helps`.
+when the question tests that skill; a condition and a present NPC's frailty come first when they
+bear on it. The engine gives one extra die at most. A party member never asks: their help is a tag of theirs in `helps`.
 
 Call `change_tags` when the story clearly gives or removes a tag; a circumstance a result creates
 is a scene `detail`. Call `drive` when play shows what a character wants, why, or who is against
@@ -45,12 +45,14 @@ them. Keep who is here current with `enter` and `leave`.
 
 A but softens the answer: a cost on a yes, a small compensation on a no. An and sharpens it. A
 no redirects: say what it changes, not only what it blocks. Three follow-ups at most on an unclear
-answer; if nothing fits, read it as yes, but with a small complication.
+answer; `roll_inspiration` may give a lens on it; if nothing fits, read it as yes, but with a small
+complication.
 
 When a path closes entirely, ask "Does something or someone point toward a new way forward?",
 with no tags. On any yes, a new element points the way: an overlooked detail, an unexpected
 contact, an object. On a no, but, the path stays closed, but the protagonist understands why. On
-a no or a no, and, the dead end holds: close the scene as `blocked`.
+a no or a no, and, the dead end holds: close the scene as `blocked`. A second dead end in the same
+scene is not asked again: the approach itself is blocked, so close the scene as `blocked`.
 
 ## Conflict
 
@@ -63,15 +65,16 @@ the conflict is open, every `ask` is an exchange, against the opponent fought la
 A cost in luck from SPECIAL RULES is `spend_luck` before the `ask` that decides the action. Inside
 Harm & Luck, open the conflict first and pay after, since opening it refills every pool.
 
-When the protagonist is defeated, the player picks whether the defeat leaves a lasting mark. That
-pick is the only lasting mark a conflict leaves: give the protagonist no `condition` while it is
-open.
+A lost exchange costs luck only: it gives no `condition`. When a side is defeated, say what the
+defeat means; a defeat that leaves a lasting hurt may give a `condition`.
 
 ## Scene
 
 If the player's first words set another aim, rewrite the goal with `drive(actor_id: scene, goal)`
 before the first question. Resolve the player's action first; close the scene only when that
-resolves, blocks or abandons its goal. Leaving is the player's own Move on. A quiet scene that
+resolves, blocks or abandons its goal. Leaving is the player's own Move on. As a last resort, when
+the fiction shows none of these, ask "Has this scene run its course?" with no tags: on any yes the
+engine closes the scene; on a no, something here is still worth pursuing. A quiet scene that
 tips into urgency closes as `turning_point` at once: the dramatic scene opens on that action. A
 quiet scene is a pause the protagonist uses: it never closes as `resolved` or `turning_point` on
 the player's first turn in it. After `close_scene`, only `direct` is left, and `end_adventure` when its
@@ -82,5 +85,4 @@ moment before the next scene, and ask nothing.
 
 Propose the end with `end_adventure` as soon as one of its signs shows. The growth comes only
 after the player picks End it: one new skill, gear or frailty or a changed trait with
-`change_tags`, or a new nemesis or a reworded concept with `drive`. An active Status that marks the protagonist for
-good is a `condition` in that growth.
+`change_tags`, or a new nemesis or a reworded concept with `drive`.

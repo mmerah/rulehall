@@ -62,7 +62,14 @@ from rulehall.engines.twentyfourxx.panels import (
     succession_decision,
 )
 from rulehall.engines.twentyfourxx.risk import DicePool, defend_or_land
-from rulehall.engines.twentyfourxx.rules import SKILL_COUNT, next_die
+from rulehall.engines.twentyfourxx.rules import (
+    NO_TROUBLE,
+    SIGNS_OF_TROUBLE,
+    SKILL_COUNT,
+    TROUBLE,
+    next_die,
+    outcome_band,
+)
 from rulehall.engines.twentyfourxx.sheet import Crewmate, CrewSheet, Gear, Kit, items_from_kits
 from rulehall.engines.twentyfourxx.world import (
     NewcomerProposal,
@@ -135,6 +142,15 @@ JOB_PAID = (
     "the work done. Tell them as that pay; never say that no pay came"
 )
 RAISE_OWED = "A raise is owed: when the player names a skill, call `raise_skill` with it."
+TROUBLE_COMES = (
+    "bad luck: the worldsmith writes the trouble once this turn ends: {trouble}; nothing more "
+    "happens this turn, so stop and exit"
+)
+SIGNS_SHOW = (
+    "bad luck shows only its signs: tell in `direct` a sign of this trouble, never the trouble "
+    "itself: {trouble}"
+)
+NO_TROUBLE_COMES = "no bad luck: the trouble does not come; play on"
 
 
 class TwentyFourXXEngine(
@@ -437,10 +453,10 @@ class TwentyFourXXEngine(
         return draft.world.defend(args.actor_id, args.item_id, args.hindrance)
 
     @tool
-    def next_scene(self, draft: TwentyFourXXGame, args: NextScene, _rng: Random) -> list[Fact]:
+    def next_scene(self, draft: TwentyFourXXGame, args: NextScene, rng: Random) -> list[Fact]:
         """Open the next scene: with nothing set when this one reaches a stopping point. Set
         `pursuit` instead when the player has left this place. Set `complication` instead to
-        bring a new situation into this place."""
+        test for bad luck here: on 1-2 the trouble comes, on 3-4 only its signs."""
         if args.pursuit:
             if args.by_ship and (refusal := draft.world.ship_refusal()):
                 raise Refusal(refusal)
@@ -451,13 +467,19 @@ class TwentyFourXXEngine(
         if not args.complication:
             draft.note(WAY_OFFERED)
             return [Fact(trace="the scene reaches a stopping point")]
-        draft.request = WorldsmithRequest(kind=COMPLICATION, detail=args.complication)
-        return [
-            Fact(
-                trace=f"the worldsmith writes the complication once this turn ends: "
-                f"{args.complication}; nothing more happens this turn, so stop and exit",
-            )
+        trouble = args.complication
+        rolled = roll((6,), "bad luck", rng, label="Bad luck")
+        band = outcome_band(rolled.face, TROUBLE, SIGNS_OF_TROUBLE, NO_TROUBLE)
+        tested = [
+            rolled.fact,
+            draft.world.player.card_fact(f"Bad luck — d6 → {band}", (rolled.event,)),
         ]
+        if band == TROUBLE:
+            draft.request = WorldsmithRequest(kind=COMPLICATION, detail=trouble)
+            return [*tested, Fact(trace=TROUBLE_COMES.format(trouble=trouble))]
+        if band == SIGNS_OF_TROUBLE:
+            return [*tested, Fact(trace=SIGNS_SHOW.format(trouble=trouble))]
+        return [*tested, Fact(trace=NO_TROUBLE_COMES)]
 
     @action
     def move_on(self, draft: TwentyFourXXGame, _args: Words, _rng: Random) -> list[Fact]:

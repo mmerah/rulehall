@@ -51,7 +51,12 @@ class DicePool:
                 raise Refusal(f"{actor.name} cannot help their own roll")
             if not helper.risk:
                 helper = helper.model_copy(
-                    update={"risk": args.risk, "harm": args.harm, "deadly": args.deadly}
+                    update={
+                        "risk": args.risk,
+                        "harm": args.harm,
+                        "deadly": args.deadly,
+                        "setback_hurt": args.setback_hurt,
+                    }
                 )
             rulebook_and_lead_skills = (*rulebook_skills, args.skill)
             helper_skill = who.require_sheet().skill_die(
@@ -142,13 +147,15 @@ def land(
             hindrance = "" if defend is None else defend.hindrance
             if (chosen := choices.get(who.id)) is not None:
                 harmless = world.require_gear(who, chosen).harmless
-                item_id, hindrance = chosen, "" if harmless else lesser_hurt(deadly=stake.deadly)
+                hurt = lesser_hurt(stake.setback_hurt, deadly=stake.deadly)
+                item_id, hindrance = chosen, "" if harmless else hurt
             facts.extend(
                 world.take_hit(
                     who,
                     item_id,
                     hindrance,
                     risk=stake.risk,
+                    setback_hurt=stake.setback_hurt,
                     disaster=band == "disaster",
                     deadly=stake.deadly,
                     harm=stake.harm,

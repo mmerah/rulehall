@@ -12,6 +12,9 @@ MINOR_HURT = "Minor hurt"
 NO_WORK = "nothing"
 ODD_WORK = "a job, but something seems off"
 TWO_JOBS_FOUND = "a choice between two jobs"
+TROUBLE = "trouble"
+SIGNS_OF_TROUBLE = "signs of trouble"
+NO_TROUBLE = "no trouble"
 
 
 def outcome_band(face: int, low: str, mid: str, high: str) -> str:
@@ -30,8 +33,8 @@ def brief_hindrance(hindrance: str) -> str:
     return f"{BRIEF}{hindrance}"
 
 
-def lesser_hurt(*, deadly: bool) -> str:
-    return CLOSE_CALL if deadly else MINOR_HURT
+def lesser_hurt(named: str, *, deadly: bool) -> str:
+    return CLOSE_CALL if deadly else named or MINOR_HURT
 
 
 def next_die(current: SkillDie | None) -> SkillDie | None:

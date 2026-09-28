@@ -6,7 +6,7 @@ from random import Random
 import pytest
 from support.game import MARA, TOMAS, initialized, loner_sheet, open_game
 from support.table import NO_PACKS, Table, narrated, play_turn, tool_call
-from support.twentyfourxx import open_crew
+from support.twentyfourxx import TROUBLE_SEED, open_crew
 
 from rulehall.app.roles import UNSETTLED
 from rulehall.app.turn import DIRECTED_ONCE, REQUEST_WAIT, Turn
@@ -169,7 +169,7 @@ async def test_a_later_call_in_one_turn_sees_the_earlier_calls_draft(
 async def test_a_call_after_the_ask_answers_handoff_wait_and_changes_nothing(
     tmp_path: Path,
 ) -> None:
-    table = open_crew(tmp_path)
+    table = open_crew(tmp_path, rng=Random(TROUBLE_SEED))
     complication = "A second crew breaches the airlock."
 
     state = await play_turn(

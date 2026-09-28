@@ -869,8 +869,9 @@ body, body.body--dark {
   --game-cell-edges: 1px 0 0 var(--game-border-soft), 0 1px 0 var(--game-border-soft);
 }
 .game-moves-line:has(+ .game-composer-line.hidden) { border-bottom: 0 }
-.game-moves { display: grid; grid-template-columns: repeat(auto-fit, minmax(5rem, 1fr)); gap: 1px; flex: 1 1 0; min-width: 0 }
-.game-moves-briefed { grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)) }
+.game-moves { display: flex; flex-wrap: wrap; gap: 1px; flex: 1 1 0; min-width: 0 }
+.game-moves > .q-btn.game-choice { flex: 1 1 5rem }
+.game-moves-briefed > .q-btn.game-choice { flex-basis: 10rem }
 .q-btn.game-explain { flex: none; width: 2.25rem; min-width: 0; padding: 0; border-radius: 0; box-shadow: var(--game-cell-edges) }
 .q-btn.game-explain.game-explain-on { color: var(--game-accent) !important; background: var(--game-accent-soft) }
 .game-moves .q-btn.game-choice {
@@ -902,6 +903,7 @@ body, body.body--dark {
 }
 @media (max-width: 599.98px) {
   .game-wide { padding: 1rem .9rem 1.5rem }
+  .game-moves:not(.game-moves-briefed) > .q-btn.game-choice { flex-basis: 3.5rem; padding-inline: .25rem }
   .game-section-title { font-size: 1.3rem; margin-top: .25rem }
   .game-continue:has(.game-recent) { grid-template-columns: minmax(0, 1fr); gap: .6rem }
   .game-hero { min-height: 14rem; padding: 1.1rem 1.1rem 1.2rem }

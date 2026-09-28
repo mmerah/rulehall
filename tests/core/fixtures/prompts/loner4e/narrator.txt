@@ -42,7 +42,7 @@ Low fantasy, grim and quiet. Magic is rare, and people fear it. Stone, candle sm
 The Abbot's Study
 The only lit room left in the abbey: ledgers stacked to the beams, candle stubs gone cold, and Mara still cataloguing books nobody will read. A flagstone under the desk sits a finger proud of its neighbours.
 
-What Kael is here for: Learn what the abbey sealed below before anyone else does. The place: Ledgers to the Beams, Cold Candle Stubs, A Proud Flagstone. Add no one and nothing beyond this, the cards and the notes: the oracle decides what else is here. THE PLAYER'S SHEET is current: a condition or status it no longer shows has passed, so never describe it.
+What Kael is here for: Learn what the abbey sealed below before anyone else does. The place: Ledgers to the Beams, Cold Candle Stubs, A Proud Flagstone. Add no one and nothing beyond this, the cards and the notes: the oracle decides what else is here. THE PLAYER'S SHEET is current: a condition it no longer shows has passed, so never describe it.
 
 # WHO IS HERE
 - Mara[mara] — The abbey's last scribe, cautious and tired, still cataloguing books nobody will read.

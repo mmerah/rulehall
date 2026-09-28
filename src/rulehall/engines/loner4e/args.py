@@ -8,7 +8,6 @@ from rulehall.engines.loner4e.rules import (
     SCENE_ID,
     UNTRAINED,
     CloseReason,
-    StatusColumn,
     TagKind,
 )
 from rulehall.engines.loner4e.sheet import Tags
@@ -124,10 +123,6 @@ class Ask(Frozen):
         if self.opponent_id in (PLAYER_ID, SCENE_ID):
             raise ValueError("`opponent_id` names an opponent, never the player or the scene")
         return self
-
-
-class MarkStatus(Frozen):
-    column: StatusColumn | None
 
 
 class Fight(Frozen):

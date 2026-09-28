@@ -370,7 +370,7 @@
   },
   {
     "name": "next_scene",
-    "description": "Open the next scene: with nothing set when this one reaches a stopping point. Set `pursuit` instead when the player has left this place. Set `complication` instead to bring a new situation into this place.",
+    "description": "Open the next scene: with nothing set when this one reaches a stopping point. Set `pursuit` instead when the player has left this place. Set `complication` instead to test for bad luck here: on 1-2 the trouble comes, on 3-4 only its signs.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -386,7 +386,7 @@
         },
         "complication": {
           "default": "",
-          "description": "What arrives or turns here, and why. Empty otherwise.",
+          "description": "The trouble that bad luck would bring here, and why: the engine rolls a d6 for it. Empty otherwise.",
           "type": "string"
         }
       },
@@ -434,6 +434,11 @@
           "default": false,
           "description": "True when `risk` hurts them: an injury or a wound. `risk` then names the injury itself, such as `Burned hands`, never the event that causes it. The engine writes a disaster's `risk` on the sheet as a hindrance and a setback as a brief one, and the player can break gear to turn a disaster into a brief one. False for a loss, a cost or an alarm.",
           "type": "boolean"
+        },
+        "setback_hurt": {
+          "default": "",
+          "description": "With `harm`: the lesser hurt a setback leaves, one step down from `risk`, such as `Bruised ribs`. The engine writes it as a brief hindrance. Empty writes `Minor hurt`. Name it in three or four words, never more than 48 characters.",
+          "type": "string"
         },
         "defend": {
           "additionalProperties": false,
@@ -493,6 +498,11 @@
               "default": false,
               "description": "True when `risk` hurts them: an injury or a wound. `risk` then names the injury itself, such as `Burned hands`, never the event that causes it. The engine writes a disaster's `risk` on the sheet as a hindrance and a setback as a brief one, and the player can break gear to turn a disaster into a brief one. False for a loss, a cost or an alarm.",
               "type": "boolean"
+            },
+            "setback_hurt": {
+              "default": "",
+              "description": "With `harm`: the lesser hurt a setback leaves, one step down from `risk`, such as `Bruised ribs`. The engine writes it as a brief hindrance. Empty writes `Minor hurt`. Name it in three or four words, never more than 48 characters.",
+              "type": "string"
             },
             "defend": {
               "additionalProperties": false,

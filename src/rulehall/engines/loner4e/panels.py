@@ -2,13 +2,7 @@ from collections.abc import Mapping
 
 from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.views import Meter, Panel, PanelRow
-from rulehall.engines.loner4e.rules import (
-    DOUBLES_PER_TWIST,
-    STATUS_BOXES,
-    STATUS_TAGS,
-    SceneKind,
-    StatusColumn,
-)
+from rulehall.engines.loner4e.rules import DOUBLES_PER_TWIST, SceneKind
 from rulehall.engines.loner4e.sheet import Loner4eEntity
 from rulehall.engines.loner4e.world import Loner4eWorld
 from rulehall.engines.panels import character_panel
@@ -31,25 +25,17 @@ SHEET_HELP = {
     "refills when a fight starts or ends and in every quiet scene.",
     "Twist Counter": "Doubles on the oracle's dice outside a fight add one; at "
     f"{DOUBLES_PER_TWIST} a twist shakes up the scene.",
-    "Status": f"Lasting marks from defeats: with all {STATUS_BOXES} boxes filled you are overcome, "
-    "and each quiet scene clears the newest one.",
 }
 SCENE_HELP: dict[SceneKind, str] = {
     "dramatic": "A scene of pressure and risk around its goal; it ends when the goal is reached, "
     "blocked or given up, or when you move on.",
-    "quiet": "A pause whose aim you chose: luck refills and the newest Status box clears as it "
-    "opens, and it lasts until you move on or it tips into danger.",
+    "quiet": "A pause whose aim you chose: it lasts until you move on or it tips into danger.",
 }
 SCENE_GOAL_HELP = "What this scene is about; it closes once this is reached, blocked or given up."
 PLACE_HELP = "What is true here; each detail can help or hinder when the oracle is asked."
 CONFLICT_HELP = (
     "A Harm & Luck fight is on: every question is an exchange, and a side at 0 luck is beaten."
 )
-STATUS_HELP: dict[StatusColumn, str] = {
-    "physical": "The defeat marks your body, filling your next Status box.",
-    "social": "The defeat marks your standing with others, filling your next Status box.",
-    "psychological": "The defeat marks your mind, filling your next Status box.",
-}
 TAKE_BREATHER = ActionOption(
     id="breather",
     name="Take the breather",
@@ -65,7 +51,7 @@ MOVE_ON = ActionOption(
 )
 END_ADVENTURE = ActionOption(
     id="end",
-    name="End the adventure",
+    name="End",
     help="Offer to close the story here; you confirm before it ends.",
     action_name="offer_end",
 )
@@ -75,20 +61,20 @@ BREAK_AWAY = ActionOption(
     help="Stop fighting; you always get away, but the story sets the price.",
     action_name="withdraw",
 )
-STATUS_PROMPT = "Does this defeat leave a lasting mark?"
-NO_MARK = ActionOption(
-    id="none",
-    name="No lasting mark",
-    help="The defeat passes and leaves your Status as it is.",
-    action_name="mark_status",
-    args={"column": None},
-)
 ASK_ORACLE = ActionOption(
     id="ask",
-    name="Ask the oracle",
+    name="Ask",
     help="Type a yes/no question for the dice.",
     action_name="ask_oracle",
     needs_words=True,
+)
+FIGHT_GROUP = "Fight"
+ROLL_INSPIRATION = ActionOption(
+    id="inspiration",
+    name="Inspire",
+    help="Roll a verb, an adjective and a noun for a question no yes or no can answer.",
+    action_name="roll_inspiration",
+    told_in_turn=True,
 )
 PLAY_ON = ActionOption(id="play-on", name="Play on", action_name="play_on")
 ENDING_PROMPT = "The adventure could end here: {why}. End it, or play on?"
@@ -106,13 +92,11 @@ UNWRITTEN_PROMPT = "The adventure is over, and the Living World is still to be w
 
 def sheet_panel(world: Loner4eWorld, sheet_help: Mapping[str, str]) -> Panel:
     player = world.player
-    boxes = Gauge(current=len(world.status.boxes), maximum=STATUS_BOXES)
     return character_panel(
         player.subject(),
         player.traits(),
         _meter_row("Luck", player.luck, sheet_help),
         _meter_row("Twist Counter", world.twist, sheet_help),
-        _meter_row("Status", boxes, sheet_help, brief=world.status.active),
         sheet_help=sheet_help,
     )
 
@@ -151,8 +135,8 @@ def loner_moves(world: Loner4eWorld, *, played: bool) -> tuple[ActionOption, ...
         return (ASK_ORACLE, BREAK_AWAY, *fights)
     # A quiet scene moves on only once the player played there, so no loop refills luck.
     if frame.kind == "quiet" and not played:
-        return (ASK_ORACLE, *fights, END_ADVENTURE)
-    return (ASK_ORACLE, MOVE_ON, *fights, END_ADVENTURE)
+        return (ASK_ORACLE, ROLL_INSPIRATION, *fights, END_ADVENTURE)
+    return (ASK_ORACLE, ROLL_INSPIRATION, MOVE_ON, *fights, END_ADVENTURE)
 
 
 def proposed_ending_decision(why: str) -> Decision:
@@ -178,23 +162,6 @@ def living_world_decision() -> Decision:
     )
 
 
-def status_mark_decision(marked_boxes: int) -> Decision:
-    options = tuple(
-        ActionOption(
-            id=column,
-            name=column.capitalize(),
-            brief=tags[marked_boxes],
-            help=STATUS_HELP[column],
-            action_name="mark_status",
-            args={"column": column},
-        )
-        for column, tags in STATUS_TAGS.items()
-    )
-    return Decision(
-        kind="status", prompt=STATUS_PROMPT, options=(*options, NO_MARK), allows_text=False
-    )
-
-
 def _ending_decision(why: str, prompt: str) -> Decision:
     end_it = ActionOption(
         id="end-it",
@@ -210,6 +177,7 @@ def _fight(other: Loner4eEntity) -> ActionOption:
     return ActionOption(
         id=f"fight-{other.id}",
         name=f"Fight {other.name}",
+        group=FIGHT_GROUP,
         help=f"Fight {other.name} in Harm & Luck: each lost exchange costs luck, and a side at 0 "
         "is beaten.",
         action_name="fight",
@@ -217,8 +185,6 @@ def _fight(other: Loner4eEntity) -> ActionOption:
     )
 
 
-def _meter_row(
-    name: str, gauge: Gauge, sheet_help: Mapping[str, str], *, brief: str = ""
-) -> PanelRow:
+def _meter_row(name: str, gauge: Gauge, sheet_help: Mapping[str, str]) -> PanelRow:
     meter = Meter(name="", current=gauge.current, maximum=gauge.maximum)
-    return PanelRow(name=name, brief=brief, help=sheet_help[name], meters=(meter,))
+    return PanelRow(name=name, brief="", help=sheet_help[name], meters=(meter,))

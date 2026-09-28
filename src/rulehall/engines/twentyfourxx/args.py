@@ -25,7 +25,8 @@ class NextScene(Frozen):
     )
     complication: str = Field(
         default="",
-        description="What arrives or turns here, and why. Empty otherwise.",
+        description="The trouble that bad luck would bring here, and why: the engine rolls a d6 "
+        "for it. Empty otherwise.",
     )
 
     @model_validator(mode="after")
@@ -147,6 +148,12 @@ class Staked(Frozen):
         "writes a disaster's `risk` on the sheet as a hindrance and a setback as a brief one, "
         "and the player can break gear to turn a disaster into a brief one. False for a loss, a "
         "cost or an alarm.",
+    )
+    setback_hurt: ShortName = Field(
+        default="",
+        description="With `harm`: the lesser hurt a setback leaves, one step down from `risk`, "
+        "such as `Bruised ribs`. The engine writes it as a brief hindrance. Empty writes "
+        f"`Minor hurt`. {BE_SHORT}",
     )
     defend: Defence | None = Field(
         default=None,

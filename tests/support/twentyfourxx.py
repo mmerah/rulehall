@@ -29,6 +29,8 @@ SCENE_BASE: Mapping[str, object] = {
     "situation": SITUATION,
     "arc": "Farther in, the fixer's own supplier still owes for the last load.",
 }
+# The first d6 of this seed is a 1, so a bad-luck test brings the trouble.
+TROUBLE_SEED = 2
 open_crew = partial(open_table, engine_id=TWENTYFOURXX, state_type=TwentyFourXXGame)
 
 

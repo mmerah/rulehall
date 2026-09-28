@@ -45,10 +45,11 @@ becomes a d4.
 
 - 1 to 2 is a disaster. The actor takes the full risk. You decide if the actor succeeds at all.
   The engine writes a `harm` disaster's `risk` on the sheet as a hindrance: do not write it again.
-- 3 to 4 is a setback. The actor takes a lesser consequence, or gets a part of the success. The
-  engine writes a `harm` setback on the sheet as `Brief: Minor hurt` and a `deadly` setback as
-  Maimed. Tell a minor hurt, never the full `risk`. Any other lesser consequence is one step down from `risk`. Never write the full `risk`
-  on the sheet after a setback.
+- 3 to 4 is a setback. The actor takes a lesser consequence, or gets a part of the success. A
+  lesser consequence is one step down from `risk`. With `harm`, name that lesser hurt in
+  `setback_hurt` before the roll: the engine writes a setback as that brief hindrance, and a
+  `deadly` setback as Maimed. Tell the lesser hurt, never the full `risk`. Never write the full
+  `risk` on the sheet after a setback.
 - 5 or more is a success. If success cannot give the actor what they wanted, success gives useful
   information or a new advantage.
 
@@ -149,11 +150,13 @@ Play the leaving like any other action. Do not play the arrival. An obstacle in 
 The page always shows the player **Move on**. The player can stay. The scene stays open until the
 player says where they go.
 
-Set `complication` only when no other tool can bring the new situation out of what is already
-here.
+Test for bad luck when the crew lingers in danger or pushes their luck: set `complication` to the
+trouble that would come, and why. The engine rolls a d6. On 1 to 2 the trouble comes: the
+worldsmith writes it after this turn. On 3 to 4 show only a sign of it in `direct`. On 5 or more
+it does not come. Trouble that nothing in the story caused comes only through this test.
 
 `next_scene` with nothing set does not end the turn. Finish what the player's action caused, then
-exit. `pursuit` and `complication` do end the turn. Call them last: first play every part of the
+exit. `pursuit` and trouble that comes do end the turn. Call them last: first play every part of the
 player's words that can happen here or on the way. Put what they mean to do on arrival in
 `pursuit`, in their words, so the next scene opens on it. With `pursuit`, `direct` tells only the
 leaving, never the way or the arrival.

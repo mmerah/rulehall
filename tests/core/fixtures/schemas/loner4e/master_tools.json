@@ -233,6 +233,15 @@
     }
   },
   {
+    "name": "roll_inspiration",
+    "description": "Roll the inspiration tables for an open question no yes or no can answer: an unclear answer, a stalled story. The engine rolls a verb, an adjective and a noun.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    }
+  },
+  {
     "name": "withdraw",
     "description": "Break off the Harm & Luck conflict when the protagonist stops fighting: always allowed, never free. While the conflict is open every `ask` is an exchange, so call this first when the protagonist turns to anything else.",
     "parameters": {

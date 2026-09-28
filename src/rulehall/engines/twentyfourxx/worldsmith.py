@@ -30,7 +30,7 @@ WORLDSMITH_GUIDANCE = (
     "what the source would not hold."
 )
 COMPLICATING = (
-    "The game master brings a complication into the scene the player is in: {brief}. Write the "
+    "Bad luck brings trouble into the scene the player is in: {brief}. Write the "
     "new situation as a new scene. You can keep the same `place_id`, and this is usual. Leave "
     "`location` empty: the player has not moved. Everyone here stays, unless the brief moves "
     "them. Change the situation. Do not change the player's answer to it. The player has not "

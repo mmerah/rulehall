@@ -128,6 +128,25 @@ def test_a_harm_setback_writes_a_brief_wound_keeps_named_gear_and_a_maim_is_name
     assert "Shot dead" not in draft.pending.prompt
 
 
+def test_a_named_setback_hurt_is_written_brief_on_a_setback_and_on_softened_gear() -> None:
+    draft = small_world().draft()
+    sheet = draft.world.player.require_sheet()
+    burn = Roll(
+        what="Pry the lid", skill="Stealth", risk="Burned hands", harm=True, setback_hurt="Singed"
+    )
+    _ = _rolled(draft, burn, seed=1)
+    assert sheet.hindrances == ["Brief: Singed"]
+
+    _ = ENGINE.roll(draft, burn.model_copy(update={"committed": True}), Random(2))
+    assert draft.pending is not None
+    lockpicks = find_option(draft.pending.options, LOCKPICKS)
+    assert lockpicks is not None
+    draft.pending = None
+    _ = ENGINE.play_option(draft, lockpicks, Random(0))
+    assert sheet.hindrances == ["Brief: Singed"]
+    assert sheet.items[LOCKPICKS].broken
+
+
 def test_a_setback_that_is_not_deadly_opens_no_pause(draft: TwentyFourXXGame) -> None:
     roll = Roll(what="Sneak past", skill="Stealth", risk="a knife", committed=True)
     facts = ENGINE.roll(draft, roll, Random(1))
@@ -735,6 +754,20 @@ def test_next_scene_with_a_pursuit_requests_the_crossing(draft: TwentyFourXXGame
 
     assert draft.request is not None
     assert draft.request.detail == "Down the stair."
+
+
+@pytest.mark.parametrize(
+    ("seed", "band"), [(2, "trouble"), (7, "signs of trouble"), (5, "no trouble")]
+)
+def test_a_complication_is_a_bad_luck_test_and_only_trouble_asks_the_worldsmith(
+    draft: TwentyFourXXGame, seed: int, band: str
+) -> None:
+    raid = NextScene(complication="A customs raid, tipped off by Sable.")
+
+    facts = ENGINE.next_scene(draft, raid, Random(seed))
+
+    assert [fact.card for fact in facts if fact.told] == [f"Bad luck — d6 → {band}"]
+    assert (draft.request is not None) == (band == "trouble")
 
 
 def test_only_what_is_hidden_here_can_be_revealed(draft: TwentyFourXXGame) -> None:

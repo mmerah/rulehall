@@ -184,13 +184,15 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         hindrance: str,
         *,
         risk: str,
+        setback_hurt: str,
         disaster: bool,
         deadly: bool,
         harm: bool,
     ) -> list[Fact]:
         if not disaster and not deadly:
             kept = [actor.fact(GEAR_KEPT.format(who=actor.mention))] if item_id else []
-            hurt = actor.hinder(brief_hindrance(lesser_hurt(deadly=False))) if harm else []
+            lesser = brief_hindrance(lesser_hurt(setback_hurt, deadly=False))
+            hurt = actor.hinder(lesser) if harm else []
             return [*kept, *hurt]
         if item_id is not None:
             item = self.require_gear(actor, item_id)

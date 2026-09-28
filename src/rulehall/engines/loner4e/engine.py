@@ -32,7 +32,6 @@ from rulehall.engines.loner4e.args import (
     Drive,
     EndAdventure,
     Fight,
-    MarkStatus,
     SpendLuck,
 )
 from rulehall.engines.loner4e.pack import Loner4eBody, Loner4eHead, Loner4ePack
@@ -45,15 +44,17 @@ from rulehall.engines.loner4e.panels import (
     proposed_ending_decision,
     scene_panel,
     sheet_panel,
-    status_mark_decision,
 )
 from rulehall.engines.loner4e.rules import (
     ALTERS_THE_LOCATION,
     CHANGES_THE_GOAL,
+    DEAD_END_QUESTION,
     ENDS_THE_SCENE,
+    RUN_ITS_COURSE_QUESTION,
     SCENE_ID,
     RollOutcome,
     position_for,
+    same_question,
 )
 from rulehall.engines.loner4e.world import (
     ENDING_ASKS_NOTHING,
@@ -106,23 +107,27 @@ TWIST_ACTION_NOTES: dict[str, str] = {
 }
 DEFEATED = (
     "{name} is out of luck and lost the conflict. Tell now in `direct` what the defeat means: "
-    "captured, disarmed, driven off, cornered or conceding. Defeat is not death."
+    "captured, disarmed, driven off, cornered or conceding. Defeat is not death. A defeat that "
+    "leaves a lasting hurt may give a `condition`."
 )
-MARK_ONLY = "The player picks only the lasting mark, never what the defeat means."
 STILL_IN_IT = (
     "{name} is still in it: direct; the player's next words press on, change tack or break away"
 )
 BROKE_AWAY = "the protagonist broke away: name the cost with `change_tags`"
-CONFLICT_MARKS = (
-    "a Harm & Luck conflict is open, so the protagonist gains no condition from it: luck is the "
-    "harm, and the player's Status pick after a defeat is the only lasting mark: tell the hurt "
-    "in `direct`"
-)
 DRAMATIC_CLOSES = (
     "`turning_point` closes a quiet scene only: close this dramatic scene as `resolved`, "
     "`blocked` or `abandoned`"
 )
 QUESTION_REQUIRED = "`question` is required: write the question"
+SECOND_DEAD_END = (
+    "a second dead end in this scene is not asked again: the approach itself is blocked, not "
+    "only this angle; close the scene as `blocked` and call `direct`"
+)
+RAN_ITS_COURSE = "The scene has run its course and is closing: direct."
+INSPIRATION_NOTE = (
+    "Read the inspiration into what is already here: it is a lens on the fiction, never a new "
+    "thing from nothing."
+)
 QUIET_LASTS = (
     "a quiet scene lasts: it is the protagonist's pause to recover, plan or deepen a bond; it "
     "neither resolves nor turns on the player's first turn in it and ends later only on the "
@@ -226,7 +231,7 @@ class Loner4eEngine(
             f"{view.situation}\n\nWhat {world.player.name} is here for: {frame.goal}. The place: "
             f"{', '.join(frame.details)}. Add no one and nothing beyond this, the cards and the "
             "notes: the oracle decides what else is here. THE PLAYER'S SHEET is current: a "
-            "condition or status it no longer shows has passed, so never describe it."
+            "condition it no longer shows has passed, so never describe it."
         )
         return view.model_copy(update={"situation": situation})
 
@@ -265,7 +270,6 @@ class Loner4eEngine(
             intent += f" {OFFSCREEN.format(offscreen=offscreen)}"
         facts = self.install_next(draft, await self.write_next(draft, intent, worldsmith))
         facts += draft.world.player.refill("a quiet scene")
-        facts += draft.world.status.recover()
         draft.note(ARRIVING_QUIET)
         return Resolution(tuple(facts), None)
 
@@ -456,9 +460,6 @@ class Loner4eEngine(
         actor, entered = world.here_or_entering(args.actor_id)
         if actor is world.player and args.kind in ("skill", "frailty") and args.gained:
             _grow(world, args.gained)
-        marked = actor is world.player and args.kind == "condition" and args.gained
-        if marked and world.opponent_ids:
-            raise Refusal(CONFLICT_MARKS)
         return [*entered, *actor.change_tags(args.kind, args.gained, args.lost)]
 
     @tool
@@ -486,6 +487,8 @@ class Loner4eEngine(
         question = asked or args.question
         if question is None:
             raise Refusal(QUESTION_REQUIRED)
+        if same_question(question, DEAD_END_QUESTION) and world.was_settled(question):
+            raise Refusal(SECOND_DEAD_END)
         fought = args.opponent_id if world.opponent_ids or not asked else None
         opponent_id = fought or next(reversed(world.opponent_ids), None)
         opponent, entered = (
@@ -499,15 +502,23 @@ class Loner4eEngine(
         lines = (*((f"tags: {', '.join(cited)}",) if cited else ()), *facing)
         hoped = not asked
         if opponent is None:
-            return [*consulted.facts(*lines, hoped=hoped), *_twist(draft, consulted, rng)]
+            facts = [*consulted.facts(*lines, hoped=hoped), *_twist(draft, consulted, rng)]
+            ran = same_question(question, RUN_ITS_COURSE_QUESTION) and consulted.outcome.yes
+            if ran and world.frame.open:
+                draft.note(RAN_ITS_COURSE)
+                facts += world.close("ran_its_course", rng)
+            return facts
         absorbed, more = _cards_as_lines(_exchange(draft, opponent, consulted.outcome))
         return [*entered, *consulted.facts(*lines, *more, hoped=hoped), *faced, *absorbed]
 
+    @tool
     @action
-    def mark_status(self, draft: Loner4eGame, args: MarkStatus, _rng: Random) -> list[Fact]:
-        if args.column is None:
-            return [Fact(trace="the defeat leaves no lasting mark")]
-        return draft.world.status.mark(args.column)
+    def roll_inspiration(self, draft: Loner4eGame, _args: NoArgs, rng: Random) -> list[Fact]:
+        """Roll the inspiration tables for an open question no yes or no can answer: an
+        unclear answer, a stalled story. The engine rolls a verb, an adjective and a noun."""
+        facts = draft.world.roll_inspiration(rng)
+        draft.note(INSPIRATION_NOTE)
+        return facts
 
     @action
     def fight(self, draft: Loner4eGame, args: Fight, _rng: Random) -> list[Fact]:
@@ -603,7 +614,7 @@ class Loner4eEngine(
         world = draft.world
         facts, beaten = world.spend(world.require_living_here(args.actor_id), args.amount, args.why)
         if beaten is not None:
-            _defeated(draft, beaten)
+            draft.note(DEFEATED.format(name=beaten.name))
         return facts
 
 
@@ -628,18 +639,10 @@ def _hand_over(draft: Loner4eGame) -> None:
         draft.request = WorldsmithRequest(kind=DRAMATIC_SCENE_REQUEST)
 
 
-def _defeated(draft: Loner4eGame, beaten: Loner4eEntity) -> None:
-    draft.note(DEFEATED.format(name=beaten.name))
-    status = draft.world.status
-    if beaten is draft.world.player and not status.full:
-        draft.note(MARK_ONLY)
-        draft.pending = status_mark_decision(len(status.boxes))
-
-
 def _exchange(draft: Loner4eGame, opponent: Loner4eEntity, outcome: RollOutcome) -> list[Fact]:
     facts, beaten = draft.world.strike(opponent, outcome)
     if beaten is not None:
-        _defeated(draft, beaten)
+        draft.note(DEFEATED.format(name=beaten.name))
         return facts
     return [*facts, Fact(trace=STILL_IN_IT.format(name=opponent.name))]
 

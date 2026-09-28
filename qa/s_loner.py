@@ -67,7 +67,7 @@ def body(s: Session) -> None:
     s.check("[narration]" in text, "opening narration missing")
     s.check(placeholder(page) == PLAY_HINT, f"idle placeholder: {placeholder(page)!r}")
     bar = clean(page.inner_text(".game-composer"))
-    for offered in ("Ask the oracle", "Move on", "Fight Mara", "End the adventure"):
+    for offered in ("Ask", "Inspire", "Move on", "Fight", "End"):
         s.check(offered in bar, f"{offered} is not above the send box: {bar[:300]}")
     # The drawer is open at 1280px with the sheet.
     side = clean(drawer_text(page))
@@ -97,21 +97,21 @@ def body(s: Session) -> None:
     s.check(composer(page).input_value() == "", "composer not cleared after an accepted turn")
 
     # 1b. The player asks the oracle: the card shows their own words, rolled as they wrote them.
-    s.check(move(page, "Ask the oracle").is_visible(), "no Ask the oracle move in an open scene")
-    move(page, "Ask the oracle").click()
-    send(page).filter(has_text="Ask the oracle").wait_for()
+    s.check(move(page, "Ask").is_visible(), "no Ask move in an open scene")
+    move(page, "Ask").click()
+    send(page).filter(has_text="Ask").wait_for()
     s.check(
         placeholder(page) == "Type a yes/no question for the dice.",
         f"armed: {placeholder(page)!r}",
     )
-    s.check("Ask the oracle" in send(page).inner_text(), "the send is not the armed move")
+    s.check("Ask" in send(page).inner_text(), "the send is not the armed move")
     s.shot(page, "oracle-armed")
-    move(page, "Ask the oracle").click()
-    send(page).filter(has_text="Ask the oracle").wait_for(state="detached")
+    move(page, "Ask").click()
+    send(page).filter(has_text="Ask").wait_for(state="detached")
     s.check(placeholder(page) == PLAY_HINT, f"the lit cell did not disarm: {placeholder(page)!r}")
     s.check(
-        send_move(page, "Ask the oracle", "Is the abbot's desk unlocked?"),
-        "Ask the oracle did not start a turn",
+        send_move(page, "Ask", "Is the abbot's desk unlocked?"),
+        "Ask did not start a turn",
     )
     wait_idle(page)
     s.shot(page, "player-asks")
@@ -257,9 +257,8 @@ def body(s: Session) -> None:
     s.shot(page, "journal-open")
     page.get_by_role("tab", name="scene").click()
 
-    # 9b. The Status Track: a protagonist defeat opens the player's pick, and the pick fills a
-    # box with the SRD's tag for its column.
-    marked = False
+    # 9b. A defeat ends the conflict and opens no pick: the story tells what it means.
+    ended = False
     for attempt in range(30):
         submit(
             page,
@@ -267,18 +266,11 @@ def body(s: Session) -> None:
             'hinders=\'["Untrained", "Never Walks Away"]\'',
         )
         wait_idle(page)
-        pick = decision(page).filter(has_text="lasting mark")
-        if pick.count():
-            s.shot(page, "status-pick")
-            start_turn(pick.locator("button", has_text="Physical"))
-            wait_idle(page)
-            marked = True
+        s.check(decision(page).count() == 0, "a defeat opened a decision")
+        if move(page, "Move on").count():
+            ended = True
             break
-    s.check(marked, "no protagonist defeat in 30 exchanges")
-    side = clean(drawer_text(page))
-    s.check("Status" in side and "Hurt" in side, f"no status on the sheet: {side[:400]}")
-    narrator = [e for e in log() if e["role"] == "narrator"][-1]
-    s.check("Hurt (1/3)" in narrator["prompt"], "the narrator's sheet shows no status")
+    s.check(ended, "no defeat in 30 exchanges")
 
     # 9c. Move on: the player leaves the scene with a move; the transition rolls.
     use_move(page, "Move on")
@@ -312,19 +304,17 @@ def body(s: Session) -> None:
     s.check(reach_breather(page), "no breather after eight closes")
     s.shot(page, "breather")
     s.check(move(page, "Take the breather").count() == 1, "no Take the breather move")
-    s.check(move(page, "Ask the oracle").count() == 0, "other moves beside the breather")
+    s.check(move(page, "Ask").count() == 0, "other moves beside the breather")
     s.check(
         "Take the breather" in send(page).inner_text(),
         "the breather is not armed on the send",
     )
-    # Every quiet scene clears the newest status box.
     take_breather(page, 'I rest and bind the wound.\n!direct text="He rests."')
     s.shot(page, "quiet")
     scene = clean(page.inner_text(".game-scene"))
     side = clean(drawer_text(page))
     s.check("quiet scene" in side.lower(), f"no quiet scene panel: {side[:300]}")
     s.check("Luck 6/6" in side, f"luck not refilled: {side[:300]}")
-    s.check("Hurt" not in side, f"the quiet scene cleared no status box: {side[:300]}")
     s.check(
         any("New scene: QA Scene" in c for c in cards(page)), f"quiet card missing: {cards(page)}"
     )
@@ -574,7 +564,7 @@ def body(s: Session) -> None:
     s.shot(page, "played-on")
     played_on = decision(page).count() == 0
     s.check(played_on, "Play on left the decision")
-    use_move(page, "End the adventure")
+    use_move(page, "End")
     s.check(
         "End the adventure here, or play on?" in clean(page.inner_text("body")),
         "End the adventure asked no confirmation",

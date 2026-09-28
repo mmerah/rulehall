@@ -8,11 +8,13 @@ from pydantic.json_schema import SkipJsonSchema
 from rulehall.core.facts import DiceEvent, Fact, Rolled, roll
 from rulehall.core.game import Game
 from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, as_tuple
-from rulehall.core.views import Rows
 from rulehall.engines.args import BE_SHORT
 from rulehall.engines.loner4e.rules import (
     DIE_FACE,
     DOUBLES_PER_TWIST,
+    INSPIRATION_ADJECTIVES,
+    INSPIRATION_NOUNS,
+    INSPIRATION_VERBS,
     MEANWHILE_QUESTION,
     SCENE_ID,
     TWIST_ACTIONS,
@@ -25,9 +27,10 @@ from rulehall.engines.loner4e.rules import (
     TagKind,
     faces_for,
     outcome_for,
+    same_question,
     transition_for,
 )
-from rulehall.engines.loner4e.sheet import Loner4eEntity, StatusTrack, TagName, Tags
+from rulehall.engines.loner4e.sheet import Loner4eEntity, TagName, Tags
 from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
 from rulehall.engines.sheet import Gauge, changed_tags, tag_card, tag_delta
 from rulehall.engines.world import IS_DEAD
@@ -237,7 +240,6 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
     frame: Frame = Field(default_factory=Frame)
     opponent_ids: list[Slug] = Field(default_factory=list)
     player_question: str = ""
-    status: StatusTrack = Field(default_factory=StatusTrack)
     end_why: str = ""
     ended: bool = False
     grown: bool = Field(default=False, exclude=True)
@@ -254,9 +256,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
 
     def close(self, reason: ClosedBy, rng: Random) -> list[Fact]:
         frame = self.frame
-        if self.end_why:
-            raise Refusal(ENDING_ASKS_NOTHING)
-        self.require_open()
+        self.require_in_play()
         facts = self.end_conflict("the scene closes") if self.opponent_ids else []
         frame.next = "dramatic"
         dice: list[DiceEvent] = []
@@ -300,9 +300,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         *,
         settle: bool = True,
     ) -> OracleRoll:
-        if self.end_why:
-            raise Refusal(ENDING_ASKS_NOTHING)
-        self.require_open()
+        self.require_in_play()
         return self._roll_oracle(question, position, rng, settle=settle)
 
     def _roll_oracle(
@@ -342,6 +340,24 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         )
         return (subject, action), [rolled.fact, card]
 
+    def roll_inspiration(self, rng: Random) -> list[Fact]:
+        self.require_in_play()
+        tables = (INSPIRATION_VERBS, INSPIRATION_ADJECTIVES, INSPIRATION_NOUNS)
+        faces = (DIE_FACE, DIE_FACE) * len(tables)
+        rolled = roll(faces, "inspiration — verb, adjective, noun", rng, label="Inspiration")
+        rows, columns = rolled.event.rolled[::2], rolled.event.rolled[1::2]
+        prompt = " ".join(
+            table[row - 1][column - 1]
+            for table, row, column in zip(tables, rows, columns, strict=True)
+        )
+        card = Fact(
+            trace=f"inspiration: {prompt}",
+            told=True,
+            card=f"Inspiration — {prompt}",
+            dice=(rolled.event,),
+        )
+        return [rolled.fact, card]
+
     def apply_offscreen_update(self, update: CastUpdate) -> list[Fact]:
         entity = self.require(update.entity_id)
         if entity is self.player or entity.id in self.party_ids:
@@ -366,12 +382,19 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         if not self.frame.open:
             raise Refusal(SCENE_CLOSED)
 
+    def was_settled(self, question: str) -> bool:
+        return any(same_question(entry.question, question) for entry in self.scene.settled)
+
+    def require_in_play(self) -> None:
+        if self.end_why:
+            raise Refusal(ENDING_ASKS_NOTHING)
+        self.require_open()
+
     def check_cited(self, helps: Sequence[str], hinders: Sequence[str]) -> None:
         carried = {
             tag.casefold()
             for tag in (
                 *self.frame.details,
-                *((self.status.active, self.status.line()) if self.status.boxes else ()),
                 UNTRAINED,
                 *(tag for member in self.here() for tags in member.tags.values() for tag in tags),
             )
@@ -413,10 +436,6 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
             for entry in self.cast.values()
             if entry.alive and entry.id not in self.scene.here_ids
         )
-
-    def sheet_rows(self) -> Rows:
-        rows = self.player.rows()
-        return (*rows, ("Status", self.status.line())) if self.status.boxes else rows
 
     def tick_twist(self) -> int:
         reached = self.twist.current + 1

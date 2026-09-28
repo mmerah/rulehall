@@ -1,4 +1,5 @@
 from collections.abc import Awaitable, Callable
+from functools import partial
 from typing import Literal
 
 from nicegui import app, ui
@@ -7,12 +8,13 @@ from rulehall.app.game_session import GameSession, SessionSnapshot
 from rulehall.config import Role
 from rulehall.core.decisions import ActionOption, PlayerInput
 from rulehall.core.views import PlayerView
-from rulehall.ui.panel_parts import choice_button
+from rulehall.ui.panel_parts import CHOICES_ROW, choice_button
 from rulehall.ui.transcript import ROLE_COPY
-from rulehall.ui.widgets import HELP_ICON, entered_text, warn
+from rulehall.ui.widgets import HELP_ICON, entered_text, heading, warn
 
 type ComposerLock = Literal["over", "battle", "answer", "choose"] | Role
 type PromptState = Literal["asking", "over"]
+type ChipCell = tuple[str, tuple[ActionOption, ...]]
 
 GAME_OVER = "The game is over. Restart it from the menu."
 BATTLE_ON = "A battle is on. Finish it on the battle screen."
@@ -54,7 +56,8 @@ class ActionBar:
         self.armed: ActionOption | None = None
         self.acting = False
         self.explained = False
-        self.chips: list[tuple[ui.button, ActionOption]] = []
+        self.chips: list[tuple[ui.button, tuple[ActionOption, ...]]] = []
+        self.group_dialog = ui.dialog()
         with ui.column().classes("w-full game-action-bar game-gap-md") as self.bar:
             with ui.row().classes(
                 "w-full items-start no-wrap game-action-prompt game-gap-md"
@@ -144,6 +147,28 @@ class ActionBar:
             return
         _ = await self.choose(PlayerInput(option_id=option.id))
 
+    async def pick_among(self, members: tuple[ActionOption, ...]) -> None:
+        if len(members) == 1:
+            await self.pick(members[0])
+            return
+        self.group_dialog.clear()
+        with self.group_dialog, ui.card().classes("game-row-dialog game-gap-md"):
+            heading(members[0].group)
+            with ui.element("div").classes(CHOICES_ROW):
+                for member in members:
+                    _ = choice_button(
+                        member.name,
+                        member.refusal or member.brief,
+                        partial(self._pick_in_group, member),
+                        enabled=self.acting and not member.refusal,
+                        help=member.help,
+                    )
+        self.group_dialog.open()
+
+    async def _pick_in_group(self, member: ActionOption) -> None:
+        self.group_dialog.close()
+        await self.pick(member)
+
     async def submit(self) -> None:
         words = entered_text(self.composer_input)
         move = self.armed or forced_move(self.view)
@@ -167,23 +192,24 @@ class ActionBar:
             self.set_input()
 
     def _draw_chips(self) -> None:
-        options = offered(self.view)
-        lines = [self._cell_line(option) for option in options]
+        cells = chip_cells(self.view)
+        lines = [self._cell_line(members[0]) if len(members) == 1 else "" for _, members in cells]
         self.chip_row.clear()
         self.chips = []
         with self.chip_row:
-            for option, line in zip(options, lines, strict=True):
+            for (name, members), line in zip(cells, lines, strict=True):
                 chip = choice_button(
-                    option.name, line, lambda chosen=option: self.pick(chosen), enabled=False
+                    name, line, lambda chosen=members: self.pick_among(chosen), enabled=False
                 )
-                if (help := option.refusal or option.help) and help != line:
+                if (help := _chip_help(members)) and help != line:
                     with chip:
                         ui.tooltip(help).classes("game-help-tip")
-                self.chips.append((chip, option))
+                self.chips.append((chip, members))
         self.moves_line.set_visibility(bool(self.chips))
         self.chip_row.classes(
             add="game-moves-briefed" if any(lines) else "", remove="game-moves-briefed"
         )
+        options = offered(self.view)
         self.explain_button.set_visibility(any(option.refusal or option.help for option in options))
 
     def _cell_line(self, option: ActionOption) -> str:
@@ -193,8 +219,8 @@ class ActionBar:
         return (option.refusal or option.brief) if asking else ""
 
     def _show_chips(self) -> None:
-        for chip, option in self.chips:
-            chip.set_enabled(self.acting and not option.refusal)
+        for chip, members in self.chips:
+            chip.set_enabled(self.acting and any(not member.refusal for member in members))
         self._show_armed()
 
     def _show(self, now: SessionSnapshot, *, entering: bool) -> None:
@@ -226,8 +252,8 @@ class ActionBar:
     def _show_armed(self) -> None:
         forced = forced_move(self.view)
         move = self.armed or forced
-        for chip, option in self.chips:
-            chip.classes(add="game-choice-on" if option == move else "", remove="game-choice-on")
+        for chip, members in self.chips:
+            chip.classes(add="game-choice-on" if move in members else "", remove="game-choice-on")
         if self.lock not in (None, "choose"):
             placeholder = PLACEHOLDERS[self.lock]
         elif self.armed is not None and forced is None:
@@ -246,6 +272,17 @@ def offered(view: PlayerView) -> tuple[ActionOption, ...]:
     return view.decision.options if view.decision is not None else view.moves
 
 
+def chip_cells(view: PlayerView) -> list[ChipCell]:
+    """A decision's options each get a chip; moves that share a group share one chip."""
+    if view.decision is not None:
+        return [(option.name, (option,)) for option in view.decision.options]
+    cells: dict[str, tuple[str, list[ActionOption]]] = {}
+    for move in view.moves:
+        key = f"group:{move.group}" if move.group else move.id
+        cells.setdefault(key, (move.group or move.name, []))[1].append(move)
+    return [(name, tuple(members)) for name, members in cells.values()]
+
+
 def forced_move(view: PlayerView) -> ActionOption | None:
     worded = [move for move in view.moves if move.needs_words]
     return worded[0] if not view.allows_text and len(worded) == 1 else None
@@ -262,3 +299,9 @@ def composer_lock(now: SessionSnapshot) -> ComposerLock | None:
     if view.decision is not None:
         return "answer" if view.decision.allows_text else "choose"
     return None
+
+
+def _chip_help(members: tuple[ActionOption, ...]) -> str:
+    if len(members) == 1:
+        return members[0].refusal or members[0].help
+    return " / ".join(member.name for member in members)
