@@ -23,9 +23,9 @@ Attribution, as `rules.md` carries it:
 
 ## Pack sources
 
-None. The starting item list is in the SRD's character creation.
+No separate pack sources. The starting item list is in the SRD's character creation, transcribed into `packs/srd.json`.
 
-Packs. A Tunnel Goons pack holds items, factions, people with their `hp`, monsters and the setting kit every pack carries — its setting, names, locations, seeds and special rules. None ships. A written one is selected on the scenario, and offers its tables on the character page, the way Loner's packs are.
+Packs. A Tunnel Goons pack holds items, factions, people with their `hp`, monsters and the setting kit every pack carries — its setting, names, locations, seeds and special rules. None ships beside the SRD. A written one is selected on the scenario, and offers its tables on the character page, the way Loner's packs are.
 
 ## The tools
 
@@ -35,12 +35,13 @@ Every tool makes one change, rolls dice, opens a decision, or ends the turn.
 - `move` — carry the player, the party, and any NPCs named in `with_ids`, through an unlocked way listed in WAYS OUT.
 - `meanwhile` — move a dweller, move a loose item and shut a known way, offscreen, on a turn ELSEWHERE is shown.
 - `roll` — 2d6 plus an ability and helpful items, against a Difficulty Score or an npc; `actor_id` when a hired member acts instead of the player.
-- `level_up` — raise one ability and either Health or Inventory by 1, once per game: the player first, then each hired member in turn.
+- `level_up` — raise one ability and either Health or Inventory by 1, once per game: the player first, then each hired member in turn. The player keeps the level in the next game.
 - `join_party` — someone here travels with the player. With `terms`, the player hires them to work: the worldsmith writes their sheet once the turn ends, and they join the party.
 
 ## Deviations in this repo
 
-1. Levelling up is a step the master calls once per game. The SRD page says "every 2 game sessions", the 1.1 PDF "at the end of a game session"; one game is the closest thing this app has to a session.
+1. One game is one session, and a goon levels up once per game. The SRD page says "every 2 game sessions", the 1.1 PDF "at the end of a game session". The levelled sheet, Health full, is written back over the player's own character file, so the next game starts at the new level. A character that ships with the game is never rewritten.
+2. The three starting items are free text. The SRD says to choose from its list; the page offers that list as a hint only, since most entries say "(specify)" anyway.
 
 ## What the AI game master adds
 

@@ -168,15 +168,21 @@ class TunnelGoonsEngine(
         """Level up one time, when the whole adventure ends. The engine gives the choice to the
         player first, then to each living hired member in turn."""
         world = draft.world
-        player = world.player
-        actor = player if player.require_sheet().level == 1 else world.next_to_level(player)
-        if actor is None:
+        goon = world.next_to_level()
+        if goon is None:
             raise Refusal("the player and every hired member have already levelled up")
         if args.ability is None or args.boost is None:
-            draft.pending = level_up_decision(actor)
+            draft.pending = level_up_decision(goon)
             return []
-        facts = actor.level(args.ability, args.boost)
-        following = world.next_to_level(actor)
-        if following is not None:
+        facts = world.level_up(goon, args.ability, args.boost)
+        if (following := world.next_to_level()) is not None:
             draft.pending = level_up_decision(following)
         return facts
+
+    def grown_character(self, state: TunnelGoonsGame, /) -> AnyCharacter | None:
+        player = state.world.player
+        if player.id not in state.world.levelled_ids or not player.alive:
+            return None
+        grown = player.model_copy(deep=True)
+        grown.hp.current = grown.hp.maximum
+        return self.character_model(id=state.character_id, engine_id=self.id, person=grown)

@@ -169,6 +169,24 @@ def test_level_up_passes_the_choice_on_to_a_hired_member() -> None:
     assert world.npcs[MIRA].require_sheet().abilities["skulker"] == 2
 
 
+def test_a_levelled_player_is_written_back_healed_and_levels_again_next_game() -> None:
+    game = small_world()
+    assert ENGINE.grown_character(game) is None
+    game.world.player.hp.current = 3
+    _ = ENGINE.level_up(game, LevelUp(ability="brute", boost="health"), Random(0))
+
+    grown = ENGINE.grown_character(game)
+
+    assert grown is not None
+    sheet = ENGINE.player_of(grown)
+    assert sheet.require_sheet().level == 2
+    assert sheet.hp.current == sheet.hp.maximum
+    next_game = small_world()
+    next_game.world.player = sheet
+    _ = ENGINE.level_up(next_game, LevelUp(ability="brute", boost="health"), Random(0))
+    assert next_game.world.player.require_sheet().level == 3
+
+
 def test_move_refuses_a_locked_way(world: TunnelGoonsWorld) -> None:
     world.visited_place_ids.append(HALL)
     with pytest.raises(Refusal, match="locked"):

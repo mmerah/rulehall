@@ -4,10 +4,10 @@ from pydantic import Field, model_validator
 
 from rulehall.core.facts import Fact
 from rulehall.core.game import Game
-from rulehall.core.validation import Frozen
+from rulehall.core.validation import Frozen, Slug
 from rulehall.core.views import Rows
 from rulehall.engines.rooms.world import RoomWorld
-from rulehall.engines.tunnelgoons.sheet import ABILITY_POINTS, AbilityScores, Goon
+from rulehall.engines.tunnelgoons.sheet import ABILITY_POINTS, Ability, AbilityScores, Boost, Goon
 
 
 class AbilitiesProposal(Frozen):
@@ -31,6 +31,8 @@ class AbilitiesProposal(Frozen):
 
 
 class TunnelGoonsWorld(RoomWorld[Goon]):
+    levelled_ids: list[Slug] = Field(default_factory=list)
+
     def sheet_rows(self) -> Rows:
         return self.player.rows(carried=len(list(self.carried(self.player.id))))
 
@@ -44,13 +46,13 @@ class TunnelGoonsWorld(RoomWorld[Goon]):
         facts.append(player.fact(trace, card=f"Rested — Health {player.hp}"))
         return facts
 
-    def next_to_level(self, actor: Goon) -> Goon | None:
-        members = self.hired_party_members()
-        order = [self.player.id, *(member.id for member in members)]
-        index = order.index(actor.id)
-        return next(
-            (member for member in members[index:] if member.require_sheet().level == 1), None
-        )
+    def next_to_level(self) -> Goon | None:
+        goons = (self.player, *self.hired_party_members())
+        return next((goon for goon in goons if goon.id not in self.levelled_ids), None)
+
+    def level_up(self, goon: Goon, ability: Ability, boost: Boost) -> list[Fact]:
+        self.levelled_ids.append(goon.id)
+        return goon.level(ability, boost)
 
 
 TunnelGoonsGame = Game[TunnelGoonsWorld]
