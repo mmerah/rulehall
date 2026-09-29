@@ -1,15 +1,15 @@
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from random import Random
 
 from rulehall.core.creation import CreationStep, Picks, find_option
 from rulehall.core.decisions import ActionOption, DecisionOption
 from rulehall.core.facts import Fact, roll
-from rulehall.core.game import AnyCharacter, AnyScenario, Character, RoleAnswer, WorldsmithRequest
-from rulehall.core.prompt import Sections, lines_of, section_if
+from rulehall.core.game import AnyCharacter, Character, Check, RoleAnswer, WorldsmithRequest
+from rulehall.core.prompt import Sections, lines_of, ref_of, section_if
 from rulehall.core.tools import action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
-from rulehall.core.views import NarratorView, Panel, Rows, tag_of
+from rulehall.core.views import NarratorView, Panel, Rows
 from rulehall.engines.args import Words
 from rulehall.engines.engine import RequestHandler, Resolution, Revealing
 from rulehall.engines.hiring import HIRE_PENDING, HIRE_UNWRITTEN, Hiring, signed_on
@@ -17,7 +17,6 @@ from rulehall.engines.packs import unique_options
 from rulehall.engines.panels import here_panel, party_panel
 from rulehall.engines.scenes.engine import SceneEngine
 from rulehall.engines.scenes.panels import trail_panel
-from rulehall.engines.scenes.worldsmith import check_opening
 from rulehall.engines.sheet import PLAYER_ID, joined
 from rulehall.engines.twentyfourxx.args import (
     BringIn,
@@ -78,7 +77,6 @@ from rulehall.engines.twentyfourxx.world import (
     TwentyFourXXNextProposal,
     TwentyFourXXSceneProposal,
     TwentyFourXXWorld,
-    filed_by_name,
 )
 from rulehall.engines.twentyfourxx.worldsmith import (
     COMPLICATING,
@@ -201,14 +199,6 @@ class TwentyFourXXEngine(
             self._succession(draft)
         if draft.pending is None and draft.request is None and draft.world.raise_owed:
             draft.pending = raise_decision(draft.world.player.require_sheet())
-
-    def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> TwentyFourXXWorld:
-        opening: TwentyFourXXSceneProposal = scenario.opening
-        filed = filed_by_name(opening)
-        check_opening(filed)
-        world = self.world_model.opening(filed, self.player_of(character))
-        world.apply_proposal_extras(opening)
-        return world
 
     def moves(self, state: TwentyFourXXGame, /) -> tuple[ActionOption, ...]:
         return (MOVE_ON, *look_again_move(state.world))
@@ -351,9 +341,9 @@ class TwentyFourXXEngine(
             ("THE HOLD", f"{world.ship_line()}\n{_item_lines(world.hold)}"),
         )
 
-    def context_lines(self, state: TwentyFourXXGame) -> str:
+    def context_text(self, state: TwentyFourXXGame) -> str:
         world = state.world
-        return f"{super().context_lines(state)}\n{world.ship_line()}\njob: {world.job or '(none)'}"
+        return f"{super().context_text(state)}\n{world.ship_line()}\njob: {world.job or '(none)'}"
 
     def narrator_view(self, state: TwentyFourXXGame) -> NarratorView:
         view = super().narrator_view(state)
@@ -495,13 +485,12 @@ class TwentyFourXXEngine(
         self, draft: TwentyFourXXGame, request: WorldsmithRequest, worldsmith: RoleAnswer
     ) -> Resolution:
         place_id = draft.world.scene.place_id
-        resolution = await self._cross(
-            draft,
-            request.detail,
-            worldsmith,
-            BY_SHIP,
-            lambda answer: [FLOWN.format(place_id=place_id)] if answer.place_id == place_id else [],
-        )
+
+        def check_flown_away(answer: TwentyFourXXNextProposal) -> None:
+            if answer.place_id == place_id:
+                raise Refusal(FLOWN.format(place_id=place_id))
+
+        resolution = await self._cross(draft, request.detail, worldsmith, BY_SHIP, check_flown_away)
         draft.world.dock_here()
         return resolution
 
@@ -511,11 +500,11 @@ class TwentyFourXXEngine(
         pursuit: str,
         worldsmith: RoleAnswer,
         how: str,
-        extra_needs: Callable[[TwentyFourXXNextProposal], list[str]] = lambda _: [],
+        extra_check: Check[TwentyFourXXNextProposal] = lambda _: None,
     ) -> Resolution:
         left = draft.world.scene.title
-        facts = self.install_next(
-            draft, await self.write_next(draft, pursuit, worldsmith, extra_needs=extra_needs)
+        facts = await self.write_and_install_next(
+            draft, pursuit, worldsmith, extra_check=extra_check
         )
         return Resolution(tuple(facts), CROSSING.format(left=left, how=how))
 
@@ -523,27 +512,22 @@ class TwentyFourXXEngine(
         self, draft: TwentyFourXXGame, request: WorldsmithRequest, worldsmith: RoleAnswer
     ) -> Resolution:
         location = draft.world.scene.location
-        facts = self.install_next(
-            draft,
-            await self.write_next(
-                draft,
-                COMPLICATING.format(brief=request.detail),
-                worldsmith,
-                extra_needs=lambda answer: (
-                    [NEW_LOCATION] if answer.location not in ("", location) else []
-                ),
-            ),
+
+        def check_same_location(answer: TwentyFourXXNextProposal) -> None:
+            if answer.location not in ("", location):
+                raise Refusal(NEW_LOCATION)
+
+        intent = COMPLICATING.format(brief=request.detail)
+        facts = await self.write_and_install_next(
+            draft, intent, worldsmith, extra_check=check_same_location
         )
         return Resolution(tuple(facts), TURNING)
-
-    def check_next(self, draft: TwentyFourXXGame, proposal: TwentyFourXXNextProposal, /) -> None:
-        super().check_next(draft, filed_by_name(proposal))
 
     def install_next(
         self, draft: TwentyFourXXGame, proposal: TwentyFourXXNextProposal, /
     ) -> list[Fact]:
         ended = draft.world.end_brief_hindrances()
-        return [*ended, *super().install_next(draft, filed_by_name(proposal))]
+        return [*ended, *super().install_next(draft, proposal)]
 
     def _offered(self, pack_id: Slug) -> tuple[tuple[Specialty, ...], tuple[Origin, ...]]:
         played = self.packs.played(pack_id)
@@ -696,7 +680,7 @@ class TwentyFourXXEngine(
 
 def _item_lines(items: Mapping[Slug, Gear]) -> str:
     return lines_of(
-        f"- {tag_of(item.name, key)}" + (f" — {detail}" if (detail := item.notes()) else "")
+        f"- {ref_of(item.name, key)}" + (f" — {detail}" if (detail := item.notes()) else "")
         for key, item in items.items()
     )
 

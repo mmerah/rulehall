@@ -48,10 +48,12 @@ NEWCOMING = (
     "origin and options from ENGINE GUIDANCE."
 )
 
-NEW_LOCATION = "no new `location`: a complication happens where the player is; leave it empty"
+NEW_LOCATION = (
+    "the answer needs no new `location`: a complication happens where the player is; leave it empty"
+)
 FLOWN = (
-    "a new `place_id`: the crew flew away from {place_id}; land them at the place that WHAT "
-    "COMES NEXT names"
+    "the answer needs a new `place_id`: the crew flew away from {place_id}; land them at the "
+    "place that WHAT COMES NEXT names"
 )
 
 

@@ -10,7 +10,6 @@ from support.table import NO_PACKS, narrated, offline_settings
 
 from rulehall.app.catalog import SavedGameKey
 from rulehall.app.mcp import MountedLifespan, endpoint
-from rulehall.app.roles import RoleReply
 from rulehall.app.runtime import Runtime
 from rulehall.app.turn import Turn
 from rulehall.config import Role
@@ -54,11 +53,10 @@ class HttpMaster:
         role: Role,
         prompt: Prompt,
         *,
-        resume_id: str | None = None,
         heard: Callable[[str], None] | None = None,
-    ) -> RoleReply:
-        del role, prompt, resume_id, heard
-        return RoleReply(narrated("You wait."), None)
+    ) -> str:
+        del role, prompt, heard
+        return narrated("You wait.")
 
     async def play_master_turn(self, prompt: Prompt, turn: Turn) -> None:
         del prompt, turn

@@ -114,7 +114,7 @@ def type_tag(kind: str) -> Tag:
 
 
 def team_panels(world: PokemonWorld) -> tuple[Panel, ...]:
-    sheet = world.player.require_sheet()
+    sheet = world.player_sheet
     bag = sorted(sheet.bag, key=_pocket_key)
     usable = [item_id for item_id in bag if item_of(item_id).kind != "ball"]
     cap = sheet.level_cap()
@@ -165,8 +165,8 @@ def scheme_panels(world: PokemonWorld) -> tuple[Panel, ...]:
     return (Panel(title=scheme.name, rows=rows, help=help_text),)
 
 
-def pending_decision(world: PokemonWorld) -> Decision | None:
-    return _learning_decision(world) or _evolution_decision(world) or _rank_decision(world)
+def pending_decision(sheet: TrainerSheet) -> Decision | None:
+    return _learning_decision(sheet) or _evolution_decision(sheet) or _rank_decision(sheet)
 
 
 def mon_row(mon: Mon, cap: int, options: tuple[ActionOption, ...] = ()) -> PanelRow:
@@ -217,7 +217,7 @@ def move_summary(move: Move) -> str:
 
 
 def bag_row(item_id: BagId, world: PokemonWorld) -> PanelRow:
-    sheet = world.player.require_sheet()
+    sheet = world.player_sheet
     item = item_of(item_id)
     return PanelRow(
         name=item.name,
@@ -259,7 +259,7 @@ def nature_arrows(nature: str) -> dict[int, str]:
 
 
 def mon_options(mon: Mon, world: PokemonWorld, bag: list[BagId]) -> tuple[ActionOption, ...]:
-    sheet = world.player.require_sheet()
+    sheet = world.player_sheet
     name = mon.name
     take = (
         ()
@@ -348,17 +348,15 @@ def item_option(mon: Mon, item_id: BagId, world: PokemonWorld) -> ActionOption:
         action_name=action_name,
         args={"mon_id": mon.mon_id, "item_id": item_id},
         group=group,
-        refusal=mon.item_refusal(
-            item_id, world.species_ids, world.player.require_sheet().level_cap()
-        ),
+        refusal=mon.item_refusal(item_id, world.species_ids, world.player_sheet.level_cap()),
     )
 
 
-def _learning_decision(world: PokemonWorld) -> Decision | None:
-    if not world.learning:
+def _learning_decision(sheet: TrainerSheet) -> Decision | None:
+    if not sheet.learning:
         return None
-    learning = world.learning[0]
-    mon = world.player.require_sheet().require_mon(learning.mon_id)
+    learning = sheet.learning[0]
+    mon = sheet.require_mon(learning.mon_id)
     move = dex().moves[learning.move_id].name
     return Decision(
         kind="new-move",
@@ -385,11 +383,11 @@ def _learning_decision(world: PokemonWorld) -> Decision | None:
     )
 
 
-def _evolution_decision(world: PokemonWorld) -> Decision | None:
-    if not world.evolving:
+def _evolution_decision(sheet: TrainerSheet) -> Decision | None:
+    if not sheet.evolving:
         return None
-    evolving = world.evolving[0]
-    mon = world.player.require_sheet().require_mon(evolving.mon_id)
+    evolving = sheet.evolving[0]
+    mon = sheet.require_mon(evolving.mon_id)
     return Decision(
         kind="evolution",
         prompt=f"{mon.name} is ready to evolve. Into which?",
@@ -406,7 +404,7 @@ def _evolution_decision(world: PokemonWorld) -> Decision | None:
     )
 
 
-def _rank_decision(world: PokemonWorld) -> Decision | None:
+def _rank_decision(sheet: TrainerSheet) -> Decision | None:
     options = tuple(
         ActionOption(
             id=skill,
@@ -415,9 +413,9 @@ def _rank_decision(world: PokemonWorld) -> Decision | None:
             action_name="raise_skill",
             args={"skill": skill},
         )
-        for skill in world.player.require_sheet().rankable()
+        for skill in sheet.rankable()
     )
-    if not (world.ranks_due and options):
+    if not (sheet.ranks_due and options):
         return None
     return Decision(
         kind="badge-rank",

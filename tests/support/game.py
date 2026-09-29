@@ -22,7 +22,7 @@ from support.table import (
 
 KEY = SavedGameKey(scenario_id="whispering-vault", character_id="kael")
 MARA: Slug = "mara"
-TOMAS: Slug = "tomas"
+TOMAS: Slug = "brother-tomas"
 SITUATION = (
     "A frost-rimed colonnade around a dead garden, and the way down is somewhere under it. "
     "Nothing here has been swept in a long while."
@@ -51,7 +51,7 @@ def with_entity(state: Loner4eGame, entity: Loner4eEntity) -> Loner4eGame:
 
 
 def loner_sheet(state: Loner4eGame, entity_id: Slug) -> Loner4eEntity:
-    return state.world.require(entity_id)
+    return state.world.require_entity(entity_id)
 
 
 def scenario() -> Scenario[Loner4eOpeningProposal]:

@@ -12,7 +12,6 @@ from rulehall.core.decisions import ActionOption, DecisionOption
 from rulehall.core.facts import Fact
 from rulehall.core.game import (
     AnyCharacter,
-    AnyScenario,
     Character,
     RoleAnswer,
     WorldsmithRequest,
@@ -22,8 +21,7 @@ from rulehall.core.tools import MasterTool, NoArgs, action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.core.views import NarratorView, Panel
 from rulehall.engines.args import Words
-from rulehall.engines.engine import RequestHandler, Resolution
-from rulehall.engines.hiring import Joining
+from rulehall.engines.engine import Joining, RequestHandler, Resolution
 from rulehall.engines.loner4e.args import (
     Ask,
     ChangeTags,
@@ -86,7 +84,7 @@ from rulehall.engines.packs import unique_options
 from rulehall.engines.panels import here_panel, party_panel
 from rulehall.engines.scenes.engine import SceneEngine
 from rulehall.engines.scenes.panels import trail_panel
-from rulehall.engines.scenes.worldsmith import OPENING, check_opening
+from rulehall.engines.scenes.worldsmith import OPENING
 from rulehall.engines.sheet import PLAYER_ID
 
 QUIET_SCENE_REQUEST = "quiet"
@@ -259,7 +257,7 @@ class Loner4eEngine(
         self, draft: Loner4eGame, _request: WorldsmithRequest, worldsmith: RoleAnswer
     ) -> Resolution:
         intent = _dramatic_intent(draft)
-        facts = self.install_next(draft, await self.write_next(draft, intent, worldsmith))
+        facts = await self.write_and_install_next(draft, intent, worldsmith)
         return Resolution(tuple(facts), ARRIVING)
 
     async def write_quiet(
@@ -268,7 +266,7 @@ class Loner4eEngine(
         intent = QUIET.format(aim=request.detail)
         if offscreen := draft.world.frame.offscreen:
             intent += f" {OFFSCREEN.format(offscreen=offscreen)}"
-        facts = self.install_next(draft, await self.write_next(draft, intent, worldsmith))
+        facts = await self.write_and_install_next(draft, intent, worldsmith)
         facts += draft.world.player.refill("a quiet scene")
         draft.note(ARRIVING_QUIET)
         return Resolution(tuple(facts), None)
@@ -336,18 +334,7 @@ class Loner4eEngine(
         )
 
     def _spends_luck(self, state: Loner4eGame) -> bool:
-        return self.packs.require(state.pack_id).spends_luck
-
-    def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> Loner4eWorld:
-        opening: Loner4eOpeningProposal = scenario.opening
-        check_opening(opening)
-        world = self.world_model.opening(opening, self.player_of(character))
-        world.apply_proposal_extras(opening)
-        return world
-
-    def install_next(self, draft: Loner4eGame, proposal: Loner4eNextProposal, /) -> list[Fact]:
-        draft.world.apply_proposal_extras(proposal)
-        return super().install_next(draft, proposal)
+        return self.packs.require_pack(state.pack_id).spends_luck
 
     def creation_steps(self, pack_id: Slug, picks: Picks) -> tuple[CreationStep, ...]:
         played = self.packs.played(pack_id)
@@ -524,7 +511,7 @@ class Loner4eEngine(
     def fight(self, draft: Loner4eGame, args: Fight, _rng: Random) -> list[Fact]:
         world = draft.world
         opponent = world.require_living_here(args.opponent_id)
-        trace = f"the protagonist fights {opponent.tag}: each `ask` is an exchange"
+        trace = f"the protagonist fights {opponent.ref}: each `ask` is an exchange"
         card = Fact(trace=trace, told=True, card=f"Fight: {opponent.name}")
         return [card, *world.engage(opponent)]
 

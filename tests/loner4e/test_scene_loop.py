@@ -217,7 +217,7 @@ async def test_loner_knows_everyone_so_no_name_is_refused_and_a_stranger_is_met(
 
     _ = change(ENGINE, draft, "enter", target_id="dock-guard")
 
-    assert draft.world.require("dock-guard").known
+    assert draft.world.require_entity("dock-guard").known
 
 
 def test_the_master_reads_whom_the_player_met_elsewhere_by_id() -> None:
@@ -227,8 +227,8 @@ def test_the_master_reads_whom_the_player_met_elsewhere_by_id() -> None:
     sections = dict(ENGINE.master_sections(draft))
 
     assert sections[ELSEWHERE_TITLE] == (
-        "- Brother Tomas[tomas] — A Deaf Old Porter\n- Elena[elena] — A Ruined Archivist\n"
-        "- a bloated rat[cloister-rat] — A Bloated Cloister Rat"
+        "- Brother Tomas[brother-tomas] — A Deaf Old Porter\n- Elena[elena] — A Ruined Archivist\n"
+        "- a bloated rat[a-bloated-rat] — A Bloated Cloister Rat"
     )
 
 

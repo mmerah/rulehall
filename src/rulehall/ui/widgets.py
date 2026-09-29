@@ -21,6 +21,12 @@ BACK_ICON = "sym_r_arrow_back"
 REFUSED_ICON = "sym_r_explore_off"
 DANGER_ICON = "sym_r_warning"
 HELP_ICON = "sym_r_info"
+PLAY_ICON = "sym_r_play_arrow"
+BROKEN_ICON = "sym_r_broken_image"
+PACK_ICON = "sym_r_style"
+NEW_CHARACTER_ICON = "sym_r_person_add"
+NEW_ADVENTURE_ICON = "sym_r_auto_stories"
+NEW_PACK_ICON = "sym_r_auto_fix_high"
 ON_TOUCH = "matchMedia('(hover: none)').matches"
 PASS_THROUGH = "display: contents"
 SOUNDS_DIR = Path(__file__).parent / "sounds"
@@ -275,6 +281,34 @@ def heading(title: str, count: int | None = None, *, help: str = "") -> None:
 
 def entered_text(field: ui.input | ui.textarea) -> str:
     return (field.value or "").strip(BLANK)
+
+
+def link_box(path: str, classes: str) -> ui.element:
+    link = ui.element("a").classes(classes)
+    link.props["href"] = path
+    return link
+
+
+def pattern_classes(look: Look) -> str:
+    return f"game-pattern game-pattern-{look.pattern}"
+
+
+def die_glyph(look: Look) -> None:
+    with ui.column().classes("game-die game-glyph game-gap-0").props('aria-hidden="true"'):
+        ui.label(f"d{look.die_faces}").classes("game-die-face")
+        with ui.element("div").classes("game-die-window"):
+            ui.label(str(look.die_faces)).classes("game-die-value")
+
+
+def art(look: Look, cover: Path | None) -> None:
+    with ui.element("div").classes(f"game-art {pattern_classes(look)}"):
+        if cover is not None:
+            image = ui.element("img").classes("game-art-image").props('alt="" loading="lazy"')
+            image.props["src"] = media_url(cover)
+
+
+def failure_notice(what_failed: str) -> str:
+    return f"Something went wrong. {what_failed} Look in the server log."
 
 
 def _notify(message: str, kind: Literal["negative", "warning", "positive", "info"]) -> None:

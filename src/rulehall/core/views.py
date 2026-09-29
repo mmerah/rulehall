@@ -1,11 +1,12 @@
 from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
-from typing import Literal, Self, TypedDict
+from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
 from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.log import Line, Narration, SpokenLine
+from rulehall.core.prompt import headline_of
 from rulehall.core.validation import Frozen, Refusal, Slug, check_unique
 
 SCENE_TAB = "Scene"
@@ -159,13 +160,6 @@ class MapView(Frozen):
     here_id: Slug
 
 
-class PlayerActions(TypedDict):
-    decision: Decision | None
-    moves: tuple[ActionOption, ...]
-    hint: str
-    allows_text: bool
-
-
 class PlayerView(Frozen):
     premise: str
     player: Subject
@@ -212,11 +206,3 @@ class Look(Frozen):
 
 def nonblank_rows(*pairs: tuple[str, str]) -> Rows:
     return tuple(pair for pair in pairs if pair[1])
-
-
-def tag_of(name: str, entity_id: Slug) -> str:
-    return f"{name}[{entity_id}]"
-
-
-def headline_of(name: str, entity_id: Slug, brief: str, *, alive: bool = True) -> str:
-    return tag_of(name, entity_id) + (f" — {brief}" if brief else "") + ("" if alive else " (dead)")

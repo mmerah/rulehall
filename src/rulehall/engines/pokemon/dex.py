@@ -4,9 +4,9 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
+from rulehall.core.prompt import ref_of
 from rulehall.core.stores import read_model
 from rulehall.core.validation import Frozen, Refusal, Slug
-from rulehall.core.views import tag_of
 
 DEX_FILE = Path(__file__).parent / "dex.json"
 AVATARS_FILE = Path(__file__).parent / "avatars.json"
@@ -101,15 +101,15 @@ class Dex(Frozen):
     items: dict[str, str]
     type_chart: dict[str, Matchups]
 
-    def require(self, species_id: str) -> Species:
+    def require_species(self, species_id: str) -> Species:
         found = self.species.get(species_id)
         if found is None:
             raise Refusal(f"{species_id!r} is no species id of the dex")
         return found
 
-    def tag(self, species_id: Slug) -> str:
+    def species_ref(self, species_id: Slug) -> str:
         species = self.species[species_id]
-        return f"{tag_of(species.name, species_id)} {species.types_text()}"
+        return f"{ref_of(species.name, species_id)} {species.types_text()}"
 
     def type_chart_text(self) -> str:
         return "\n".join(

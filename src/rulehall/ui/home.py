@@ -8,11 +8,22 @@ from rulehall.app.catalog import LauncherCatalog, SaveOption
 from rulehall.app.runtime import Runtime
 from rulehall.core.validation import EngineId
 from rulehall.core.views import Look
-from rulehall.ui.looks import art, die_glyph, link_box, pattern_classes
+from rulehall.ui.hall import delete_button, open_game, save_line
 from rulehall.ui.routes import SETTINGS, game_path, hall_path
-from rulehall.ui.saves import BROKEN_ICON, PLAY_ICON, delete_button, open_game, save_line
 from rulehall.ui.theme import look_style
-from rulehall.ui.widgets import entry_card, nav_button, page_body, page_header, section_title
+from rulehall.ui.widgets import (
+    BROKEN_ICON,
+    PLAY_ICON,
+    art,
+    die_glyph,
+    entry_card,
+    link_box,
+    nav_button,
+    page_body,
+    page_header,
+    pattern_classes,
+    section_title,
+)
 
 SETTINGS_ICON = "sym_r_settings"
 OPEN_ICON = "sym_r_chevron_right"
@@ -23,7 +34,7 @@ WELCOME = (
 )
 
 
-def lobby_page(runtime: Runtime) -> None:
+def home_page(runtime: Runtime) -> None:
     catalog = runtime.catalog()
     now = datetime.now(UTC)
     with page_header("Rulehall", back=None):

@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -10,10 +11,13 @@ from rulehall.core.creation import find_option
 from rulehall.core.decisions import Decision, PlayerInput
 from rulehall.core.facts import NOTHING, Fact, render_traces
 from rulehall.core.game import AnyGame
-from rulehall.core.log import RefusedCall, SpokenLine
+from rulehall.core.log import SpokenLine
 from rulehall.core.tools import MasterTool
 from rulehall.core.validation import Refusal, Slug, decode
+from rulehall.engines.battles import in_battle
 from rulehall.engines.engine import AnyEngine
+
+LOGGER = logging.getLogger(__name__)
 
 PAUSED_TO_ASK = 'The rules paused play to ask the player: "{prompt}" '
 RULES_WAIT = "the rules now wait on the player's decision"
@@ -43,7 +47,6 @@ class Turn:
     rng: Random
     facts: list[Fact] = field(default_factory=list)
     facts_carried_from_last_turn: list[Fact] = field(default_factory=list)
-    refused: list[RefusedCall] = field(default_factory=list)
     logged_words: str = ""
     by_option: bool = False
     master_action_text: str = ""
@@ -114,7 +117,7 @@ class Turn:
         draft = self.draft
         if draft.pending is not None:
             return False
-        return bool(self.told) or (draft.request is None and not self.engine.in_battle(draft))
+        return bool(self.told) or (draft.request is None and not in_battle(self.engine, draft))
 
     @property
     def master_must_stop(self) -> bool:
@@ -123,7 +126,7 @@ class Turn:
             self.direct_fact is not None
             or draft.pending is not None
             or draft.request is not None
-            or engine.in_battle(draft)
+            or in_battle(engine, draft)
             or engine.ending(draft) is not None
         )
 
@@ -137,9 +140,7 @@ class Turn:
                 name, decode(arguments) if isinstance(arguments, str) else arguments
             )
         except Refusal as refused:
-            self.refused.append(
-                RefusedCall(tool=name, reason=str(refused), after_facts=len(self.facts))
-            )
+            LOGGER.warning("the rules refused %s: %s", name, refused)
             raise
 
     def _call_tool(self, name: str, raw: JsonValue) -> str:
@@ -156,7 +157,7 @@ class Turn:
             )
         if self.draft.request is not None:
             return REQUEST_WAIT
-        if self.engine.in_battle(self.draft):
+        if in_battle(self.engine, self.draft):
             return BATTLE_WAIT
         facts = self._apply(lambda draft, rng: self.engine.call_tool(draft, name, raw, rng))
         if name == DIRECT:
@@ -184,7 +185,6 @@ class Turn:
             tuple(self.facts),
             words=self.logged_words,
             by_option=self.by_option,
-            refused=tuple(self.refused),
         )
 
     def _apply(self, play: Callable[[AnyGame, Random], tuple[Fact, ...]]) -> tuple[Fact, ...]:

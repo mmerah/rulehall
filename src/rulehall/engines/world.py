@@ -49,11 +49,16 @@ class World[P: Person](Mutable):
     @abstractmethod
     def roster(self) -> Mapping[Slug, P]: ...
     @abstractmethod
+    def here(self) -> Iterable[P]: ...
+    @abstractmethod
     def require_person_here(self, entity_id: Slug) -> P: ...
     @abstractmethod
     def reveal_hidden(self, entity_id: Slug) -> list[Fact]: ...
     @abstractmethod
     def kill(self, entity_id: Slug) -> list[Fact]: ...
+
+    def apply_proposal_extras(self, proposal: OpeningProposal) -> None:
+        pass
 
     def party_members(self) -> list[P]:
         return [self.roster[member_id] for member_id in self.party_ids]
@@ -82,7 +87,7 @@ class World[P: Person](Mutable):
         if member.id not in self.party_ids:
             raise Refusal(f"{member.name} does not travel with the player")
         self.party_ids.remove(member.id)
-        trace = f"{member.tag} no longer travels with the player"
+        trace = f"{member.ref} no longer travels with the player"
         return [member.fact(trace, card=f"{member.name} leaves your party")]
 
     def refuse_unmet_names(self, *texts: str) -> None:
@@ -108,7 +113,7 @@ class World[P: Person](Mutable):
         if person.id in self.party_ids:
             raise Refusal(f"{person.name} already travels with the player")
         self.party_ids.append(person.id)
-        trace = f"{person.tag} travels with the player"
+        trace = f"{person.ref} travels with the player"
         return [person.fact(trace, card=f"{person.name} joins your party")]
 
     def sheet_rows(self) -> Rows:
@@ -125,12 +130,3 @@ def check_filing(pool: Mapping[Slug, Entity]) -> None:
     for key, entity in pool.items():
         if key != entity.id:
             raise Refusal(f"entity {entity.id!r} is filed under {key!r}")
-
-
-def authoring_faults(pool: Mapping[Slug, Person], filed: Iterable[Slug]) -> list[str]:
-    already = set(filed)
-    return [
-        f"{entity_id}: {why}"
-        for entity_id, entry in pool.items()
-        if entity_id not in already and (why := entry.authoring_fault())
-    ]

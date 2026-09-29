@@ -97,7 +97,7 @@ class ShipUpgrade(Frozen):
     upgrade: ShortName = Field(min_length=1, description=f"What the upgrade is. {BE_SHORT}")
 
 
-class Defence(Frozen):
+class Defend(Frozen):
     item_id: Slug = Field(description="Exact id of a carried item, or of a ship function.")
     hindrance: ShortName = Field(
         default="",
@@ -105,9 +105,6 @@ class Defence(Frozen):
         f"that the engine removes at the next scene. Empty for an item that breaks with no harm. "
         f"{BE_SHORT}",
     )
-
-
-class Defend(Defence):
     actor_id: Slug | None = Field(default=None, description=ACTOR)
 
 
@@ -128,13 +125,25 @@ class LoseHoldItem(Frozen):
     )
 
 
-class Staked(Frozen):
+class Helper(Frozen):
+    actor_id: Slug = Field(description="Exact id of the hired member who helps.")
+    hindered: PlayerFacing = Field(
+        default="", description="Why the helper is hindered. Empty when nothing hinders them."
+    )
+    skill: str = Field(
+        default="",
+        description="The skill the helper rolls. Empty rolls the roll's own `skill`. A d6 when "
+        "their sheet lacks it.",
+    )
+
+
+class Roll(Attempt):
     risk: Risk = Field(
         default="",
         description="What they take in full on a disaster: an injury, a loss, a cost or an "
         "alarm. Name it before the roll; set `harm` when it hurts them, and then name the "
-        "injury. A roll with no risk is not a roll; a helper's empty `risk` shares the actor's "
-        f"`risk`, `harm` and `deadly`. {RISK_SHORT}",
+        "injury. A roll with no risk is not a roll. A helper shares it, with `harm`, `deadly` "
+        f"and `setback_hurt`. {RISK_SHORT}",
     )
     deadly: bool = Field(
         default=False,
@@ -155,26 +164,6 @@ class Staked(Frozen):
         "such as `Bruised ribs`. The engine writes it as a brief hindrance. Empty writes "
         f"`Minor hurt`. {BE_SHORT}",
     )
-    defend: Defence | None = Field(
-        default=None,
-        description="The gear that the player named before the roll to break and protect them. "
-        "Null when nothing protects them.",
-    )
-
-
-class Helper(Staked):
-    actor_id: Slug = Field(description="Exact id of the hired member who helps.")
-    hindered: PlayerFacing = Field(
-        default="", description="Why the helper is hindered. Empty when nothing hinders them."
-    )
-    skill: str = Field(
-        default="",
-        description="The skill the helper rolls. Empty rolls the roll's own `skill`. A d6 when "
-        "their sheet lacks it.",
-    )
-
-
-class Roll(Staked, Attempt):
     actor_id: Slug | None = Field(default=None, description=ACTOR)
     skill: str = Field(default="", description="The skill to roll. Empty rolls the plain d6.")
     helped: PlayerFacing = Field(

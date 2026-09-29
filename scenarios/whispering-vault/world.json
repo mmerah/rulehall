@@ -43,8 +43,8 @@
         "goal": "Finish the catalogue before anyone strips the abbey",
         "motive": "It is the last thing the abbot asked of her"
       },
-      "tomas": {
-        "id": "tomas",
+      "brother-tomas": {
+        "id": "brother-tomas",
         "name": "Brother Tomas",
         "brief": "A deaf old porter who sweeps the cloister and knows almost nothing about the vault.",
         "concept": "A Deaf Old Porter",
@@ -80,8 +80,8 @@
         "goal": "Be paid for the sealing rite",
         "motive": "Two winters below earned her that much"
       },
-      "cloister-rat": {
-        "id": "cloister-rat",
+      "a-bloated-rat": {
+        "id": "a-bloated-rat",
         "name": "a bloated rat",
         "brief": "It has grown fat on the dead garden and does not run from a lantern.",
         "concept": "A Bloated Cloister Rat",

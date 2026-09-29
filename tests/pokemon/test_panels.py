@@ -33,7 +33,7 @@ def test_people_and_pokemon_name_their_showdown_sprites() -> None:
 
 
 def test_a_team_row_shows_types_hp_and_stats_as_tags_and_meters() -> None:
-    mon = started().world.player.require_sheet().require_mon("charmander")
+    mon = started().world.player_sheet.require_mon("charmander")
     mon.hp.current = 8
     mon.status = "brn"
 
@@ -56,7 +56,7 @@ def test_a_team_row_shows_types_hp_and_stats_as_tags_and_meters() -> None:
 
 
 def test_the_cap_tag_shows_only_at_a_cap_a_badge_can_lift() -> None:
-    mon = started().world.player.require_sheet().require_mon("charmander")
+    mon = started().world.player_sheet.require_mon("charmander")
 
     assert "Cap" in {tag.name for tag in mon_row(mon, mon.level).tags}
 
@@ -88,7 +88,7 @@ def test_a_player_with_an_npc_roster_is_refused() -> None:
 
 def test_a_team_row_offers_its_items_moves_and_team_actions_in_groups() -> None:
     draft = started().draft()
-    sheet = draft.world.player.require_sheet()
+    sheet = draft.world.player_sheet
     charmander = sheet.require_mon("charmander")
     charmander.level, charmander.exp = 12, 12**3
     charmander.hp.current = 8
@@ -117,7 +117,7 @@ def test_a_team_row_offers_its_items_moves_and_team_actions_in_groups() -> None:
 
 
 def test_the_summary_shows_the_held_item_the_nature_arrows_and_the_moves() -> None:
-    mon = started().world.player.require_sheet().require_mon("charmander")
+    mon = started().world.player_sheet.require_mon("charmander")
     mon.item_id = "charcoal"
 
     about, stats, moves = mon_row(mon, LEVEL_MAX).detail
@@ -134,7 +134,7 @@ def test_the_summary_shows_the_held_item_the_nature_arrows_and_the_moves() -> No
 
 def test_bag_rows_sort_by_pocket_and_carry_their_text() -> None:
     draft = started().draft()
-    sheet = draft.world.player.require_sheet()
+    sheet = draft.world.player_sheet
     for item_id in ("tm-dig", "oran-berry", "rare-candy", "everstone"):
         sheet.add(item_id, 1)
     state = ENGINE.accept(draft)

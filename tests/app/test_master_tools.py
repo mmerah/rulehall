@@ -126,7 +126,7 @@ CODEX_STREAM = """Reading additional input from stdin...
 
 
 def test_a_codex_event_stream_reads_as_the_agent_message_it_carries() -> None:
-    said = CodexDriver().read_result(CODEX_STREAM).text
+    said = CodexDriver().read_result(CODEX_STREAM)
 
     assert said == '{"lines": [{"speaker_id": null, "text": "ok"}]}'
     assert [line.text for line in Narration.model_validate_json(said).lines] == ["ok"]

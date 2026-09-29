@@ -5,7 +5,7 @@ from typing import NamedTuple, Self
 from rulehall.core.facts import DiceEvent, Fact
 from rulehall.core.prompt import sentence
 from rulehall.core.validation import Refusal, Slug
-from rulehall.engines.twentyfourxx.args import DefendHit, Helper, Roll, Staked
+from rulehall.engines.twentyfourxx.args import DefendHit, Helper, Roll
 from rulehall.engines.twentyfourxx.panels import defence_decision
 from rulehall.engines.twentyfourxx.rules import (
     HELP_DIE,
@@ -49,15 +49,6 @@ class DicePool:
             who = world.require_actor(helper.actor_id)
             if who is actor:
                 raise Refusal(f"{actor.name} cannot help their own roll")
-            if not helper.risk:
-                helper = helper.model_copy(
-                    update={
-                        "risk": args.risk,
-                        "harm": args.harm,
-                        "deadly": args.deadly,
-                        "setback_hurt": args.setback_hurt,
-                    }
-                )
             rulebook_and_lead_skills = (*rulebook_skills, args.skill)
             helper_skill = who.require_sheet().skill_die(
                 helper.skill or args.skill, rulebook_and_lead_skills
@@ -70,21 +61,10 @@ class DicePool:
             faces.append(HELP_DIE)
         if helper_die is not None:
             faces.append(HINDERED_DIE if helper_die.terms.hindered else helper_die.die)
-        pool = cls(roll=args, actor=actor, helper=helper_die, faces=tuple(faces), label=label)
-        world.check_defenses(
-            [
-                (who, stake.defend.item_id, stake.defend.hindrance)
-                for who, stake in pool.stakes()
-                if stake.defend is not None
-            ]
-        )
-        return pool
+        return cls(roll=args, actor=actor, helper=helper_die, faces=tuple(faces), label=label)
 
-    def stakes(self) -> list[tuple[Crewmate, Staked]]:
-        staked: list[tuple[Crewmate, Staked]] = [(self.actor, self.roll)]
-        if self.helper is not None:
-            staked.append((self.helper.who, self.helper.terms))
-        return staked
+    def at_risk(self) -> list[Crewmate]:
+        return [self.actor] if self.helper is None else [self.actor, self.helper.who]
 
     def lines(self) -> tuple[str, str]:
         args = self.roll
@@ -97,30 +77,32 @@ class DicePool:
             line += f", helped by {helper.who.name} ({skill} d{self.faces[-1]}{hindered})"
         if args.hindered:
             line += f", hindered ({args.hindered})"
-        staked = line
-        if helper is not None and (terms := helper.terms).risk:
-            risked = risk_text(terms.risk, harm=terms.harm, deadly=terms.deadly)
-            staked += f", {helper.who.name} risking {risked}"
-        return line, f"{staked}, risking {risk_text(args.risk, harm=args.harm, deadly=args.deadly)}"
+        return line, f"{line}, risking {risk_text(args.risk, harm=args.harm, deadly=args.deadly)}"
 
 
 def defend_or_land(
     draft: TwentyFourXXGame, pool: DicePool, rolled: DiceEvent, choices: dict[Slug, Slug | None]
 ) -> list[Fact]:
+    roll = pool.roll
     band = roll_band(max(rolled.rolled))
-    for who, stake in pool.stakes():
-        hurt = (band == "disaster" and stake.harm) or (band != "success" and stake.deadly)
-        defences = draft.world.defences_for(who)
-        if not hurt or stake.defend is not None or who.id in choices or not defences:
+    hurt = (band == "disaster" and roll.harm) or (band != "success" and roll.deadly)
+    ship_functions_taken = {item_id for item_id in choices.values() if item_id in draft.world.ship}
+    for who in pool.at_risk() if hurt else ():
+        defences = [
+            (item_id, gear)
+            for item_id, gear in draft.world.defences_for(who)
+            if item_id not in ship_functions_taken
+        ]
+        if who.id in choices or not defences:
             continue
         hit = (
             f"{who.name} is maimed"
             if band == "setback"
-            else f"{sentence(stake.risk)} hits {who.name}"
+            else f"{sentence(roll.risk)} hits {who.name}"
         )
         draft.pending = defence_decision(
-            f"{pool.roll.what}: {band}. {hit}.",
-            DefendHit(roll=pool.roll, rolled=rolled, choices=choices),
+            f"{roll.what}: {band}. {hit}.",
+            DefendHit(roll=roll, rolled=rolled, choices=choices),
             who.id,
             defences,
         )
@@ -137,28 +119,24 @@ def land(
 ) -> list[Fact]:
     world = draft.world
     world.work_rolled = True
+    roll = pool.roll
     line, staked = pool.lines()
     facts = [pool.actor.fact(f"{staked} → {band}", card=f"{line} → {band}", dice=(rolled,))]
     if band != "success":
-        # Hits land helper-first, the reverse of the actor-first claims checked before.
-        for who, stake in reversed(pool.stakes()):
-            defend = stake.defend
-            item_id = None if defend is None else defend.item_id
-            hindrance = "" if defend is None else defend.hindrance
-            if (chosen := choices.get(who.id)) is not None:
-                harmless = world.require_gear(who, chosen).harmless
-                hurt = lesser_hurt(stake.setback_hurt, deadly=stake.deadly)
-                item_id, hindrance = chosen, "" if harmless else hurt
+        for who in reversed(pool.at_risk()):
+            item_id, hindrance = choices.get(who.id), ""
+            if item_id is not None and not world.require_gear(who, item_id).harmless:
+                hindrance = lesser_hurt(roll.setback_hurt, deadly=roll.deadly)
             facts.extend(
                 world.take_hit(
                     who,
                     item_id,
                     hindrance,
-                    risk=stake.risk,
-                    setback_hurt=stake.setback_hurt,
+                    risk=roll.risk,
+                    setback_hurt=roll.setback_hurt,
                     disaster=band == "disaster",
-                    deadly=stake.deadly,
-                    harm=stake.harm,
+                    deadly=roll.deadly,
+                    harm=roll.harm,
                 )
             )
     if any(chosen is not None for chosen in choices.values()):

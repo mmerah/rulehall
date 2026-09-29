@@ -18,13 +18,19 @@ from rulehall.core.documents import SOURCE_SUFFIXES
 from rulehall.core.game import ScenarioDescription
 from rulehall.core.validation import EngineId, Refusal, Slug, content_id
 from rulehall.ui.panel_parts import labeled_value
-from rulehall.ui.routes import assets_route, game_path, hall_path
+from rulehall.ui.routes import NEW_PACK, assets_route, engine_path, game_path, hall_path
 from rulehall.ui.widgets import (
+    NEW_ADVENTURE_ICON,
+    NEW_CHARACTER_ICON,
+    NEW_PACK_ICON,
+    PACK_ICON,
     action_bar,
     alert,
     attempt,
     done,
     entered_text,
+    entry_card,
+    failure_notice,
     heading,
     help_tip,
     inform,
@@ -35,11 +41,8 @@ from rulehall.ui.widgets import (
 )
 
 LOGGER = logging.getLogger(__name__)
-SCENARIO_FAILED = "Something went wrong. The scenario was not written. Look in the server log."
-PACK_FAILED = "Something went wrong. The pack was not written. Look in the server log."
-NEW_CHARACTER_ICON = "sym_r_person_add"
-NEW_ADVENTURE_ICON = "sym_r_auto_stories"
-NEW_PACK_ICON = "sym_r_auto_fix_high"
+SCENARIO_FAILED = failure_notice("The scenario was not written.")
+PACK_FAILED = failure_notice("The pack was not written.")
 
 
 class DocumentUpload:
@@ -242,7 +245,7 @@ class ScenarioForm:
 
     @property
     def pack(self):
-        return self.engine.packs.require(self.pack_id)
+        return self.engine.packs.require_pack(self.pack_id)
 
     def draw_character_fields(self) -> None:
         _pack_select(self.engine.packs.options(), self.pack_id, self.choose_pack)
@@ -358,6 +361,23 @@ class PackForm:
             ui.navigate.to(hall_path(self.engine_id))
 
         _ = await attempt(writing, failed=PACK_FAILED, loading=self.button)
+
+
+def packs_page(runtime: Runtime, engine_id: EngineId) -> None:
+    engine = runtime.require_engine(engine_id)
+    page_header("Packs", look=engine.look, back=hall_path(engine.id))
+    with page_body():
+        page_intro(engine.title, "Packs", "The tables these rules roll on.")
+        with ui.column().classes("w-full game-gap-xl"):
+            for pack in runtime.catalog().packs_for(engine.id):
+                sub = f"Edit it in {runtime.packs.path(engine.id, pack.id)}" if pack.written else ""
+                entry_card(PACK_ICON, pack.name, sub)
+        with action_bar():
+            ui.button(
+                "New pack",
+                icon=NEW_PACK_ICON,
+                on_click=lambda: ui.navigate.to(engine_path(NEW_PACK, engine.id)),
+            ).props("color=primary")
 
 
 @contextmanager

@@ -275,16 +275,9 @@ async def test_a_written_opening_becomes_a_playable_scenario(tmp_path: Path) -> 
 
 
 async def test_an_opening_the_rules_will_not_play_never_reaches_disk(tmp_path: Path) -> None:
-    """A structurally broken cast entry fails to parse on both tries, so nothing reaches disk."""
+    """An opening that places nobody real fails on both tries, so nothing reaches disk."""
     scenarios = tmp_path / "scenarios"
-    cast: dict[str, JsonValue] = {
-        "hana": {
-            "id": "hana-imposter",
-            "name": "Hana",
-            "brief": "A ferrywoman.",
-        }
-    }
-    broken = json.dumps(_OPENING | {"cast": {**cast, "bell-rope": _OPENING_ITEM}})
+    broken = json.dumps(_OPENING | {"present_ids": ["nobody-here"]})
     roles = ScriptedRoles(answers={"worldsmith": [broken, broken]})
     runtime = Runtime(offline_settings(tmp_path, scenarios), roles=roles)
 

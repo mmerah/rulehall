@@ -69,7 +69,7 @@ class Runtime:
     ) -> Slug:
         engine = self.require_engine(engine_id)
         character = self.library.read_character(character_id, engine.id, engine.character_model)
-        engine.packs.require(pack_id)
+        engine.packs.require_pack(pack_id)
         source = await to_thread(given_text, description.premise, document)
         scenario_id = slug(description.title, self.library.scenario_ids())
 

@@ -26,7 +26,10 @@ class PokemonPack(Pack):
         pokedex = dex()
         return (
             *super().sections(opening=opening),
-            ("SPECIES", ", ".join(pokedex.tag(species_id) for species_id in self.species_ids)),
+            (
+                "SPECIES",
+                ", ".join(pokedex.species_ref(species_id) for species_id in self.species_ids),
+            ),
             ("TRAINER CLASSES", ", ".join(avatars().npc)),
         )
 

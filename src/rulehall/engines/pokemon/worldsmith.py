@@ -43,8 +43,7 @@ WORLDSMITH_GUIDANCE = (
     "null. The opening map holds its first `operation`; a later map writes one, or the lair and "
     "its boss, only when the request asks. An operation is the one problem of its map: a place "
     "the map's start reaches without a lock, a leader with a roster and no badge (or an earlier "
-    "leader), a goal, and what changes if it succeeds: `shut_way` holds a way out of that place "
-    "that the map can do without, and `close_center` closes a Pokemon Center. THE SCHEME's goal "
+    "leader) and a goal. THE SCHEME's goal "
     "and its stages not yet told are hidden: never write them into a place, a person or the "
     "recap. Every person has an "
     "`avatar_id` from TRAINER CLASSES: the look that fits them, such as 'hiker' or 'nurse'. "
@@ -155,7 +154,7 @@ def _check_scheme(scheme: Scheme, species_ids: Collection[Slug]) -> None:
 def _check_operation(
     proposal: PokemonMap, operation: Operation, leader_ids: Collection[Slug]
 ) -> None:
-    start_id, to_id = operation.place_id, operation.shut_to_id
+    start_id = operation.place_id
     if start_id not in proposal.reachable(proposal.start_id):
         raise Refusal(
             f"the operation's place {start_id!r} is a place of this map that its start reaches "
@@ -168,18 +167,4 @@ def _check_operation(
         raise Refusal(
             f"the operation's leader {operation.leader_id!r} is a person of this map with a "
             f"roster and no badge, or an earlier leader: {list(leader_ids)}"
-        )
-    if (to_id is None) == (operation.consequence == "shut_way"):
-        raise Refusal("`shut_to_id` is set for shut_way, and null for close_center")
-    if to_id is None:
-        return
-    way = proposal.find_way(start_id, to_id)
-    if way is None or way.locked:
-        raise Refusal(f"no unlocked way leads from {start_id!r} to {to_id!r} for shut_way")
-    if proposal.reachable(proposal.start_id, past_locks=True, cut=[(start_id, to_id)]) != set(
-        proposal.places
-    ):
-        raise Refusal(
-            f"the way from {start_id!r} to {to_id!r} is the only way to some places; shut_way "
-            "needs a way the map can do without"
         )

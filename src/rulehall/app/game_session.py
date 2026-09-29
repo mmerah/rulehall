@@ -10,25 +10,32 @@ from time import monotonic
 from rulehall.app.battle_process import start_battle_process
 from rulehall.app.catalog import SavedGameKey
 from rulehall.app.illustration import Illustrator
-from rulehall.app.roles import (
+from rulehall.app.role_prompts import (
     OPENING_NARRATION,
     Debrief,
-    RoleRunner,
-    role_answer,
-    run_debrief,
-    run_master,
-    run_narrator,
+    render_debrief,
+    render_evidence,
+    render_master,
+    render_narrator,
 )
+from rulehall.app.roles import RoleRunner, ask, role_answer
 from rulehall.app.turn import Turn
 from rulehall.config import LiveSettings, Role
 from rulehall.core.decisions import ActionOption, PlayerInput
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyCharacter, AnyGame, AnyScenario
-from rulehall.core.log import Cause, LogEntry, RefusedCall, SpokenLine, facts_and_refusals
+from rulehall.core.log import (
+    Cause,
+    LogEntry,
+    Narration,
+    SpokenLine,
+    partial_lines,
+)
 from rulehall.core.stores import Library, SaveStore
 from rulehall.core.validation import Refusal, Slug
 from rulehall.core.views import BattleChoice, NarratorView, PlayerView, Sprite
-from rulehall.engines.engine import AnyEngine, BattleRun, Resolution, Transport
+from rulehall.engines.battles import BattleRun, Battling, Transport, in_battle
+from rulehall.engines.engine import AnyEngine, Resolution
 
 LOGGER = logging.getLogger(__name__)
 
@@ -53,32 +60,28 @@ class SessionSnapshot:
     log_entries: tuple[LogEntry, ...]
     working_role: Role | None
     words: str
-    facts_and_refusals: tuple[Fact | RefusedCall, ...]
+    turn_facts: tuple[Fact, ...]
     live: tuple[SpokenLine, ...]
     held_elsewhere: bool
     in_battle: bool
     can_rewind: bool
-    show_refusals: bool
     battle_run: BattleRun[AnyGame] | None = field(compare=False)
     battle_log: tuple[str, ...]
     battle_facts: tuple[Fact, ...]
     battle_choices: tuple[BattleChoice, ...]
 
 
-@dataclass(slots=True)
-class StateCache[T]:
-    held: tuple[AnyGame, T] | None = None
+@dataclass(frozen=True, slots=True)
+class StateMemo:
+    state: AnyGame
+    view: PlayerView
+    log_entries: tuple[LogEntry, ...]
 
-    def find_cached(self, state: AnyGame) -> T | None:
-        return self.held[1] if self.held is not None and self.held[0] is state else None
 
-    def put(self, state: AnyGame, value: T) -> None:
-        self.held = (state, value)
-
-    def read(self, state: AnyGame, build: Callable[[AnyGame], T]) -> T:
-        if self.held is None or self.held[0] is not state:
-            self.held = (state, build(state))
-        return self.held[1]
+@dataclass(frozen=True, slots=True)
+class DebriefMemo:
+    state: AnyGame
+    debrief: Debrief
 
 
 @dataclass(slots=True, kw_only=True)
@@ -93,7 +96,7 @@ class GameSession:
     state: AnyGame
     gate: "Gate" = field(repr=False, compare=False)
     illustrator: Illustrator
-    start_transport: Callable[[AnyEngine], Awaitable[Transport]] = start_battle_process
+    start_transport: Callable[[Battling], Awaitable[Transport]] = start_battle_process
     live_settings: LiveSettings
     rng: Random = field(default_factory=Random)
     working_role: Role | None = None
@@ -102,19 +105,16 @@ class GameSession:
     turn: Turn | None = None
     rewind_point: Rewind | None = None
     battle_run: BattleRun[AnyGame] | None = None
-    debriefs: StateCache[Debrief] = field(
-        default_factory=StateCache[Debrief], repr=False, compare=False
-    )
-    views: StateCache[PlayerView] = field(
-        default_factory=StateCache[PlayerView], repr=False, compare=False
-    )
-    log_entries_cache: StateCache[tuple[LogEntry, ...]] = field(
-        default_factory=StateCache[tuple[LogEntry, ...]], repr=False, compare=False
-    )
+    memo: StateMemo | None = field(default=None, repr=False, compare=False)
+    debriefed: DebriefMemo | None = field(default=None, repr=False, compare=False)
 
     @property
     def unopened(self) -> bool:
         return self.working_role is None and not self.log_entries()
+
+    @property
+    def battle_script(self) -> Path | None:
+        return self.engine.battle_script if isinstance(self.engine, Battling) else None
 
     async def open(self) -> None:
         # A second tab's timer must not run the page reset over an opening already in flight.
@@ -149,7 +149,7 @@ class GameSession:
 
     async def open_battle(self) -> None:
         with self.gate.admit(self):
-            if self.battle_run is not None or not self.engine.in_battle(self.state):
+            if self.battle_run is not None or not in_battle(self.engine, self.state):
                 return
             self.rewind_point = None
             transport = await self.start_transport(self.engine)
@@ -199,10 +199,11 @@ class GameSession:
     async def debrief(self) -> Debrief:
         with self.gate.admit(self):
             state = self.state
-            if (cached := self.debriefs.find_cached(state)) is not None:
-                return cached
-            answer = await run_debrief(self.roles, self.engine, state)
-            self.debriefs.put(state, answer)
+            if self.debriefed is not None and self.debriefed.state is state:
+                return self.debriefed.debrief
+            prompt = render_debrief(self.engine.narrator_view(state), state)
+            answer = await ask(self.roles, "narrator", prompt, Debrief, Debrief.check)
+            self.debriefed = DebriefMemo(state, answer)
             return answer
 
     def require_idle(self) -> None:
@@ -218,20 +219,16 @@ class GameSession:
 
     def snapshot(self) -> SessionSnapshot:
         turn, run, admitted = self.turn, self.battle_run, self.gate.admitted
-        show_refusals = self.live_settings.current.transcript.refusals
         return SessionSnapshot(
             view=self.player_view(),
             log_entries=self.log_entries(),
             working_role=self.working_role,
             words=self.pending_words if turn is None else turn.logged_words,
-            facts_and_refusals=()
-            if turn is None
-            else facts_and_refusals(turn.facts, turn.refused, refusals=show_refusals),
+            turn_facts=() if turn is None else tuple(turn.facts),
             live=self.live,
             held_elsewhere=admitted is not None and admitted is not self,
-            in_battle=self.engine.in_battle(self.state),
+            in_battle=in_battle(self.engine, self.state),
             can_rewind=self.rewind_point is not None,
-            show_refusals=show_refusals,
             battle_run=run,
             battle_log=() if run is None else tuple(run.log),
             battle_facts=() if run is None else tuple(run.facts),
@@ -239,10 +236,10 @@ class GameSession:
         )
 
     def player_view(self) -> PlayerView:
-        return self.views.read(self.state, self.engine.player_view)
+        return self._memo().view
 
     def log_entries(self) -> tuple[LogEntry, ...]:
-        return self.log_entries_cache.read(self.state, lambda state: state.log_entries())
+        return self._memo().log_entries
 
     def scene_art(self) -> Path | None:
         return self.illustrator.scene_art(self.engine.narrator_view(self.state))
@@ -311,7 +308,7 @@ class GameSession:
         try:
             with self.mark_working("master"):
                 if turn.master_plays_this_turn:
-                    await run_master(self.roles, turn)
+                    await self._play_master(turn)
             lines: tuple[SpokenLine, ...] = ()
             if turn.needs_narration:
                 with self.mark_working("narrator"):
@@ -389,10 +386,20 @@ class GameSession:
         landed: bool = True,
         before: NarratorView | None = None,
     ) -> tuple[SpokenLine, ...]:
+        view = self.engine.narrator_view(draft)
         try:
-            return await run_narrator(
-                self.roles, self.engine, draft, facts, cue, self._hear, before
+            if before is not None:
+                view = view.after(before)
+
+            def overheard(text: str) -> None:
+                self.live = view.spoken(partial_lines(text))
+
+            evidence = render_evidence(facts, draft, in_battle=in_battle(self.engine, draft))
+            prompt = render_narrator(view, draft, evidence=evidence, cue=cue)
+            narration = await ask(
+                self.roles, "narrator", prompt, Narration, view.check_narration, overheard
             )
+            return view.spoken(narration.lines)
         except Refusal as failed:
             if not landed:
                 raise
@@ -401,8 +408,28 @@ class GameSession:
         finally:
             self.live = ()
 
-    def _hear(self, lines: tuple[SpokenLine, ...]) -> None:
-        self.live = lines
+    def _memo(self) -> StateMemo:
+        state = self.state
+        if self.memo is None or self.memo.state is not state:
+            self.memo = StateMemo(state, self.engine.player_view(state), state.log_entries())
+        return self.memo
+
+    async def _play_master(self, turn: Turn) -> None:
+        prompt = render_master(
+            self.engine.instructions,
+            self.engine.master_sections(turn.draft),
+            turn.draft,
+            turn.master_action_text,
+            notes=turn.notes,
+        )
+        try:
+            await self.roles.play_master_turn(prompt, turn)
+        except Refusal as failed:
+            if not turn.state_changed:
+                raise
+            LOGGER.warning(
+                "the game master failed after applying %d facts: %s", len(turn.facts), failed
+            )
 
     async def _settle(self, run: BattleRun[AnyGame], draft: AnyGame) -> None:
         self.save(self.engine.accept(draft))
@@ -474,5 +501,5 @@ class Gate:
 def require_playable(engine: AnyEngine, state: AnyGame) -> None:
     if (ended := engine.ending(state)) is not None:
         raise Refusal(GAME_OVER.format(ending=ended.rstrip(".")))
-    if engine.in_battle(state):
+    if in_battle(engine, state):
         raise Refusal(BATTLE_ON)

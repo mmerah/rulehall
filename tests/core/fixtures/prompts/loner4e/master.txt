@@ -47,9 +47,9 @@ twist counter: 0/3
   concept: A Cautious Scribe; skills: Reads a Faded Hand, Knows the Catalogue; frailties: Slow to Trust; gear: Ledger and Ink; goal: Finish the catalogue before anyone strips the abbey; motive: It is the last thing the abbot asked of her; luck: 6/6
 
 # MET, NOT HERE (use these ids when one of them comes back)
-- Brother Tomas[tomas] — A Deaf Old Porter
+- Brother Tomas[brother-tomas] — A Deaf Old Porter
 - Elena[elena] — A Ruined Archivist
-- a bloated rat[cloister-rat] — A Bloated Cloister Rat
+- a bloated rat[a-bloated-rat] — A Bloated Cloister Rat
 
 # WHAT THE TAGS IN PLAY MEAN
 - Reads Old Stonework: Makes sense of inscriptions and stonework that everyone else reads as rubble.

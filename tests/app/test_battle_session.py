@@ -6,7 +6,7 @@ from support.showdown import ScriptedSimulator, ended, moving, started
 from support.table import POKEMON, narrated, open_table, play_turn, tool_call
 
 from rulehall.app.turn import BATTLE_WAIT
-from rulehall.engines.engine import AnyEngine
+from rulehall.engines.battles import Battling
 from rulehall.engines.pokemon.world import PokemonGame
 
 
@@ -30,7 +30,7 @@ async def test_a_wild_battle_hands_off_to_the_battle_screen_and_back(tmp_path: P
     assert battle is not None
     simulator = ScriptedSimulator(started(battle.setup) + ended(battle.setup, foe_hp=10))
 
-    async def start(_engine: AnyEngine) -> ScriptedSimulator:
+    async def start(_engine: Battling) -> ScriptedSimulator:
         return simulator
 
     table.session.start_transport = start
@@ -57,7 +57,7 @@ async def test_a_caught_pokemon_joins_the_team(tmp_path: Path) -> None:
     setup = battle.setup
     simulator = ScriptedSimulator(started(setup) + moving(setup) + ended(setup, foe_hp=10))
 
-    async def start(_engine: AnyEngine) -> ScriptedSimulator:
+    async def start(_engine: Battling) -> ScriptedSimulator:
         return simulator
 
     table.session.start_transport = start
@@ -89,7 +89,7 @@ async def test_a_save_with_a_caught_throw_ends_the_battle_on_reopen(tmp_path: Pa
     reopened.roles.answers.setdefault("narrator", []).append(narrated("The Pidgey is caught."))
     simulator = ScriptedSimulator(started(setup) + ended(setup, foe_hp=10))
 
-    async def start(_engine: AnyEngine) -> ScriptedSimulator:
+    async def start(_engine: Battling) -> ScriptedSimulator:
         return simulator
 
     reopened.session.start_transport = start

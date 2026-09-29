@@ -4,7 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 from pathlib import Path
 from random import Random
-from typing import Any, ClassVar, Protocol
+from typing import Any, ClassVar
 
 from pydantic import BaseModel, JsonValue
 
@@ -24,7 +24,7 @@ from rulehall.core.game import (
     ScenarioDescription,
     WorldsmithRequest,
 )
-from rulehall.core.log import Cause, Chapter, LogEntry, RefusedCall, SpokenLine
+from rulehall.core.log import Cause, Chapter, LogEntry, SpokenLine
 from rulehall.core.prompt import Prompt, Sections, sections
 from rulehall.core.stores import read_cached_text, read_model
 from rulehall.core.tools import MasterTool, action, marked_methods, player_facing_texts, tool
@@ -39,15 +39,15 @@ from rulehall.core.validation import (
     slug,
 )
 from rulehall.core.views import (
-    BattleChoice,
     Look,
+    MapView,
     NarratorView,
-    PlayerActions,
+    Panel,
     PlayerView,
     Rows,
     Sprite,
 )
-from rulehall.engines.args import Direct, Kill, LeaveParty, Reveal
+from rulehall.engines.args import Direct, JoinParty, Kill, LeaveParty, Reveal
 from rulehall.engines.packs import (
     Pack,
     PackBody,
@@ -69,28 +69,18 @@ class Resolution:
 
 
 @dataclass(frozen=True, slots=True)
+class SceneHeader:
+    place_id: Slug
+    title: str
+    situation: str
+    narrator_brief: str = ""
+    map_view: MapView | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class RequestHandler[W: World[Any]]:
     write: Callable[[Game[W], WorldsmithRequest, RoleAnswer], Awaitable[Resolution]]
     failure_fact: Fact
-
-
-class Transport(Protocol):
-    async def send(self, lines: Sequence[str]) -> None: ...
-    async def receive(self) -> tuple[str, ...]: ...
-    async def close(self) -> None: ...
-
-
-class BattleRun[G](Protocol):
-    @property
-    def log(self) -> Sequence[str]: ...
-    @property
-    def facts(self) -> Sequence[Fact]: ...
-    def props(self) -> Mapping[str, str | bool]: ...
-    @property
-    def resolution(self) -> Resolution | None: ...
-    def choices(self) -> tuple[BattleChoice, ...]: ...
-    async def choose(self, draft: G, command: str, rng: Random) -> None: ...
-    async def close(self) -> None: ...
 
 
 class Revealing:
@@ -99,6 +89,14 @@ class Revealing:
         """Make a hidden entity here known to the player. HIDDEN HERE lists what the player has
         not found: call this before you tell a hidden thing."""
         return draft.world.reveal_hidden(args.target_id)
+
+
+class Joining:
+    @tool
+    def join_party(self, draft: AnyGame, args: JoinParty, _rng: Random) -> list[Fact]:
+        """Make a person here travel with the player."""
+        world = draft.world
+        return world.join(world.require_person_here(args.target_id))
 
 
 class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
@@ -113,7 +111,6 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     directory: Path
     family_dir: Path
     assets: Path | None = None
-    battle_script: Path | None = None
     person_model: type[P]
     world_model: type[W]
     pack_model: type[K]
@@ -173,10 +170,6 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
             written_ids=packs.written_ids | {pack_id},
         )
 
-    def guidance_for(self, pack_id: Slug, /, *, opening: bool) -> str:
-        block = self.packs.guidance(pack_id, opening=opening)
-        return f"{self.worldsmith_guidance}\n\n{block}" if block else self.worldsmith_guidance
-
     def preview_character(self, character: AnyCharacter) -> Rows:
         return self.player_of(character).rows()
 
@@ -187,7 +180,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         if state.request is not None:
             raise Refusal("the save carries a pending request")
         self.validate(state)
-        self.packs.require(state.pack_id)
+        self.packs.require_pack(state.pack_id)
         return state
 
     def published(self, _state: Game[W], /) -> tuple[MasterTool, ...]:
@@ -217,25 +210,37 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     def allows_text(self, _state: Game[W], /) -> bool:
         return True
 
-    def player_actions(self, state: Game[W]) -> PlayerActions:
-        pending = state.pending
-        return PlayerActions(
-            decision=pending,
-            moves=self.moves(state) if pending is None else (),
-            hint=self.play_hint.format(name=state.world.player.name),
-            allows_text=self.allows_text(state) if pending is None else pending.allows_text,
+    def narrator_view(self, state: Game[W]) -> NarratorView:
+        world = state.world
+        header = self.scene_header(state)
+        here = tuple(person.subject() for person in world.here() if person.known)
+        return NarratorView(
+            place_id=header.place_id,
+            title=header.title,
+            situation="\n".join(filter(None, (header.narrator_brief, header.situation))),
+            subjects=here,
+            speakers=tuple(subject.id for subject in here if subject.alive),
+            party=(world.player.id, *world.party_ids),
+            sheet=world.sheet_rows(),
         )
 
-    def in_battle(self, _state: Game[W], /) -> bool:
-        return False
-
-    def simulator_argv(self) -> tuple[str, ...]:
-        raise NotImplementedError(f"the {self.id!r} engine runs no battle")
-
-    async def open_battle(
-        self, draft: Game[W], transport: Transport, opponent: RoleAnswer | None
-    ) -> BattleRun[Game[W]]:
-        raise NotImplementedError(f"the {self.id!r} engine runs no battle")
+    def player_view(self, state: Game[W]) -> PlayerView:
+        player = state.world.player
+        header = self.scene_header(state)
+        pending = state.pending
+        return PlayerView(
+            premise=state.scenario_description.premise,
+            player=player.subject(),
+            scene_title=header.title,
+            situation=header.situation,
+            panels=self.scene_panels(state),
+            decision=pending,
+            ending=self.ending(state),
+            map=header.map_view,
+            moves=self.moves(state) if pending is None else (),
+            hint=self.play_hint.format(name=player.name),
+            allows_text=self.allows_text(state) if pending is None else pending.allows_text,
+        )
 
     def sprite(self, _state: Game[W], _entity_id: Slug, /) -> Sprite | None:
         return None
@@ -251,7 +256,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         guidance: str | None = None,
     ) -> A:
         if guidance is None:
-            guidance = self.guidance_for(draft.pack_id, opening=False)
+            guidance = self.packs.guidance(draft.pack_id, self.worldsmith_guidance, opening=False)
         prompt = render_worldsmith(
             self.worldsmith_role,
             source=draft.source,
@@ -264,44 +269,34 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         )
         return await worldsmith(prompt, answer_model, check)
 
-    async def write_next(
+    async def write_and_install_next(
         self,
         draft: Game[W],
         intent: str,
         worldsmith: RoleAnswer,
         *,
-        extra_needs: Callable[[R], list[str]] = lambda _: [],
-    ) -> R:
+        extra_check: Check[R] = lambda _: None,
+    ) -> list[Fact]:
         def check(answer: R) -> None:
-            faults = [f"the answer needs {need}" for need in extra_needs(answer)]
-            try:
-                self.check_next(draft, answer)
-            except Refusal as refused:
-                faults.insert(0, str(refused))
+            checks: tuple[Check[R], ...] = (
+                lambda next_part: self.check_next(draft, next_part),
+                extra_check,
+            )
+            faults: list[str] = []
+            for each_check in checks:
+                try:
+                    each_check(answer)
+                except Refusal as refused:
+                    faults.append(str(refused))
             if faults:
                 raise Refusal("; ".join(faults))
 
-        return await self.ask_worldsmith(draft, worldsmith, intent, self.next_proposal_model, check)
+        model = self.next_proposal_model
+        answer = await self.ask_worldsmith(draft, worldsmith, intent, model, check)
+        return self.install_next(draft, answer)
 
     def character_of(self, name: str, person: BaseModel) -> AnyCharacter:
         return self.character_model(id=slug(name, ()), engine_id=self.id, person=person)
-
-    def build_scenario(
-        self,
-        description: ScenarioDescription,
-        pack_id: Slug,
-        proposal: OpeningProposal,
-        source: str,
-    ) -> AnyScenario:
-        return self.scenario_model(
-            description=description.model_copy(
-                update={"premise": description.premise or proposal.premise()}
-            ),
-            engine_id=self.id,
-            pack_id=pack_id,
-            source=source,
-            opening=proposal,
-        )
 
     async def write_opening(
         self,
@@ -312,7 +307,15 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         check: Callable[[AnyScenario], None],
     ) -> AnyScenario:
         def built(proposal: OpeningProposal) -> AnyScenario:
-            return self.build_scenario(description, pack_id, proposal, source)
+            return self.scenario_model(
+                description=description.model_copy(
+                    update={"premise": description.premise or proposal.premise()}
+                ),
+                engine_id=self.id,
+                pack_id=pack_id,
+                source=source,
+                opening=proposal,
+            )
 
         prompt = render_worldsmith(
             self.worldsmith_role,
@@ -321,7 +324,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
             scope=description.scope,
             world_sections=self.opening_sections,
             intent=self.opening_intent,
-            guidance=self.guidance_for(pack_id, opening=True),
+            guidance=self.packs.guidance(pack_id, self.worldsmith_guidance, opening=True),
             answer_model=self.opening_model,
         )
         return built(
@@ -379,7 +382,6 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         words: str = "",
         by_option: bool = False,
         cause: Cause | None = None,
-        refused: tuple[RefusedCall, ...] = (),
     ) -> Game[W]:
         self.before_record(draft)
         entry = LogEntry(
@@ -388,9 +390,8 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
             cause=cause,
             lines=lines,
             facts=facts,
-            refused=refused,
             decision="" if draft.pending is None else draft.pending.prompt,
-            context=self.context_lines(draft),
+            context=self.context_text(draft),
         )
         draft.chapters[-1].entries.append(entry)
         draft.world.hear(*(line.text for line in lines))
@@ -403,7 +404,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         if draft.chapters and not draft.chapters[-1].entries:
             draft.chapters.pop()
         draft.chapters.append(
-            Chapter(title=self.narrator_view(draft).title, context=self.context_lines(draft))
+            Chapter(title=self.narrator_view(draft).title, context=self.context_text(draft))
         )
 
     def accept(self, draft: Game[W]) -> Game[W]:
@@ -424,7 +425,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
                 f"{character.id!r} is written for the {character.engine_id!r} rules, which the "
                 f"{self.id!r} engine does not play"
             )
-        self.packs.require(scenario.pack_id)
+        self.packs.require_pack(scenario.pack_id)
         state = parse(
             Game[self.world_model],
             {
@@ -481,11 +482,11 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     @abstractmethod
     def install_next(self, draft: Game[W], proposal: R, /) -> list[Fact]: ...
     @abstractmethod
-    def narrator_view(self, state: Game[W]) -> NarratorView: ...
+    def context_text(self, state: Game[W], /) -> str: ...
     @abstractmethod
-    def context_lines(self, state: Game[W], /) -> str: ...
+    def scene_header(self, state: Game[W], /) -> SceneHeader: ...
     @abstractmethod
-    def player_view(self, state: Game[W]) -> PlayerView: ...
+    def scene_panels(self, state: Game[W], /) -> tuple[Panel, ...]: ...
 
     def request_handlers(self) -> Mapping[Slug, RequestHandler[W]]:
         return {}

@@ -268,29 +268,12 @@
         "goal": {
           "description": "What the team does there.",
           "type": "string"
-        },
-        "consequence": {
-          "description": "What changes when it succeeds. shut_way: grunts hold the way from `place_id` to `shut_to_id` for good. close_center: a Pokemon Center closes.",
-          "enum": [
-            "shut_way",
-            "close_center"
-          ],
-          "type": "string"
-        },
-        "shut_to_id": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "shut_way only: exact id of a place that an unlocked way from `place_id` leads to. Every place of the map stays reachable from its start without that way. Null for close_center."
         }
       },
       "required": [
         "place_id",
         "leader_id",
-        "goal",
-        "consequence"
+        "goal"
       ],
       "type": [
         "object",

@@ -43,7 +43,7 @@ PROMPT_CLASSES: dict[PromptState, str] = {
 }
 
 
-class ActionBar:
+class Composer:
     def __init__(
         self,
         session: GameSession,
@@ -58,7 +58,7 @@ class ActionBar:
         self.explained = False
         self.chips: list[tuple[ui.button, tuple[ActionOption, ...]]] = []
         self.group_dialog = ui.dialog()
-        with ui.column().classes("w-full game-action-bar game-gap-md") as self.bar:
+        with ui.column().classes("w-full game-action-bar game-gap-md") as self.row:
             with ui.row().classes(
                 "w-full items-start no-wrap game-action-prompt game-gap-md"
             ) as self.prompt_row:
@@ -75,7 +75,7 @@ class ActionBar:
                 with ui.row().classes(
                     "w-full no-wrap items-end game-composer-line game-gap-lg"
                 ) as self.input_row:
-                    self.composer_input = (
+                    self.words_input = (
                         ui.input()
                         .classes("flex-grow")
                         # theme.py's default w-full would fight flex-grow and squeeze the send.
@@ -85,9 +85,9 @@ class ActionBar:
                         )
                         .props(remove="outlined")
                     )
-                    self.composer_input.bind_value(app.storage.tab, f"draft:{session.key.save_id}")
+                    self.words_input.bind_value(app.storage.tab, f"draft:{session.key.save_id}")
                     # Enter sends on a fine pointer only; a touch keyboard's Enter stays a newline.
-                    self.composer_input.on(
+                    self.words_input.on(
                         "keydown.enter",
                         self.submit,
                         js_handler=(
@@ -118,19 +118,19 @@ class ActionBar:
 
     def set_enabled(self, *, enabled: bool) -> None:
         self.acting = enabled
-        for widget in (self.composer_input, self.send_button, *(chip for chip, _ in self.chips)):
+        for widget in (self.words_input, self.send_button, *(chip for chip, _ in self.chips)):
             widget.set_enabled(enabled)
 
     def prefill(self, words: str) -> None:
         self.armed = None
         self._show_armed()
         self.set_input(words)
-        self.composer_input.run_method("focus")
+        self.words_input.run_method("focus")
 
     def arm(self, move: ActionOption | None) -> None:
         self.armed = move
         self._show_armed()
-        self.composer_input.run_method("focus")
+        self.words_input.run_method("focus")
 
     def toggle_explained(self) -> None:
         self.explained = not self.explained
@@ -170,7 +170,7 @@ class ActionBar:
         await self.pick(member)
 
     async def submit(self) -> None:
-        words = entered_text(self.composer_input)
+        words = entered_text(self.words_input)
         move = self.armed or forced_move(self.view)
         if not words:
             if move is not None:
@@ -182,12 +182,12 @@ class ActionBar:
             self._show_armed()
 
     def set_input(self, words: str = "") -> None:
-        self.composer_input.value = words
+        self.words_input.value = words
         # Quasar never saw the value change, so only an explicit push empties the composer.
-        self.composer_input.run_method("updateValue")
+        self.words_input.run_method("updateValue")
 
     def _clear_spent_draft(self, now: SessionSnapshot) -> None:
-        draft = entered_text(self.composer_input)
+        draft = entered_text(self.words_input)
         if draft and now.log_entries and draft == now.log_entries[-1].words:
             self.set_input()
 
@@ -230,7 +230,7 @@ class ActionBar:
             view.allows_text or any(move.needs_words for move in view.moves)
         )
         self.input_row.set_visibility(worded)
-        self.composer_input.set_enabled(self.acting and worded)
+        self.words_input.set_enabled(self.acting and worded)
         self.send_button.set_enabled(self.acting and worded)
         state: PromptState | None
         if view.ending is not None:
@@ -243,7 +243,7 @@ class ActionBar:
         self.prompt_row.set_visibility(state is not None)
         if state is not None:
             self.prompt_icon.set_name(PROMPT_ICONS[state])
-        self.bar.classes(
+        self.row.classes(
             add=(PROMPT_CLASSES[state] if state else "") + (" game-enter" if entering else ""),
             remove=" ".join((*PROMPT_CLASSES.values(), "game-enter")),
         )
@@ -260,7 +260,7 @@ class ActionBar:
             placeholder = self.armed.help or f"Type your words, then press {self.armed.name}."
         else:
             placeholder = forced.help if forced and forced.help else self.view.hint
-        self.composer_input.props["placeholder"] = placeholder
+        self.words_input.props["placeholder"] = placeholder
         self.send_button.set_text("" if move is None else move.name)
         if move is None:
             self.send_button.props("round").classes(remove="game-send-named")

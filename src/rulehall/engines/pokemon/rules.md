@@ -68,8 +68,7 @@ A person who joins the party travels and talks with the player. Their Pokemon do
 the player.
 
 A locked way can be a thin tree that Cut clears, or a gym door that opens at the right time.
-When the story opens it, call `unlock_way`. A way the team's grunts hold stays shut: the engine
-refuses to unlock it.
+When the story opens it, call `unlock_way`.
 
 ## Battles
 
@@ -95,8 +94,8 @@ rival there, and call `start_battle` when the player agrees. After the battle, t
 THE SCHEME names the evil team, its goal, the stage it has reached, its leaders and its open
 operation. Voice the team: its grunts, its leaders and its boss. Code moves the scheme; you never
 do. An operation succeeds when the player earns a badge while it is open, or loses to its
-leader, and what THE SCHEME says then changes. It is foiled when the player beats its leader.
-Call `start_battle` with the leader when the player takes them on. At an open Pokemon Center,
+leader, and its boss grows stronger. It is foiled when the player beats its leader.
+Call `start_battle` with the leader when the player takes them on. At a Pokemon Center,
 THE SCHEME gives a RUMOUR: tell it. After four operations, the next region holds the lair and
 the boss. When the player beats the boss, the journey ends.
 

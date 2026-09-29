@@ -4,8 +4,9 @@ from typing import Literal
 from pydantic import Field
 
 from rulehall.core.facts import DiceEvent, Fact
+from rulehall.core.prompt import ref_of
 from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, slug, slugs
-from rulehall.core.views import Rows, nonblank_rows, tag_of
+from rulehall.core.views import Rows, nonblank_rows
 from rulehall.engines.sheet import Entity, Sheeted, changed_tags, tag_card
 from rulehall.engines.twentyfourxx.rules import DEFAULT_DIE, SkillDie, brief_hindrance, next_die
 
@@ -99,12 +100,12 @@ class CrewSheet(Mutable):
 
     def gear_text(self, *, ids: bool = False) -> str:
         return ", ".join(
-            (tag_of(item.name, key) if ids else item.name)
+            (ref_of(item.name, key) if ids else item.name)
             + (f" ({notes})" if (notes := item.notes()) else "")
             for key, item in self.items.items()
         )
 
-    def require(self, item_id: Slug, owner: str) -> Gear:
+    def require_item(self, item_id: Slug, owner: str) -> Gear:
         item = self.items.get(item_id)
         if item is None:
             raise Refusal(f"{item_id!r} is not among {owner}'s items")

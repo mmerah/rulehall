@@ -46,15 +46,15 @@ def test_two_candidates_open_an_evolution_decision() -> None:
 
     _level_up(draft, eevee)
 
-    decision = pending_decision(draft.world)
+    decision = pending_decision(draft.world.player_sheet)
     assert decision is not None
     assert decision.kind == "evolution"
     assert [option.id for option in decision.options] == ["espeon", "umbreon"]
     umbreon = next(option for option in decision.options if option.id == "umbreon")
     _ = ENGINE.play_option(draft, umbreon, Random(0))
     assert eevee.species_id == "umbreon"
-    assert draft.world.evolving == []
-    assert pending_decision(draft.world) is None
+    assert draft.world.player_sheet.evolving == []
+    assert pending_decision(draft.world.player_sheet) is None
 
 
 def test_the_linking_cord_needs_the_held_item_of_a_trade_evolution() -> None:
@@ -92,15 +92,15 @@ def test_an_evolution_follows_the_gender() -> None:
     assert male.species_id == "gallade"
     _level_up(draft, espurr)
     assert espurr.species_id == "meowsticf"
-    assert pending_decision(draft.world) is None
+    assert pending_decision(draft.world.player_sheet) is None
 
 
 def _in(draft: PokemonGame, pack_id: str) -> None:
-    draft.world.species_ids = ENGINE.packs.require(pack_id).species_ids
+    draft.world.species_ids = ENGINE.packs.require_pack(pack_id).species_ids
 
 
 def _joined(draft: PokemonGame, species_id: str, level: int) -> Mon:
-    sheet = draft.world.player.require_sheet()
+    sheet = draft.world.player_sheet
     mon = Mon.new(species_id, level, Random(0), sheet.mon_ids())
     sheet.team.append(mon)
     return mon

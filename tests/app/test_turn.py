@@ -8,7 +8,7 @@ from support.game import MARA, TOMAS, initialized, loner_sheet, open_game
 from support.table import NO_PACKS, Table, narrated, play_turn, tool_call
 from support.twentyfourxx import TROUBLE_SEED, open_crew
 
-from rulehall.app.roles import UNSETTLED
+from rulehall.app.role_prompts import UNSETTLED
 from rulehall.app.turn import DIRECTED_ONCE, REQUEST_WAIT, Turn
 from rulehall.core.decisions import PlayerInput
 from rulehall.core.facts import NOTHING, Fact, told_cards
@@ -89,16 +89,6 @@ async def test_the_turn_holds_its_facts_in_resolver_order(tmp_path: Path) -> Non
     assert len(exchange.facts) >= len(told_cards(exchange.facts))
 
 
-async def test_the_log_entry_keeps_each_refused_call_where_it_happened(tmp_path: Path) -> None:
-    table = open_game(tmp_path)
-
-    state = await play_turn(table, "I search beneath the desk.", NOWHERE, FOUND)
-
-    (refused,) = state.log_entries()[-1].refused
-    assert (refused.tool, refused.after_facts) == ("leave_party", 0)
-    assert refused.reason == table.refusals[0]
-
-
 async def test_a_narrator_failure_still_commits_the_turn_with_no_prose(tmp_path: Path) -> None:
     table = open_game(tmp_path)
     table.roles.turns.append(table.plays((FOUND, TAKEN)))
@@ -150,7 +140,7 @@ async def test_an_illegal_tool_call_is_refused_with_the_reason(tmp_path: Path) -
 
     state = await play_turn(table, "I wait.", NOWHERE, FOUND)
 
-    assert state.world.require(TOMAS).known
+    assert state.world.require_entity(TOMAS).known
     assert any("unknown id 'nowhere'" in refusal for refusal in table.refusals)
 
 
@@ -162,7 +152,7 @@ async def test_a_later_call_in_one_turn_sees_the_earlier_calls_draft(
     wants = tool_call("drive", actor_id=TOMAS, goal="Guard the vault")
     state = await play_turn(table, "I wait for the knock.", FOUND, wants)
 
-    assert state.world.require(TOMAS).goal == "Guard the vault"
+    assert state.world.require_entity(TOMAS).goal == "Guard the vault"
     assert table.refusals == []
 
 
@@ -180,7 +170,7 @@ async def test_a_call_after_the_ask_answers_handoff_wait_and_changes_nothing(
     )
 
     assert table.answers[1] == REQUEST_WAIT
-    assert not state.world.require(WARDEN).known
+    assert not state.world.require_entity(WARDEN).known
 
 
 async def test_a_voice_not_here_is_narration_and_one_who_left_this_turn_still_speaks(
@@ -227,7 +217,7 @@ async def test_a_master_that_crashes_after_applying_still_commits_what_it_applie
     await table.session.choose(PlayerInput(text="I take the map and read it."))
 
     assert len(table.session.state.log_entries()) == 1
-    assert table.session.state.world.require(TOMAS).known
+    assert table.session.state.world.require_entity(TOMAS).known
 
 
 async def test_a_master_that_crashed_after_a_tool_landed_is_not_spawned_again(
@@ -295,7 +285,7 @@ async def test_a_re_filed_cast_member_takes_the_new_brief_and_keeps_their_name_a
             cast={
                 "mara": {
                     "id": "mara",
-                    "name": "Another Mara",
+                    "name": "Mara",
                     "brief": "Waiting under the arcade with the lantern shuttered.",
                 }
             },
@@ -309,7 +299,7 @@ async def test_a_re_filed_cast_member_takes_the_new_brief_and_keeps_their_name_a
         arrival="Rain takes the arcade.",
     )
 
-    mara = state.world.require("mara")
+    mara = state.world.require_entity("mara")
     assert state.world.scene.title == "The Cloister Walk"
     assert mara.name == "Mara"
     assert mara.brief == "Waiting under the arcade with the lantern shuttered."
@@ -364,7 +354,7 @@ async def test_a_call_after_the_direction_lands_and_the_direction_is_told_last(
     assert table.facts[-1].trace.endswith(DIRECTION)
     narrator = table.roles.prompt("narrator")
     assert "the rain has stopped" not in narrator
-    assert narrator.index("[tomas] arrives") < narrator.index(DIRECTION)
+    assert narrator.index("[brother-tomas] arrives") < narrator.index(DIRECTION)
 
 
 async def test_a_turn_after_a_directed_one_plays_its_tools(tmp_path: Path) -> None:
@@ -373,7 +363,7 @@ async def test_a_turn_after_a_directed_one_plays_its_tools(tmp_path: Path) -> No
 
     state = await play_turn(table, "I search beneath the desk.", FOUND)
 
-    assert state.world.require(TOMAS).known
+    assert state.world.require_entity(TOMAS).known
 
 
 async def test_a_turn_with_no_tool_call_gives_the_narrator_the_beat_line(tmp_path: Path) -> None:

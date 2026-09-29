@@ -3,7 +3,6 @@ from rulehall.core.validation import Refusal
 from rulehall.engines.name_leaks import leaked_names
 from rulehall.engines.rooms.world import Dweller, MapProposal, RegionProposal, RoomMap, RoomWorld
 from rulehall.engines.sheet import PLAYER_ID
-from rulehall.engines.world import authoring_faults
 
 MAP_ASK = "Write the opening map."
 OPENING_SECTIONS: Sections = (
@@ -44,8 +43,6 @@ def _map_needs[P: Dweller](proposal: MapProposal[P], *, start_known: bool) -> li
     if proposal.start_id not in places:
         return [f"a starting place {proposal.start_id!r}"]
     needs: list[str] = []
-    if broken := authoring_faults(proposal.npcs, ()):
-        needs.append(f"npcs as the worldsmith may write them: {broken}")
     if places[proposal.start_id].known != start_known:
         needs.append(
             "the starting place known to the player"

@@ -12,7 +12,6 @@ from rulehall.core.validation import Refusal
 from rulehall.engines.scenes.world import SceneProposal
 from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.twentyfourxx.args import (
-    Defence,
     Helper,
     Job,
     NextScene,
@@ -111,15 +110,13 @@ def test_every_deadly_hit_in_a_scene_can_break_gear() -> None:
     assert sheet.items["vest"].broken
 
 
-def test_a_harm_setback_writes_a_brief_wound_keeps_named_gear_and_a_maim_is_named() -> None:
+def test_a_harm_setback_writes_a_brief_wound_and_a_maim_is_named() -> None:
     draft = small_world().draft()
     player = draft.world.player
-    named = Defence(item_id=LOCKPICKS, hindrance="cut fingers")
-    burn = Roll(what="Pry the lid", skill="Stealth", risk="burned hands", harm=True, defend=named)
-    facts = _rolled(draft, burn, seed=1)
+    burn = Roll(what="Pry the lid", skill="Stealth", risk="burned hands", harm=True)
+    _ = _rolled(draft, burn, seed=1)
     assert player.require_sheet().hindrances == ["Brief: Minor hurt"]
-    assert not player.require_sheet().items[LOCKPICKS].broken
-    assert any("stays whole" in fact.trace for fact in facts)
+    assert draft.pending is None
 
     knife = Roll(what="Sneak past", skill="Stealth", risk="Shot dead", deadly=True)
     _ = ENGINE.roll(draft, knife.model_copy(update={"committed": True}), Random(1))
@@ -247,97 +244,45 @@ def test_roll_refuses_naming_an_unmet_entity_in_a_free_text_field(draft: TwentyF
     assert "Slip past Kestrel" in draft.pending.prompt
 
 
-def test_defend_with_intact_item_spares_a_disaster_breaks_the_item_once() -> None:
+def test_the_defence_offers_a_ship_function_while_the_ship_is_here() -> None:
     draft = small_world().draft()
-    player = draft.world.player
-    facts = _rolled(
-        draft,
-        Roll(
-            what="Sneak past",
-            skill="Stealth",
-            risk="a guard's knife",
-            defend=Defence(item_id=LOCKPICKS, hindrance="cut fingers"),
-        ),
-        seed=2,
+    world = draft.world
+    world.dock_here()
+    blast = Roll(
+        what="Weather the blast", skill="Stealth", risk="shrapnel", harm=True, committed=True
     )
-    assert player.alive
-    assert player.require_sheet().items[LOCKPICKS].broken_times == 1
-    assert player.require_sheet().hindrances == ["Brief: cut fingers"]
-    assert draft.pending is None
-    assert any(fact.card == "Lockpick set breaks — Brief: cut fingers" for fact in facts)
-
-
-def test_defend_with_harmless_gear_spares_a_disaster_and_adds_no_hindrance() -> None:
-    draft = small_world().draft()
-    player = draft.world.player
-    facts = _rolled(
-        draft,
-        Roll(
-            what="Weather the blast",
-            skill="Stealth",
-            risk="shrapnel",
-            defend=Defence(item_id="hull-armor"),
-        ),
-        seed=2,
-    )
-    assert player.alive
-    assert draft.world.ship["hull-armor"].broken
-    assert player.require_sheet().hindrances == []
+    _ = ENGINE.roll(draft, blast, Random(2))
+    assert draft.pending is not None
+    hull_armor = find_option(draft.pending.options, "hull-armor")
+    assert hull_armor is not None
+    draft.pending = None
+    facts = ENGINE.play_option(draft, hull_armor, Random(0))
+    assert world.ship["hull-armor"].broken
+    assert world.player.require_sheet().hindrances == []
     assert any(fact.card == "Hull armor breaks" for fact in facts)
 
 
-def test_defend_with_multi_use_armor_defends_three_times_then_refuses() -> None:
-    draft = small_world().draft()
-    player = draft.world.player
-    player.require_sheet().items["armor"] = Gear(name="Battle armor", breaks=3, harmless=True)
-    for _ in range(3):
-        _ = _rolled(
-            draft,
-            Roll(
-                what="Take fire", skill="Stealth", risk="a bullet", defend=Defence(item_id="armor")
-            ),
-            seed=2,
-        )
-    assert player.alive
-    assert player.require_sheet().items["armor"].broken
-    with pytest.raises(Refusal, match="already broken"):
-        _ = _rolled(
-            draft,
-            Roll(
-                what="Take fire", skill="Stealth", risk="a bullet", defend=Defence(item_id="armor")
-            ),
-            seed=2,
-        )
-
-
-def test_both_participants_defend_with_their_own_separate_items(draft: TwentyFourXXGame) -> None:
-    draft = hired(draft, KESTREL, skills={"Stealth": 10}).draft()
-    draft.world.cast[KESTREL].require_sheet().items["vest"] = Gear(name="Vest")
-    player = draft.world.player
-    member = draft.world.cast[KESTREL]
-    facts = _rolled(
-        draft,
-        Roll(
-            what="Slip past",
-            skill="Stealth",
-            risk="a guard's knife",
-            defend=Defence(item_id=LOCKPICKS, hindrance="cut fingers"),
-            helped_by=Helper(
-                actor_id=KESTREL,
-                risk="crossfire",
-                defend=Defence(item_id="vest", hindrance="ringing ears"),
-            ),
-        ),
-        seed=2,
+def test_the_helper_cannot_break_the_ship_function_the_actor_broke() -> None:
+    draft = hired(small_world(), KESTREL, skills={"Stealth": 8}).draft()
+    draft.world.dock_here()
+    blast = Roll(
+        what="Weather the blast",
+        skill="Stealth",
+        risk="shrapnel",
+        harm=True,
+        helped_by=Helper(actor_id=KESTREL),
+        committed=True,
     )
-    assert player.alive
-    assert player.require_sheet().items[LOCKPICKS].broken_times == 1
-    assert player.require_sheet().hindrances == ["Brief: cut fingers"]
-    assert member.alive
-    assert member.require_sheet().items["vest"].broken_times == 1
-    assert member.require_sheet().hindrances == ["Brief: ringing ears"]
-    assert any(fact.card == "Lockpick set breaks — Brief: cut fingers" for fact in facts)
-    assert any(fact.card == "Kestrel: Vest breaks — Brief: ringing ears" for fact in facts)
+    _ = ENGINE.roll(draft, blast, Random(2))
+    assert draft.pending is not None
+    assert draft.pending.kind == "defence"
+    hull_armor = find_option(draft.pending.options, "hull-armor")
+    assert hull_armor is not None
+    draft.pending = None
+    _ = ENGINE.play_option(draft, hull_armor, Random(0))
+    assert draft.pending is not None
+    assert find_option(draft.pending.options, "hull-armor") is None
+    assert find_option(draft.pending.options, "take-it") is not None
 
 
 def test_a_helper_rolls_the_named_skill_else_the_rolled_one_and_shares_the_risk() -> None:
@@ -353,26 +298,7 @@ def test_a_helper_rolls_the_named_skill_else_the_rolled_one_and_shares_the_risk(
         assert f"helped by Kestrel ({shown})" in facts[1].trace
 
     facts = _rolled(draft, slip.model_copy(update={"helped_by": Helper(actor_id=KESTREL)}), seed=2)
-    assert "Kestrel risking Bruised ribs (harm)" in facts[1].trace
     assert "Bruised ribs" in draft.world.cast[KESTREL].require_sheet().hindrances
-
-
-def test_helper_with_risk_takes_their_own_consequence_on_a_bad_roll() -> None:
-    draft = hired(small_world(), KESTREL, skills={"Stealth": 10}).draft()
-    facts = _rolled(
-        draft,
-        Roll(
-            what="Slip past",
-            skill="Stealth",
-            risk="a bruise",
-            helped_by=Helper(actor_id=KESTREL, risk="a guard's knife", deadly=True),
-        ),
-        seed=2,
-    )
-    member = draft.world.cast[KESTREL]
-    assert draft.world.player.alive
-    assert not member.alive
-    assert any(fact.card == f"{member.name} is dead" for fact in facts)
 
 
 def test_defend_breaks_the_item_and_adds_the_hindrance_refused_when_broken() -> None:
@@ -703,7 +629,7 @@ def test_enter_files_a_stranger_the_player_names_who_can_then_be_hired(
     assert draft.world.cast["juno-pell"].name == "Juno Pell"
     assert any(fact.card == "Juno Pell arrives" for fact in facts)
 
-    _ = change(ENGINE, draft, "join_party", target_id="juno-pell", terms="Watch my back")
+    _ = change(ENGINE, draft, "join_party", target_id="juno", terms="Watch my back")
     assert draft.request is not None
     assert draft.request.target_id == "juno-pell"
 

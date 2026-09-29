@@ -13,7 +13,7 @@ from rulehall.engines.loner4e.rules import (
     TagKind,
     and_for_commas,
 )
-from rulehall.engines.sheet import Gauge, Person, changed_tags, joined, tag_card, tag_delta
+from rulehall.engines.sheet import Gauge, Person, changed_tags, tag_card, tag_delta
 
 Tag = Annotated[str, BeforeValidator(and_for_commas)]
 TagName = Annotated[ShortName, BeforeValidator(and_for_commas)]
@@ -52,9 +52,6 @@ class Loner4eEntity(Person):
             ("Motive", self.motive),
             ("Nemesis", self.nemesis),
         )
-
-    def authoring_fault(self) -> str:
-        return joined(super().authoring_fault(), "no living world" if self.living_world else "")
 
     def change_tags(self, kind: TagKind, gained: Sequence[str], lost: Sequence[str]) -> list[Fact]:
         here = [tag for tag in lost if self._carrier(tag, kind) == kind]

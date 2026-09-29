@@ -110,7 +110,7 @@ def scene_panel(world: Loner4eWorld) -> Panel:
     if world.opponent_ids:
         facing = ", ".join(
             f"{opponent.name}: luck {opponent.luck}"
-            for opponent in map(world.require, world.opponent_ids)
+            for opponent in map(world.require_entity, world.opponent_ids)
         )
         rows.append(PanelRow(name="Conflict", brief=facing, help=CONFLICT_HELP))
     return Panel(

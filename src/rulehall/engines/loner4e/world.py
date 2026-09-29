@@ -33,7 +33,7 @@ from rulehall.engines.loner4e.rules import (
 from rulehall.engines.loner4e.sheet import Loner4eEntity, TagName, Tags
 from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
 from rulehall.engines.sheet import Gauge, changed_tags, tag_card, tag_delta
-from rulehall.engines.world import IS_DEAD
+from rulehall.engines.world import IS_DEAD, OpeningProposal
 
 SCENE_CLOSED = "the scene has closed: change nothing more in it; call `direct` now"
 NO_SUCH_TAG = (
@@ -41,10 +41,6 @@ NO_SUCH_TAG = (
     "none"
 )
 ENDING_ASKS_NOTHING = "the adventure is ending: ask nothing; write the growth"
-FILED = (
-    "{name}[{entity_id}] is new to the cast, which also holds: {others}. Use one of those ids "
-    "when you mean them"
-)
 OFF_SCREEN = "the world moves off screen"
 DETAILS_KEPT = 6
 MEANWHILE_HINT = (
@@ -71,14 +67,14 @@ class Framing(Frozen):
 class Loner4eOpeningProposal(Framing, SceneProposal[Loner4eEntity]):
     @model_validator(mode="after")
     def _scene_id_unfiled(self) -> Self:
-        _check_scene_id_unfiled(self.cast)
+        _check_scene_id_unfiled(self.filed_by_name().cast)
         return self
 
 
 class Loner4eNextProposal(Framing, NextProposal[Loner4eEntity]):
     @model_validator(mode="after")
     def _scene_id_unfiled(self) -> Self:
-        _check_scene_id_unfiled(self.cast)
+        _check_scene_id_unfiled(self.filed_by_name().cast)
         return self
 
 
@@ -249,10 +245,11 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         _check_scene_id_unfiled(self.cast)
         return self
 
-    def apply_proposal_extras(self, proposal: Framing) -> None:
-        self.frame = Frame(
-            kind=self.frame.coming, goal=proposal.goal, details=list(proposal.details)
-        )
+    def apply_proposal_extras(self, proposal: OpeningProposal) -> None:
+        if isinstance(proposal, Framing):
+            self.frame = Frame(
+                kind=self.frame.coming, goal=proposal.goal, details=list(proposal.details)
+            )
 
     def close(self, reason: ClosedBy, rng: Random) -> list[Fact]:
         frame = self.frame
@@ -359,7 +356,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         return [rolled.fact, card]
 
     def apply_offscreen_update(self, update: CastUpdate) -> list[Fact]:
-        entity = self.require(update.entity_id)
+        entity = self.require_entity(update.entity_id)
         if entity is self.player or entity.id in self.party_ids:
             raise Refusal(f"{entity.name} is the protagonist or travels with them, not off screen")
         if not entity.alive:
@@ -404,7 +401,8 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
 
     def living_world_lines(self, living_world: LivingWorldProposal) -> tuple[str, ...]:
         people = (
-            f"{self.require(fate.entity_id).name}: {fate.line}" for fate in living_world.people
+            f"{self.require_entity(fate.entity_id).name}: {fate.line}"
+            for fate in living_world.people
         )
         return (*people, *living_world.places, *living_world.events)
 
@@ -413,26 +411,26 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         return question
 
     def here_or_entering(self, entity_id: Slug) -> tuple[Loner4eEntity, list[Fact]]:
-        known = self._find_known_id(entity_id)
+        known = self.find_entity_id(entity_id)
         if known is not None and (known == self.player.id or known in self.scene.here_ids):
             return self.require_living_here(known), []
         facts = self.enter(entity_id)
-        return self.require_living_here(entity_id if known is None else known), facts
+        return self.require_living_here(entity_id), facts
 
     def conflict_lines(self) -> str:
         if not self.opponent_ids:
             return ""
-        lines = [f"- {self.player.tag}: luck {self.player.luck}"]
-        for opponent in map(self.require, self.opponent_ids):
+        lines = [f"- {self.player.ref}: luck {self.player.luck}"]
+        for opponent in map(self.require_entity, self.opponent_ids):
             edge = ", ".join((*opponent.tagged("skill"), *opponent.tagged("gear")))
             lines.append(
-                f"- {opponent.tag}: luck {opponent.luck}" + (f"; hinders: {edge}" if edge else "")
+                f"- {opponent.ref}: luck {opponent.luck}" + (f"; hinders: {edge}" if edge else "")
             )
         return "\n".join(lines)
 
     def elsewhere_lines(self) -> str:
         return "\n".join(
-            f"- {entry.tag}" + (f" — {entry.concept}" if entry.concept else "")
+            f"- {entry.ref}" + (f" — {entry.concept}" if entry.concept else "")
             for entry in self.cast.values()
             if entry.alive and entry.id not in self.scene.here_ids
         )
@@ -484,11 +482,11 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         if self.opponent_ids == [entity_id]:
             return self.end_conflict("the last opponent is out")
         self.opponent_ids.remove(entity_id)
-        leaver = self.require(entity_id)
+        leaver = self.require_entity(entity_id)
         return leaver.refill("out of the conflict") if leaver.alive else []
 
     def end_conflict(self, why: str) -> list[Fact]:
-        sides = [self.player, *(self.require(entity_id) for entity_id in self.opponent_ids)]
+        sides = [self.player, *(self.require_entity(entity_id) for entity_id in self.opponent_ids)]
         self.opponent_ids.clear()
         return [
             fact
@@ -499,29 +497,18 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
 
     def enter(self, entity_id: Slug) -> list[Fact]:
         self.require_open()
-        known = self._find_known_id(entity_id)
-        if known is not None:
-            return super().enter(known)
-        others = ", ".join(entry.tag for entry in self.cast.values() if entry.alive)
-        name = self.file_stranger(entity_id, "").name
-        filed = FILED.format(name=name, entity_id=entity_id, others=others or "(no one)")
-        return [Fact(trace=filed), *super().enter(entity_id)]
+        return super().enter(entity_id)
 
     def leave(self, entity_id: Slug) -> list[Fact]:
         self.require_open()
-        known = self._find_known_id(entity_id) or entity_id
+        known = self.find_entity_id(entity_id) or entity_id
         if known not in self.scene.here_ids:
             return []
         return [*super().leave(known), *self.drop_opponent(known)]
 
-    def _find_known_id(self, entity_id: Slug) -> Slug | None:
-        if entity_id in self.cast or entity_id == self.player.id:
-            return entity_id
-        found = [key for key in self.cast if f"-{entity_id}-" in f"-{key}-"]
-        return found[0] if len(found) == 1 else None
-
     def kill(self, entity_id: Slug) -> list[Fact]:
-        return [*super().kill(entity_id), *self.drop_opponent(entity_id)]
+        killed_id = self.require_entity(entity_id).id
+        return [*super().kill(killed_id), *self.drop_opponent(killed_id)]
 
 
 Loner4eGame = Game[Loner4eWorld]

@@ -7,15 +7,11 @@ from rulehall.core.validation import Frozen, Mutable, Slug
 from rulehall.engines.pokemon.battle.models import LEVEL_MAX, TEAM_MAX
 from rulehall.engines.pokemon.rules import BOSS_RISE, LEGENDARY_AT, RosterSlot, rescaled
 from rulehall.engines.pokemon.sheet import Trainer
-from rulehall.engines.rooms.world import RoomMap
 
-type Consequence = Literal["shut_way", "close_center"]
 type SchemeDue = Literal["operation", "lair"]
 type Stage = Annotated[str, Field(min_length=1)]
 
 SCHEME_STAGES = 4
-HELD_WAY = "Grunts hold the way from {start} to {end}"
-CENTER_STAKE = "a Pokemon Center closes"
 
 
 class Scheme(Frozen):
@@ -42,21 +38,6 @@ class Operation(Frozen):
         "an earlier leader that THE SCHEME names."
     )
     goal: str = Field(min_length=1, description="What the team does there.")
-    consequence: Consequence = Field(
-        description="What changes when it succeeds. shut_way: grunts hold the way from `place_id` "
-        "to `shut_to_id` for good. close_center: a Pokemon Center closes."
-    )
-    shut_to_id: Slug | None = Field(
-        default=None,
-        description="shut_way only: exact id of a place that an unlocked way from `place_id` "
-        "leads to. Every place of the map stays reachable from its start without that way. Null "
-        "for close_center.",
-    )
-
-    def stake(self, room_map: RoomMap[Trainer]) -> str:
-        if self.shut_to_id is None:
-            return CENTER_STAKE
-        return held_line(room_map, self.place_id, self.shut_to_id)
 
 
 class EvilTeam(Mutable):
@@ -65,14 +46,13 @@ class EvilTeam(Mutable):
     foiled: int = Field(default=0, ge=0)
     succeeded: int = Field(default=0, ge=0)
     leader_ids: list[Slug] = Field(default_factory=list)
-    held_ways: list[tuple[Slug, Slug]] = Field(default_factory=list)
     boss_id: Slug | None = None
     boss_beaten: bool = False
 
     @model_validator(mode="after")
     def _a_consistent_scheme(self) -> Self:
-        if self.scheme is None and (self.operation or self.boss_id or self.held_ways):
-            raise ValueError("an operation, a boss or a held way needs a scheme")
+        if self.scheme is None and (self.operation or self.boss_id):
+            raise ValueError("an operation or a boss needs a scheme")
         if self.stage() > SCHEME_STAGES:
             raise ValueError(f"the scheme has {SCHEME_STAGES} stages, not {self.stage()}")
         operation = self.operation
@@ -96,9 +76,6 @@ class EvilTeam(Mutable):
 
     def key_ids(self) -> tuple[Slug, ...]:
         return (*self.leader_ids, *filter(None, (self.boss_id,)))
-
-    def holds_way(self, start_id: Slug, end_id: Slug) -> bool:
-        return (start_id, end_id) in self.held_ways or (end_id, start_id) in self.held_ways
 
     def joining_legendary_id(self) -> Slug | None:
         if self.succeeded < LEGENDARY_AT:
@@ -128,8 +105,3 @@ class EvilTeam(Mutable):
             return roster
         kept = sorted(roster, key=lambda slot: slot.level)[1 - TEAM_MAX :]
         return (*kept, RosterSlot(species_id=legendary_id, level=ace_level))
-
-
-def held_line(room_map: RoomMap[Trainer], start_id: Slug, end_id: Slug) -> str:
-    places = room_map.places
-    return HELD_WAY.format(start=places[start_id].name, end=places[end_id].name)

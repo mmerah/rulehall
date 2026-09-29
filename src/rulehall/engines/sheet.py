@@ -5,8 +5,9 @@ from pydantic import Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 from rulehall.core.facts import DiceEvent, Fact
+from rulehall.core.prompt import ref_of
 from rulehall.core.validation import Mutable, Refusal, Slug, check_unique
-from rulehall.core.views import Rows, Subject, tag_of
+from rulehall.core.views import Rows, Subject
 
 PLAYER_ID: Slug = "player"
 NO_SHEET = "{name} carries no sheet"
@@ -45,11 +46,11 @@ class Entity(Mutable):
 
     @property
     def mention(self) -> str:
-        return f"the player {self.tag}" if self.id == PLAYER_ID else self.tag
+        return f"the player {self.ref}" if self.id == PLAYER_ID else self.ref
 
     @property
-    def tag(self) -> str:
-        return tag_of(self.name, self.id)
+    def ref(self) -> str:
+        return ref_of(self.name, self.id)
 
     @property
     def headline(self) -> str:
@@ -107,9 +108,6 @@ class Person(Entity):
     def has_sheet(self) -> bool:
         return False
 
-    def authoring_fault(self) -> str:
-        return "" if self.alive else "alive"
-
 
 class Sheeted[S: Mutable](Person):
     sheet: SkipJsonSchema[S | None] = None
@@ -122,9 +120,6 @@ class Sheeted[S: Mutable](Person):
         if self.sheet is None:
             raise Refusal(NO_SHEET.format(name=self.name))
         return self.sheet
-
-    def authoring_fault(self) -> str:
-        return joined(super().authoring_fault(), "no sheet" if self.sheet is not None else "")
 
 
 def changed_tags(

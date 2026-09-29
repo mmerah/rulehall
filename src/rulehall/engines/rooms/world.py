@@ -1,4 +1,4 @@
-from collections.abc import Collection, Iterable, Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from typing import ClassVar, Self
 
 from pydantic import Field, model_validator
@@ -76,14 +76,14 @@ class RoomMap[P: Dweller](Mutable):
     def find_entity(self, entity_id: Slug) -> Person | Item | Place | None:
         return self.places.get(entity_id) or self.npcs.get(entity_id) or self.items.get(entity_id)
 
-    def require(self, entity_id: Slug) -> Person | Item | Place:
+    def require_entity(self, entity_id: Slug) -> Person | Item | Place:
         entity = self.find_entity(entity_id)
         if entity is None:
             raise Refusal(UNKNOWN_ID.format(entity_id=entity_id))
         return entity
 
     def require_place(self, entity_id: Slug) -> Place:
-        entity = self.require(entity_id)
+        entity = self.require_entity(entity_id)
         if not isinstance(entity, Place):
             raise Refusal(f"{entity_id!r} is not a place")
         return entity
@@ -103,24 +103,13 @@ class RoomMap[P: Dweller](Mutable):
         for holder in (place_id, *(npc.id for npc in npcs)):
             yield from self.carried(holder)
 
-    def reachable(
-        self,
-        start_id: Slug,
-        *,
-        past_locks: bool = False,
-        cut: Collection[tuple[Slug, Slug]] = (),
-    ) -> set[Slug]:
-        blocked = {*cut, *((to_id, from_id) for from_id, to_id in cut)}
+    def reachable(self, start_id: Slug, *, past_locks: bool = False) -> set[Slug]:
         reached = {start_id}
         pending = [start_id]
         while pending:
             current = pending.pop()
             for way in self.ways.get(current, ()):
-                if (
-                    way.to_id in reached
-                    or (way.locked and not past_locks)
-                    or (current, way.to_id) in blocked
-                ):
+                if way.to_id in reached or (way.locked and not past_locks):
                     continue
                 reached.add(way.to_id)
                 pending.append(way.to_id)
@@ -167,7 +156,7 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
     def opening(
         cls, proposal: MapProposal[P], player: P, items: Iterable[Item], **extra_fields: object
     ) -> Self:
-        return parse(
+        world = parse(
             cls,
             {
                 "places": proposal.places,
@@ -179,6 +168,8 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
                 **extra_fields,
             },
         )
+        world.apply_proposal_extras(proposal)
+        return world
 
     @property
     def current(self) -> Place:
@@ -230,14 +221,14 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
         return npc
 
     def require_item_here(self, item_id: Slug) -> Item:
-        item = self.require(item_id)
+        item = self.require_entity(item_id)
         if not isinstance(item, Item):
             raise Refusal(f"{item_id!r} is not an item")
         if item.holder_id not in self.holders_here():
             raise Refusal(f"{item.name} is not here with the player")
         return item
 
-    def carried_items(self, holder: Person, item_ids: tuple[Slug, ...]) -> tuple[Item, ...]:
+    def require_carried_items(self, holder: Person, item_ids: tuple[Slug, ...]) -> tuple[Item, ...]:
         check_unique("items", item_ids)
         items: list[Item] = []
         for item_id in item_ids:
@@ -318,7 +309,7 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
         return [*destination.reveal(), here.fact(trace, card=card)]
 
     def reveal_hidden(self, entity_id: Slug) -> list[Fact]:
-        entity = self.require(entity_id)
+        entity = self.require_entity(entity_id)
         location = (
             entity.place_id
             if isinstance(entity, Dweller)
@@ -344,7 +335,7 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
                     f"{holder_id!r} cannot hold {item.name}; give the player, a living npc here, "
                     "or this place"
                 )
-        holder = self.require(holder_id)
+        holder = self.require_entity(holder_id)
         if not holder.known:
             raise Refusal(f"the player has not met {holder.name}; reveal them first")
         if item.holder_id == holder_id:
@@ -413,7 +404,7 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
         facts.append(actor.fact(f"{actor.mention} is dead", card=card))
         return facts
 
-    def attach(self, region: RoomMap[P], start_id: Slug) -> None:
+    def apply_region(self, region: RegionProposal[P]) -> None:
         """No check runs here: every caller refuses first, so a refused region leaves it alone."""
         anchor_id = self.current.id
         self.places.update(region.places)
@@ -422,8 +413,9 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
         self.npcs.update(region.npcs)
         self.items.update(region.items)
         self.arc = "\n".join(part for part in (self.arc, region.arc) if part)
-        self.add_way(anchor_id, start_id)
-        self.add_way(start_id, anchor_id)
+        self.add_way(anchor_id, region.start_id)
+        self.add_way(region.start_id, anchor_id)
+        self.apply_proposal_extras(region)
 
     def line(self, entity: P | Item) -> str:
         return entity.line(rows=self.sheet_rows()) if entity.id == self.player.id else entity.line()
@@ -442,7 +434,7 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
 
     def ways_lines(self) -> str:
         return lines_of(
-            f"- {self.require_place(way.to_id).tag} — {'known' if way.known else 'unknown'}"
+            f"- {self.require_place(way.to_id).ref} — {'known' if way.known else 'unknown'}"
             + ("; destination unknown to the player" if self.is_unexplored(way) else "")
             + ("; locked" if way.locked else "")
             for way in self.ways.get(self.current.id, ())
@@ -453,16 +445,16 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
 
     def _offscreen_line(self, place: Place) -> str:
         standing = ", ".join(
-            entity.tag
+            entity.ref
             for entity in self.entities_at(place.id)
             if not isinstance(entity, Person) or entity.alive
         )
         ways = ", ".join(
-            f"{self.require_place(way.to_id).tag}{'' if way.known else ' (unfound)'}"
+            f"{self.require_place(way.to_id).ref}{'' if way.known else ' (unfound)'}"
             for way in self.ways.get(place.id, ())
             if not way.locked
         )
-        return f"- {place.tag} — {standing or '(nobody, nothing)'}; ways: {ways or '(none)'}"
+        return f"- {place.ref} — {standing or '(nobody, nothing)'}; ways: {ways or '(none)'}"
 
     def elsewhere(self) -> list[Place]:
         return [place for place in self.visited_places() if place.id != self.current.id]
@@ -500,10 +492,10 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
                 if way.known
             )
             here = ", ".join(
-                f"{entity.tag} ({entity.met_label})" for entity in self.entities_at(place.id)
+                f"{entity.ref} ({entity.met_label})" for entity in self.entities_at(place.id)
             )
             lines.append(
-                f"{place.tag} — {place.description}\n  known ways out: {known_ways or '(none)'}"
+                f"{place.ref} — {place.description}\n  known ways out: {known_ways or '(none)'}"
                 f"\n  here: {here or '(nobody, nothing)'}"
             )
         lines.append("ids in use: " + ", ".join(sorted((*self.places, *self.npcs, *self.items))))

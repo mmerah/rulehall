@@ -12,8 +12,9 @@ from rulehall.core.validation import (
     Slug,
     check_unique,
     parse,
+    slug,
 )
-from rulehall.engines.sheet import Entity, Person
+from rulehall.engines.sheet import PLAYER_ID, Entity, Person
 from rulehall.engines.world import IS_DEAD, UNKNOWN_ID, OpeningProposal, World, check_filing
 
 SETTLED_SHOWN = 12
@@ -21,6 +22,10 @@ ARC_DESCRIPTION = (
     "The long game that spans the scenes: pressure, intent and what can come later. Never "
     "restate or change what happened, and never what is true in this scene now. The player "
     "never reads it."
+)
+FILED = (
+    "{name}[{entity_id}] is new to the cast, which also holds: {others}. Use one of those ids "
+    "when you mean them"
 )
 
 
@@ -66,8 +71,9 @@ class SceneProposal[P: Person](Frozen, OpeningProposal):
     hidden_ids: tuple[str, ...] = Field(default=(), description="Ids of what is hidden here.")
     cast: dict[Slug, P] = Field(
         default_factory=dict,
-        description="New people and things, each filed under its own id. The player reads a "
-        "brief and a sheet after they meet that entry. Name nothing still hidden in either one.",
+        description="New people and things. The engine files each entry under an id made from "
+        "its name. The player reads a brief and a sheet after they meet that entry. Name "
+        "nothing still hidden in either one.",
     )
     arc: str = Field(default="", description=ARC_DESCRIPTION)
 
@@ -81,6 +87,21 @@ class SceneProposal[P: Person](Frozen, OpeningProposal):
             )
             for entity_id, entry in self.cast.items()
         }
+
+    def filed_by_name(self) -> Self:
+        filed: dict[Slug, P] = {}
+        renamed: dict[str, Slug] = {}
+        for key, entry in self.cast.items():
+            entity_id = PLAYER_ID if key == PLAYER_ID else slug(entry.name, {PLAYER_ID, *filed})
+            renamed[key] = entity_id
+            filed[entity_id] = entry.model_copy(update={"id": entity_id})
+        return self.model_copy(
+            update={
+                "cast": filed,
+                "present_ids": tuple(renamed.get(name, name) for name in self.present_ids),
+                "hidden_ids": tuple(renamed.get(name, name) for name in self.hidden_ids),
+            }
+        )
 
 
 class NextProposal[P: Person](SceneProposal[P]):
@@ -119,7 +140,9 @@ class SceneWorld[P: Person](World[P]):
         cast, scene = built_scene(
             proposal, player, proposal.cast_with_hidden_unmet(), (), proposal.location
         )
-        return parse(cls, {"player": player, "cast": cast, "scenes": [scene], "arc": proposal.arc})
+        world = parse(cls, {"player": player, "cast": cast, "scenes": [scene], "arc": proposal.arc})
+        world.apply_proposal_extras(proposal)
+        return world
 
     @property
     def scene(self) -> Scene:
@@ -141,16 +164,17 @@ class SceneWorld[P: Person](World[P]):
     def roster(self) -> Mapping[Slug, P]:
         return self.cast
 
-    def require(self, entity_id: Slug) -> P:
-        if entity_id == self.player.id:
-            return self.player
-        entity = self.cast.get(entity_id)
-        if entity is None:
+    def find_entity_id(self, wanted: str) -> Slug | None:
+        return find_cast_id(wanted, {self.player.id: self.player, **self.cast})
+
+    def require_entity(self, entity_id: Slug) -> P:
+        found_id = self.find_entity_id(entity_id)
+        if found_id is None:
             raise Refusal(UNKNOWN_ID.format(entity_id=entity_id))
-        return entity
+        return self.player if found_id == self.player.id else self.cast[found_id]
 
     def require_here(self, entity_id: Slug) -> P:
-        entity = self.require(entity_id)
+        entity = self.require_entity(entity_id)
         if entity.id == self.player.id:
             return entity
         if entity.id not in self.scene.here_ids or not entity.known:
@@ -185,12 +209,12 @@ class SceneWorld[P: Person](World[P]):
         return lines_of(other.line() for other in self.others())
 
     def hidden_lines(self) -> str:
-        return "\n".join(self.require(entity_id).line() for entity_id in self.hidden())
+        return "\n".join(self.require_entity(entity_id).line() for entity_id in self.hidden())
 
     def scene_lines(self) -> str:
         scene = self.scene
-        present = ", ".join(self.cast[entity_id].tag for entity_id in self.present())
-        hidden = ", ".join(self.cast[entity_id].tag for entity_id in self.hidden())
+        present = ", ".join(self.cast[entity_id].ref for entity_id in self.present())
+        hidden = ", ".join(self.cast[entity_id].ref for entity_id in self.hidden())
         return (
             f"{scene.title} [{scene.place_id}]\nlocation: {scene.location}\n{scene.situation}"
             f"\npresent: {present or '(nobody)'}" + (f"\nhidden: {hidden}" if hidden else "")
@@ -223,15 +247,18 @@ class SceneWorld[P: Person](World[P]):
         )
 
     def reveal_hidden(self, entity_id: Slug) -> list[Fact]:
-        entity = self.require(entity_id)
-        if entity_id not in self.scene.here_ids or entity.known:
+        entity = self.require_entity(entity_id)
+        if entity.id not in self.scene.here_ids or entity.known:
             raise Refusal(f"{entity_id!r} is not hidden here")
         return entity.reveal(card=sentence(f"{entity.name} discovered"))
 
     def enter(self, entity_id: Slug) -> list[Fact]:
         if entity_id == self.player.id:
             raise Refusal("the player is in every scene; move the story on instead")
-        entity = self.require(entity_id)
+        known_id = find_cast_id(entity_id, self.cast)
+        if known_id is None:
+            return [self.file_stranger(entity_id), *self.enter(entity_id)]
+        entity = self.cast[known_id]
         if entity.id in self.scene.here_ids:
             if not entity.known:
                 raise Refusal(f"{entity.name} is hidden here: `reveal` them")
@@ -261,10 +288,13 @@ class SceneWorld[P: Person](World[P]):
         entity = self.require_here(entity_id)
         return [entity.fact(f"{entity.mention} is dead", card=self.die(entity))]
 
-    def file_stranger(self, entity_id: Slug, brief: str) -> P:
-        stranger = type(self.player)(id=entity_id, name=stranger_name(entity_id), brief=brief)
-        self.cast[entity_id] = stranger
-        return stranger
+    def file_stranger(self, entity_id: Slug) -> Fact:
+        name = stranger_name(entity_id)
+        self.refuse_unmet_names(name)
+        others = ", ".join(entry.ref for entry in self.cast.values() if entry.alive)
+        brief = f"met at {self.scene.title}"
+        self.cast[entity_id] = type(self.player)(id=entity_id, name=name, brief=brief)
+        return Fact(trace=FILED.format(name=name, entity_id=entity_id, others=others or "(no one)"))
 
     def merged_cast(self, cast: Mapping[Slug, P]) -> dict[Slug, P]:
         return {
@@ -287,6 +317,7 @@ class SceneWorld[P: Person](World[P]):
         )
         self.arc = proposal.arc or self.arc
         self.scenes.append(scene)
+        self.apply_proposal_extras(proposal)
 
 
 def built_scene[P: Person](
@@ -331,11 +362,14 @@ def check_named(here: Sequence[Slug], cast: Mapping[Slug, Entity]) -> None:
             raise ValueError(f"scene names {who!r}, who is not in the cast")
 
 
-def find_resolved_id(wanted: str, cast: Mapping[Slug, Entity]) -> Slug | None:
+def find_cast_id(wanted: str, cast: Mapping[Slug, Entity]) -> Slug | None:
     if wanted in cast:
         return wanted
-    matches = [entry.id for entry in cast.values() if entry.name.casefold() == wanted.casefold()]
-    return matches[0] if len(matches) == 1 else None
+    named = [entry.id for entry in cast.values() if entry.name.casefold() == wanted.casefold()]
+    if len(named) == 1:
+        return named[0]
+    tokened = [key for key in cast if f"-{wanted}-" in f"-{key}-"]
+    return tokened[0] if len(tokened) == 1 else None
 
 
 def require_resolved_ids(
@@ -343,7 +377,7 @@ def require_resolved_ids(
 ) -> list[Slug]:
     found: list[Slug] = []
     for name in wanted:
-        matched = find_resolved_id(name, cast)
+        matched = find_cast_id(name, cast)
         if matched is None:
             raise Refusal(f"the scene lists {name!r} as {where}, and no such id or name exists")
         if matched not in found:

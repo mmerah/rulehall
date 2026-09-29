@@ -5,6 +5,8 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
+from rulehall.core.facts import Fact
+from rulehall.core.prompt import ref_of
 from rulehall.core.validation import (
     Frozen,
     Mutable,
@@ -15,7 +17,7 @@ from rulehall.core.validation import (
     slug,
     slugs,
 )
-from rulehall.core.views import Rows, tag_of
+from rulehall.core.views import Rows
 from rulehall.engines.pokemon.battle.models import (
     FRIENDSHIP_MAX,
     LEVEL_MAX,
@@ -59,6 +61,7 @@ from rulehall.engines.pokemon.rules import (
     ItemId,
     RosterSlot,
     Skill,
+    TmId,
     attacks_physically,
     check_species,
     item_of,
@@ -70,7 +73,7 @@ from rulehall.engines.pokemon.rules import (
     tm_move,
 )
 from rulehall.engines.rooms.world import Dweller
-from rulehall.engines.sheet import Gauge, Sheeted, joined
+from rulehall.engines.sheet import Gauge, Sheeted
 
 ROSTER = (
     "The Pokemon this person battles with, as species and level. Empty for a person who does "
@@ -180,7 +183,7 @@ class Mon(Mutable):
 
     @classmethod
     def new(cls, species_id: Slug, level: int, rng: Random, taken: Iterable[Slug]) -> Self:
-        species = dex().require(species_id)
+        species = dex().require_species(species_id)
         return cls._made(
             species_id,
             species,
@@ -197,7 +200,7 @@ class Mon(Mutable):
 
     @classmethod
     def built(cls, species_id: Slug, level: int, mon_id: Slug, *, ace: bool) -> Self:
-        species = dex().require(species_id)
+        species = dex().require_species(species_id)
         physical = attacks_physically(species)
         return cls._made(
             species_id,
@@ -282,13 +285,13 @@ class Mon(Mutable):
         return stats(self.species, self.level, self.nature, self.ivs, self.evs)
 
     def line(self) -> str:
-        tag = tag_of(self.label(), self.mon_id)
+        ref = ref_of(self.label(), self.mon_id)
         held = "" if self.item_id is None else f"; holds {ITEMS[self.item_id].name}"
         moves = ", ".join(
             f"{slot.move.name} ({slot.move.type}) {slot.pp}/{slot.move.pp}" for slot in self.moves
         )
         return (
-            f"- {tag} L{self.level} {self.species.types_text()}, {self._health()}{held}; "
+            f"- {ref} L{self.level} {self.species.types_text()}, {self._health()}{held}; "
             f"moves: {moves} — {self.species.entry}"
         )
 
@@ -473,6 +476,9 @@ class TrainerSheet(Mutable):
     challenge: Challenge
     caught_species_ids: list[Slug] = Field(min_length=1)
     memorial: list[str] = Field(default_factory=list)
+    learning: list[Learning] = Field(default_factory=list)
+    evolving: list[Evolving] = Field(default_factory=list)
+    ranks_due: int = Field(default=0, ge=0)
 
     @model_validator(mode="after")
     def _unique_mons(self) -> Self:
@@ -564,34 +570,6 @@ class TrainerSheet(Mutable):
         for mon in self.owned():
             mon.heal()
 
-    def swap(self, team_mon_id: Slug, box_mon_id: Slug) -> tuple[Mon, Mon]:
-        leaving = self.require_mon(team_mon_id)
-        joining = self.require_boxed(box_mon_id)
-        self.team[self.team.index(leaving)] = joining
-        self.box[self.box.index(joining)] = leaving
-        return leaving, joining
-
-    def store(self, mon_id: Slug) -> Mon:
-        mon = self.require_mon(mon_id)
-        refuse(self.store_refusal(mon))
-        self.team.remove(mon)
-        self.box.append(mon)
-        return mon
-
-    def withdraw(self, mon_id: Slug) -> Mon:
-        mon = self.require_boxed(mon_id)
-        refuse(self.withdraw_refusal(mon))
-        self.box.remove(mon)
-        self.team.append(mon)
-        return mon
-
-    def lead(self, mon_id: Slug) -> Mon:
-        mon = self.require_mon(mon_id)
-        refuse(self.lead_refusal(mon))
-        self.team.remove(mon)
-        self.team.insert(0, mon)
-        return mon
-
     def store_refusal(self, mon: Mon) -> str:
         if any(other is not mon for other in self.able()):
             return ""
@@ -651,18 +629,204 @@ class Trainer(Sheeted[TrainerSheet], Dweller):
             *((("Memorial", "; ".join(sheet.memorial)),) if sheet.memorial else ()),
         )
 
-    def authoring_fault(self) -> str:
-        return joined(
-            super().authoring_fault(),
-            "no team" if self.team else "",
-            "not beaten" if self.beaten else "",
-            "last_battle_visit 0" if self.last_battle_visit else "",
-        )
+    def nickname(self, mon_id: Slug, name: str) -> list[Fact]:
+        sheet = self.require_sheet()
+        mon = sheet.require_owned(mon_id)
+        refuse(sheet.nickname_refusal(mon, name))
+        before = mon.name
+        mon.nickname = name
+        return [self.card_fact(f"{before} is now called {name}")]
+
+    def swap_mon(self, team_mon_id: Slug, box_mon_id: Slug) -> list[Fact]:
+        sheet = self.require_sheet()
+        leaving = sheet.require_mon(team_mon_id)
+        joining = sheet.require_boxed(box_mon_id)
+        sheet.team[sheet.team.index(leaving)] = joining
+        sheet.box[sheet.box.index(joining)] = leaving
+        return [self.card_fact(f"{leaving.name} to the box, {joining.name} to the team")]
+
+    def store_mon(self, mon_id: Slug) -> list[Fact]:
+        sheet = self.require_sheet()
+        mon = sheet.require_mon(mon_id)
+        refuse(sheet.store_refusal(mon))
+        sheet.team.remove(mon)
+        sheet.box.append(mon)
+        return [self.card_fact(f"{mon.name} to the box")]
+
+    def withdraw_mon(self, mon_id: Slug) -> list[Fact]:
+        sheet = self.require_sheet()
+        mon = sheet.require_boxed(mon_id)
+        refuse(sheet.withdraw_refusal(mon))
+        sheet.box.remove(mon)
+        sheet.team.append(mon)
+        return [self.card_fact(f"{mon.name} to the team")]
+
+    def lead_mon(self, mon_id: Slug) -> list[Fact]:
+        sheet = self.require_sheet()
+        mon = sheet.require_mon(mon_id)
+        refuse(sheet.lead_refusal(mon))
+        sheet.team.remove(mon)
+        sheet.team.insert(0, mon)
+        return [self.card_fact(f"{mon.name} leads the team")]
+
+    def hold_item(self, mon_id: Slug, item_id: ItemId | None) -> list[Fact]:
+        sheet = self.require_sheet()
+        mon = sheet.require_mon(mon_id)
+        name = mon.name
+        if item_id is None:
+            if mon.item_id is None:
+                raise Refusal(f"{name} holds nothing")
+            line = f"Took the {ITEMS[mon.item_id].name} from {name}"
+        else:
+            item = ITEMS[item_id]
+            if item.kind != "held":
+                raise Refusal(f"{item.name} is not an item to hold")
+            refuse(mon.item_refusal(item_id, (), sheet.level_cap()))
+            sheet.take(item_id)
+            line = f"{name} holds the {item.name}"
+        if mon.item_id is not None:
+            sheet.add(mon.item_id, 1)
+        mon.item_id = item_id
+        return [self.card_fact(line)]
+
+    def teach_move(self, mon_id: Slug, item_id: TmId) -> list[Fact]:
+        sheet = self.require_sheet()
+        if item_id not in sheet.bag:
+            raise Refusal(f"the bag holds no {item_of(item_id).name}")
+        mon = sheet.require_mon(mon_id)
+        refuse(mon.item_refusal(item_id, (), sheet.level_cap()))
+        return self._learn_or_ask(mon, item_id.removeprefix(TM_PREFIX))
+
+    def relearn_move(self, mon_id: Slug, move_id: Slug) -> list[Fact]:
+        sheet = self.require_sheet()
+        mon = sheet.require_mon(mon_id)
+        if move_id not in mon.relearnable():
+            raise Refusal(f"{mon.name} cannot remember {move_id!r}")
+        return self._learn_or_ask(mon, move_id)
+
+    def learn_move(self, mon_id: Slug, move_id: Slug, forget_id: Slug | None) -> list[Fact]:
+        sheet = self.require_sheet()
+        if sheet.learning[:1] != [Learning(mon_id=mon_id, move_id=move_id)]:
+            raise Refusal("no new move waits on this answer")
+        mon = sheet.require_mon(mon_id)
+        name = mon.name
+        move = dex().moves[move_id].name
+        if forget_id is None:
+            line = f"{name} did not learn {move}"
+        else:
+            mon.learn(move_id, forget_id)
+            line = f"{name} forgot {dex().moves[forget_id].name} and learned {move}"
+        _ = sheet.learning.pop(0)
+        return [self.card_fact(line)]
+
+    def evolve(self, mon_id: Slug, species_id: Slug, species_pool: Collection[Slug]) -> list[Fact]:
+        sheet = self.require_sheet()
+        if not any(
+            each.mon_id == mon_id and species_id in each.species_ids for each in sheet.evolving[:1]
+        ):
+            raise Refusal("no evolution waits on this answer")
+        mon = sheet.require_mon(mon_id)
+        name = mon.name
+        mon.evolve(species_id)
+        _ = sheet.evolving.pop(0)
+        return [
+            self.card_fact(f"{name} evolved into {mon.species_name}"),
+            *self.evolve_chain(mon, species_pool),
+        ]
+
+    def raise_skill(self, skill: Skill) -> list[Fact]:
+        sheet = self.require_sheet()
+        if not sheet.ranks_due:
+            raise Refusal("no skill rank waits")
+        rank = sheet.skills.get(skill, 0)
+        if rank >= RANK_MAX:
+            raise Refusal(f"{skill.title()} is already at rank {RANK_MAX}")
+        sheet.skills[skill] = rank + 1
+        sheet.ranks_due -= 1
+        return [self.card_fact(f"{skill.title()} rises to rank {rank + 1}")]
+
+    def use_item(self, item_id: ItemId, mon_id: Slug, species_pool: Collection[Slug]) -> list[Fact]:
+        sheet = self.require_sheet()
+        mon = sheet.require_mon(mon_id)
+        item = ITEMS[item_id]
+        if item.kind in ("ball", "held", "tm"):
+            raise Refusal(f"{item.name} is given or taught on the Team page, not used")
+        refuse(mon.item_refusal(item_id, species_pool, sheet.level_cap()))
+        name = mon.name
+        level = mon.level
+        sheet.take(item_id)
+        match item.kind:
+            case "potion":
+                healed = mon.hp.adjust(item.heal)
+                line = f"{item.name} on {name}: HP +{healed} → {mon.hp}"
+            case "full-heal":
+                cured, mon.status = mon.status, ""
+                line = f"{item.name} on {name}: {cured} cured"
+            case "revive":
+                mon.hp.current = mon.hp.maximum // 2
+                line = f"{item.name} on {name}: HP {mon.hp}"
+            case "candy":
+                _ = mon.gain((mon.level + 1) ** 3 - mon.exp, sheet.level_cap())
+                line = f"{item.name} on {name}: level {mon.level}"
+            case "evolution":
+                evolved_id = mon.evolution_by_item(species_pool, item.name)
+                assert evolved_id is not None
+                mon.evolve(evolved_id)
+                line = f"{item.name} on {name}: it evolved into {mon.species_name}"
+        reached = list(range(level + 1, mon.level + 1))
+        return [self.card_fact(line), *self.grow(mon, reached, species_pool)]
+
+    def grow(self, mon: Mon, reached: list[int], species_pool: Collection[Slug]) -> list[Fact]:
+        facts: list[Fact] = []
+        for level in reached:
+            for move_id in mon.moves_at(level):
+                if not mon.knows(move_id):
+                    facts += self._learn_or_ask(mon, move_id)
+        if reached and mon.item_id != "everstone":
+            facts += self.evolve_chain(mon, species_pool)
+        return facts
+
+    def evolve_chain(self, mon: Mon, species_pool: Collection[Slug]) -> list[Fact]:
+        sheet = self.require_sheet()
+        facts: list[Fact] = []
+        while len(found := mon.evolutions(species_pool)) == 1:
+            name = mon.name
+            mon.evolve(found[0])
+            facts.append(self.card_fact(f"{name} evolved into {mon.species_name}"))
+        if len(found) > 1:
+            sheet.evolving.append(Evolving(mon_id=mon.mon_id, species_ids=found))
+        return facts
+
+    def buy(self, item_id: BagId, count: int) -> list[Fact]:
+        sheet = self.require_sheet()
+        item = item_of(item_id)
+        if not item.price:
+            raise Refusal(f"{item.name} is not sold; it is found or given")
+        cost = item.price * count
+        sheet.pay(cost)
+        sheet.add(item_id, count)
+        return [self.card_fact(f"Bought {count} {item.name} (₽{cost})")]
+
+    def gain_item(self, item_id: BagId, count: int) -> list[Fact]:
+        self.require_sheet().add(item_id, count)
+        return [self.card_fact(f"Got {count} {item_of(item_id).name}")]
+
+    def gain_money(self, amount: int) -> list[Fact]:
+        self.require_sheet().money += amount
+        return [self.card_fact(f"Got ₽{amount}")]
+
+    def _learn_or_ask(self, mon: Mon, move_id: Slug) -> list[Fact]:
+        sheet = self.require_sheet()
+        if len(mon.moves) < MOVES_MAX:
+            mon.learn(move_id)
+            return [self.card_fact(f"{mon.name} learned {dex().moves[move_id].name}")]
+        sheet.learning.append(Learning(mon_id=mon.mon_id, move_id=move_id))
+        return []
 
 
 def built_team(roster: Sequence[RosterSlot]) -> list[Mon]:
     ordered = sorted(roster, key=lambda slot: slot.level)
-    mon_ids = slugs(dex().require(slot.species_id).name for slot in ordered)
+    mon_ids = slugs(dex().require_species(slot.species_id).name for slot in ordered)
     return [
         Mon.built(slot.species_id, slot.level, mon_id, ace=index == len(ordered))
         for index, (slot, mon_id) in enumerate(zip(ordered, mon_ids, strict=True), 1)

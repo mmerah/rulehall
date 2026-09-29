@@ -231,9 +231,7 @@
     "operation": {
       "place_id": "gull-cove",
       "leader_id": "vesper",
-      "goal": "Grunts drain the tide pools of Gull Cove to open an old sea cave.",
-      "consequence": "shut_way",
-      "shut_to_id": "harbour-road"
+      "goal": "Grunts drain the tide pools of Gull Cove to open an old sea cave."
     },
     "scheme": {
       "name": "Team Undertow",

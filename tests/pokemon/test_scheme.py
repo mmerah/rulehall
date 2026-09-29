@@ -2,7 +2,7 @@ from random import Random
 
 import pytest
 from support.pokemon import ENGINE, started
-from support.table import change, refused
+from support.table import change
 
 from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.battle.models import BattleResult, BattleSetup
@@ -26,34 +26,13 @@ def test_beating_the_operation_leader_foils_it_and_reveals_a_stage() -> None:
     assert draft.notes[-1] == "The team's operation at Gull Cove is foiled."
 
 
-def test_a_badge_earned_while_the_operation_is_open_makes_it_succeed_and_hold_its_way() -> None:
+def test_a_badge_earned_while_the_operation_is_open_makes_it_succeed() -> None:
     draft = started().draft()
 
     _ = ENGINE.end_battle(draft, _won(_battle(draft, "ines")))
 
     evil_team = draft.world.evil_team
     assert (evil_team.foiled, evil_team.succeeded, evil_team.operation) == (0, 1, None)
-    assert evil_team.held_ways == [("gull-cove", "harbour-road")]
-    assert refused(ENGINE, draft, "unlock_way", to_id="gull-cove") == (
-        "the grunts of Team Undertow hold this way"
-    )
-
-
-def test_a_way_that_would_cut_a_place_off_closes_a_center_instead() -> None:
-    draft = started().draft()
-    world = draft.world
-    for start, end in (("gull-cove", "tern-harbour"), ("tern-harbour", "gull-cove")):
-        world.ways[start] = [way for way in world.ways[start] if way.to_id != end]
-    world.center_place_ids.append("tern-harbour")
-    setup = _battle(draft, "vesper")
-
-    _ = ENGINE.end_battle(
-        draft, BattleResult(outcome="lost", team=setup.team, sent_out_foes=(), on_field_mon_ids=())
-    )
-
-    assert world.evil_team.succeeded == 1
-    assert world.evil_team.held_ways == []
-    assert world.center_place_ids == ["tern-harbour"]
 
 
 def test_a_region_without_the_operation_that_is_owed_is_refused() -> None:

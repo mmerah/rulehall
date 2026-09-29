@@ -173,7 +173,7 @@ class PackSet[K: Pack]:
             raise ValueError(f"the {self.engine_id!r} engine ships no {SRD_PACK!r} pack")
         return found
 
-    def require(self, pack_id: Slug) -> K:
+    def require_pack(self, pack_id: Slug) -> K:
         found = self.installed.get(pack_id)
         if found is None:
             raise Refusal(f"pack {pack_id!r} is not installed for {self.engine_id!r}")
@@ -181,7 +181,7 @@ class PackSet[K: Pack]:
 
     def played(self, pack_id: Slug) -> tuple[K, ...]:
         srd = self.srd()
-        return (srd,) if pack_id == SRD_PACK else (srd, self.require(pack_id))
+        return (srd,) if pack_id == SRD_PACK else (srd, self.require_pack(pack_id))
 
     def options(self) -> tuple[DecisionOption, ...]:
         rest = tuple(
@@ -191,13 +191,14 @@ class PackSet[K: Pack]:
         )
         return (DecisionOption(id=SRD_PACK, name=self.srd().name), *rest)
 
-    def guidance(self, pack_id: Slug, *, opening: bool) -> str:
-        pack = self.require(pack_id)
-        parts = pack.sections(opening=opening)
-        return f"PACK: {pack.name}\n\n{sections(parts)}" if parts else ""
+    def guidance(self, pack_id: Slug, engine_guidance: str, *, opening: bool) -> str:
+        pack = self.require_pack(pack_id)
+        if not (parts := pack.sections(opening=opening)):
+            return engine_guidance
+        return f"{engine_guidance}\n\nPACK: {pack.name}\n\n{sections(parts)}"
 
     def rules_section(self, pack_id: Slug) -> Sections:
-        pack = self.require(pack_id)
+        pack = self.require_pack(pack_id)
         return ((f"SPECIAL RULES: {pack.name}", pack.rules),) if pack.rules else ()
 
 

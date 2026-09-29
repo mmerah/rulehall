@@ -11,10 +11,10 @@ from rulehall.core.views import BattleChoice
 from rulehall.ui import transcript
 from rulehall.ui.panel_parts import choice_groups
 from rulehall.ui.routes import assets_route
-from rulehall.ui.widgets import DICE_CLIP, Banner, Sounds, attempt
+from rulehall.ui.widgets import DICE_CLIP, Banner, Sounds, attempt, failure_notice
 
-BATTLE_FAILED = "Something went wrong. The battle did not start. Look in the server log."
-MOVE_FAILED = "Something went wrong. The move was not played. Look in the server log."
+BATTLE_FAILED = failure_notice("The battle did not start.")
+MOVE_FAILED = failure_notice("The move was not played.")
 
 
 class BattlePanel:
@@ -68,7 +68,7 @@ class BattlePanel:
     def draw_battle_screen(self, now: SessionSnapshot) -> None:
         session = self.session
         run = now.battle_run
-        component = session.engine.battle_script
+        component = session.battle_script
         if run is None or component is None:
             self.battle_view_element = None
             return

@@ -11,7 +11,7 @@ from rulehall.engines.pokemon.sheet import Mon
 
 def test_a_tm_teaches_its_move_and_stays_in_the_bag() -> None:
     draft = started().draft()
-    sheet = draft.world.player.require_sheet()
+    sheet = draft.world.player_sheet
     charmander = sheet.require_mon("charmander")
     assert len(charmander.moves) == 3
     _ = change(ENGINE, draft, "gain_item", item_id="tm-flamethrower")
@@ -27,7 +27,7 @@ def test_a_tm_teaches_its_move_and_stays_in_the_bag() -> None:
 
 def test_a_stone_or_the_linking_cord_evolves_the_pokemon_it_fits() -> None:
     draft = started().draft()
-    sheet = draft.world.player.require_sheet()
+    sheet = draft.world.player_sheet
     pikachu = Mon.new("pikachu", 20, Random(0), sheet.mon_ids())
     kadabra = Mon.new("kadabra", 20, Random(0), [*sheet.mon_ids(), pikachu.mon_id])
     _ = sheet.catch(pikachu)
@@ -49,7 +49,7 @@ def test_a_stone_or_the_linking_cord_evolves_the_pokemon_it_fits() -> None:
 
 def test_a_box_row_swaps_with_any_team_pokemon() -> None:
     draft = started().draft()
-    sheet = draft.world.player.require_sheet()
+    sheet = draft.world.player_sheet
     pidgey = Mon.new("pidgey", 5, Random(0), sheet.mon_ids())
     pidgey.hp.current = 0
     sheet.box.append(pidgey)
@@ -61,7 +61,7 @@ def test_a_box_row_swaps_with_any_team_pokemon() -> None:
     assert option.name == "Swap with Charmander"
 
     draft = state.draft()
-    sheet = draft.world.player.require_sheet()
+    sheet = draft.world.player_sheet
     _ = ENGINE.play_option(draft, option, Random(0))
     assert sheet.mon_ids() == [pidgey.mon_id, "charmander"]
 
@@ -73,10 +73,10 @@ def test_a_box_row_swaps_with_any_team_pokemon() -> None:
 
 def test_only_a_pokemon_center_heals_the_team() -> None:
     draft = started().draft()
-    charmander = draft.world.player.require_sheet().require_mon("charmander")
+    charmander = draft.world.player_sheet.require_mon("charmander")
     charmander.hp.current = 1
 
-    assert refused(ENGINE, draft, "heal_team") == "no open Pokemon Center here"
+    assert refused(ENGINE, draft, "heal_team") == "no Pokemon Center here"
     _ = draft.world.move("tern-harbour", ())
     _ = draft.world.move("pokemon-center", ())
     _ = change(ENGINE, draft, "heal_team")
@@ -86,7 +86,7 @@ def test_only_a_pokemon_center_heals_the_team() -> None:
 
 def test_a_nickname_another_pokemon_has_is_refused() -> None:
     draft = started().draft()
-    sheet = draft.world.player.require_sheet()
+    sheet = draft.world.player_sheet
     sheet.box.append(Mon.new("squirtle", 5, Random(0), sheet.mon_ids()))
     _ = change(ENGINE, draft, "nickname", mon_id="charmander", name="Blaze")
 
@@ -98,7 +98,7 @@ def test_a_nickname_another_pokemon_has_is_refused() -> None:
 
 def test_the_team_sends_to_the_box_withdraws_and_sets_the_lead() -> None:
     draft = started().draft()
-    sheet = draft.world.player.require_sheet()
+    sheet = draft.world.player_sheet
     with pytest.raises(Refusal, match="no other team Pokemon can fight"):
         _ = run_action(ENGINE, draft, "store_mon", mon_id="charmander")
     pidgey = Mon.new("pidgey", 5, Random(0), sheet.mon_ids())
@@ -125,7 +125,7 @@ def test_the_team_sends_to_the_box_withdraws_and_sets_the_lead() -> None:
 
 def test_a_rare_candy_raises_one_level_and_grows_the_pokemon() -> None:
     draft = started().draft()
-    sheet = draft.world.player.require_sheet()
+    sheet = draft.world.player_sheet
     charmander = sheet.require_mon("charmander")
     charmander.level, charmander.exp = 15, 15**3
     _ = change(ENGINE, draft, "gain_item", item_id="rare-candy")

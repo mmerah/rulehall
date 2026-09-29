@@ -14,7 +14,8 @@ from rulehall.core.game import RoleAnswer
 from rulehall.core.stores import read_cached_text
 from rulehall.core.validation import Loose, Slug, parse_json
 from rulehall.core.views import BattleChoice
-from rulehall.engines.engine import Resolution, Transport
+from rulehall.engines.battles import Transport
+from rulehall.engines.engine import Resolution
 from rulehall.engines.pokemon.battle.models import (
     STATUSES,
     Battle,

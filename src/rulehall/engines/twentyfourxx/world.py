@@ -1,5 +1,3 @@
-from collections import Counter
-from collections.abc import Sequence
 from random import Random
 from typing import Annotated
 
@@ -12,7 +10,7 @@ from rulehall.core.prompt import lines_of
 from rulehall.core.validation import Frozen, Refusal, Slug, slug
 from rulehall.core.views import Rows
 from rulehall.engines.name_leaks import unmet_people_named
-from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld, stranger_name
+from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
 from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.twentyfourxx.rules import (
     BRIEF,
@@ -24,9 +22,9 @@ from rulehall.engines.twentyfourxx.rules import (
     outcome_band,
 )
 from rulehall.engines.twentyfourxx.sheet import MAIMED, SHIP_FUNCTIONS, SHIP_IDS, Crewmate, Gear
+from rulehall.engines.world import OpeningProposal
 
 ALREADY_MAIMED = "{who} is already maimed: the engine writes no second maim"
-GEAR_KEPT = "a setback is a lesser consequence: the gear named for {who} stays whole"
 UPGRADE_COST = 10
 ALREADY_BROKEN = "{name} is already broken"
 BREAKS_HARMLESSLY = "{name} breaks harmlessly: leave `hindrance` empty"
@@ -120,9 +118,12 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
     ship_at: str = ""
     raise_owed: bool = False
     work_rolled: bool = False
+    work_found_at: str = ""
     dead_lead: str = ""
 
-    def apply_proposal_extras(self, proposal: TwentyFourXXSceneProposal) -> None:
+    def apply_proposal_extras(self, proposal: OpeningProposal) -> None:
+        if not isinstance(proposal, TwentyFourXXSceneProposal):
+            return
         self.job = proposal.job
         self.ship_at = proposal.ship_at or self.scene.location
         self.hear(self.job)
@@ -167,15 +168,16 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         return function
 
     def defences_for(self, actor: Crewmate) -> list[tuple[Slug, Gear]]:
-        return [
-            (item_id, gear)
-            for item_id, gear in actor.require_sheet().items.items()
-            if not gear.broken
-        ]
+        ship = self.ship if self.ship_here() else {}
+        items = {**actor.require_sheet().items, **ship}
+        return [(item_id, gear) for item_id, gear in items.items() if not gear.broken]
 
     def defend(self, actor_id: Slug | None, item_id: Slug, hindrance: str) -> list[Fact]:
         actor = self.require_actor(actor_id)
-        return self._break(actor, self.require_gear(actor, item_id), hindrance)
+        gear = self.require_gear(actor, item_id)
+        if item_id in self.ship and (refusal := self.ship_refusal()):
+            raise Refusal(refusal)
+        return self._break(actor, gear, hindrance)
 
     def take_hit(
         self,
@@ -190,13 +192,13 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         harm: bool,
     ) -> list[Fact]:
         if not disaster and not deadly:
-            kept = [actor.fact(GEAR_KEPT.format(who=actor.mention))] if item_id else []
-            lesser = brief_hindrance(lesser_hurt(setback_hurt, deadly=False))
-            hurt = actor.hinder(lesser) if harm else []
-            return [*kept, *hurt]
+            return (
+                actor.hinder(brief_hindrance(lesser_hurt(setback_hurt, deadly=False)))
+                if harm
+                else []
+            )
         if item_id is not None:
-            item = self.require_gear(actor, item_id)
-            return self._break(actor, item, hindrance)
+            return self._break(actor, self.require_gear(actor, item_id), hindrance)
         if not deadly:
             return actor.change_hindrances([risk], []) if harm else []
         if disaster:
@@ -212,22 +214,6 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
             if briefs := [hindrance for hindrance in hindrances if hindrance.startswith(BRIEF)]:
                 facts.extend(actor.change_hindrances((), briefs))
         return facts
-
-    def check_defenses(self, claims: Sequence[tuple[Crewmate, Slug, str]]) -> None:
-        resolved = [
-            (self.require_gear(actor, item_id), hindrance) for actor, item_id, hindrance in claims
-        ]
-        # By identity: two actors can claim the same ship function, and Gear is unhashable.
-        claimed = Counter(id(item) for item, _ in resolved)
-        for item, hindrance in resolved:
-            if item.breaks - item.broken_times < claimed[id(item)]:
-                raise Refusal(ALREADY_BROKEN.format(name=item.name))
-            if item.harmless:
-                if hindrance:
-                    raise Refusal(BREAKS_HARMLESSLY.format(name=item.name))
-                continue
-            if not hindrance:
-                raise Refusal(f"name the hindrance that {item.name} leaves behind")
 
     def _break(self, actor: Crewmate, item: Gear, hindrance: str) -> list[Fact]:
         if item.broken:
@@ -260,7 +246,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         if refusal := self.ship_refusal():
             raise Refusal(refusal)
         sheet = actor.require_sheet()
-        item = sheet.require(item_id, actor.name)
+        item = sheet.require_item(item_id, actor.name)
         del sheet.items[item_id]
         self.hold[slug(item.name, self.hold)] = item
         trace = f"{actor.mention} stows {item.name} in the ship's hold"
@@ -320,7 +306,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         self.dead_lead = dead.name
         self.cast[dead.id] = dead
         self.scene.here_ids.append(dead.id)
-        trace = f"{member.mention} takes the lead; {dead.tag} is dead"
+        trace = f"{member.mention} takes the lead; {dead.ref} is dead"
         facts = [member.fact(trace, card=f"{member.name} leads now")]
         carried = dead.require_sheet().items
         if carried:
@@ -342,7 +328,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         member = self.cast[entity_id]
         if not member.has_sheet:
             return facts
-        trace = f"{member.tag} is no longer with the crew"
+        trace = f"{member.ref} is no longer with the crew"
         return [member.fact(trace, card=f"{member.name} leaves the crew")]
 
     def was_let_go(self, entry: Crewmate) -> bool:
@@ -364,26 +350,11 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
                 person.known = True
 
     def enter_if_stranger(self, entity_id: Slug, /) -> list[Fact]:
-        known = entity_id in self.cast or entity_id == self.player.id
-        return [] if known else self.enter(entity_id)
-
-    def enter(self, entity_id: Slug) -> list[Fact]:
-        if entity_id not in self.cast and entity_id != self.player.id:
-            self.refuse_unmet_names(stranger_name(entity_id))
-            self.file_stranger(entity_id, f"met at {self.scene.title}")
-        return super().enter(entity_id)
+        return [] if self.find_entity_id(entity_id) is not None else self.enter(entity_id)
 
     def require_no_job(self) -> None:
         if self.job:
             raise Refusal(JOB_OPEN.format(job=self.job))
-
-    def looked_at(self) -> str:
-        for entry in reversed([entry for scene in self.scenes for entry in scene.settled]):
-            if entry.question == JOB_TAKEN:
-                return ""
-            if entry.question.startswith(WORK_AT):
-                return entry.question.removeprefix(WORK_AT)
-        return ""
 
     def find_work(self, where: str, rng: Random) -> list[Fact]:
         self.require_no_job()
@@ -391,6 +362,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         face = rolled.face
         result = outcome_band(face, NO_WORK, ODD_WORK, TWO_JOBS_FOUND)
         self.settle(f"{WORK_AT}{where}", result)
+        self.work_found_at = where
         return [
             rolled.fact,
             self.player.card_fact(f"{where} — d6 → {result}", (rolled.event,)),
@@ -398,9 +370,10 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         ]
 
     def take_job(self, terms: str) -> list[Fact]:
-        if not self.job and not self.looked_at():
+        if not self.job and not self.work_found_at:
             raise Refusal(FIND_FIRST)
         self.settle(JOB_TAKEN, terms)
+        self.work_found_at = ""
         amended, self.job = bool(self.job), terms
         if amended:
             return [
@@ -417,23 +390,3 @@ TwentyFourXXNextProposal = NextProposal[Crewmate]
 
 
 TwentyFourXXGame = Game[TwentyFourXXWorld]
-
-
-def filed_by_name[S: SceneProposal[Crewmate]](proposal: S) -> S:
-    filed: dict[Slug, Crewmate] = {}
-    renamed: dict[str, Slug] = {}
-    for key, entry in proposal.cast.items():
-        entity_id = PLAYER_ID if key == PLAYER_ID else slug(entry.name, filed)
-        renamed[key] = entity_id
-        filed[entity_id] = entry.model_copy(update={"id": entity_id})
-
-    def placed(listed: tuple[str, ...]) -> tuple[str, ...]:
-        return tuple(renamed.get(name, name) for name in listed)
-
-    return proposal.model_copy(
-        update={
-            "cast": filed,
-            "present_ids": placed(proposal.present_ids),
-            "hidden_ids": placed(proposal.hidden_ids),
-        }
-    )

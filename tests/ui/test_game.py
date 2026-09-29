@@ -14,13 +14,12 @@ from support.table import (
 
 from rulehall.app.game_session import GameSession, SessionSnapshot
 from rulehall.app.turn import Turn
-from rulehall.config import TranscriptConfig
 from rulehall.core.decisions import ActionOption, Decision, PlayerInput
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyGame
-from rulehall.core.log import RefusedCall, SpokenLine
+from rulehall.core.log import SpokenLine
 from rulehall.core.views import SCENE_TAB, Panel, PanelRow, PlayerView, Subject
-from rulehall.ui.composer import ActionBar, composer_lock
+from rulehall.ui.composer import Composer, composer_lock
 from rulehall.ui.drawer import DrawerTab, choosing
 from rulehall.ui.game import GamePage, game_page
 from rulehall.ui.transcript import Transcript
@@ -156,40 +155,6 @@ async def test_the_live_turn_draws_each_fact_card_once_and_the_narration_heard_s
     assert _texts(held) == []
 
 
-@pytest.mark.parametrize(
-    ("shown", "heads"),
-    [(True, ["One", "The rules refused reveal", "Two"]), (False, ["One", "Two"])],
-)
-async def test_the_live_turn_puts_a_refused_call_between_its_facts_only_when_shown(
-    tmp_path: Path, page: Callable[[], Client], *, shown: bool, heads: list[str]
-) -> None:
-    table = open_game(tmp_path)
-    service = table.session
-    service.live_settings.current = service.live_settings.current.model_copy(
-        update={"transcript": TranscriptConfig(refusals=shown)}
-    )
-    page()
-    drawn = service.snapshot()
-    with ui.element("div"):
-        live = Transcript(drawn, service.icon, Sounds())
-    service.turn = Turn(
-        engine=service.engine, draft=service.state.draft(), rng=Random(1), facts=[_told("One")]
-    )
-    now = service.snapshot()
-    live.sync(now, drawn)
-
-    service.turn.refused.append(RefusedCall(tool="reveal", reason="no such thing", after_facts=1))
-    service.turn.facts.append(_told("Two"))
-    live.sync(service.snapshot(), now)
-
-    drawn_heads = [
-        label.text
-        for label in live.live_block.card_slot.descendants()
-        if isinstance(label, ui.label) and "game-fact-head" in label.classes
-    ]
-    assert drawn_heads == heads
-
-
 async def test_a_page_is_not_built_for_a_client_deleted_before_the_handshake(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, page: Callable[[], Client]
 ) -> None:
@@ -261,7 +226,7 @@ async def test_a_pause_line_is_hidden_on_load_while_its_decision_is_still_open(
     assert chat.pause_line.visible is False
 
 
-async def test_the_action_bar_asks_on_the_tick_that_brings_a_decision_and_not_the_next(
+async def test_the_composer_asks_on_the_tick_that_brings_a_decision_and_not_the_next(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, page: Callable[[], Client]
 ) -> None:
     monkeypatch.setattr("nicegui.storage.Storage.tab", property(lambda _storage: {}))
@@ -273,22 +238,22 @@ async def test_the_action_bar_asks_on_the_tick_that_brings_a_decision_and_not_th
         return True
 
     drawn = service.snapshot()
-    bar = ActionBar(service, drawn, choose)
-    assert "game-asking" not in bar.bar.classes
+    bar = Composer(service, drawn, choose)
+    assert "game-asking" not in bar.row.classes
 
     _suspend(table, _pick(allows_text=True))
     brought = service.snapshot()
     bar.sync(brought, drawn)
-    assert {"game-asking", "game-enter"} <= set(bar.bar.classes)
+    assert {"game-asking", "game-enter"} <= set(bar.row.classes)
     assert [member.id for _, members in bar.chips for member in members] == ["left"]
 
     service.working_role = "master"
     bar.sync(service.snapshot(), brought)
-    assert "game-asking" in bar.bar.classes
-    assert "game-enter" not in bar.bar.classes
+    assert "game-asking" in bar.row.classes
+    assert "game-enter" not in bar.row.classes
 
 
-async def test_the_action_bar_hides_the_words_box_when_a_decision_takes_no_words(
+async def test_the_composer_hides_the_words_box_when_a_decision_takes_no_words(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, page: Callable[[], Client]
 ) -> None:
     monkeypatch.setattr("nicegui.storage.Storage.tab", property(lambda _storage: {}))
@@ -300,9 +265,9 @@ async def test_the_action_bar_hides_the_words_box_when_a_decision_takes_no_words
         return True
 
     idle = service.snapshot()
-    bar = ActionBar(service, idle, choose)
+    bar = Composer(service, idle, choose)
     assert (bar.prompt_row.visible, bar.input_row.visible) == (False, True)
-    assert bar.composer_input.props["placeholder"] == idle.view.hint
+    assert bar.words_input.props["placeholder"] == idle.view.hint
 
     _suspend(table, _pick(allows_text=False))
     bar.sync(service.snapshot(), idle)

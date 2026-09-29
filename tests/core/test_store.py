@@ -5,7 +5,7 @@ from support.game import character, initialized, scenario
 from support.table import ENGINES_BUILT, LONER4E, NO_SHIPPED, SCENARIO_MODELS, updated
 
 from rulehall.core.facts import Fact
-from rulehall.core.log import Line, LogEntry, RefusedCall, facts_and_refusals, partial_lines
+from rulehall.core.log import Line, LogEntry, partial_lines
 from rulehall.core.stores import ENCODING, Library, SaveStore, publish, write_text
 from rulehall.core.validation import EngineId, Refusal
 
@@ -177,15 +177,3 @@ def test_partial_lines_keeps_only_the_lines_finished_enough_to_show(
     raw: str, lines: tuple[Line, ...]
 ) -> None:
     assert partial_lines(raw) == lines
-
-
-def test_facts_and_refusals_put_a_refusal_before_the_next_fact_and_drop_hidden_refusals() -> None:
-    first, second = Fact(trace="first"), Fact(trace="second")
-    refused = RefusedCall(tool="hire", reason="not now", after_facts=1)
-
-    assert facts_and_refusals((first, second), (refused,), refusals=True) == (
-        first,
-        refused,
-        second,
-    )
-    assert facts_and_refusals((first, second), (refused,), refusals=False) == (first, second)

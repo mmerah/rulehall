@@ -1,14 +1,12 @@
+import logging
 from datetime import UTC, datetime
 from functools import partial
 
 from nicegui import ui
 
-from rulehall.app.catalog import CatalogEntry, SavedGameKey
+from rulehall.app.catalog import CatalogEntry, SavedGameKey, SaveOption
 from rulehall.app.runtime import Runtime
 from rulehall.core.validation import EngineId, Slug
-from rulehall.ui.create import NEW_ADVENTURE_ICON, NEW_CHARACTER_ICON, NEW_PACK_ICON
-from rulehall.ui.looks import art, die_glyph, link_box, pattern_classes
-from rulehall.ui.packs import PACK_ICON
 from rulehall.ui.routes import (
     CHOSEN_CHARACTER,
     NEW_CHARACTER,
@@ -16,9 +14,36 @@ from rulehall.ui.routes import (
     NEW_SCENARIO,
     PACKS,
     engine_path,
+    game_path,
 )
-from rulehall.ui.saves import BROKEN_ICON, PLAY_ICON, ago, delete_button, open_game
-from rulehall.ui.widgets import media_url, page_body, page_header, section_title
+from rulehall.ui.widgets import (
+    BROKEN_ICON,
+    NEW_ADVENTURE_ICON,
+    NEW_CHARACTER_ICON,
+    NEW_PACK_ICON,
+    PACK_ICON,
+    PLAY_ICON,
+    Confirm,
+    art,
+    attempt,
+    die_glyph,
+    failure_notice,
+    icon_button,
+    link_box,
+    media_url,
+    page_body,
+    page_header,
+    pattern_classes,
+    section_title,
+)
+
+LOGGER = logging.getLogger(__name__)
+DELETE_ICON = "sym_r_delete"
+DELETE_FAILED = failure_notice("The save was not deleted.")
+MINUTE = 60
+HOUR = 60 * MINUTE
+DAY = 24 * HOUR
+WEEK = 7 * DAY
 
 
 class Hall:
@@ -137,6 +162,35 @@ class Hall:
         ui.navigate.to(engine_path(NEW_CHARACTER, self.engine.id))
 
 
+def save_line(save: SaveOption, now: datetime) -> str:
+    return f"{save.character_label} · turn {save.turn} · {ago(save.saved_at, now)}"
+
+
+def ago(moment: datetime, now: datetime) -> str:
+    seconds = (now - moment).total_seconds()
+    if seconds < MINUTE:
+        return "just now"
+    if seconds < HOUR:
+        return f"{int(seconds // MINUTE)} min ago"
+    if seconds < DAY:
+        return f"{int(seconds // HOUR)}h ago"
+    if seconds < 2 * DAY:
+        return "yesterday"
+    if seconds < WEEK:
+        return f"{int(seconds // DAY)} days ago"
+    local = moment.astimezone()
+    return f"{local.day} {local:%b}"
+
+
+def open_game(key: SavedGameKey) -> None:
+    LOGGER.info("opening %r", key.save_id)
+    ui.navigate.to(game_path(key))
+
+
+def delete_button(runtime: Runtime, save_id: str) -> None:
+    icon_button(DELETE_ICON, "Delete", partial(_confirm_delete, runtime, save_id))
+
+
 def hall_page(runtime: Runtime, engine_id: EngineId) -> None:
     chosen_id = ui.context.client.request.query_params.get(CHOSEN_CHARACTER)
     Hall(runtime, engine_id, chosen_id).build()
@@ -146,3 +200,11 @@ def _small_link(label: str, icon: str, path: str) -> None:
     with link_box(path, "game-small-link"):
         ui.icon(icon)
         ui.label(label)
+
+
+async def _confirm_delete(runtime: Runtime, save_id: str) -> None:
+    dialog = Confirm(keep="Keep", confirm="Delete")
+    confirmed = await dialog.ask(f"Delete the save {save_id!r}? It cannot be brought back.")
+    dialog.delete()
+    if confirmed and await attempt(partial(runtime.delete_save, save_id), failed=DELETE_FAILED):
+        ui.navigate.reload()

@@ -126,7 +126,7 @@ class TunnelGoonsEngine(
         world = draft.world
         actor = world.require_actor(args.actor_id)
         sheet = actor.require_sheet()
-        items = world.carried_items(actor, args.item_ids)
+        items = world.require_carried_items(actor, args.item_ids)
         npc = world.require_person_here(args.target_id) if args.target_id is not None else None
         if npc is actor:
             raise Refusal(f"{actor.name} cannot roll against themselves")

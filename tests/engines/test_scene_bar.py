@@ -133,13 +133,6 @@ def test_the_bar_refuses_hiding_someone_met(case: SceneCase) -> None:
 
 
 @pytest.mark.parametrize("case", CASES, ids=_case_id)
-def test_a_dead_draft_cast_member_is_refused(case: SceneCase) -> None:
-    ghost = {"id": "ghost", "name": "Ghost", "brief": "", "alive": False}
-    with pytest.raises(Refusal, match="may write them"):
-        case.bar({"present_ids": (case.met,), "cast": {"ghost": ghost}})
-
-
-@pytest.mark.parametrize("case", CASES, ids=_case_id)
 def test_the_bar_refuses_present_hidden_overlap(case: SceneCase) -> None:
     message = f"nobody listed as both present and hidden: ['{case.unmet}']"
     with pytest.raises(Refusal, match=re.escape(message)):

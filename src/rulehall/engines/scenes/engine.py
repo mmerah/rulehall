@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from pathlib import Path
 from random import Random
 from typing import Any
@@ -7,8 +6,7 @@ from rulehall.core.facts import Fact
 from rulehall.core.game import AnyCharacter, AnyScenario, Game
 from rulehall.core.prompt import Sections, render_log, section_if
 from rulehall.core.tools import tool
-from rulehall.core.views import NarratorView, Panel, PlayerView
-from rulehall.engines.engine import Engine
+from rulehall.engines.engine import Engine, SceneHeader
 from rulehall.engines.packs import Pack
 from rulehall.engines.scenes.args import Enter, Leave
 from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
@@ -29,7 +27,7 @@ class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](
     opening_intent = OPENING
 
     def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> W:
-        proposal: SceneProposal[P] = scenario.opening
+        proposal: SceneProposal[P] = scenario.opening.filed_by_name()
         check_opening(proposal)
         return self.world_model.opening(proposal, self.player_of(character))
 
@@ -65,37 +63,12 @@ class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](
             *section_if(FIXED_TITLE, "\n".join((world.settled_lines(), *told)).strip()),
         )
 
-    def context_lines(self, state: Game[W]) -> str:
+    def context_text(self, state: Game[W]) -> str:
         return f"location: {state.world.scene.location}"
 
-    def narrator_view(self, state: Game[W]) -> NarratorView:
-        world = state.world
-        scene = world.scene
-        here = list(world.here())
-        return NarratorView(
-            place_id=scene.place_id,
-            title=scene.title,
-            situation=scene.situation,
-            subjects=tuple(member.subject() for member in here),
-            speakers=tuple(member.id for member in here if member.alive),
-            party=(world.player.id, *world.party_ids),
-            sheet=world.sheet_rows(),
-        )
-
-    def player_view(self, state: Game[W]) -> PlayerView:
-        world = state.world
-        return PlayerView(
-            premise=state.scenario_description.premise,
-            player=world.player.subject(),
-            scene_title=world.scene.title,
-            situation=world.scene.situation,
-            panels=self.scene_panels(state),
-            ending=self.ending(state),
-            **self.player_actions(state),
-        )
-
-    @abstractmethod
-    def scene_panels(self, state: Game[W], /) -> tuple[Panel, ...]: ...
+    def scene_header(self, state: Game[W], /) -> SceneHeader:
+        scene = state.world.scene
+        return SceneHeader(place_id=scene.place_id, title=scene.title, situation=scene.situation)
 
     @tool
     def enter(self, draft: Game[W], args: Enter, _rng: Random) -> list[Fact]:
@@ -112,6 +85,7 @@ class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](
 
     def install_next(self, draft: Game[W], proposal: R, /) -> list[Fact]:
         world = draft.world
+        proposal = proposal.filed_by_name()
         draft.chapters[-1].recap = proposal.recap
         world.apply_scene(proposal)
         self.open_chapter(draft)

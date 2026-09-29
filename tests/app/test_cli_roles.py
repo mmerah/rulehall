@@ -6,7 +6,7 @@ import pytest
 
 import rulehall.app.cli_roles as cli_roles
 import rulehall.app.processes as processes
-from rulehall.app.cli_roles import ClaudeDriver, CliReply, CodexDriver, run_cli
+from rulehall.app.cli_roles import ClaudeDriver, CodexDriver, run_cli
 from rulehall.app.processes import child_environment
 from rulehall.app.roles import final_message
 from rulehall.config import RoleConfig
@@ -19,16 +19,14 @@ class _StubDriver:
     argv: tuple[str, ...]
     secrets: tuple[str, ...] = ()
 
-    def command(
-        self, config: RoleConfig, resume_id: str | None, mcp_url: str | None
-    ) -> tuple[str, ...]:
-        del config, resume_id, mcp_url
+    def command(self, config: RoleConfig, mcp_url: str | None) -> tuple[str, ...]:
+        del config, mcp_url
         return self.argv
 
     def delta(self, line: str) -> str:
         return line
 
-    def read_result(self, output: str) -> CliReply:
+    def read_result(self, output: str) -> str:
         del output
         raise AssertionError("the run fails before there is a result to read")
 
@@ -72,14 +70,13 @@ CLAUDE_OUTPUT = "\n".join(
 
 def test_no_codex_role_gets_a_shell_and_only_the_master_reaches_the_tools() -> None:
     config = RoleConfig(provider="codex", model="gpt-5", effort="low")
-    master = CodexDriver().command(config, None, "http://localhost:1/mcp/")
-    narrator = CodexDriver().command(config, None, None)
+    master = CodexDriver().command(config, "http://localhost:1/mcp/")
+    narrator = CodexDriver().command(config, None)
 
     assert "mcp_servers.rulehall.url=http://localhost:1/mcp/" in master
     assert "mcp_servers.rulehall.default_tools_approval_mode=approve" in master
     assert not any(line.startswith("mcp_servers") for line in narrator)
     for argv in (master, narrator):
-        # `resume` accepts no sandbox flag, so the box rides `-c`, which both forms accept.
         assert "--sandbox" not in argv and "--approve-for-me" not in argv
         assert "sandbox_mode=read-only" in argv and "approval_policy=never" in argv
         disabled = {argv[at + 1] for at, flag in enumerate(argv) if flag == "--disable"}
@@ -92,19 +89,10 @@ def test_no_codex_role_gets_a_shell_and_only_the_master_reaches_the_tools() -> N
         assert argv[-1] == "-"
 
 
-def test_a_resumed_codex_run_still_reads_its_prompt_from_stdin() -> None:
-    config = RoleConfig(provider="codex", model="gpt-5", effort="low")
-
-    argv = CodexDriver().command(config, "abc-123", None)
-
-    assert argv[:4] == ["codex", "exec", "resume", "abc-123"]
-    assert argv[-1] == "-"
-
-
 def test_no_claude_role_keeps_a_built_in_tool_and_only_the_master_reaches_the_tools() -> None:
     config = RoleConfig(model="haiku", effort="low")
-    master = ClaudeDriver().command(config, None, "http://localhost:1/mcp/")
-    narrator = ClaudeDriver().command(config, None, None)
+    master = ClaudeDriver().command(config, "http://localhost:1/mcp/")
+    narrator = ClaudeDriver().command(config, None)
 
     assert "--mcp-config" in master and "--mcp-config" not in narrator
     for argv in (master, narrator):
@@ -114,9 +102,7 @@ def test_no_claude_role_keeps_a_built_in_tool_and_only_the_master_reaches_the_to
 
 
 def test_a_failed_claude_run_does_not_quote_its_raw_result() -> None:
-    output = json.dumps(
-        {"result": "HIDDEN HERE the arc", "session_id": "abc-123", "is_error": True}
-    )
+    output = json.dumps({"result": "HIDDEN HERE the arc", "is_error": True})
 
     with pytest.raises(Refusal, match="the run failed") as failed:
         _ = ClaudeDriver().read_result(output)
@@ -196,14 +182,17 @@ async def test_a_crashed_roles_raw_output_never_reaches_the_player(
 
 
 @pytest.mark.parametrize(
-    ("driver", "output", "streamed"),
-    ((ClaudeDriver(), CLAUDE_OUTPUT, '{"lines": []}'), (CodexDriver(), CODEX_OUTPUT, "")),
+    ("driver", "output", "answer", "streamed"),
+    (
+        (ClaudeDriver(), CLAUDE_OUTPUT, "said", '{"lines": []}'),
+        (CodexDriver(), CODEX_OUTPUT, '{"lines": []}', ""),
+    ),
     ids=("claude", "codex"),
 )
-def test_a_driver_reads_the_resume_id_its_cli_reported_and_streams_only_the_answers_text(
-    driver: ClaudeDriver | CodexDriver, output: str, streamed: str
+def test_a_driver_reads_the_answer_and_streams_only_the_answers_text(
+    driver: ClaudeDriver | CodexDriver, output: str, answer: str, streamed: str
 ) -> None:
-    assert driver.read_result(output).resume_id == "abc-123"
+    assert driver.read_result(output) == answer
     assert "".join(driver.delta(line) for line in output.splitlines()) == streamed
 
 

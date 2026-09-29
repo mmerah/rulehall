@@ -11,7 +11,6 @@ from pydantic_settings import SettingsConfigDict
 
 from rulehall.app.catalog import SavedGameKey
 from rulehall.app.game_session import GameSession
-from rulehall.app.roles import RoleReply
 from rulehall.app.runtime import Runtime
 from rulehall.app.turn import Turn
 from rulehall.config import ProviderConfig, Providers, Role, Settings
@@ -130,10 +129,8 @@ class ScriptedRoles:
         role: Role,
         prompt: Prompt,
         *,
-        resume_id: str | None = None,
         heard: Callable[[str], None] | None = None,
-    ) -> RoleReply:
-        del resume_id
+    ) -> str:
         await self._record(role, prompt)
         answers = self.answers.get(role)
         if not answers:
@@ -141,8 +138,7 @@ class ScriptedRoles:
         answer = answers.pop(0)
         if heard is not None:
             heard(answer)
-        # A resume id every time, so a test exercises the resumed path the real CLIs take.
-        return RoleReply(answer, f"{role}-1")
+        return answer
 
     async def play_master_turn(self, prompt: Prompt, turn: Turn) -> None:
         del turn

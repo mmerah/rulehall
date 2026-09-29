@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import Literal, Self
 
 from pydantic import Field, TypeAdapter, model_validator
@@ -42,19 +41,12 @@ class Narration(Frozen):
     lines: tuple[Line, ...] = Field(description="All narration and dialogue, in order.")
 
 
-class RefusedCall(Frozen):
-    tool: str
-    reason: str
-    after_facts: int = Field(ge=0)
-
-
 class LogEntry(Frozen):
     words: str
     by_option: bool = False
     cause: Cause | None = None
     lines: tuple[SpokenLine, ...]
     facts: tuple[Fact, ...] = ()
-    refused: tuple[RefusedCall, ...] = ()
     decision: str = ""
     context: str = ""
 
@@ -83,14 +75,3 @@ def partial_lines(raw: str) -> tuple[Line, ...]:
         )
     except ValueError:
         return ()
-
-
-def facts_and_refusals(
-    facts: Sequence[Fact], refused: Sequence[RefusedCall], *, refusals: bool
-) -> tuple[Fact | RefusedCall, ...]:
-    placed: list[tuple[int, int, Fact | RefusedCall]] = [
-        (index, 1, fact) for index, fact in enumerate(facts)
-    ]
-    if refusals:
-        placed.extend((each.after_facts, 0, each) for each in refused)
-    return tuple(entry for *_, entry in sorted(placed, key=lambda slot: slot[:2]))

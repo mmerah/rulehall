@@ -2,6 +2,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from rulehall.core.log import Chapter, LogEntry
+from rulehall.core.validation import Slug
 
 type Sections = tuple[tuple[str, str], ...]
 
@@ -41,6 +42,14 @@ def render_log(chapters: Sequence[Chapter]) -> str:
         return "(the game has not started yet)"
     total = len(chapters)
     return "\n\n".join(_block(chapter, index, total) for index, chapter in enumerate(chapters))
+
+
+def ref_of(name: str, entity_id: Slug) -> str:
+    return f"{name}[{entity_id}]"
+
+
+def headline_of(name: str, entity_id: Slug, brief: str, *, alive: bool = True) -> str:
+    return ref_of(name, entity_id) + (f" — {brief}" if brief else "") + ("" if alive else " (dead)")
 
 
 def _block(chapter: Chapter, index: int, total: int) -> str:

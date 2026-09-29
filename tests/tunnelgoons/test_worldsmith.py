@@ -1,8 +1,8 @@
 import pytest
+from pydantic import ValidationError
 from support.table import TUNNELGOONS, game, narrowed
 from support.tunnelgoons import ENGINE, small_world
 
-from rulehall.core.game import ScenarioDescription
 from rulehall.core.validation import Refusal
 from rulehall.engines.rooms.panels import MORE_MAP
 from rulehall.engines.rooms.world import Item, MapProposal, Place, RegionProposal, Way
@@ -57,19 +57,8 @@ def _wide_region() -> MapProposal[Goon]:
     )
 
 
-def test_a_one_place_map_with_no_ways_passes_the_map_bar_and_builds() -> None:
+def test_a_one_place_map_with_no_ways_passes_the_map_bar() -> None:
     check_opening(THIN)
-
-    built = ENGINE.build_scenario(
-        ScenarioDescription(
-            title="Only", premise="", backdrop="Plain.", scope="One room, one visit."
-        ),
-        "srd",
-        THIN,
-        "source",
-    )
-
-    assert built.opening.start_id == ONLY
 
 
 def test_a_region_of_one_hidden_place_with_no_ways_installs_hidden() -> None:
@@ -91,23 +80,9 @@ def test_the_shipped_scenario_passes_the_map_bar() -> None:
     check_opening(_wide_region())
 
 
-def test_check_opening_refuses_a_dead_npc() -> None:
-    corpse = Goon(
-        id="corpse",
-        name="Corpse",
-        brief="",
-        place_id=ONLY,
-        known=True,
-        alive=False,
-        hp=Gauge(current=4, maximum=4),
-    )
-    proposal = MapProposal[Goon](
-        places={ONLY: Place(id=ONLY, name="Only", brief="b", known=True, description="d")},
-        npcs={corpse.id: corpse},
-        start_id=ONLY,
-    )
-    with pytest.raises(Refusal, match="alive"):
-        check_opening(proposal)
+def test_a_living_npc_is_written_with_hp_above_zero() -> None:
+    with pytest.raises(ValidationError, match="hp is above zero"):
+        Goon(id="corpse", name="Corpse", brief="", place_id=ONLY, hp=Gauge(current=0, maximum=4))
 
 
 def test_check_next_refuses_an_item_planted_on_the_player() -> None:
@@ -173,7 +148,7 @@ def test_attach_joins_at_the_current_place_and_the_world_validates() -> None:
     anchor = world.current.id
 
     region = _region()
-    world.attach(region, region.start_id)
+    world.apply_region(region)
 
     assert FAR_HALL in world.places
     assert FAR_VAULT in world.places
@@ -208,7 +183,7 @@ def test_more_map_waits_for_no_open_way_and_a_joined_region_begins_as_an_unexplo
     assert ENGINE.player_view(draft).moves == (MORE_MAP,)
 
     region = _region()
-    draft.world.attach(region, region.start_id)
+    draft.world.apply_region(region)
     view = ENGINE.player_view(draft.validated())
     assert view.moves == ()
     assert view.map is not None

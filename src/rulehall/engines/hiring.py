@@ -6,10 +6,10 @@ from typing import Any
 from pydantic import BaseModel
 
 from rulehall.core.facts import Fact
-from rulehall.core.game import AnyGame, Game, RoleAnswer, WorldsmithRequest
+from rulehall.core.game import Game, RoleAnswer, WorldsmithRequest
 from rulehall.core.tools import tool
 from rulehall.core.validation import Refusal, Slug
-from rulehall.engines.args import HireOrJoin, JoinParty
+from rulehall.engines.args import HireOrJoin
 from rulehall.engines.engine import Engine, RequestHandler, Resolution
 from rulehall.engines.packs import Pack
 from rulehall.engines.sheet import Person
@@ -34,14 +34,6 @@ HIRE_UNWRITTEN = Fact(
     trace="the hire could not be written",
     card="The hire could not be written; nobody signed on.",
 )
-
-
-class Joining:
-    @tool
-    def join_party(self, draft: AnyGame, args: JoinParty, _rng: Random) -> list[Fact]:
-        """Make a person here travel with the player."""
-        world = draft.world
-        return world.join(world.require_person_here(args.target_id))
 
 
 class Hiring[P: Person, W: World[Any], K: Pack, R: BaseModel, A: BaseModel](Engine[P, W, K, R]):

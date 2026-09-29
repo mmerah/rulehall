@@ -32,7 +32,9 @@ MARK_HELP: dict[GearMark, str] = {
     "taken so far.",
     "upgraded": "An upgrade bought for this item.",
 }
-BREAK_HELP = "The item takes the hit, leaving only a brief hindrance that clears at the next scene."
+BREAK_HELP = (
+    "It breaks and takes the hit; gear leaves a brief hindrance that clears at the next scene."
+)
 JOB_HELP = "Paid work: when it ends, each operator earns a d6 in credits and you raise a skill."
 IN_THE_HOLD = Tag(
     name="in the hold", help="Stowed in the ship's hold; take it back while you are at the ship."
@@ -145,7 +147,7 @@ def ship_panel(world: TwentyFourXXWorld) -> Panel:
 def job_panel(world: TwentyFourXXWorld) -> tuple[Panel, ...]:
     if world.job:
         shown = world.job
-    elif where := world.looked_at():
+    elif where := world.work_found_at:
         shown = f"{WORK_AT}{where}"
     else:
         return ()
@@ -153,8 +155,8 @@ def job_panel(world: TwentyFourXXWorld) -> tuple[Panel, ...]:
 
 
 def look_again_move(world: TwentyFourXXWorld) -> tuple[ActionOption, ...]:
-    where = world.looked_at()
-    if world.job or not where or world.player.require_sheet().credits < 1:
+    where = world.work_found_at
+    if not where or world.player.require_sheet().credits < 1:
         return ()
     look_again = ActionOption(
         id="look-again",
@@ -246,7 +248,7 @@ def defence_decision(
 ) -> Decision:
     return Decision(
         kind="defence",
-        prompt=f"{headline} Break an item to turn it into a brief hindrance, or take it.",
+        prompt=f"{headline} Break gear or a ship function to make a brief hindrance, or take it.",
         options=(
             *(
                 _defence(f"Break {gear.name}", BREAK_HELP, hit, defender_id, item_id)

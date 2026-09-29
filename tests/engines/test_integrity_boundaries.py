@@ -65,7 +65,7 @@ def _with_scene(world: Loner4eWorld, **changes: object) -> Loner4eWorld:
 def test_the_party_rules_refuse_the_dead_and_the_doubled() -> None:
     _, state = initialized()
     dead = state.draft()
-    dead.world.require(MARA).alive = False
+    dead.world.require_entity(MARA).alive = False
     dead.world.party_ids.append(MARA)
     with pytest.raises(Refusal, match="cannot travel with the player"):
         _ = dead.validated()
@@ -95,7 +95,7 @@ def test_a_committed_game_refuses_a_player_who_travels_with_themselves() -> None
 def test_entity_and_scene_ids_use_one_grammar() -> None:
     _, state = initialized()
     with pytest.raises(ValidationError, match="pattern"):
-        _ = updated(state.world.require(MARA), id="bell_tower")
+        _ = updated(state.world.require_entity(MARA), id="bell_tower")
     with pytest.raises(ValidationError, match="pattern"):
         _ = updated(state.world.scene, here_ids=["study_1"])
 

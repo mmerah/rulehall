@@ -1,6 +1,6 @@
 from support.table import ENGINES_BUILT, TWENTYFOURXX, game, narrowed, refused
 
-from rulehall.app.roles import render_master, render_narrator
+from rulehall.app.role_prompts import render_master, render_narrator
 from rulehall.app.turn import ANSWERED_BY_OPTION
 from rulehall.core.log import Chapter, LogEntry, SpokenLine
 from rulehall.core.prompt import Prompt

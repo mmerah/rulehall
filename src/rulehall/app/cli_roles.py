@@ -5,9 +5,7 @@ from collections.abc import Callable, Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
 from tempfile import TemporaryDirectory
-from typing import Annotated, NamedTuple, Protocol
-
-from pydantic import Field
+from typing import Protocol
 
 from rulehall.app.processes import start_child, stop_process
 from rulehall.config import CliProvider, Role, RoleConfig
@@ -17,29 +15,19 @@ from rulehall.core.validation import Loose, Refusal, parse_json
 LOGGER = logging.getLogger(__name__)
 
 OUTPUT_MAX_BYTES = 4_194_304
-# The id goes back as an argv element; a leading `-` must not parse as a flag.
-ResumeId = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")]
-
-
-class CliReply(NamedTuple):
-    text: str
-    resume_id: str | None
 
 
 class Driver(Protocol):
     @property
     def secrets(self) -> tuple[str, ...]: ...
 
-    def command(
-        self, config: RoleConfig, resume_id: str | None, mcp_url: str | None
-    ) -> Sequence[str]: ...
+    def command(self, config: RoleConfig, mcp_url: str | None) -> Sequence[str]: ...
     def delta(self, line: str) -> str: ...
-    def read_result(self, output: str) -> CliReply: ...
+    def read_result(self, output: str) -> str: ...
 
 
 class _ClaudeResult(Loose):
     result: str
-    session_id: ResumeId
     # A failed run can still exit 0 and put its error where the answer goes.
     is_error: bool = False
 
@@ -65,7 +53,6 @@ class _CodexEvent(Loose):
     """`type` is required: a bare answer object must not parse as an event."""
 
     type: str
-    thread_id: ResumeId | None = None
     item: _CodexItem | None = None
 
 
@@ -73,9 +60,7 @@ class _CodexEvent(Loose):
 class ClaudeDriver:
     secrets: tuple[str, ...] = ("ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN")
 
-    def command(
-        self, config: RoleConfig, resume_id: str | None, mcp_url: str | None
-    ) -> Sequence[str]:
+    def command(self, config: RoleConfig, mcp_url: str | None) -> Sequence[str]:
         argv = [
             "claude",
             "-p",
@@ -87,7 +72,6 @@ class ClaudeDriver:
             config.model,
             "--effort",
             config.effort,
-            *(() if resume_id is None else ("--resume", resume_id)),
             "--restricted",
             "--tools",
             "",
@@ -103,7 +87,7 @@ class ClaudeDriver:
                 return event.delta.text
         return ""
 
-    def read_result(self, output: str) -> CliReply:
+    def read_result(self, output: str) -> str:
         for line in reversed(output.splitlines()):
             with suppress(Refusal):
                 result = parse_json(_ClaudeResult, line)
@@ -114,18 +98,17 @@ class ClaudeDriver:
         if result.is_error:
             LOGGER.warning("the run failed: %s", result.result[-500:])
             raise Refusal("the run failed")
-        return CliReply(result.result, result.session_id)
+        return result.result
 
 
 @dataclass(frozen=True, slots=True)
 class CodexDriver:
     secrets: tuple[str, ...] = ("OPENAI_API_KEY",)
 
-    def command(
-        self, config: RoleConfig, resume_id: str | None, mcp_url: str | None
-    ) -> Sequence[str]:
-        argv = ["codex", "exec", *(() if resume_id is None else ("resume", resume_id))]
-        argv += [
+    def command(self, config: RoleConfig, mcp_url: str | None) -> Sequence[str]:
+        argv = [
+            "codex",
+            "exec",
             "--json",
             "--model",
             config.model,
@@ -138,7 +121,6 @@ class CodexDriver:
             "--ignore-user-config",
             "--ignore-rules",
             "--skip-git-repo-check",
-            # `resume` takes no `--sandbox`; `-c` works in both forms.
             "-c",
             "sandbox_mode=read-only",
             "-c",
@@ -157,17 +139,14 @@ class CodexDriver:
             # Measured: under `approval_policy=never` an MCP call is refused without this.
             argv += ["-c", "mcp_servers.rulehall.default_tools_approval_mode=approve"]
             argv += ["-c", f"mcp_servers.rulehall.url={mcp_url}"]
-        # `resume` reads the prompt from stdin only when told so by `-`.
         return [*argv, "-"]
 
     def delta(self, line: str) -> str:
         del line
         return ""
 
-    def read_result(self, output: str) -> CliReply:
-        events = _codex_events(output)
-        thread = next((event.thread_id for event in events if event.thread_id is not None), None)
-        return CliReply(_said(events) or output, thread)
+    def read_result(self, output: str) -> str:
+        return _said(_codex_events(output)) or output
 
 
 DRIVERS: Mapping[CliProvider, Driver] = {"claude": ClaudeDriver(), "codex": CodexDriver()}
@@ -179,11 +158,10 @@ async def run_cli(
     driver: Driver,
     prompt: Prompt,
     *,
-    resume_id: str | None = None,
     mcp_url: str | None = None,
     heard: Callable[[str], None] | None = None,
-) -> CliReply:
-    argv = driver.command(config, resume_id, mcp_url)
+) -> str:
+    argv = driver.command(config, mcp_url)
     said = ""
 
     def heard_line(line: str) -> None:
@@ -237,7 +215,6 @@ def _codex_events(output: str) -> list[_CodexEvent]:
 
 
 def _said(events: Sequence[_CodexEvent]) -> str | None:
-    """The last agent message is the answer; a resumed thread holds earlier ones."""
     spoken = (
         event.item.text
         for event in reversed(events)

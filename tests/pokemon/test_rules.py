@@ -110,7 +110,7 @@ def test_creation_refuses_a_third_rank_in_one_skill() -> None:
 
 def test_a_revive_needs_a_fainted_pokemon() -> None:
     draft = started().draft()
-    sheet = draft.world.player.require_sheet()
+    sheet = draft.world.player_sheet
     sheet.add("revive", 1)
 
     assert refused(ENGINE, draft, "use_item", item_id="revive", mon_id="charmander") == (

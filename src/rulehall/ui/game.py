@@ -12,7 +12,7 @@ from rulehall.core.decisions import ActionOption, PlayerInput
 from rulehall.core.validation import Refusal, content_id
 from rulehall.core.views import PanelRow, PlayerView
 from rulehall.ui.battle import BattlePanel
-from rulehall.ui.composer import CLOSED_REASONS, ActionBar, composer_lock
+from rulehall.ui.composer import CLOSED_REASONS, Composer, composer_lock
 from rulehall.ui.drawer import Drawer
 from rulehall.ui.panel_parts import CHOICES_ROW, choice_groups, panel_row
 from rulehall.ui.routes import hall_path
@@ -22,6 +22,7 @@ from rulehall.ui.widgets import (
     Confirm,
     Sounds,
     attempt,
+    failure_notice,
     heading,
     icon_button,
     media_url,
@@ -29,9 +30,9 @@ from rulehall.ui.widgets import (
     refused_page,
 )
 
-TURN_FAILED = "Something went wrong. The turn did not complete. Look in the server log."
-REWIND_FAILED = "Something went wrong. The rewind did not complete. Look in the server log."
-RESTART_FAILED = "Something went wrong. The restart did not complete. Look in the server log."
+TURN_FAILED = failure_notice("The turn did not complete.")
+REWIND_FAILED = failure_notice("The rewind did not complete.")
+RESTART_FAILED = failure_notice("The restart did not complete.")
 NEAR_END = 48
 SOUND_ICONS = {True: "sym_r_volume_up", False: "sym_r_volume_off"}
 
@@ -75,10 +76,10 @@ class GamePage:
         self.session = session
         self.drawn: SessionSnapshot
         self.scene: SceneHeader
-        self.action_bar: ActionBar
+        self.composer: Composer
         self.drawer: Drawer
         self.battle_panel: BattlePanel | None = None
-        self.parts: tuple[SceneHeader | Transcript | ActionBar | Drawer | BattlePanel, ...]
+        self.parts: tuple[SceneHeader | Transcript | Composer | Drawer | BattlePanel, ...]
         self.sounds: Sounds
         self.sound: ui.button
         self.scroll: ui.scroll_area
@@ -100,11 +101,11 @@ class GamePage:
             now.view,
             self.open_row,
             self.pick_option,
-            lambda words: self.action_bar.prefill(words),
+            lambda words: self.composer.prefill(words),
         )
         self.sounds = Sounds()
         self.sounds.on("sound", self.sound_state)
-        if session.engine.battle_script is not None:
+        if session.battle_script is not None:
             self.battle_panel = BattlePanel(session, self.sounds, self.tick)
         opener = ui.timer(0.1, lambda: self._run(lambda: self._open_game(opener)))
         self.draw_header()
@@ -131,7 +132,7 @@ class GamePage:
         self.drawer.build(now)
         self.restart_dialog = Confirm(keep="Keep playing", confirm="Restart")
 
-        self.parts = (self.scene, transcript, self.action_bar, self.drawer)
+        self.parts = (self.scene, transcript, self.composer, self.drawer)
         if self.battle_panel is not None:
             self.parts += (self.battle_panel,)
         self.tick()
@@ -197,7 +198,7 @@ class GamePage:
             self.show_activity(visible=False)
             if self.battle_panel is not None:
                 self.battle_panel.build_banner()
-            self.action_bar = ActionBar(self.session, now, self.choose)
+            self.composer = Composer(self.session, now, self.choose)
 
     def open_row(self, row: PanelRow) -> None:
         self.row_dialog.clear()
@@ -303,7 +304,7 @@ class GamePage:
 
     async def _rewound(self) -> None:
         if words := await self.session.rewind():
-            self.action_bar.set_input(words)
+            self.composer.set_input(words)
 
     async def _open_game(self, opener: ui.timer) -> None:
         # A raise must still stop the timer: NiceGUI swallows it and fires again in 0.1s.
@@ -317,11 +318,11 @@ class GamePage:
         opener.cancel()
 
     async def _run(self, action: Callable[[], Awaitable[None]]) -> bool:
-        self.action_bar.set_enabled(enabled=False)
+        self.composer.set_enabled(enabled=False)
         try:
             return await attempt(action, failed=TURN_FAILED)
         finally:
-            if not self.action_bar.composer_input.is_deleted:
+            if not self.composer.words_input.is_deleted:
                 self.tick()
             self.own_move = False
 
@@ -347,7 +348,7 @@ def moved_since(now: SessionSnapshot, drawn: SessionSnapshot) -> bool:
     return (
         len(now.log_entries) != len(drawn.log_entries)
         or now.working_role != drawn.working_role
-        or now.facts_and_refusals != drawn.facts_and_refusals
+        or now.turn_facts != drawn.turn_facts
         or now.words != drawn.words
         or now.live != drawn.live
         or now.view.ending != drawn.view.ending

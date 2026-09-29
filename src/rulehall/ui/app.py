@@ -9,11 +9,10 @@ from rulehall.app.runtime import Runtime
 from rulehall.config import ENV_FILE, read_settings
 from rulehall.core.validation import EngineId, Refusal
 from rulehall.ui import theme
-from rulehall.ui.create import CharacterForm, PackForm, ScenarioForm
+from rulehall.ui.create import CharacterForm, PackForm, ScenarioForm, packs_page
 from rulehall.ui.game import game_page
 from rulehall.ui.hall import hall_page
-from rulehall.ui.home import lobby_page
-from rulehall.ui.packs import packs_page
+from rulehall.ui.home import home_page
 from rulehall.ui.routes import (
     GAME,
     HALL,
@@ -34,7 +33,7 @@ type EnginePage = Callable[[Runtime, EngineId], object]
 
 def mount(runtime: Runtime) -> None:
     plain_pages: tuple[tuple[str, Callable[[Runtime], object]], ...] = (
-        (HOME, lobby_page),
+        (HOME, home_page),
         (SETTINGS, SettingsForm),
     )
     engine_pages: tuple[tuple[str, EnginePage], ...] = (

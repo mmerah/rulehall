@@ -64,7 +64,7 @@ Team Undertow. Goal: Wake Articuno in the sea caves under the isles and freeze t
 stage 0/4, foiled 0, succeeded 0
 leaders: Admin Vesper[vesper]
 open operation at Gull Cove[gull-cove], led by Admin Vesper[vesper]: Grunts drain the tide pools of Gull Cove to open an old sea cave.
-if it succeeds: Grunts hold the way from Gull Cove to The Harbour Road. It succeeds when the player earns a badge or loses to its leader; it is foiled when the player beats its leader.
+It succeeds, and the boss grows stronger, when the player earns a badge or loses to its leader; it is foiled when the player beats its leader.
 final terms so far: the boss's ace is the next gym's level +0
 
 # TYPE CHART

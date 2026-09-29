@@ -6,11 +6,10 @@ from pydantic import Field, model_validator
 
 from rulehall.core.facts import Fact
 from rulehall.core.game import Game
-from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, refuse
+from rulehall.core.validation import Frozen, Mutable, Refusal, Slug
 from rulehall.core.views import Rows
 from rulehall.engines.pokemon.battle.models import (
     LEVEL_MAX,
-    MOVES_MAX,
     TEAM_MAX,
     Ball,
     Battle,
@@ -18,31 +17,25 @@ from rulehall.engines.pokemon.battle.models import (
     BattleResult,
     BattleSetup,
 )
-from rulehall.engines.pokemon.dex import ITEMS, dex
+from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.rules import (
     ACE_BELOW_TABLE,
     BELOW_ACE,
     BOSS_RISE,
-    LEVEL_FLOOR,
     PRIZE_PER_LEVEL,
-    RANK_MAX,
     SEED_LIMIT,
     SPECIES_ID,
     STARTER_LEVEL,
-    TM_PREFIX,
-    ItemId,
     RosterSlot,
-    Skill,
-    TmId,
     check_species,
-    counter_pick,
     evolved,
     item_of,
     rescaled,
 )
-from rulehall.engines.pokemon.scheme import SCHEME_STAGES, EvilTeam, Operation, Scheme, held_line
-from rulehall.engines.pokemon.sheet import Evolving, Learning, Mon, Trainer, built_team
+from rulehall.engines.pokemon.scheme import SCHEME_STAGES, EvilTeam, Operation, Scheme
+from rulehall.engines.pokemon.sheet import Mon, Trainer, TrainerSheet, built_team
 from rulehall.engines.rooms.world import MapProposal, RegionProposal, RoomWorld
+from rulehall.engines.world import OpeningProposal
 
 WILD = "The wild table of each new place, keyed by place id. A town or a building has no table."
 RIVAL_WAITS = (
@@ -61,14 +54,12 @@ BOSS_ID = (
     "for the lair; else null."
 )
 SCHEME_TRIGGER = (
-    "It succeeds when the player earns a badge or loses to its leader; it is foiled when the "
-    "player beats its leader."
+    "It succeeds, and the boss grows stronger, when the player earns a badge or loses to its "
+    "leader; it is foiled when the player beats its leader."
 )
 RUMOUR = "RUMOUR, to tell: the team is at {place}: {goal}"
-CENTER_SPARED = "The team tried to close a Pokemon Center"
-CENTER_CLOSED = "{center} has closed"
 FOILED = "The team's operation at {place} is foiled."
-SUCCEEDED = "The team's operation at {place} succeeded: {change}."
+SUCCEEDED = "The team's operation at {place} succeeded; its boss grows stronger."
 
 
 class WildSlot(Frozen):
@@ -144,9 +135,6 @@ class PokemonWorld(RoomWorld[Trainer]):
     meanwhile_every = 4
     species_ids: tuple[Slug, ...] = Field(min_length=1)
     wild: dict[Slug, tuple[WildSlot, ...]] = Field(default_factory=dict)
-    learning: list[Learning] = Field(default_factory=list)
-    evolving: list[Evolving] = Field(default_factory=list)
-    ranks_due: int = Field(default=0, ge=0)
     battle: Battle | None = None
     center_place_ids: list[Slug] = Field(default_factory=list)
     encountered_place_ids: list[Slug] = Field(default_factory=list)
@@ -171,9 +159,11 @@ class PokemonWorld(RoomWorld[Trainer]):
         operation = self.evil_team.operation
         if operation is not None and operation.place_id not in self.places:
             raise ValueError(f"the operation is at no place: {operation.place_id!r}")
-        if strays := [pair for pair in self.evil_team.held_ways if self.find_way(*pair) is None]:
-            raise ValueError(f"held ways that are no way: {strays}")
         return self
+
+    @property
+    def player_sheet(self) -> TrainerSheet:
+        return self.player.require_sheet()
 
     def kill(self, entity_id: Slug) -> list[Fact]:
         self._refuse_key(entity_id)
@@ -182,11 +172,6 @@ class PokemonWorld(RoomWorld[Trainer]):
     def join(self, person: Trainer) -> list[Fact]:
         self._refuse_key(person.id)
         return super().join(person)
-
-    def unlock_way(self, to_id: Slug) -> list[Fact]:
-        if self.evil_team.holds_way(self.current.id, to_id):
-            raise Refusal(f"the grunts of {self.evil_team.require_scheme().name} hold this way")
-        return super().unlock_way(to_id)
 
     def open_operation(self, operation: Operation) -> None:
         self.evil_team.open_operation(operation)
@@ -206,21 +191,21 @@ class PokemonWorld(RoomWorld[Trainer]):
             f"stage {done}/{SCHEME_STAGES}, foiled {evil_team.foiled}, "
             f"succeeded {evil_team.succeeded}",
             *(f"- stage {number}: {line}" for number, line in enumerate(shown, 1)),
-            "leaders: " + ", ".join(self.npcs[leader_id].tag for leader_id in evil_team.leader_ids),
+            "leaders: " + ", ".join(self.npcs[leader_id].ref for leader_id in evil_team.leader_ids),
         ]
         if (operation := evil_team.operation) is not None:
             place = self.places[operation.place_id]
             lines += [
-                f"open operation at {place.tag}, led by {self.npcs[operation.leader_id].tag}: "
+                f"open operation at {place.ref}, led by {self.npcs[operation.leader_id].ref}: "
                 f"{operation.goal}",
-                f"if it succeeds: {operation.stake(self)}. {SCHEME_TRIGGER}",
+                SCHEME_TRIGGER,
             ]
             if not worldsmith and self.current.id in self.center_place_ids:
                 lines.append(RUMOUR.format(place=place.name, goal=operation.goal))
         legendary_id = evil_team.joining_legendary_id()
-        legendary = "" if legendary_id is None else f"; {dex().tag(legendary_id)} joins it"
+        legendary = "" if legendary_id is None else f"; {dex().species_ref(legendary_id)} joins it"
         boss_id = evil_team.boss_id
-        boss = "" if boss_id is None else f"; the boss is {self.npcs[boss_id].tag}"
+        boss = "" if boss_id is None else f"; the boss is {self.npcs[boss_id].ref}"
         lines.append(
             f"final terms so far: the boss's ace is the next gym's level "
             f"+{BOSS_RISE * evil_team.succeeded}{legendary}{boss}"
@@ -230,7 +215,7 @@ class PokemonWorld(RoomWorld[Trainer]):
     def centers_line(self) -> str:
         here = self.current.id
         return ", ".join(
-            self.places[place_id].tag + (" (here)" if place_id == here else "")
+            self.places[place_id].ref + (" (here)" if place_id == here else "")
             for place_id in self.center_place_ids
             if self.places[place_id].known
         )
@@ -243,9 +228,8 @@ class PokemonWorld(RoomWorld[Trainer]):
         ledger = self.rival_record.ledger
         return (*rows, ("Rival", "; ".join(ledger))) if ledger else rows
 
-    def apply_proposal_extras(
-        self, proposal: PokemonOpeningProposal | PokemonRegionProposal
-    ) -> None:
+    def apply_proposal_extras(self, proposal: OpeningProposal) -> None:
+        assert isinstance(proposal, PokemonOpeningProposal | PokemonRegionProposal)
         self.wild.update(proposal.wild)
         self.center_place_ids.extend(proposal.center_place_ids)
         if isinstance(proposal, PokemonOpeningProposal):
@@ -257,7 +241,7 @@ class PokemonWorld(RoomWorld[Trainer]):
 
     def setup_battle(self, trainer: Trainer | None, foes: tuple[Battler, ...], rng: Random) -> None:
         player = self.player
-        sheet = player.require_sheet()
+        sheet = self.player_sheet
         able = sheet.able()
         if not able:
             raise Refusal("no team Pokemon can fight: heal the team first")
@@ -305,7 +289,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         rows = self.wild.get(here.id, ())
         if not rows:
             raise Refusal(f"{here.name} has no wild Pokemon")
-        sheet = self.player.require_sheet()
+        sheet = self.player_sheet
         if sheet.challenge == "nuzlocke":
             if species_id is not None:
                 raise Refusal("in a Nuzlocke the wild table decides: leave species_id null")
@@ -321,22 +305,14 @@ class PokemonWorld(RoomWorld[Trainer]):
             raise Refusal(f"{species_id!r} is not in WILD HERE")
         return chosen
 
-    def nickname(self, mon_id: Slug, name: str) -> list[Fact]:
-        sheet = self.player.require_sheet()
-        mon = sheet.require_owned(mon_id)
-        refuse(sheet.nickname_refusal(mon, name))
-        before = mon.name
-        mon.nickname = name
-        return [self.player.card_fact(f"{before} is now called {name}")]
-
     def heal_team(self) -> list[Fact]:
         if self.current.id not in self.center_place_ids:
-            raise Refusal("no open Pokemon Center here")
-        self.player.require_sheet().heal_team()
+            raise Refusal("no Pokemon Center here")
+        self.player_sheet.heal_team()
         return [self.player.card_fact("Team healed")]
 
     def trainer_team(self, trainer: Trainer, rng: Random) -> list[Mon]:
-        sheet = self.player.require_sheet()
+        sheet = self.player_sheet
         ace_level = sheet.table_level() - ACE_BELOW_TABLE
         if trainer.rival:
             seen_species_ids = {
@@ -386,7 +362,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         assert battle is not None
         setup = battle.setup
         player = self.player
-        sheet = player.require_sheet()
+        sheet = self.player_sheet
         facts = [throw.fact for throw in battle.throws]
         for battler in result.team:
             sheet.require_mon(battler.mon_id).apply(battler)
@@ -414,15 +390,13 @@ class PokemonWorld(RoomWorld[Trainer]):
                 facts.append(player.card_fact(f"{mon.name} grows to level {reached[-1]}"))
             if clipped:
                 facts.append(player.card_fact(f"{mon.name} is at the level cap (L{cap})"))
-            facts += self.grow(mon, reached)
+            facts += player.grow(mon, reached, self.species_ids)
         notes: list[str] = []
         if setup.foe_id is not None:
             trainer = self.npcs[setup.foe_id]
             badges = len(sheet.badges)
             facts += self._settle_trainer(trainer, setup, result)
-            moved, notes = self._move_scheme(
-                trainer, setup, result, badged=len(sheet.badges) > badges
-            )
+            moved, notes = self._move_scheme(trainer, result, badged=len(sheet.badges) > badges)
             facts += moved
         if sheet.challenge == "nuzlocke":
             facts += self._bury(setup)
@@ -434,150 +408,11 @@ class PokemonWorld(RoomWorld[Trainer]):
         self.battle = None
         return facts, notes
 
-    def swap_mon(self, team_mon_id: Slug, box_mon_id: Slug) -> list[Fact]:
-        leaving, joining = self.player.require_sheet().swap(team_mon_id, box_mon_id)
-        line = f"{leaving.name} to the box, {joining.name} to the team"
-        return [self.player.card_fact(line)]
-
-    def store_mon(self, mon_id: Slug) -> list[Fact]:
-        mon = self.player.require_sheet().store(mon_id)
-        return [self.player.card_fact(f"{mon.name} to the box")]
-
-    def withdraw_mon(self, mon_id: Slug) -> list[Fact]:
-        mon = self.player.require_sheet().withdraw(mon_id)
-        return [self.player.card_fact(f"{mon.name} to the team")]
-
-    def lead_mon(self, mon_id: Slug) -> list[Fact]:
-        mon = self.player.require_sheet().lead(mon_id)
-        return [self.player.card_fact(f"{mon.name} leads the team")]
-
-    def hold_item(self, mon_id: Slug, item_id: ItemId | None) -> list[Fact]:
-        sheet = self.player.require_sheet()
-        mon = sheet.require_mon(mon_id)
-        name = mon.name
-        if item_id is None:
-            if mon.item_id is None:
-                raise Refusal(f"{name} holds nothing")
-            line = f"Took the {ITEMS[mon.item_id].name} from {name}"
-        else:
-            item = ITEMS[item_id]
-            if item.kind != "held":
-                raise Refusal(f"{item.name} is not an item to hold")
-            refuse(mon.item_refusal(item_id, (), sheet.level_cap()))
-            sheet.take(item_id)
-            line = f"{name} holds the {item.name}"
-        if mon.item_id is not None:
-            sheet.add(mon.item_id, 1)
-        mon.item_id = item_id
-        return [self.player.card_fact(line)]
-
-    def teach_move(self, mon_id: Slug, item_id: TmId) -> list[Fact]:
-        sheet = self.player.require_sheet()
-        if item_id not in sheet.bag:
-            raise Refusal(f"the bag holds no {item_of(item_id).name}")
-        mon = sheet.require_mon(mon_id)
-        refuse(mon.item_refusal(item_id, (), sheet.level_cap()))
-        return self._learn_or_ask(mon, item_id.removeprefix(TM_PREFIX))
-
-    def relearn_move(self, mon_id: Slug, move_id: Slug) -> list[Fact]:
-        mon = self.player.require_sheet().require_mon(mon_id)
-        if move_id not in mon.relearnable():
-            raise Refusal(f"{mon.name} cannot remember {move_id!r}")
-        return self._learn_or_ask(mon, move_id)
-
-    def learn_move(self, mon_id: Slug, move_id: Slug, forget_id: Slug | None) -> list[Fact]:
-        if self.learning[:1] != [Learning(mon_id=mon_id, move_id=move_id)]:
-            raise Refusal("no new move waits on this answer")
-        mon = self.player.require_sheet().require_mon(mon_id)
-        name = mon.name
-        move = dex().moves[move_id].name
-        if forget_id is None:
-            line = f"{name} did not learn {move}"
-        else:
-            mon.learn(move_id, forget_id)
-            line = f"{name} forgot {dex().moves[forget_id].name} and learned {move}"
-        _ = self.learning.pop(0)
-        return [self.player.card_fact(line)]
-
-    def evolve(self, mon_id: Slug, species_id: Slug) -> list[Fact]:
-        if not any(
-            each.mon_id == mon_id and species_id in each.species_ids for each in self.evolving[:1]
-        ):
-            raise Refusal("no evolution waits on this answer")
-        mon = self.player.require_sheet().require_mon(mon_id)
-        name = mon.name
-        mon.evolve(species_id)
-        _ = self.evolving.pop(0)
-        facts = [self.player.card_fact(f"{name} evolved into {mon.species_name}")]
-        return facts + self.evolve_chain(mon)
-
-    def raise_skill(self, skill: Skill) -> list[Fact]:
-        if not self.ranks_due:
-            raise Refusal("no skill rank waits")
-        sheet = self.player.require_sheet()
-        rank = sheet.skills.get(skill, 0)
-        if rank >= RANK_MAX:
-            raise Refusal(f"{skill.title()} is already at rank {RANK_MAX}")
-        sheet.skills[skill] = rank + 1
-        self.ranks_due -= 1
-        return [self.player.card_fact(f"{skill.title()} rises to rank {rank + 1}")]
-
-    def use_item(self, item_id: ItemId, mon_id: Slug) -> list[Fact]:
-        sheet = self.player.require_sheet()
-        mon = sheet.require_mon(mon_id)
-        item = ITEMS[item_id]
-        if item.kind in ("ball", "held", "tm"):
-            raise Refusal(f"{item.name} is given or taught on the Team page, not used")
-        refuse(mon.item_refusal(item_id, self.species_ids, sheet.level_cap()))
-        name = mon.name
-        level = mon.level
-        sheet.take(item_id)
-        match item.kind:
-            case "potion":
-                healed = mon.hp.adjust(item.heal)
-                line = f"{item.name} on {name}: HP +{healed} → {mon.hp}"
-            case "full-heal":
-                cured, mon.status = mon.status, ""
-                line = f"{item.name} on {name}: {cured} cured"
-            case "revive":
-                mon.hp.current = mon.hp.maximum // 2
-                line = f"{item.name} on {name}: HP {mon.hp}"
-            case "candy":
-                _ = mon.gain((mon.level + 1) ** 3 - mon.exp, sheet.level_cap())
-                line = f"{item.name} on {name}: level {mon.level}"
-            case "evolution":
-                evolved_id = mon.evolution_by_item(self.species_ids, item.name)
-                assert evolved_id is not None
-                mon.evolve(evolved_id)
-                line = f"{item.name} on {name}: it evolved into {mon.species_name}"
-        facts = [self.player.card_fact(line)]
-        return facts + self.grow(mon, list(range(level + 1, mon.level + 1)))
-
-    def grow(self, mon: Mon, reached: list[int]) -> list[Fact]:
-        facts: list[Fact] = []
-        for level in reached:
-            for move_id in mon.moves_at(level):
-                if not mon.knows(move_id):
-                    facts += self._learn_or_ask(mon, move_id)
-        if reached and mon.item_id != "everstone":
-            facts += self.evolve_chain(mon)
-        return facts
-
-    def evolve_chain(self, mon: Mon) -> list[Fact]:
-        facts: list[Fact] = []
-        while len(found := mon.evolutions(self.species_ids)) == 1:
-            name = mon.name
-            mon.evolve(found[0])
-            facts.append(self.player.card_fact(f"{name} evolved into {mon.species_name}"))
-        if len(found) > 1:
-            self.evolving.append(Evolving(mon_id=mon.mon_id, species_ids=found))
-        return facts
-
     def _settle_trainer(
         self, trainer: Trainer, setup: BattleSetup, result: BattleResult
     ) -> list[Fact]:
         player = self.player
-        sheet = player.require_sheet()
+        sheet = self.player_sheet
         facts: list[Fact] = []
         won = result.outcome == "won"
         key = trainer.is_key(self.evil_team.key_ids())
@@ -598,7 +433,7 @@ class PokemonWorld(RoomWorld[Trainer]):
                 facts.append(player.card_fact(f"You earned the {trainer.badge}"))
                 self.rival_record.due = True
                 if sheet.rankable():
-                    self.ranks_due += 1
+                    sheet.ranks_due += 1
         if key and (line := trainer.lose_line if won else trainer.win_line):
             facts.append(trainer.card_fact(f'{trainer.name}: "{line}"'))
         if trainer.rival:
@@ -606,19 +441,13 @@ class PokemonWorld(RoomWorld[Trainer]):
         return facts
 
     def _move_scheme(
-        self,
-        trainer: Trainer,
-        setup: BattleSetup,
-        result: BattleResult,
-        *,
-        badged: bool,
+        self, trainer: Trainer, result: BattleResult, *, badged: bool
     ) -> tuple[list[Fact], list[str]]:
         operation = self.evil_team.operation
         if operation is None:
             return [], []
         leads = trainer.id == operation.leader_id
         if leads and result.outcome == "won":
-            self._learn_counter(trainer, max(foe.level for foe in setup.foes))
             return self._end_operation(operation, foiled=True)
         if badged or (leads and result.outcome == "lost"):
             return self._end_operation(operation, foiled=False)
@@ -626,57 +455,11 @@ class PokemonWorld(RoomWorld[Trainer]):
 
     def _end_operation(self, operation: Operation, *, foiled: bool) -> tuple[list[Fact], list[str]]:
         revealed_stage = self.evil_team.record_outcome(foiled=foiled)
-        place = self.places[operation.place_id].name
-        facts = [self.player.card_fact(revealed_stage)]
-        if foiled:
-            return facts, [FOILED.format(place=place)]
-        change = self._hold_way(operation) or self._close_center()
-        facts.append(self.player.card_fact(change))
-        return facts, [SUCCEEDED.format(place=place, change=change)]
-
-    def _hold_way(self, operation: Operation) -> str:
-        start_id, to_id = operation.place_id, operation.shut_to_id
-        way = None if to_id is None else self.find_way(start_id, to_id)
-        if to_id is None or way is None or way.locked:
-            return ""
-        here_id = self.current.id
-        held_ways = self.evil_team.held_ways
-        if self.reachable(
-            here_id, past_locks=True, cut=[*held_ways, (start_id, to_id)]
-        ) != self.reachable(here_id, past_locks=True, cut=held_ways):
-            return ""
-        way.locked = True
-        if (back := self.find_way(to_id, start_id)) is not None:
-            back.locked = True
-        held_ways.append((start_id, to_id))
-        return held_line(self, start_id, to_id)
-
-    def _close_center(self) -> str:
-        if len(self.center_place_ids) < 2:
-            return CENTER_SPARED
-        visited = (
-            place_id
-            for place_id in reversed(self.visited_place_ids)
-            if place_id in self.center_place_ids
-        )
-        closed = next(visited, self.center_place_ids[0])
-        self.center_place_ids.remove(closed)
-        return CENTER_CLOSED.format(center=self.places[closed].name)
-
-    def _learn_counter(self, leader: Trainer, fought_level: int) -> None:
-        ace = max(slot.level for slot in leader.roster)
-        lead = self.player.require_sheet().team[0]
-        species_id = counter_pick(self.species_ids, lead.species.types, fought_level)
-        roster = sorted(leader.roster, key=lambda slot: slot.level)
-        if any(slot.species_id == species_id for slot in roster):
-            return
-        if len(roster) == TEAM_MAX:
-            roster.pop(0)
-        roster.insert(0, RosterSlot(species_id=species_id, level=max(ace - BELOW_ACE, LEVEL_FLOOR)))
-        leader.roster = tuple(roster)
+        note = (FOILED if foiled else SUCCEEDED).format(place=self.places[operation.place_id].name)
+        return [self.player.card_fact(revealed_stage)], [note]
 
     def _rival_leaves(self, rival: Trainer, *, won: bool) -> list[Fact]:
-        badges = len(self.player.require_sheet().badges)
+        badges = len(self.player_sheet.badges)
         here = self.current
         self.rival_record.record_battle(here.name, badges, self.player.name if won else rival.name)
         away = [
@@ -694,7 +477,7 @@ class PokemonWorld(RoomWorld[Trainer]):
             raise Refusal(f"{person.name} has a part to play; they do not die or join you")
 
     def _bury(self, setup: BattleSetup) -> list[Fact]:
-        sheet = self.player.require_sheet()
+        sheet = self.player_sheet
         fallen = [mon for mon in sheet.team if mon.fainted]
         foe = setup.foe_name if setup.kind == "trainer" else f"a wild {setup.foes[0].name}"
         if len(fallen) < len(sheet.team):
@@ -702,14 +485,6 @@ class PokemonWorld(RoomWorld[Trainer]):
                 sheet.team.remove(mon)
                 sheet.memorial.append(mon.epitaph(foe))
         return [self.player.card_fact(f"{mon.name} has fallen") for mon in fallen]
-
-    def _learn_or_ask(self, mon: Mon, move_id: Slug) -> list[Fact]:
-        if len(mon.moves) < MOVES_MAX:
-            mon.learn(move_id)
-            learned = f"{mon.name} learned {dex().moves[move_id].name}"
-            return [self.player.card_fact(learned)]
-        self.learning.append(Learning(mon_id=mon.mon_id, move_id=move_id))
-        return []
 
 
 PokemonGame = Game[PokemonWorld]

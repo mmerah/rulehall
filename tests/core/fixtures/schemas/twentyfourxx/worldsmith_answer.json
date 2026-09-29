@@ -35,7 +35,7 @@
       "type": "array"
     },
     "cast": {
-      "description": "New people and things, each filed under its own id. The player reads a brief and a sheet after they meet that entry. Name nothing still hidden in either one.",
+      "description": "New people and things. The engine files each entry under an id made from its name. The player reads a brief and a sheet after they meet that entry. Name nothing still hidden in either one.",
       "patternProperties": {
         "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
           "additionalProperties": false,

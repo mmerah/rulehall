@@ -182,7 +182,7 @@ async def test_a_writer_streams_its_answer_and_the_listener_hears_the_text_so_fa
         _live_settings(narrator=RoleConfig(provider="local", model="m"))
     ).answer("narrator", prompt, heard=heard.append)
 
-    assert spoken.text == "Done."
+    assert spoken == "Done."
     assert heard == ["Do", "Done."]
     system, user = _messages(sent[0])
     assert system == {"role": "system", "content": prompt.system}

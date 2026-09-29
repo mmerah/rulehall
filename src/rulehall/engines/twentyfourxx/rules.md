@@ -38,7 +38,7 @@ one blow of it. A failure costs something and changes the situation. A failure n
 only way on: after a failure the player can try another way.
 
 Set `helped_by` when a hired member helps: they roll the `skill` that they help with, and share
-the risk unless you name their own. Set `hindered` when something slows the actor. The die then
+the actor's risk. Set `hindered` when something slows the actor. The die then
 becomes a d4.
 
 ## Reading a roll
@@ -60,10 +60,8 @@ Beyond what the engine writes above, call a tool for each part that lasts. An in
 fright that passes and a lost moment are not. `Maimed` names no wound: give the wound its own
 hindrance.
 
-Set `defend` only for gear the player named before the roll. It protects the actor on a disaster
-and on a `deadly` setback; a `harm` setback is brief already, so the gear stays whole. Its `hindrance` is what the hit leaves behind, never `risk`. Without `defend`,
-the engine lets the player break gear after a `harm` or `deadly` hit lands on the actor or the helper. You then read the whole
-result, whatever the player chose.
+After a `harm` disaster, or a `deadly` disaster or setback, lands on the actor or the helper, the
+engine lets the player break gear or a ship function. A `harm` setback offers nothing. You then read the whole result, whatever the player chose.
 
 ## Defending
 

@@ -7,7 +7,7 @@ from nicegui import ui
 from rulehall.app.game_session import SessionSnapshot
 from rulehall.config import Role
 from rulehall.core.facts import DiceEvent, Fact, told_cards
-from rulehall.core.log import Cause, LogEntry, RefusedCall, SpokenLine, facts_and_refusals
+from rulehall.core.log import Cause, LogEntry, SpokenLine
 from rulehall.core.views import PlayerView
 from rulehall.ui.panel_parts import IconOf, avatar
 from rulehall.ui.widgets import DICE_CLIP, PASS_THROUGH, Sounds
@@ -39,7 +39,7 @@ class TurnBlock:
     def __init__(self, icon_of: IconOf) -> None:
         self.icon_of = icon_of
         self.head: tuple[str, Cause | None] = ("", None)
-        self.cards: tuple[Fact | RefusedCall, ...] = ()
+        self.cards: tuple[Fact, ...] = ()
         self.lines: tuple[SpokenLine, ...] = ()
         self.bubbles: list[tuple[ui.chat_message, ui.html]] = []
         with ui.element("div").classes("game-turn"):
@@ -47,12 +47,9 @@ class TurnBlock:
             self.card_slot = ui.element("div").style(PASS_THROUGH)
             self.line_slot = ui.element("div").style(PASS_THROUGH)
 
-    def show_entry(
-        self, entry: LogEntry, *, refusals: bool, entering: bool
-    ) -> Sequence[Fact | RefusedCall]:
+    def show_entry(self, entry: LogEntry, *, entering: bool) -> Sequence[Fact]:
         self.show_head(entry.words, entry.cause, entering=entering)
-        cards = facts_and_refusals(entry.facts, entry.refused, refusals=refusals)
-        fresh = self.show_cards(cards, entering=entering)
+        fresh = self.show_cards(entry.facts, entering=entering)
         self.show_lines(entry.lines, entering=entering)
         return fresh
 
@@ -67,9 +64,7 @@ class TurnBlock:
             elif words:
                 draw_player_message(words)
 
-    def show_cards(
-        self, cards: Sequence[Fact | RefusedCall], *, entering: bool
-    ) -> Sequence[Fact | RefusedCall]:
+    def show_cards(self, cards: Sequence[Fact], *, entering: bool) -> Sequence[Fact]:
         fresh = appended_since(cards, self.cards)
         if fresh is None:
             self.card_slot.clear()
@@ -119,10 +114,10 @@ class Transcript:
 
     def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
         appended = appended_since(now.log_entries, drawn.log_entries)
-        if appended is None or now.show_refusals != drawn.show_refusals:
+        if appended is None:
             self.redraw(now)
         else:
-            self.land(appended, refusals=now.show_refusals, entering=True)
+            self.land(appended, entering=True)
             self.show_live(now, entering=True)
         self.show_pause(now.view)
         if now.working_role != drawn.working_role:
@@ -137,10 +132,10 @@ class Transcript:
             if not now.log_entries:
                 self.premise = ui.label(now.view.premise).classes("game-lead text-sm italic")
             self.live_block = TurnBlock(self.icon_of)
-        self.land(now.log_entries, refusals=now.show_refusals, entering=False)
+        self.land(now.log_entries, entering=False)
         self.show_live(now, entering=False)
 
-    def land(self, entries: Sequence[LogEntry], *, refusals: bool, entering: bool) -> None:
+    def land(self, entries: Sequence[LogEntry], *, entering: bool) -> None:
         if not entries:
             return
         if self.premise is not None:
@@ -149,7 +144,7 @@ class Transcript:
         if self.pause_line is not None:
             self.pause_line.set_visibility(True)
         for entry in entries:
-            fresh = self.live_block.show_entry(entry, refusals=refusals, entering=entering)
+            fresh = self.live_block.show_entry(entry, entering=entering)
             if entering and entry.cause != "battle":
                 self.play_dice(fresh)
             with self.column:
@@ -163,7 +158,7 @@ class Transcript:
     def show_live(self, now: SessionSnapshot, *, entering: bool) -> None:
         block = self.live_block
         block.show_head(now.words, None, entering=False)
-        fresh = block.show_cards(now.facts_and_refusals, entering=entering)
+        fresh = block.show_cards(now.turn_facts, entering=entering)
         block.show_lines(now.live, entering=entering)
         if entering:
             self.play_dice(fresh)
@@ -172,7 +167,7 @@ class Transcript:
         if self.pause_line is not None:
             self.pause_line.set_visibility(view.decision is None)
 
-    def play_dice(self, cards: Sequence[Fact | RefusedCall]) -> None:
+    def play_dice(self, cards: Sequence[Fact]) -> None:
         if rolled(cards):
             self.sounds.play(DICE_CLIP)
 
@@ -189,13 +184,9 @@ def appended_since[T](now: Sequence[T], drawn: Sequence[T]) -> Sequence[T] | Non
     return now[kept:]
 
 
-def draw_fact_cards(entries: Sequence[Fact | RefusedCall], *, live: bool = False) -> None:
-    for entry in entries:
-        if isinstance(entry, Fact):
-            if entry.told and entry.card:
-                draw_fact_card(entry, live=live)
-        else:
-            draw_refusal_card(entry, live=live)
+def draw_fact_cards(facts: Sequence[Fact], *, live: bool = False) -> None:
+    for fact in told_cards(facts):
+        draw_fact_card(fact, live=live)
 
 
 def draw_fact_card(fact: Fact, *, live: bool = False) -> None:
@@ -210,16 +201,6 @@ def draw_fact_card(fact: Fact, *, live: bool = False) -> None:
             with ui.row().classes("items-start game-gap-2xl"):
                 for group in fact.dice:
                     draw_dice_group(group, live=live)
-
-
-def draw_refusal_card(refused: RefusedCall, *, live: bool) -> None:
-    with ui.column().classes(
-        "game-card game-fact game-refused w-full game-gap-sm" + _entering(on=live)
-    ):
-        with ui.row().classes("items-center no-wrap game-gap-md"):
-            ui.icon("sym_r_block").classes("game-fact-icon")
-            ui.label(f"The rules refused {refused.tool}").classes("game-fact-head")
-        ui.label(refused.reason).classes("text-xs opacity-80")
 
 
 def draw_dice_group(die: DiceEvent, *, live: bool) -> None:
@@ -283,8 +264,8 @@ def clock(seconds: float) -> str:
     return f"{minutes}:{rest:02d}"
 
 
-def rolled(cards: Sequence[Fact | RefusedCall]) -> bool:
-    return any(fact.dice for fact in told_cards([card for card in cards if isinstance(card, Fact)]))
+def rolled(facts: Sequence[Fact]) -> bool:
+    return any(fact.dice for fact in told_cards(facts))
 
 
 def _draw_dots() -> None:

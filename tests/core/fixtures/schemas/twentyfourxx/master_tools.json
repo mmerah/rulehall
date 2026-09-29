@@ -422,7 +422,7 @@
         },
         "risk": {
           "default": "",
-          "description": "What they take in full on a disaster: an injury, a loss, a cost or an alarm. Name it before the roll; set `harm` when it hurts them, and then name the injury. A roll with no risk is not a roll; a helper's empty `risk` shares the actor's `risk`, `harm` and `deadly`. Say it in one short phrase, never more than 100 characters.",
+          "description": "What they take in full on a disaster: an injury, a loss, a cost or an alarm. Name it before the roll; set `harm` when it hurts them, and then name the injury. A roll with no risk is not a roll. A helper shares it, with `harm`, `deadly` and `setback_hurt`. Say it in one short phrase, never more than 100 characters.",
           "type": "string"
         },
         "deadly": {
@@ -439,29 +439,6 @@
           "default": "",
           "description": "With `harm`: the lesser hurt a setback leaves, one step down from `risk`, such as `Bruised ribs`. The engine writes it as a brief hindrance. Empty writes `Minor hurt`. Name it in three or four words, never more than 48 characters.",
           "type": "string"
-        },
-        "defend": {
-          "additionalProperties": false,
-          "properties": {
-            "item_id": {
-              "description": "Exact id of a carried item, or of a ship function.",
-              "type": "string"
-            },
-            "hindrance": {
-              "default": "",
-              "description": "What the hit leaves behind after the item takes it, as a brief hindrance that the engine removes at the next scene. Empty for an item that breaks with no harm. Name it in three or four words, never more than 48 characters.",
-              "type": "string"
-            }
-          },
-          "required": [
-            "item_id"
-          ],
-          "type": [
-            "object",
-            "null"
-          ],
-          "default": null,
-          "description": "The gear that the player named before the roll to break and protect them. Null when nothing protects them."
         },
         "actor_id": {
           "type": [
@@ -484,49 +461,6 @@
         "helped_by": {
           "additionalProperties": false,
           "properties": {
-            "risk": {
-              "default": "",
-              "description": "What they take in full on a disaster: an injury, a loss, a cost or an alarm. Name it before the roll; set `harm` when it hurts them, and then name the injury. A roll with no risk is not a roll; a helper's empty `risk` shares the actor's `risk`, `harm` and `deadly`. Say it in one short phrase, never more than 100 characters.",
-              "type": "string"
-            },
-            "deadly": {
-              "default": false,
-              "description": "True when `risk` is death. A disaster then kills them, and they do not get `risk` as a hindrance. A setback then maims them.",
-              "type": "boolean"
-            },
-            "harm": {
-              "default": false,
-              "description": "True when `risk` hurts them: an injury or a wound. `risk` then names the injury itself, such as `Burned hands`, never the event that causes it. The engine writes a disaster's `risk` on the sheet as a hindrance and a setback as a brief one, and the player can break gear to turn a disaster into a brief one. False for a loss, a cost or an alarm.",
-              "type": "boolean"
-            },
-            "setback_hurt": {
-              "default": "",
-              "description": "With `harm`: the lesser hurt a setback leaves, one step down from `risk`, such as `Bruised ribs`. The engine writes it as a brief hindrance. Empty writes `Minor hurt`. Name it in three or four words, never more than 48 characters.",
-              "type": "string"
-            },
-            "defend": {
-              "additionalProperties": false,
-              "properties": {
-                "item_id": {
-                  "description": "Exact id of a carried item, or of a ship function.",
-                  "type": "string"
-                },
-                "hindrance": {
-                  "default": "",
-                  "description": "What the hit leaves behind after the item takes it, as a brief hindrance that the engine removes at the next scene. Empty for an item that breaks with no harm. Name it in three or four words, never more than 48 characters.",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "item_id"
-              ],
-              "type": [
-                "object",
-                "null"
-              ],
-              "default": null,
-              "description": "The gear that the player named before the roll to break and protect them. Null when nothing protects them."
-            },
             "actor_id": {
               "description": "Exact id of the hired member who helps.",
               "type": "string"

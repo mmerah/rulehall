@@ -56,7 +56,7 @@ def test_require_refuses_an_uninstalled_pack() -> None:
     packs = PackSet(TEST_ENGINE, {SRD_PACK: Pack(name="SRD", origin="", license="")}, frozenset())
 
     with pytest.raises(Refusal, match="is not installed"):
-        packs.require("gone")
+        packs.require_pack("gone")
 
 
 def test_played_reads_the_srd_once_then_the_chosen_pack() -> None:

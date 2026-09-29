@@ -44,13 +44,13 @@ location: The abbey of Saint Corvin
 - Mara[mara] — The abbey's last scribe, cautious and tired, still cataloguing books nobody will read.
   concept: A Cautious Scribe; skills: Reads a Faded Hand, Knows the Catalogue; frailties: Slow to Trust; gear: Ledger and Ink; goal: Finish the catalogue before anyone strips the abbey; motive: It is the last thing the abbot asked of her; luck: 6/6
   met; last seen in: The Abbot's Study
-- Brother Tomas[tomas] — A deaf old porter who sweeps the cloister and knows almost nothing about the vault.
+- Brother Tomas[brother-tomas] — A deaf old porter who sweeps the cloister and knows almost nothing about the vault.
   concept: A Deaf Old Porter; skills: Knows Every Door; frailties: Hears Almost Nothing; gear: Twig Broom; luck: 6/6
   met
 - Elena[elena] — The vault's former archivist; she alone remembers the sealing rite, and she names a price before she gives it up. She catalogued the vault ledgers beside Mara for two winters, until the night she went below alone and never came back up. The rite is in her head and nowhere else.
   concept: A Ruined Archivist; skills: Knows the Old Rites, Names Her Price; frailties: Flinches at the Dark; gear: Hooded Lantern; goal: Be paid for the sealing rite; motive: Two winters below earned her that much; luck: 6/6
   met
-- a bloated rat[cloister-rat] — It has grown fat on the dead garden and does not run from a lantern.
+- a bloated rat[a-bloated-rat] — It has grown fat on the dead garden and does not run from a lantern.
   concept: A Bloated Cloister Rat; skills: Slips Into the Walls, Bites and Holds On; frailties: Does Not Run; luck: 6/6
   met
 

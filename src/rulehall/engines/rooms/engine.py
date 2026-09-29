@@ -9,9 +9,9 @@ from rulehall.core.game import AnyCharacter, AnyScenario, Game, RoleAnswer, Worl
 from rulehall.core.prompt import Sections, lines_of, render_log, section_if
 from rulehall.core.tools import action, tool
 from rulehall.core.validation import Refusal, Slug
-from rulehall.core.views import NarratorView, Panel, PlayerView
+from rulehall.core.views import NarratorView, Panel
 from rulehall.engines.args import Words
-from rulehall.engines.engine import Engine, RequestHandler, Resolution, Revealing
+from rulehall.engines.engine import Engine, RequestHandler, Resolution, Revealing, SceneHeader
 from rulehall.engines.packs import Pack
 from rulehall.engines.panels import character_panel, here_panel, party_panel
 from rulehall.engines.rooms.args import (
@@ -82,7 +82,7 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
         place = world.current
         player = world.player
         return (
-            ("CURRENT PLACE", f"{place.tag}\n{place.description}"),
+            ("CURRENT PLACE", f"{place.ref}\n{place.description}"),
             ("YOU PLAY FOR", world.line(player)),
             ("CARRYING", lines_of(world.line(item) for item in world.carried(player.id))),
             ("HERE WITH THE PLAYER", world.place_lines(known=True)),
@@ -94,36 +94,25 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
             *(((ELSEWHERE, world.elsewhere_lines()),) if world.meanwhile_due else ()),
         )
 
-    def context_lines(self, state: Game[W]) -> str:
+    def context_text(self, state: Game[W]) -> str:
         return f"place: {state.world.current.name}"
+
+    def scene_header(self, state: Game[W], /) -> SceneHeader:
+        world = state.world
+        place = world.current
+        return SceneHeader(
+            place_id=place.id,
+            title=place.name,
+            situation=place.description,
+            narrator_brief=place.brief,
+            map_view=map_view(world),
+        )
 
     def narrator_view(self, state: Game[W]) -> NarratorView:
         world = state.world
-        place = world.current
-        here = tuple(entity for entity in world.here() if entity.known)
+        view = super().narrator_view(state)
         carrying = ", ".join(item.name for item in world.carried(world.player.id))
-        return NarratorView(
-            place_id=place.id,
-            title=place.name,
-            situation="\n".join(part for part in (place.brief, place.description) if part),
-            subjects=tuple(entity.subject() for entity in here),
-            speakers=tuple(entity.id for entity in here if entity.alive),
-            party=(world.player.id, *world.party_ids),
-            sheet=(*world.sheet_rows(), ("Carrying", carrying or "nothing")),
-        )
-
-    def player_view(self, state: Game[W]) -> PlayerView:
-        world = state.world
-        return PlayerView(
-            premise=state.scenario_description.premise,
-            player=world.player.subject(),
-            scene_title=world.current.name,
-            situation=world.current.description,
-            panels=self.scene_panels(state),
-            ending=self.ending(state),
-            map=map_view(world),
-            **self.player_actions(state),
-        )
+        return view.model_copy(update={"sheet": (*view.sheet, ("Carrying", carrying or "nothing"))})
 
     def moves(self, state: Game[W], /) -> tuple[ActionOption, ...]:
         return () if state.world.has_frontier() else (MORE_MAP,)
@@ -141,7 +130,7 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
     @action
     def drop_here(self, draft: Game[W], args: DropHere, _rng: Random) -> list[Fact]:
         world = draft.world
-        _ = world.carried_items(world.player, (args.item_id,))
+        _ = world.require_carried_items(world.player, (args.item_id,))
         return world.move_item(args.item_id, world.current.id)
 
     @tool
@@ -196,7 +185,7 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
         check_next(proposal, draft.world)
 
     def install_next(self, draft: Game[W], proposal: R, /) -> list[Fact]:
-        draft.world.attach(proposal, proposal.start_id)
+        draft.world.apply_region(proposal)
         draft.chapters[-1].recap = proposal.recap
         self.open_chapter(draft)
         return []
@@ -204,5 +193,5 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
     async def write_region(
         self, draft: Game[W], request: WorldsmithRequest, worldsmith: RoleAnswer
     ) -> Resolution:
-        facts = self.install_next(draft, await self.write_next(draft, request.detail, worldsmith))
+        facts = await self.write_and_install_next(draft, request.detail, worldsmith)
         return Resolution(tuple(facts), None)

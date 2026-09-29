@@ -15,13 +15,14 @@ def _proposal(**fields: object) -> TwentyFourXXSceneProposal:
 
 
 def _built(proposal: TwentyFourXXSceneProposal) -> AnyScenario:
-    return ENGINE.build_scenario(
-        ScenarioDescription(
+    return ENGINE.scenario_model(
+        description=ScenarioDescription(
             title="Loading Bay", premise="", backdrop="Plain.", scope="One tense night shift."
         ),
-        "srd",
-        proposal,
-        "",
+        engine_id=ENGINE.id,
+        pack_id="srd",
+        source="",
+        opening=proposal,
     )
 
 
