@@ -71,9 +71,13 @@ def set_look(look: Look | None) -> None:
     )
 
 
+def fit_to_viewport() -> None:
+    ui.query("body").classes("game-fit")
+    ui.add_body_html(KEYBOARD_FIT)
+
+
 def install() -> None:
     ui.add_head_html(FONTS, shared=True)
-    ui.add_body_html(KEYBOARD_FIT, shared=True)
     ui.button.default_props("no-caps unelevated")
     ui.badge.default_props("outline")
     ui.tooltip.default_props("delay=350 transition-show=jump-up transition-hide=fade")

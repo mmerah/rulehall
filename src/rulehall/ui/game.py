@@ -11,6 +11,7 @@ from rulehall.app.runtime import Runtime
 from rulehall.core.decisions import ActionOption, PlayerInput
 from rulehall.core.validation import Refusal, content_id
 from rulehall.core.views import PanelRow, PlayerView
+from rulehall.ui import theme
 from rulehall.ui.battle import BattlePanel
 from rulehall.ui.composer import CLOSED_REASONS, Composer, composer_lock
 from rulehall.ui.drawer import Drawer
@@ -110,7 +111,7 @@ class GamePage:
         opener = ui.timer(0.1, lambda: self._run(lambda: self._open_game(opener)))
         self.draw_header()
 
-        ui.query(".nicegui-content").style("padding: 0; gap: 0")
+        theme.fit_to_viewport()
         with ui.row().classes("w-full h-full no-wrap game-gap-0"):
             self.drawer.build_rail()
             with (
