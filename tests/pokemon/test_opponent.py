@@ -8,7 +8,6 @@ from rulehall.engines.pokemon.battle.simulator import DUMPED, Dump
 
 TRAINER_SETUP = WILD_SETUP.model_copy(
     update={
-        "kind": "trainer",
         "policy": "model",
         "foe_id": "rook",
         "foe_name": "Rook",

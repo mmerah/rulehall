@@ -19,17 +19,13 @@ from support.showdown import started as blocks_started
 
 from rulehall.core.game import Check
 from rulehall.core.prompt import Prompt
-from rulehall.core.validation import Refusal, Slug, parse_json
+from rulehall.core.validation import Refusal, parse_json
 from rulehall.core.views import BattleChoice, Tag
-from rulehall.engines.engine import Resolution
 from rulehall.engines.pokemon.battle.models import (
     Ball,
     Battle,
-    Battler,
-    BattleResult,
     BattleSetup,
     Outcome,
-    Throw,
 )
 from rulehall.engines.pokemon.battle.opponent import OpponentAnswer, check_command
 from rulehall.engines.pokemon.battle.simulator import (
@@ -45,40 +41,28 @@ from rulehall.engines.pokemon.battle.simulator import (
     packed,
     start_lines,
 )
+from rulehall.engines.pokemon.sheet import Mon
 from rulehall.engines.pokemon.world import PokemonGame
 
 
-class EndOnly:
-    ended: BattleResult | None = None
-
-    def end_battle(self, draft: PokemonGame, result: BattleResult) -> Resolution:
-        self.ended = result
-        draft.world.battle = None
-        return Resolution((), None)
-
-    def throw_ball(self, _draft: PokemonGame, _ball_id: Slug, _foe: Battler, _rng: Random) -> Throw:
-        raise AssertionError("no throw in this test")
-
-
 async def test_a_recorded_battle_plays_to_its_result() -> None:
-    draft, rules = _wild(WILD_SETUP), EndOnly()
-    run = await ShowdownRun.start(draft, ScriptedSimulator(recorded()), rules)
+    draft = _battling(WILD_SETUP)
+    run = await ShowdownRun.start(draft, ScriptedSimulator(recorded()))
     while run.result is None:
         command = next(choice.command for choice in run.choices() if not choice.refusal)
         await run.choose(draft, command, Random(0))
 
     assert run.result.outcome == "won"
     assert [foe.mon_id for foe in run.result.fainted_foes()] == [RATTATA.mon_id]
-    assert rules.ended is run.result
     assert run.resolution is not None
     assert draft.world.battle is None
     assert not [line for line in run.log if line.startswith(("||", "|split|", "|-status|"))]
 
 
 async def test_a_resumed_battle_replays_its_inputs_and_waits_on_the_player() -> None:
-    draft = _wild(WILD_SETUP)
+    draft = _battling(WILD_SETUP)
     played = ScriptedSimulator(recorded())
-    run = await ShowdownRun.start(draft, played, EndOnly())
+    run = await ShowdownRun.start(draft, played)
     await run.choose(draft, "team 1", Random(0))
     await run.choose(draft, "move 1", Random(0))
     assert draft.world.battle is not None
@@ -86,7 +70,7 @@ async def test_a_resumed_battle_replays_its_inputs_and_waits_on_the_player() -> 
 
     resumed_draft = draft.validated().draft()
     replayed = ScriptedSimulator(recorded())
-    resumed = await ShowdownRun.start(resumed_draft, replayed, EndOnly())
+    resumed = await ShowdownRun.start(resumed_draft, replayed)
 
     assert resumed.inputs == run.inputs
     assert resumed.side_request == run.side_request
@@ -95,8 +79,8 @@ async def test_a_resumed_battle_replays_its_inputs_and_waits_on_the_player() -> 
 
 async def test_the_choices_end_with_the_balls_and_the_way_out() -> None:
     balls = (Ball(item_id="poke-ball", name="Poké Ball", count=1),)
-    draft = _wild(WILD_SETUP.model_copy(update={"balls": balls}))
-    run = await ShowdownRun.start(draft, ScriptedSimulator(recorded()), EndOnly())
+    draft = _battling(WILD_SETUP.model_copy(update={"balls": balls}))
+    run = await ShowdownRun.start(draft, ScriptedSimulator(recorded()))
     await run.choose(draft, "team 1", Random(0))
 
     groups = [(choice.group, choice.command, choice.refusal) for choice in run.choices()]
@@ -108,7 +92,6 @@ async def test_the_model_opponent_thinks_at_the_request_and_its_choice_is_record
     setup = BattleSetup.model_validate(
         {
             **WILD_SETUP.model_dump(),
-            "kind": "trainer",
             "policy": "model",
             "foe_id": "rook",
             "foe_name": "Rook",
@@ -116,8 +99,7 @@ async def test_the_model_opponent_thinks_at_the_request_and_its_choice_is_record
             "foes": (RATTATA, PIKACHU),
         }
     )
-    draft = started().draft()
-    draft.world.battle = Battle(setup=setup, inputs=[">p1 team 1", ">p2 team 1"])
+    draft = _battling(setup, [">p1 team 1", ">p2 team 1"])
     simulator = ScriptedSimulator(
         [
             *blocks_started(setup),
@@ -134,7 +116,7 @@ async def test_the_model_opponent_thinks_at_the_request_and_its_choice_is_record
         check(answer)
         return answer
 
-    run = await ShowdownRun.start(draft, simulator, EndOnly(), opponent)
+    run = await ShowdownRun.start(draft, simulator, opponent)
     await sleep(0)
     assert len(asked) == 1
     assert simulator.sent[-1] == assess_line()
@@ -266,7 +248,6 @@ def test_the_sent_out_foes_keep_their_team_order_and_leave_out_the_bench() -> No
     setup = BattleSetup.model_validate(
         {
             **WILD_SETUP.model_dump(),
-            "kind": "trainer",
             "policy": "scripted",
             "foe_id": "rook",
             "foe_name": "Rook",
@@ -327,9 +308,10 @@ def test_a_wild_battle_with_a_foe_avatar_is_refused() -> None:
         _ = BattleSetup.model_validate({**wild, "foe_avatar_id": "camper"})
 
 
-def _wild(setup: BattleSetup) -> PokemonGame:
+def _battling(setup: BattleSetup, inputs: list[str] | None = None) -> PokemonGame:
     draft = started().draft()
-    draft.world.battle = Battle(setup=setup)
+    draft.world.player_sheet.team = [Mon.from_battler(mon, "met in a test") for mon in setup.team]
+    draft.world.battle = Battle(setup=setup, inputs=inputs or [])
     return draft
 
 

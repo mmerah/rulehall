@@ -7,7 +7,6 @@ from rulehall.core.facts import Fact
 from rulehall.core.validation import Frozen, Mutable, Slug
 from rulehall.engines.pokemon.dex import Stats, dex
 
-type BattleKind = Literal["trainer", "wild"]
 type Policy = Literal["random", "scripted", "model"]
 type Outcome = Literal["won", "lost", "fled", "caught"]
 type Status = Literal["", "brn", "frz", "par", "psn", "tox", "slp"]
@@ -55,7 +54,6 @@ class Ball(Frozen):
 
 
 class BattleSetup(Frozen):
-    kind: BattleKind
     policy: Policy
     foe_style: str
     foe_id: Slug | None
@@ -70,20 +68,20 @@ class BattleSetup(Frozen):
 
     @model_validator(mode="after")
     def _can_start(self) -> Self:
-        if self.kind == "trainer" and self.foe_id is None:
-            raise ValueError("a trainer battle needs the foe_id of the trainer")
-        if self.kind == "wild" and self.foe_id is not None:
-            raise ValueError("a wild battle has no foe_id")
-        if self.kind == "wild" and len(self.foes) > 1:
+        if self.wild and len(self.foes) > 1:
             raise ValueError("a wild battle has one foe")
-        if (self.kind == "trainer") != (self.foe_avatar_id is not None):
+        if self.wild != (self.foe_avatar_id is None):
             raise ValueError("a trainer battle, and only a trainer battle, has a foe_avatar_id")
-        if (self.kind == "wild") != (self.policy == "random"):
+        if self.wild != (self.policy == "random"):
             raise ValueError("a wild battle, and only a wild battle, picks at random")
         # Showdown's `sethp` lifts 0 HP to 1, so a fainted Pokemon would fight again.
         if any(battler.hp == 0 for battler in (*self.team, *self.foes)):
             raise ValueError("a fainted Pokemon cannot enter a battle")
         return self
+
+    @property
+    def wild(self) -> bool:
+        return self.foe_id is None
 
 
 class BattleResult(Frozen):
@@ -125,7 +123,7 @@ class Battle(Mutable):
 
     def can_throw(self) -> bool:
         return (
-            self.setup.kind == "wild"
+            self.setup.wild
             and all(throw.input_index != len(self.inputs) for throw in self.throws)
             and bool(self.balls_left())
         )

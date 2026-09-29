@@ -106,7 +106,7 @@ def main() -> None:
 
 def _draw_offline() -> None:
     """The real illustrator, with the provider call swapped for a gradient."""
-    Illustrator._generate = generate_placeholder  # pyright: ignore[reportAttributeAccessIssue]
+    Illustrator._generate = generate_placeholder  # pyright: ignore[reportAttributeAccessIssue, reportPrivateUsage]
 
 
 def _seed_dice() -> None:
@@ -118,7 +118,7 @@ def _seed_dice() -> None:
         session.rng.seed(key.save_id)
         return session
 
-    Runtime._open = seeded  # pyright: ignore[reportAttributeAccessIssue]
+    Runtime._open = seeded  # pyright: ignore[reportAttributeAccessIssue, reportPrivateUsage]
 
 
 if __name__ in {"__main__", "__mp_main__"}:

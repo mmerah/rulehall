@@ -4,18 +4,14 @@ const SOUND_EVENT = "rulehall-sound";
 
 export default {
   template: "<div></div>",
-  props: { base: String, clips: Array, reeled: String },
+  props: { base: String },
   mounted() {
-    this.audio = Object.fromEntries(
-      this.clips.map((name) => [name, new Audio(`${this.base}${name}.wav`)]),
-    );
+    this.roll = new Audio(`${this.base}roll.wav`);
     this.$emit("sound", this.soundOn());
   },
   methods: {
-    play(name) {
-      requestAnimationFrame(() =>
-        setTimeout(() => this.hit(name), name === this.reeled ? this.reeling() : 0),
-      );
+    play() {
+      requestAnimationFrame(() => setTimeout(() => this.hit(), this.reeling()));
     },
     // A sound belongs on the face the reel settles on, not on the first frame of the spin.
     reeling() {
@@ -25,12 +21,11 @@ export default {
         ? (parseFloat(spin.animationDuration) + parseFloat(spin.animationDelay)) * 1000
         : 0;
     },
-    hit(name) {
+    hit() {
       if (!this.soundOn()) return;
-      const clip = this.audio[name];
-      clip.currentTime = 0;
+      this.roll.currentTime = 0;
       // Autoplay policy before the first gesture is not an error the player reads.
-      clip.play().catch(() => {});
+      this.roll.play().catch(() => {});
     },
     toggleSound() {
       const on = !this.soundOn();

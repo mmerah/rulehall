@@ -21,6 +21,7 @@ from drive import (
     start_turn,
     submit,
     wait_idle,
+    waiting_on_player,
 )
 
 WORK = Path(os.environ.get("QA_WORK", "/tmp/rulehall-qa-work"))
@@ -131,7 +132,7 @@ def play(
             )
     s.check(
         not composer(page).is_disabled()
-        or page.locator(".game-asking:visible, .game-banner:visible").count() > 0
+        or waiting_on_player(page).count() > 0
         or page.locator(".game-action-over:visible").count() > 0,
         f"{name} left the composer shut with no decision and no ending",
     )

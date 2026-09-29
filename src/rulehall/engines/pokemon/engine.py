@@ -10,7 +10,7 @@ from rulehall.core.tools import NoArgs, action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.core.views import Panel, Sprite
 from rulehall.engines.battles import Battling, Transport
-from rulehall.engines.engine import Joining, Resolution
+from rulehall.engines.engine import Joining
 from rulehall.engines.pokemon.args import (
     DIFFICULTY,
     ChosenMon,
@@ -29,7 +29,6 @@ from rulehall.engines.pokemon.args import (
     TeachMove,
     UseItem,
 )
-from rulehall.engines.pokemon.battle.models import Battler, BattleResult, Throw
 from rulehall.engines.pokemon.battle.simulator import SHOWDOWN, ShowdownRun
 from rulehall.engines.pokemon.dex import ITEMS, avatars, dex
 from rulehall.engines.pokemon.pack import PokemonHead, PokemonPack
@@ -56,7 +55,6 @@ from rulehall.engines.pokemon.rules import (
     TIMES,
     Challenge,
     Skill,
-    catch_rate,
     counter_pick,
     item_of,
     succeeds,
@@ -99,14 +97,6 @@ AVATAR = "avatar"
 FIRST_MET = "your first Pokemon"
 TEAM_FALLEN = "Your whole team has fallen. The journey ends."
 TEAM_BEATEN = "The team is beaten. Your journey is complete."
-BOSS_BEATEN = (
-    "The boss is beaten. Tell how it ended from WHAT HAPPENED, then close the story in a short "
-    "epilogue."
-)
-BATTLE_OVER = (
-    "The battle is over. Tell how it ended from WHAT HAPPENED, in a few sentences. The player "
-    "watched every move, so do not tell the fight again. Settle nothing else."
-)
 
 
 class PokemonEngine(
@@ -295,40 +285,7 @@ class PokemonEngine(
     async def open_battle(
         self, draft: PokemonGame, transport: Transport, opponent: RoleAnswer | None
     ) -> ShowdownRun:
-        return await ShowdownRun.start(draft, transport, self, opponent)
-
-    def end_battle(self, draft: PokemonGame, result: BattleResult) -> Resolution:
-        facts, notes = draft.world.settle_battle(result)
-        for note in notes:
-            draft.note(note)
-        return Resolution(
-            tuple(facts), BOSS_BEATEN if draft.world.evil_team.boss_beaten else BATTLE_OVER
-        )
-
-    def throw_ball(self, draft: PokemonGame, ball_id: Slug, foe: Battler, rng: Random) -> Throw:
-        battle = draft.world.battle
-        if battle is None or not battle.can_throw():
-            raise Refusal("no ball can be thrown now: pick a move first")
-        player = draft.world.player
-        sheet = draft.world.player_sheet
-        ball = ITEMS.get(ball_id)
-        if ball is None or ball.kind != "ball":
-            raise Refusal(f"{ball_id!r} is no ball")
-        sheet.take(ball_id)
-        rate = catch_rate(foe, ball.catch_bonus)
-        rolled = roll((100,), f"{ball.name} at {foe.name}", rng, label="d100")
-        success = rolled.face == 1 or rolled.face <= rate
-        line = f"{ball.name} at {foe.name} — d100 {rolled.face} vs {rate} → " + (
-            "caught" if success else "it breaks free"
-        )
-        throw = Throw(
-            ball_id=ball_id,
-            caught=success,
-            fact=player.card_fact(line, (rolled.event,)),
-            input_index=len(battle.inputs),
-        )
-        battle.throws.append(throw)
-        return throw
+        return await ShowdownRun.start(draft, transport, opponent)
 
     @tool
     def check(self, draft: PokemonGame, args: SkillCheck, rng: Random) -> list[Fact]:

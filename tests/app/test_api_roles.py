@@ -51,8 +51,7 @@ def _post(
 ) -> list[dict[str, JsonValue]]:
     queued, sent = list(replies), list[dict[str, JsonValue]]()
 
-    def next_reply(path: str, body: Mapping[str, JsonValue]) -> JsonValue:
-        assert path == "/chat/completions"
+    def next_reply(body: Mapping[str, JsonValue]) -> JsonValue:
         # Snapshotted as the wire would see it: the loop appends to the same list afterwards.
         sent.append(deepcopy(dict(body)))
         reply = queued.pop(0)
@@ -60,20 +59,18 @@ def _post(
             raise reply
         return reply
 
-    async def scripted(
-        _provider: object, path: str, body: Mapping[str, JsonValue], _timeout: float | None
-    ) -> bytes:
-        return json.dumps(next_reply(path, body)).encode()
+    async def scripted(_provider: object, body: Mapping[str, JsonValue]) -> bytes:
+        return json.dumps(next_reply(body)).encode()
 
     @asynccontextmanager
     async def streamed(
-        _provider: object, path: str, body: Mapping[str, JsonValue], _timeout: float | None
+        _provider: object, body: Mapping[str, JsonValue]
     ) -> AsyncGenerator[AsyncIterator[str]]:
         assert body["stream"] is True
-        yield _chunks(next_reply(path, body))
+        yield _chunks(next_reply(body))
 
-    monkeypatch.setattr("rulehall.app.api_roles.post_bearer", scripted)
-    monkeypatch.setattr("rulehall.app.api_roles.stream_bearer", streamed)
+    monkeypatch.setattr("rulehall.app.api_roles.post_chat_completion", scripted)
+    monkeypatch.setattr("rulehall.app.api_roles.stream_chat_completion", streamed)
     return sent
 
 

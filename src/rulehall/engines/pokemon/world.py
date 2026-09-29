@@ -4,7 +4,7 @@ from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.facts import Fact
+from rulehall.core.facts import Fact, roll
 from rulehall.core.game import Game
 from rulehall.core.validation import Frozen, Mutable, Refusal, Slug
 from rulehall.core.views import Rows
@@ -16,8 +16,9 @@ from rulehall.engines.pokemon.battle.models import (
     Battler,
     BattleResult,
     BattleSetup,
+    Throw,
 )
-from rulehall.engines.pokemon.dex import dex
+from rulehall.engines.pokemon.dex import ITEMS, dex
 from rulehall.engines.pokemon.rules import (
     ACE_BELOW_TABLE,
     BELOW_ACE,
@@ -27,6 +28,7 @@ from rulehall.engines.pokemon.rules import (
     SPECIES_ID,
     STARTER_LEVEL,
     RosterSlot,
+    catch_rate,
     check_species,
     evolved,
     item_of,
@@ -132,7 +134,6 @@ class RivalRecord(Mutable):
 
 
 class PokemonWorld(RoomWorld[Trainer]):
-    meanwhile_every = 4
     species_ids: tuple[Slug, ...] = Field(min_length=1)
     wild: dict[Slug, tuple[WildSlot, ...]] = Field(default_factory=dict)
     battle: Battle | None = None
@@ -260,7 +261,6 @@ class PokemonWorld(RoomWorld[Trainer]):
         if trainer is None and first_here:
             self.encountered_place_ids.append(here)
         setup = BattleSetup(
-            kind="wild" if trainer is None else "trainer",
             policy="random"
             if trainer is None
             else "model"
@@ -283,6 +283,29 @@ class PokemonWorld(RoomWorld[Trainer]):
             balls=balls,
         )
         self.battle = Battle(setup=setup)
+
+    def throw_ball(self, ball_id: Slug, foe: Battler, rng: Random) -> Throw:
+        battle = self.battle
+        if battle is None or not battle.can_throw():
+            raise Refusal("no ball can be thrown now: pick a move first")
+        ball = ITEMS.get(ball_id)
+        if ball is None or ball.kind != "ball":
+            raise Refusal(f"{ball_id!r} is no ball")
+        self.player_sheet.take(ball_id)
+        rate = catch_rate(foe, ball.catch_bonus)
+        rolled = roll((100,), f"{ball.name} at {foe.name}", rng, label="d100")
+        success = rolled.face == 1 or rolled.face <= rate
+        line = f"{ball.name} at {foe.name} — d100 {rolled.face} vs {rate} → " + (
+            "caught" if success else "it breaks free"
+        )
+        throw = Throw(
+            ball_id=ball_id,
+            caught=success,
+            fact=self.player.card_fact(line, (rolled.event,)),
+            input_index=len(battle.inputs),
+        )
+        battle.throws.append(throw)
+        return throw
 
     def wild_rows(self, species_id: Slug | None) -> tuple[WildSlot, ...]:
         here = self.current
@@ -374,11 +397,11 @@ class PokemonWorld(RoomWorld[Trainer]):
                 Mon.from_battler(caught, f"caught at {self.current.name} at L{caught.level}")
             )
         )
-        if setup.kind == "trainer" and result.sent_out_foes:
+        if not setup.wild and result.sent_out_foes:
             facts.append(player.fact(_sent_out_line(setup, result)))
         facts.append(player.card_fact(_outcome(setup, result, where)))
         cap = sheet.level_cap()
-        shares = sheet.exp_shares(result, trainer=setup.kind == "trainer")
+        shares = sheet.exp_shares(result, trainer=not setup.wild)
         for mon_id, exp in shares.items():
             mon = sheet.require_mon(mon_id)
             mon.train(result.fainted_foes())
@@ -479,7 +502,7 @@ class PokemonWorld(RoomWorld[Trainer]):
     def _bury(self, setup: BattleSetup) -> list[Fact]:
         sheet = self.player_sheet
         fallen = [mon for mon in sheet.team if mon.fainted]
-        foe = setup.foe_name if setup.kind == "trainer" else f"a wild {setup.foes[0].name}"
+        foe = f"a wild {setup.foes[0].name}" if setup.wild else setup.foe_name
         if len(fallen) < len(sheet.team):
             for mon in fallen:
                 sheet.team.remove(mon)
@@ -512,10 +535,10 @@ def _listed(names: Sequence[str]) -> str:
 
 def _outcome(setup: BattleSetup, result: BattleResult, where: Literal["team", "box"] | None) -> str:
     match result.outcome:
-        case "won" if setup.kind == "trainer":
-            return f"You beat {setup.foe_name}"
-        case "won":
+        case "won" if setup.wild:
             return f"The wild {setup.foes[0].name} fainted"
+        case "won":
+            return f"You beat {setup.foe_name}"
         case "lost":
             return "You lost the battle"
         case "fled":

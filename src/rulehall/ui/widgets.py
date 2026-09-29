@@ -1,5 +1,5 @@
 import string
-from collections.abc import Awaitable, Callable, Generator
+from collections.abc import Awaitable, Callable, Generator, Sequence
 from contextlib import contextmanager
 from hashlib import sha1
 from pathlib import Path
@@ -8,12 +8,11 @@ from typing import Literal
 from nicegui import app, ui
 
 from rulehall.app.game_session import Busy
+from rulehall.core.facts import Fact
 from rulehall.core.validation import Refusal
 from rulehall.core.views import Look
 from rulehall.ui import theme
 from rulehall.ui.routes import HOME, SOUNDS
-
-type ClipName = Literal["roll"]
 
 BRAND_ICON = "sym_r_casino"
 HOME_ICON = "sym_r_home"
@@ -30,7 +29,6 @@ NEW_PACK_ICON = "sym_r_auto_fix_high"
 ON_TOUCH = "matchMedia('(hover: none)').matches"
 PASS_THROUGH = "display: contents"
 SOUNDS_DIR = Path(__file__).parent / "sounds"
-DICE_CLIP: ClipName = "roll"
 BLANK = string.whitespace + (
     "\xa0\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"
     "\u200b\u200c\u200d\u2060\ufeff"
@@ -42,11 +40,10 @@ class Sounds(ui.element, component="sounds.js"):
     def __init__(self) -> None:
         super().__init__()
         self._props["base"] = SOUNDS
-        self._props["clips"] = [DICE_CLIP]
-        self._props["reeled"] = DICE_CLIP
 
-    def play(self, clip: ClipName) -> None:
-        self.run_method("play", clip)
+    def roll_dice(self, facts: Sequence[Fact]) -> None:
+        if any(fact.dice for fact in facts):
+            self.run_method("play")
 
 
 class Confirm(ui.dialog):
@@ -65,20 +62,6 @@ class Confirm(ui.dialog):
     async def ask(self, message: str) -> bool:
         self.message.set_text(message)
         return await self is True
-
-
-class Banner(ui.column):
-    def __init__(
-        self, icon: str, label: str, text: str = "", *, kind: str = "game-decision"
-    ) -> None:
-        super().__init__()
-        self.classes(f"game-card {kind} game-banner w-full game-gap-lg")
-        with self, ui.row().classes("w-full items-center no-wrap game-banner-head game-gap-xl"):
-            ui.icon(icon).classes("game-card-icon")
-            with ui.column().classes("game-banner-text game-gap-3xs"):
-                ui.label(label).classes("game-banner-label")
-                self.text = ui.label(text).classes("game-banner-body")
-            self.actions = ui.row().classes("items-center no-wrap game-banner-actions game-gap-md")
 
 
 def help_tip(text: str, anchor: ui.element | None = None) -> None:
@@ -189,7 +172,9 @@ def refused_page(message: str) -> None:
         ui.card().classes("w-full"),
         ui.column().classes("w-full items-center game-gap-2xl"),
     ):
-        empty_state(REFUSED_ICON, message)
+        with ui.column().classes("game-empty items-center game-gap-xs"):
+            ui.icon(REFUSED_ICON)
+            ui.label(message).classes("text-body2")
         ui.button("Home", icon=HOME_ICON, on_click=lambda: ui.navigate.to(HOME)).props(
             "color=primary"
         )
@@ -249,12 +234,6 @@ def entry_card(
                 actions()
 
 
-def empty_state(icon: str, message: str) -> None:
-    with ui.column().classes("game-empty items-center game-gap-xs"):
-        ui.icon(icon)
-        ui.label(message).classes("text-body2")
-
-
 @contextmanager
 def action_bar() -> Generator[None]:
     with ui.row().classes("w-full items-center justify-end game-actions game-gap-xl"):
@@ -262,8 +241,8 @@ def action_bar() -> Generator[None]:
 
 
 @contextmanager
-def section(title: str, *, classes: str = "", help: str = "") -> Generator[None]:
-    with ui.card().classes(f"w-full game-gap-lg {classes}"):
+def section(title: str, *, help: str = "") -> Generator[None]:
+    with ui.card().classes("w-full game-gap-lg"):
         heading(title, help=help)
         yield
 
@@ -272,11 +251,9 @@ def section_title(title: str) -> None:
     ui.label(title).classes("game-section-title").props('role="heading" aria-level="2"')
 
 
-def heading(title: str, count: int | None = None, *, help: str = "") -> None:
+def heading(title: str, *, help: str = "") -> None:
     with ui.element("div").classes("game-section-head"):
         help_tip(help, ui.label(title).classes("game-eyebrow"))
-        if count is not None:
-            ui.label(str(count)).classes("game-count")
 
 
 def entered_text(field: ui.input | ui.textarea) -> str:

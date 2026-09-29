@@ -267,6 +267,15 @@ def waiting_on_player(page: Page) -> Locator:
     return page.locator(".game-asking:visible, .game-banner:visible")
 
 
+def choose(page: Page, name: str) -> None:
+    start_turn(decision(page).locator(".game-moves button", has_text=name).first)
+    wait_idle(page)
+
+
+def fits_width(page: Page) -> bool:
+    return page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
+
+
 def move(page: Page, name: str) -> Locator:
     return page.locator(".game-moves button.game-choice", has_text=name)
 

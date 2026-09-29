@@ -31,8 +31,8 @@ def test_one_ball_each_turn() -> None:
     assert battle is not None
     foe = battle.setup.foes[0]
 
-    first = ENGINE.throw_ball(draft, "poke-ball", foe, Random(0))
+    first = draft.world.throw_ball("poke-ball", foe, Random(0))
 
     assert first.input_index == len(battle.inputs)
     with pytest.raises(Refusal):
-        _ = ENGINE.throw_ball(draft, "poke-ball", foe, Random(0))
+        _ = draft.world.throw_ball("poke-ball", foe, Random(0))

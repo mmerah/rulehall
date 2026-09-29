@@ -27,12 +27,15 @@ async def close_client() -> None:
         _client = None
 
 
-async def post_bearer(
-    provider: ProviderConfig, path: str, body: Mapping[str, JsonValue], timeout: float | None
+async def post_chat_completion(
+    provider: ProviderConfig, body: Mapping[str, JsonValue], timeout: float | None = None
 ) -> bytes:
     try:
         reply = await client().post(
-            f"{provider.base_url}{path}", headers=_bearer(provider), json=body, timeout=timeout
+            f"{provider.base_url}/chat/completions",
+            headers=_bearer(provider),
+            json=body,
+            timeout=timeout,
         )
         reply.raise_for_status()
     except HTTPError as failed:
@@ -41,16 +44,16 @@ async def post_bearer(
 
 
 @asynccontextmanager
-async def stream_bearer(
-    provider: ProviderConfig, path: str, body: Mapping[str, JsonValue], timeout: float | None
+async def stream_chat_completion(
+    provider: ProviderConfig, body: Mapping[str, JsonValue]
 ) -> AsyncGenerator[AsyncIterator[str]]:
     try:
         async with client().stream(
             "POST",
-            f"{provider.base_url}{path}",
+            f"{provider.base_url}/chat/completions",
             headers=_bearer(provider),
             json=body,
-            timeout=timeout,
+            timeout=None,
         ) as reply:
             if reply.is_error:
                 await reply.aread()

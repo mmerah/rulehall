@@ -20,6 +20,7 @@ from drive import (
     composer,
     decision,
     drawer_text,
+    fits_width,
     gate_status,
     held,
     log,
@@ -531,10 +532,7 @@ def body(s: Session) -> None:
     submit(page, f"I shout {long_word}.\n!none")
     wait_idle(page)
     s.shot(page, "long-word")
-    s.check(
-        page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
-        "a long word makes the page scroll sideways",
-    )
+    s.check(fits_width(page), "a long word makes the page scroll sideways")
     overflow = page.evaluate(
         "Array.from(document.querySelectorAll('.q-message-text-content')).some(e => e.scrollWidth > e.clientWidth + 2)"  # noqa: E501
     )

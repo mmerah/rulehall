@@ -11,7 +11,7 @@ from rulehall.core.views import BattleChoice
 from rulehall.ui import transcript
 from rulehall.ui.panel_parts import choice_groups
 from rulehall.ui.routes import assets_route
-from rulehall.ui.widgets import DICE_CLIP, Banner, Sounds, attempt, failure_notice
+from rulehall.ui.widgets import Sounds, attempt, failure_notice
 
 BATTLE_FAILED = failure_notice("The battle did not start.")
 MOVE_FAILED = failure_notice("The move was not played.")
@@ -25,16 +25,25 @@ class BattlePanel:
         self.shown = False
         self.opening = False
         self.battle_view_element: ui.element | None = None
-        self.banner: Banner
+        self.banner: ui.column
         self.story: ui.element
         self.column: ui.column
         self.hint: ui.label
         self.cards: ui.element
 
     def build_banner(self) -> None:
-        self.banner = Banner("sym_r_swords", "battle", "A battle waits for you.")
-        with self.banner.actions:
-            ui.button("Battle", on_click=self.show).props("outline")
+        with (
+            ui.column().classes(
+                "game-card game-decision game-banner w-full game-gap-lg"
+            ) as self.banner,
+            ui.row().classes("w-full items-center no-wrap game-banner-head game-gap-xl"),
+        ):
+            ui.icon("sym_r_swords").classes("game-card-icon")
+            with ui.column().classes("game-banner-text game-gap-3xs"):
+                ui.label("battle").classes("game-banner-label")
+                ui.label("A battle waits for you.").classes("game-banner-body")
+            with ui.row().classes("items-center no-wrap game-banner-actions game-gap-md"):
+                ui.button("Battle", on_click=self.show).props("outline")
 
     def build(self, story: ui.element, now: SessionSnapshot) -> None:
         self.story = story
@@ -99,10 +108,8 @@ class BattlePanel:
         if now.battle_run is not drawn.battle_run or lines is None or fresh is None:
             closing = drawn.battle_run
             # A throw that ends the battle closes the run before this sync; its die plays here.
-            if closing is not None and any(
-                fact.dice for fact in closing.facts[len(drawn.battle_facts) :]
-            ):
-                self.sounds.play(DICE_CLIP)
+            if closing is not None:
+                self.sounds.roll_dice(closing.facts[len(drawn.battle_facts) :])
             self.draw_battle_screen.refresh(now)
             self.draw_choices.refresh(now.battle_choices)
             self.cards.clear()
@@ -115,8 +122,7 @@ class BattlePanel:
         with self.cards:
             for fact in fresh:
                 transcript.draw_fact_card(fact, live=True)
-        if any(fact.dice for fact in fresh):
-            self.sounds.play(DICE_CLIP)
+        self.sounds.roll_dice(fresh)
 
     def _draw_cards(self, facts: Sequence[Fact]) -> None:
         with self.cards:

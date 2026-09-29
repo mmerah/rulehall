@@ -1,7 +1,6 @@
 from pathlib import Path
 from random import Random
 
-from support.pokemon import ENGINE
 from support.showdown import ScriptedSimulator, ended, moving, started
 from support.table import POKEMON, narrated, open_table, play_turn, tool_call
 
@@ -83,7 +82,7 @@ async def test_a_save_with_a_caught_throw_ends_the_battle_on_reopen(tmp_path: Pa
     assert battle is not None
     setup = battle.setup
     draft = table.state.draft()
-    _ = ENGINE.throw_ball(draft, "poke-ball", setup.foes[0], LowRandom())
+    _ = draft.world.throw_ball("poke-ball", setup.foes[0], LowRandom())
     table.session.save(table.session.engine.accept(draft))
     reopened = open_table(tmp_path, engine_id=POKEMON, state_type=PokemonGame)
     reopened.roles.answers.setdefault("narrator", []).append(narrated("The Pidgey is caught."))

@@ -8,13 +8,13 @@ from drive import (
     BASE,
     Session,
     cards,
+    choose,
     clean,
     composer,
     drawer_text,
     open_drawer,
     run,
     send,
-    start_turn,
     submit,
     wait_idle,
 )
@@ -36,8 +36,7 @@ def body(s: Session) -> None:
         not composer(page).is_visible() and not send(page).is_visible(),
         "the words box shows on an option-only decision",
     )
-    start_turn(page.locator(".game-asking .game-moves button", has_text="Brute +1, Health +1"))
-    wait_idle(page)
+    choose(page, "Brute +1, Health +1")
     s.check(
         "Level 2: Brute +1, Health +1" in " ".join(cards(page)),
         f"level card missing: {cards(page)[-3:]}",

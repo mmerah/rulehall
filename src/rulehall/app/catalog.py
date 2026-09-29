@@ -94,9 +94,6 @@ class LauncherCatalog:
             )
             for scenario_id, scenario in on_disk.items()
         )
-        descriptions = {
-            scenario_id: scenario.description for scenario_id, scenario in on_disk.items()
-        }
         characters = tuple(
             CatalogEntry(
                 id=character_id,
@@ -118,12 +115,11 @@ class LauncherCatalog:
             for pack_id, pack in engine.packs.installed.items()
         )
         titles = {(entry.id, entry.engine_id): entry.name for entry in characters}
-        played_by = {entry.id: entry.engine_id for entry in scenarios}
         saves: list[SaveOption] = []
         unresumable: list[str] = []
         for save_id in store.save_ids():
             try:
-                option = _save_option(save_id, store, engines, titles, played_by, descriptions)
+                option = _save_option(save_id, store, engines, titles, on_disk)
             except Refusal as unreadable:
                 LOGGER.warning("skipping save %r: %s", save_id, unreadable)
                 unresumable.append(save_id)
@@ -156,8 +152,7 @@ def _save_option(
     store: SaveStore,
     engines: Mapping[EngineId, AnyEngine],
     titles: Mapping[tuple[Slug, EngineId], str],
-    played_by: Mapping[Slug, EngineId],
-    descriptions: Mapping[Slug, ScenarioDescription],
+    on_disk: Mapping[Slug, AnyScenario],
 ) -> SaveOption | None:
     raw = store.read(save_id)
     saved_at = store.find_saved_at(save_id)
@@ -167,10 +162,11 @@ def _save_option(
     engine = for_engine_of(raw, engines)
     state = engine.restore(raw)
     title = titles.get((state.character_id, state.engine_id))
-    if played_by.get(state.scenario_id) != state.engine_id or title is None:
+    scenario = on_disk.get(state.scenario_id)
+    if scenario is None or scenario.engine_id != state.engine_id or title is None:
         raise Refusal("its scenario or character is gone")
     return SaveOption(
-        key=check_resumes(state, save_id, descriptions[state.scenario_id]),
+        key=check_resumes(state, save_id, scenario.description),
         scenario_label=state.scenario_description.title,
         character_label=title,
         turn=len(state.log_entries()),

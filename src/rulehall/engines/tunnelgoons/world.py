@@ -31,8 +31,6 @@ class AbilitiesProposal(Frozen):
 
 
 class TunnelGoonsWorld(RoomWorld[Goon]):
-    meanwhile_every = 4
-
     def sheet_rows(self) -> Rows:
         return self.player.rows(carried=len(list(self.carried(self.player.id))))
 

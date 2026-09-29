@@ -11,9 +11,11 @@ from drive import (
     Session,
     clean,
     composer,
+    fits_width,
     move,
     placeholder,
     reach_breather,
+    run,
     send,
     still,
     submit,
@@ -42,17 +44,11 @@ def body(s: Session, device: Device) -> None:
     page.goto(BASE + "/")
     still(page)
     s.shot(page, "home")
-    s.check(
-        page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
-        "home scrolls sideways",
-    )
+    s.check(fits_width(page), "home scrolls sideways")
     page.goto(GAME)
     wait_idle(page, timeout=40)
     s.shot(page, "game")
-    s.check(
-        page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
-        "game scrolls sideways",
-    )
+    s.check(fits_width(page), "game scrolls sideways")
     s.check(not page.locator(".game-drawer").is_visible(), "drawer open on a phone")
     phone = device["viewport"]["width"] < 600
     if phone:
@@ -135,10 +131,7 @@ def body(s: Session, device: Device) -> None:
         "Take the breather" in send(page).inner_text(),
         "the breather is not armed on the send",
     )
-    s.check(
-        page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
-        "the action bar overflows",
-    )
+    s.check(fits_width(page), "the action bar overflows")
     take_breather(page, 'I rest.\n!direct text="He rests."')
     s.note(f"placeholder: {placeholder(page)}")
     # The restart menu.
@@ -157,10 +150,7 @@ def body(s: Session, device: Device) -> None:
         page.goto(BASE + path)
         still(page)
         s.shot(page, name)
-        s.check(
-            page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
-            f"{name} scrolls sideways",
-        )
+        s.check(fits_width(page), f"{name} scrolls sideways")
     s.note(f"body text sample: {clean(page.inner_text('body'))[:120]}")
     context.close()
 
@@ -181,14 +171,9 @@ TABLET: Device = {
 }
 
 
-def main() -> None:
-    from drive import run
-
-    def both(s: Session) -> None:
-        body(s, PHONE)
-        body(s, TABLET)
-
-    run("mobile", both)
+def both(s: Session) -> None:
+    body(s, PHONE)
+    body(s, TABLET)
 
 
-main()
+run("mobile", both)

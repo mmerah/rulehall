@@ -5,14 +5,14 @@ from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
 from random import Random
-from typing import Literal, Protocol, Self
+from typing import Literal, Self
 
 from pydantic import Field
 
 from rulehall.core.facts import Fact
 from rulehall.core.game import RoleAnswer
 from rulehall.core.stores import read_cached_text
-from rulehall.core.validation import Loose, Slug, parse_json
+from rulehall.core.validation import Loose, parse_json
 from rulehall.core.views import BattleChoice
 from rulehall.engines.battles import Transport
 from rulehall.engines.engine import Resolution
@@ -24,7 +24,6 @@ from rulehall.engines.pokemon.battle.models import (
     BattleSetup,
     Outcome,
     Policy,
-    Throw,
 )
 from rulehall.engines.pokemon.battle.opponent import (
     Assessment,
@@ -41,6 +40,14 @@ from rulehall.engines.pokemon.world import PokemonGame
 FORMAT = "gen9customgame@@@Terastal Clause"
 SHOWDOWN = Path(__file__).parents[1] / "showdown"
 ASSESS_JS = SHOWDOWN / "assess.js"
+BOSS_BEATEN = (
+    "The boss is beaten. Tell how it ended from WHAT HAPPENED, then close the story in a short "
+    "epilogue."
+)
+BATTLE_OVER = (
+    "The battle is over. Tell how it ended from WHAT HAPPENED, in a few sentences. The player "
+    "watched every move, so do not tell the fight again. Settle nothing else."
+)
 SIDES = ("p1", "p2")
 SWITCH = "Switch"
 BALLS = "Balls"
@@ -131,18 +138,10 @@ class Block:
                 raise ValueError(f"unknown simulator block {kind!r}")
 
 
-class Rules(Protocol):
-    def end_battle(self, draft: PokemonGame, result: BattleResult, /) -> Resolution: ...
-    def throw_ball(
-        self, draft: PokemonGame, ball_id: Slug, foe: Battler, rng: Random, /
-    ) -> Throw: ...
-
-
 @dataclass(slots=True, kw_only=True)
 class ShowdownRun:
     battle: Battle
     transport: Transport
-    rules: Rules
     policy: Policy
     opponent: RoleAnswer | None = None
     inputs: list[str] = field(default_factory=list)
@@ -161,7 +160,6 @@ class ShowdownRun:
         cls,
         draft: PokemonGame,
         transport: Transport,
-        rules: Rules,
         opponent: RoleAnswer | None = None,
     ) -> Self:
         battle = draft.world.battle
@@ -172,7 +170,6 @@ class ShowdownRun:
         run = cls(
             battle=battle,
             transport=transport,
-            rules=rules,
             policy=policy,
             opponent=opponent if policy == "model" else None,
             facts=[throw.fact for throw in battle.throws],
@@ -189,7 +186,7 @@ class ShowdownRun:
         return self.battle.setup
 
     def props(self) -> Mapping[str, str | bool]:
-        return {"wild": self.setup.kind == "wild"}
+        return {"wild": self.setup.wild}
 
     def choices(self) -> tuple[BattleChoice, ...]:
         request = self.side_request
@@ -205,15 +202,15 @@ class ShowdownRun:
             )
             for ball in self.battle.balls_left()
         )
-        leave = BattleChoice(command=LEAVE, name="Run" if self.setup.kind == "wild" else "Forfeit")
+        leave = BattleChoice(command=LEAVE, name="Run" if self.setup.wild else "Forfeit")
         return (*choices_of(request, self.setup.team), *balls, leave)
 
     async def choose(self, draft: PokemonGame, command: str, rng: Random) -> None:
         draft.world.battle = self.battle
         if command == LEAVE:
-            await self._end("fled" if self.setup.kind == "wild" else "lost")
+            await self._end("fled" if self.setup.wild else "lost")
         elif command.startswith(BALL):
-            throw = self.rules.throw_ball(draft, command.removeprefix(BALL), self._foe(), rng)
+            throw = draft.world.throw_ball(command.removeprefix(BALL), self._foe(), rng)
             self.facts.append(throw.fact)
             if throw.caught:
                 await self._end("caught")
@@ -248,7 +245,7 @@ class ShowdownRun:
         self.battle.inputs = list(self.inputs)
         draft.world.battle = self.battle
         if self.result is not None:
-            self.resolution = self.rules.end_battle(draft, self.result)
+            self.resolution = end_battle(draft, self.result)
 
     async def _block(self) -> Block:
         return Block.of(await self.transport.receive())
@@ -469,3 +466,12 @@ def _packed_team(battlers: Sequence[Battler]) -> str:
 
 def _first_foe(setup: BattleSetup, dump: Dump) -> Battler:
     return as_dumped(setup.foes[0], next(mon for mon in dump.p2 if mon.slot == 0))
+
+
+def end_battle(draft: PokemonGame, result: BattleResult) -> Resolution:
+    facts, notes = draft.world.settle_battle(result)
+    for note in notes:
+        draft.note(note)
+    return Resolution(
+        tuple(facts), BOSS_BEATEN if draft.world.evil_team.boss_beaten else BATTLE_OVER
+    )

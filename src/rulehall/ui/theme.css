@@ -159,11 +159,6 @@ body, body.body--dark {
 }
 .game-section-head { display: flex; align-items: center; gap: .5rem; width: 100% }
 .game-section-head:after { content: ''; flex: 1; height: 1px; background: var(--game-border-soft) }
-.game-count {
-  font-size: .72rem; font-weight: 700; color: var(--game-muted);
-  padding: .05rem .5rem; border-radius: 999px; background: var(--game-wash);
-  border: 1px solid var(--game-border-soft);
-}
 
 .game-card {
   color: var(--game-text);
@@ -268,8 +263,6 @@ body, body.body--dark {
   letter-spacing: .12em; text-transform: uppercase;
 }
 .game-banner-body { font-size: .9rem; line-height: 1.45; overflow-wrap: anywhere }
-.game-banner-body:empty, .game-banner-actions:empty { display: none }
-.game-banner .game-choices, .game-banner .game-hint { padding-left: calc(2.25rem + .75rem) }
 
 .q-btn {
   border-radius: calc(var(--game-radius) * .7);
@@ -978,7 +971,6 @@ body, body.body--dark {
   .game-banner { padding: .55rem .6rem .55rem .8rem }
   .game-banner .game-card-icon { display: none }
   .game-banner-body { font-size: .85rem }
-  .game-banner .game-choices, .game-banner .game-hint { padding-left: 0 }
   .game-composer .q-field__control { min-height: 2.75rem !important }
   .game-foot-body { padding: .35rem .5rem .5rem }
   /* The lit cell names the move; the phone's send stays a round arrow to leave room to type. */

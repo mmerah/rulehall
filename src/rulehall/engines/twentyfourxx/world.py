@@ -175,8 +175,8 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
     def defend(self, actor_id: Slug | None, item_id: Slug, hindrance: str) -> list[Fact]:
         actor = self.require_actor(actor_id)
         gear = self.require_gear(actor, item_id)
-        if item_id in self.ship and (refusal := self.ship_refusal()):
-            raise Refusal(refusal)
+        if item_id in self.ship:
+            self.require_ship_here()
         return self._break(actor, gear, hindrance)
 
     def take_hit(
@@ -236,6 +236,10 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
     def ship_refusal(self) -> str:
         return "" if self.ship_here() else SHIP_AWAY
 
+    def require_ship_here(self) -> None:
+        if refusal := self.ship_refusal():
+            raise Refusal(refusal)
+
     def require_hold_item(self, item_id: Slug) -> Gear:
         item = self.hold.get(item_id)
         if item is None:
@@ -243,8 +247,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         return item
 
     def stow_item(self, actor: Crewmate, item_id: Slug) -> list[Fact]:
-        if refusal := self.ship_refusal():
-            raise Refusal(refusal)
+        self.require_ship_here()
         sheet = actor.require_sheet()
         item = sheet.require_item(item_id, actor.name)
         del sheet.items[item_id]
@@ -254,8 +257,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         return [actor.fact(trace, card=card)]
 
     def retrieve_item(self, actor: Crewmate, item_id: Slug) -> list[Fact]:
-        if refusal := self.ship_refusal():
-            raise Refusal(refusal)
+        self.require_ship_here()
         items = actor.require_sheet().items
         item = self.require_hold_item(item_id)
         del self.hold[item_id]
@@ -277,8 +279,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
 
     def upgrade_ship(self, function_id: Slug, upgrade: str) -> list[Fact]:
         function = self.require_function(function_id)
-        if refusal := self.ship_refusal():
-            raise Refusal(refusal)
+        self.require_ship_here()
         self.player.pay(UPGRADE_COST)
         function.upgrades.append(upgrade)
         trace = f"the ship's {function.name} is upgraded: {upgrade} (₡{UPGRADE_COST})"

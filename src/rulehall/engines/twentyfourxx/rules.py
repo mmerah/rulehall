@@ -3,7 +3,6 @@ from typing import Literal
 type SkillDie = Literal[8, 10, 12]
 LADDER: tuple[SkillDie, ...] = (8, 10, 12)
 DEFAULT_DIE = 6
-SKILL_COUNT = 17
 HINDERED_DIE = 4
 HELP_DIE = 6
 BRIEF = "Brief: "

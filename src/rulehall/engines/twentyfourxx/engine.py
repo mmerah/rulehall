@@ -5,7 +5,7 @@ from random import Random
 from rulehall.core.creation import CreationStep, Picks, find_option
 from rulehall.core.decisions import ActionOption, DecisionOption
 from rulehall.core.facts import Fact, roll
-from rulehall.core.game import AnyCharacter, Character, Check, RoleAnswer, WorldsmithRequest
+from rulehall.core.game import AnyCharacter, Character, RoleAnswer, WorldsmithRequest
 from rulehall.core.prompt import Sections, lines_of, ref_of, section_if
 from rulehall.core.tools import action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
@@ -64,7 +64,6 @@ from rulehall.engines.twentyfourxx.risk import DicePool, defend_or_land
 from rulehall.engines.twentyfourxx.rules import (
     NO_TROUBLE,
     SIGNS_OF_TROUBLE,
-    SKILL_COUNT,
     TROUBLE,
     next_die,
     outcome_band,
@@ -175,21 +174,11 @@ class TwentyFourXXEngine(
     hire_intent = HIRING
     sheet_help = SHEET_HELP
 
-    def __init__(self, player_packs: Path) -> None:
-        super().__init__(player_packs)
-        srd = self.packs.srd()
-        if len(srd.skills) != SKILL_COUNT:
-            raise ValueError(
-                f"the {self.id!r} srd pack lists {len(srd.skills)} skills, not {SKILL_COUNT}"
-            )
-        if not srd.starting_kit:
-            raise ValueError(f"the {self.id!r} srd pack has no starting kit")
-
     def request_handlers(self) -> Mapping[Slug, RequestHandler[TwentyFourXXWorld]]:
         return {
             **super().request_handlers(),
-            DEPARTURE: RequestHandler(self.depart, WAY_UNWRITTEN),
-            FLIGHT: RequestHandler(self.fly, WAY_UNWRITTEN),
+            DEPARTURE: RequestHandler(self.leave_for_next_place, WAY_UNWRITTEN),
+            FLIGHT: RequestHandler(self.leave_for_next_place, WAY_UNWRITTEN),
             COMPLICATION: RequestHandler(self.complicate, COMPLICATION_UNWRITTEN),
             NEWCOMER: RequestHandler(self.write_newcomer, HIRE_UNWRITTEN),
         }
@@ -448,8 +437,8 @@ class TwentyFourXXEngine(
         `pursuit` instead when the player has left this place. Set `complication` instead to
         test for bad luck here: on 1-2 the trouble comes, on 3-4 only its signs."""
         if args.pursuit:
-            if args.by_ship and (refusal := draft.world.ship_refusal()):
-                raise Refusal(refusal)
+            if args.by_ship:
+                draft.world.require_ship_here()
             kind = FLIGHT if args.by_ship else DEPARTURE
             draft.request = WorldsmithRequest(kind=kind, detail=args.pursuit)
             draft.note(SCENE_LEFT)
@@ -476,37 +465,23 @@ class TwentyFourXXEngine(
         draft.note(MOVING_ON)
         return []
 
-    async def depart(
+    async def leave_for_next_place(
         self, draft: TwentyFourXXGame, request: WorldsmithRequest, worldsmith: RoleAnswer
     ) -> Resolution:
-        return await self._cross(draft, request.detail, worldsmith, "")
-
-    async def fly(
-        self, draft: TwentyFourXXGame, request: WorldsmithRequest, worldsmith: RoleAnswer
-    ) -> Resolution:
+        by_ship = request.kind == FLIGHT
+        left = draft.world.scene.title
         place_id = draft.world.scene.place_id
 
         def check_flown_away(answer: TwentyFourXXNextProposal) -> None:
-            if answer.place_id == place_id:
+            if by_ship and answer.place_id == place_id:
                 raise Refusal(FLOWN.format(place_id=place_id))
 
-        resolution = await self._cross(draft, request.detail, worldsmith, BY_SHIP, check_flown_away)
-        draft.world.dock_here()
-        return resolution
-
-    async def _cross(
-        self,
-        draft: TwentyFourXXGame,
-        pursuit: str,
-        worldsmith: RoleAnswer,
-        how: str,
-        extra_check: Check[TwentyFourXXNextProposal] = lambda _: None,
-    ) -> Resolution:
-        left = draft.world.scene.title
         facts = await self.write_and_install_next(
-            draft, pursuit, worldsmith, extra_check=extra_check
+            draft, request.detail, worldsmith, extra_check=check_flown_away
         )
-        return Resolution(tuple(facts), CROSSING.format(left=left, how=how))
+        if by_ship:
+            draft.world.dock_here()
+        return Resolution(tuple(facts), CROSSING.format(left=left, how=BY_SHIP if by_ship else ""))
 
     async def complicate(
         self, draft: TwentyFourXXGame, request: WorldsmithRequest, worldsmith: RoleAnswer

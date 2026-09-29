@@ -9,18 +9,18 @@ from drive import (
     BASE,
     Session,
     cards,
+    choose,
     clean,
+    decision,
     drawer_text,
     open_drawer,
     run,
-    start_turn,
     submit,
     wait_idle,
 )
 from playwright.sync_api import Page
 
 GAME = BASE + "/game/silent-relay/kael"
-DECISION = ".game-asking"
 CROSSING = '!roll what="Cross the fire" risk="burned to death" deadly=true hindered="Bruised"'
 
 
@@ -113,13 +113,8 @@ def body(s: Session) -> None:
 
 
 def decision_text(page: Page) -> str:
-    banner = page.locator(DECISION)
+    banner = decision(page)
     return clean(banner.first.inner_text()) if banner.count() else ""
-
-
-def choose(page: Page, name: str) -> None:
-    start_turn(page.locator(f"{DECISION} .game-moves button", has_text=name).first)
-    wait_idle(page)
 
 
 run("24xx", body)

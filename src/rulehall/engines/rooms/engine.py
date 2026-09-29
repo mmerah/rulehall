@@ -51,11 +51,6 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
     opening_intent = MAP_ASK
     play_hint = "What does {name} do? Or tap the map."
 
-    def __init__(self, player_packs: Path) -> None:
-        super().__init__(player_packs)
-        if (every := self.world_model.meanwhile_every) < 2:
-            raise ValueError(f"the {self.id!r} engine runs the meanwhile every {every} turns")
-
     def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> W:
         proposal: MapProposal[P] = scenario.opening
         check_opening(proposal)

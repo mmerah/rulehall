@@ -4,6 +4,7 @@ from support.pokemon import ENGINE, started
 from support.table import change, refused
 
 from rulehall.engines.pokemon.battle.models import BattleResult
+from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.panels import pending_decision
 from rulehall.engines.pokemon.sheet import Mon
 from rulehall.engines.pokemon.world import PokemonGame
@@ -117,4 +118,4 @@ def _level_up(draft: PokemonGame, mon: Mon) -> None:
         sent_out_foes=tuple(foe.model_copy(update={"hp": 0}) for foe in setup.foes),
         on_field_mon_ids=(setup.team[0].mon_id,),
     )
-    _ = ENGINE.end_battle(draft, result)
+    _ = end_battle(draft, result)

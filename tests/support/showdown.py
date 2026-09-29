@@ -43,7 +43,6 @@ RATTATA = Battler(
     hp=15,
 )
 WILD_SETUP = BattleSetup(
-    kind="wild",
     policy="random",
     foe_style="",
     foe_id=None,

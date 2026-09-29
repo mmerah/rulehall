@@ -10,7 +10,7 @@ from rulehall.core.facts import DiceEvent, Fact, told_cards
 from rulehall.core.log import Cause, LogEntry, SpokenLine
 from rulehall.core.views import PlayerView
 from rulehall.ui.panel_parts import IconOf, avatar
-from rulehall.ui.widgets import DICE_CLIP, PASS_THROUGH, Sounds
+from rulehall.ui.widgets import PASS_THROUGH, Sounds
 
 ROLE_COPY: dict[Role, tuple[str, str]] = {
     "master": (
@@ -146,7 +146,7 @@ class Transcript:
         for entry in entries:
             fresh = self.live_block.show_entry(entry, entering=entering)
             if entering and entry.cause != "battle":
-                self.play_dice(fresh)
+                self.sounds.roll_dice(told_cards(fresh))
             with self.column:
                 self.pause_line = (
                     ui.label(f"Paused: {entry.decision}").classes("game-paused")
@@ -161,15 +161,11 @@ class Transcript:
         fresh = block.show_cards(now.turn_facts, entering=entering)
         block.show_lines(now.live, entering=entering)
         if entering:
-            self.play_dice(fresh)
+            self.sounds.roll_dice(told_cards(fresh))
 
     def show_pause(self, view: PlayerView) -> None:
         if self.pause_line is not None:
             self.pause_line.set_visibility(view.decision is None)
-
-    def play_dice(self, cards: Sequence[Fact]) -> None:
-        if rolled(cards):
-            self.sounds.play(DICE_CLIP)
 
     @ui.refreshable_method
     def draw_working_status(self, working_role: Role | None) -> None:
@@ -262,10 +258,6 @@ def draw_working_status_row(role: Role) -> ui.label:
 def clock(seconds: float) -> str:
     minutes, rest = divmod(int(seconds), 60)
     return f"{minutes}:{rest:02d}"
-
-
-def rolled(facts: Sequence[Fact]) -> bool:
-    return any(fact.dice for fact in told_cards(facts))
 
 
 def _draw_dots() -> None:

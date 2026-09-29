@@ -1,5 +1,5 @@
 from collections.abc import Iterable, Iterator, Mapping
-from typing import ClassVar, Self
+from typing import Self
 
 from pydantic import Field, model_validator
 
@@ -8,6 +8,8 @@ from rulehall.core.prompt import lines_of
 from rulehall.core.validation import Mutable, Refusal, Slug, check_unique, parse
 from rulehall.engines.sheet import PLAYER_ID, Entity, Person
 from rulehall.engines.world import IS_DEAD, UNKNOWN_ID, OpeningProposal, World, check_filing
+
+MEANWHILE_EVERY = 4
 
 
 class Dweller(Person):
@@ -136,8 +138,6 @@ class RegionProposal[P: Dweller](MapProposal[P]):
 
 
 class RoomWorld[P: Dweller](RoomMap[P], World[P]):
-    meanwhile_every: ClassVar[int]
-
     visited_place_ids: list[Slug] = Field(min_length=1)
     turns_since_meanwhile: int = Field(default=0, ge=0)
     meanwhile_due: bool = False
@@ -243,7 +243,7 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
         if not armed and not self.can_move_offscreen():
             return
         self.turns_since_meanwhile += 1
-        fired = self.turns_since_meanwhile >= self.meanwhile_every
+        fired = self.turns_since_meanwhile >= MEANWHILE_EVERY
         if fired:
             self.turns_since_meanwhile = 0
         self.meanwhile_due = fired and not armed

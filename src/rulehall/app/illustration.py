@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from hashlib import sha1
 from pathlib import Path
 
-from rulehall.app.http_client import post_bearer
+from rulehall.app.http_client import post_chat_completion
 from rulehall.config import LiveSettings
 from rulehall.core.stores import publish
 from rulehall.core.validation import Loose, Refusal, Slug, parse_json
@@ -121,9 +121,8 @@ class Illustrator:
 
     async def _generate(self, prompt: str, ratio: str) -> GeneratedImage:
         settings = self.live_settings.current
-        content = await post_bearer(
+        content = await post_chat_completion(
             settings.providers.for_name(settings.media.provider),
-            "/chat/completions",
             {
                 "model": settings.media.model,
                 "modalities": ["image", "text"],

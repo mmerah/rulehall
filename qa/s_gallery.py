@@ -1,13 +1,12 @@
 import sys
 from pathlib import Path
 
-from playwright.sync_api import Page
-
 sys.path.insert(0, str(Path(__file__).parent))
 from drive import (
     BASE,
     Device,
     Session,
+    fits_width,
     open_drawer,
     reach_breather,
     run,
@@ -63,14 +62,14 @@ def body(s: Session) -> None:
             page.goto(BASE + path)
             still(page)
             s.shot(page, f"{name}-{label}")
-            _no_sideways(s, page, f"{name} {label}")
+            s.check(fits_width(page), f"{name} {label} scrolls sideways")
         page.goto(GAME)
         wait_idle(page, timeout=40)
         submit(page, "I search the desk.")
         wait_idle(page)
         still(page)
         s.shot(page, f"{name}-game")
-        _no_sideways(s, page, f"{name} game")
+        s.check(fits_width(page), f"{name} game scrolls sideways")
         # Two or more foes share one Fight chip, which opens a pick.
         submit(page, 'Tomas comes in.\n!enter target_id=tomas\n!direct text="He enters."')
         wait_idle(page)
@@ -94,13 +93,6 @@ def body(s: Session) -> None:
         still(page, ".game-drawer")
         s.shot(page, f"{name}-drawer")
         context.close()
-
-
-def _no_sideways(s: Session, page: Page, where: str) -> None:
-    s.check(
-        page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
-        f"{where} scrolls sideways",
-    )
 
 
 run("gallery", body)

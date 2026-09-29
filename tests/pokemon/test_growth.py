@@ -7,6 +7,7 @@ from support.table import change, run_action
 from rulehall.core.decisions import ActionOption
 from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.battle.models import BattleResult
+from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.panels import pending_decision
 from rulehall.engines.pokemon.sheet import Mon
@@ -98,7 +99,7 @@ def test_a_new_badge_opens_a_skill_rank_decision() -> None:
     sheet = draft.world.player_sheet
     lore = sheet.skills.get("lore", 0)
 
-    _ = ENGINE.end_battle(draft, _won(draft))
+    _ = end_battle(draft, _won(draft))
 
     assert sheet.badges == ["Tide Badge"]
     decision = pending_decision(draft.world.player_sheet)
@@ -148,7 +149,7 @@ def _charmander(draft: PokemonGame, *, level: int) -> Mon:
 
 def _win_wild(draft: PokemonGame) -> None:
     _ = change(ENGINE, draft, "start_wild_battle", species_id="pidgey")
-    _ = ENGINE.end_battle(draft, _won(draft))
+    _ = end_battle(draft, _won(draft))
 
 
 def _won(draft: PokemonGame) -> BattleResult:

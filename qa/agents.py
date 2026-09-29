@@ -25,7 +25,6 @@ from typing import Literal
 
 from pydantic import JsonValue
 
-from rulehall.app.roles import RoleReply
 from rulehall.app.runtime import Runtime
 from rulehall.app.turn import Turn
 from rulehall.config import Role
@@ -60,33 +59,17 @@ class ScriptedAgents:
     faults: dict[Role, list[Fault]] = field(default_factory=dict)
     holds: dict[Role, Event] = field(default_factory=dict)
     log: list[Spoken] = field(default_factory=list)
-    # The first prompt of each session: a resumed CLI still holds it, so a retry reads it too.
-    first_prompts: dict[str, str] = field(default_factory=dict)
     scenes: "count[int]" = field(default_factory=lambda: count(1))
 
     async def answer(
-        self,
-        role: Role,
-        prompt: Prompt,
-        *,
-        resume_id: str | None = None,
-        heard: Callable[[str], None] | None = None,
-    ) -> RoleReply:
+        self, role: Role, prompt: Prompt, *, heard: Callable[[str], None] | None = None
+    ) -> str:
         del heard
-        text = prompt.text
-        if resume_id is None:
-            first = asked = text
-        else:
-            first = self.first_prompts[resume_id]
-            asked = f"{first}\n\n{text}"
-        next_resume_id = f"{role}-{len(self.log) + 1}"
-        self.first_prompts[next_resume_id] = first
-        spoken = await self._spoken(role, asked, text)
-        return RoleReply(spoken.answer, next_resume_id)
+        return (await self._spoken(role, prompt.text)).answer
 
     async def play_master_turn(self, prompt: Prompt, turn: Turn) -> None:
         del turn
-        _ = await self._spoken("master", prompt.text, prompt.text)
+        _ = await self._spoken("master", prompt.text)
 
     def arm(self, role: str, fault: str) -> None:
         self.faults.setdefault(_role(role), []).append(_fault(fault))
@@ -100,12 +83,12 @@ class ScriptedAgents:
             if (held := self.holds.pop(released, None)) is not None:
                 held.set()
 
-    async def _spoken(self, role: Role, asked: str, text: str) -> Spoken:
+    async def _spoken(self, role: Role, text: str) -> Spoken:
         spoken = Spoken(role=role, prompt=text, answer="")
         self.log.append(spoken)
         await sleep(self.delay)
         try:
-            spoken.answer = await self._answer(role, asked, spoken)
+            spoken.answer = await self._answer(role, text, spoken)
         except (OSError, Refusal) as failed:
             spoken.error = f"{type(failed).__name__}: {failed}"
             raise

@@ -26,10 +26,10 @@ from rulehall.core.facts import Fact, told_cards
 from rulehall.core.validation import Refusal
 from rulehall.engines.rooms.args import MOVED_CARD, MOVES_OFFSCREEN
 from rulehall.engines.rooms.panels import map_view
-from rulehall.engines.rooms.world import Way
+from rulehall.engines.rooms.world import MEANWHILE_EVERY, Way
 from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
-from rulehall.engines.tunnelgoons.world import TunnelGoonsGame, TunnelGoonsWorld
+from rulehall.engines.tunnelgoons.world import TunnelGoonsGame
 
 
 def test_a_member_joins_and_leaves_the_party() -> None:
@@ -216,7 +216,7 @@ def test_the_clock_counts_only_a_turn_that_acted_and_arms_at_the_tempo() -> None
     ENGINE.end_turn(draft, acted=False)
     assert draft.world.turns_since_meanwhile == 0
 
-    for _ in range(TunnelGoonsWorld.meanwhile_every):
+    for _ in range(MEANWHILE_EVERY):
         ENGINE.end_turn(draft, acted=True)
 
     assert (draft.world.turns_since_meanwhile, draft.world.meanwhile_due) == (0, True)

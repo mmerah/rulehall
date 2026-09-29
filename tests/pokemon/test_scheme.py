@@ -6,6 +6,7 @@ from support.table import change
 
 from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.battle.models import BattleResult, BattleSetup
+from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.rules import RosterSlot
 from rulehall.engines.pokemon.sheet import Trainer
 from rulehall.engines.pokemon.world import PokemonGame, PokemonRegionProposal
@@ -17,7 +18,7 @@ TEAM_BEATEN = "The team is beaten. Your journey is complete."
 def test_beating_the_operation_leader_foils_it_and_reveals_a_stage() -> None:
     draft = started().draft()
 
-    resolution = ENGINE.end_battle(draft, _won(_battle(draft, "vesper")))
+    resolution = end_battle(draft, _won(_battle(draft, "vesper")))
 
     evil_team = draft.world.evil_team
     assert (evil_team.foiled, evil_team.succeeded, evil_team.operation) == (1, 0, None)
@@ -29,7 +30,7 @@ def test_beating_the_operation_leader_foils_it_and_reveals_a_stage() -> None:
 def test_a_badge_earned_while_the_operation_is_open_makes_it_succeed() -> None:
     draft = started().draft()
 
-    _ = ENGINE.end_battle(draft, _won(_battle(draft, "ines")))
+    _ = end_battle(draft, _won(_battle(draft, "ines")))
 
     evil_team = draft.world.evil_team
     assert (evil_team.foiled, evil_team.succeeded, evil_team.operation) == (0, 1, None)
@@ -70,7 +71,7 @@ def test_beating_the_boss_ends_the_journey_with_an_epilogue() -> None:
     draft = started().draft()
     _ = _boss(draft)
 
-    resolution = ENGINE.end_battle(draft, _won(_battle(draft, "boss")))
+    resolution = end_battle(draft, _won(_battle(draft, "boss")))
 
     assert draft.world.evil_team.boss_beaten
     assert ENGINE.ending(draft) == TEAM_BEATEN
