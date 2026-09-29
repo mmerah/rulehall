@@ -1,52 +1,50 @@
-"""The real app with the real AI roles, on a fresh copy of the data, for the demo recording.
+"""The real app, on a fresh copy of the data, for the demo recording.
 
-    uv run python qa/demo/serve.py /tmp/rulehall-demo/work
+    uv run python qa/demo/serve.py /tmp/rulehall-demo/work [--live]
 
-The settings come from `.env` like `uv run rulehall`, with refusal cards shown. The saves start
-empty, except a played 24XX save (`saves/silent-relay--kael.*`) that the relay scene shows when it
-exists.
+The settings come from `.env` like `uv run rulehall`. The saves start empty. The master, the
+narrator and the worldsmith answer from `script.json`; `--live` asks the real AI roles instead.
 """
 
 import logging
 import shutil
-import sys
+from argparse import ArgumentParser
 from pathlib import Path
 
 from nicegui import ui
+from roles import DemoRoles, DemoScript
 
 from rulehall.app.runtime import Runtime
-from rulehall.config import LOOPBACK_HOST, ServerConfig, TranscriptConfig, read_settings
+from rulehall.config import LOOPBACK_HOST, ServerConfig, read_settings
 from rulehall.ui import theme
 from rulehall.ui.app import mount
 
-REPOSITORY_ROOT = Path(__file__).parents[2]
 PORT = 8190
-RELAY_SAVE = "silent-relay--kael"
 
 
 def main() -> None:
-    work = Path(sys.argv[1]).resolve()
+    parser = ArgumentParser()
+    parser.add_argument("work", type=Path)
+    parser.add_argument("--live", action="store_true", help="ask the real AI roles")
+    parsed = parser.parse_args()
+    work = Path(parsed.work).resolve()
     if work.exists():
         shutil.rmtree(work)
-    for name in ("scenarios", "characters"):
-        shutil.copytree(REPOSITORY_ROOT / name, work / name)
     saves = work / "saves"
-    saves.mkdir()
-    for played in (REPOSITORY_ROOT / "saves").glob(f"{RELAY_SAVE}.*"):
-        copy = shutil.copytree if played.is_dir() else shutil.copy2
-        copy(played, saves / played.name)
+    saves.mkdir(parents=True)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
-    settings = read_settings().model_copy(
+    read = read_settings()
+    settings = read.model_copy(
         update={
             "saves_dir": saves,
             "scenarios_dir": work / "scenarios",
             "characters_dir": work / "characters",
             "packs_dir": work / "packs",
             "server": ServerConfig(port=PORT),
-            "transcript": TranscriptConfig(refusals=True),
+            "battle": read.battle.model_copy(update={"opponent": "scripted"}),
         }
     )
-    mount(Runtime(settings))
+    mount(Runtime(settings, roles=None if parsed.live else DemoRoles(DemoScript.read())))
     theme.install()
     ui.run(  # pyright: ignore[reportUnknownMemberType]
         title="Rulehall",

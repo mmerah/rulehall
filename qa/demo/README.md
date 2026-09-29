@@ -1,13 +1,12 @@
 # Demo video
 
-These scripts make `docs/demo/demo.mp4` and `demo.gif`. They play the real app with the real AI roles and record it in headless Chromium. Nothing is staged except the frame around the app, the cursor, the captions and the zoom, which `stage.html` draws.
+These scripts make `docs/demo/demo.mp4` and `demo.gif`. They play the real app and record it in headless Chromium. By default, the master, the narrator and the worldsmith answer from `script.json`, so each take tells the same story. The rules, the dice, the Pokemon simulator and the scene art stay real. Nothing else is staged. `stage.html` draws the frame around the app, the cursor, the captions, the title words, the zoom and the end card.
 
 ## You need
 
-- A working `.env`: the roles you play with, and scene art turned on (`MEDIA__ENABLED=true`).
+- A working `.env` with scene art turned on (`MEDIA__ENABLED=true`). The settings need the provider keys even when the roles are scripted.
 - The Pokemon simulator (`npm --prefix src/rulehall/engines/pokemon/showdown run setup`).
 - `ffmpeg` with libx264 and `gifski` on your `PATH`.
-- Optional: a played 24XX save in `saves/silent-relay--kael.*`. Without it, the 24XX scene is skipped.
 
 ## Make it
 
@@ -17,7 +16,9 @@ These scripts make `docs/demo/demo.mp4` and `demo.gif`. They play the real app w
    uv run python qa/demo/serve.py /tmp/rulehall-demo/work
    ```
 
-2. In a second terminal, record one take. It takes about 5 minutes and plays 4 real turns.
+   Add `--live` to use the real AI roles from `.env` instead of the script.
+
+2. In a second terminal, record one take.
 
    ```bash
    uv run python qa/demo/record.py /tmp/rulehall-demo
@@ -29,10 +30,18 @@ These scripts make `docs/demo/demo.mp4` and `demo.gif`. They play the real app w
    uv run python qa/demo/cut.py /tmp/rulehall-demo
    ```
 
-4. Watch `docs/demo/demo.mp4`. The AI writes new words on every take, so a take can go wrong. If it does, stop the server, then do steps 1 to 3 again.
+4. Watch `docs/demo/demo.mp4`. If a take goes wrong, stop the server, then do steps 1 to 3 again.
 
 ## How it works
 
-- `record.py` saves each screencast frame with its time. A slow AI turn is marked to play 7 times faster, and a badge on the frame says so.
-- `cut.py` gives each frame its played length, plays the whole take 1.5 times faster (`PACE`), joins the frames at 60 fps, and stops at 2 minutes.
-- To change the story, edit the scene methods in `record.py`: `loner`, `goons`, `relay`, `poke` and `create`.
+- `record.py` saves each screencast frame with its time. A wait for the roles is marked to play 20 times faster (`FAST`), and a badge on the frame says so. A page load plays under a full-screen title word.
+- `cut.py` gives each frame its played length, joins the frames at 60 fps, and stops at 1 minute (`LONGEST`).
+- `roles.py` reads `script.json` and plays the roles:
+  - `turns`: one entry for each turn of the master. `action` is the exact text that the player types, or the name of the option that the player clicks (`Commit`). `seed` sets the dice for the turn and for the rolls after it in that game. `calls` are the tool calls, run through the real rules. `narration` is what the narrator says after the turn.
+  - `openings`: the first narration of each game, by scenario title.
+  - `cues`: narration for a later narrator call, such as the end of a battle. The first `when` text found in the facts of the call wins.
+  - `worldsmith`: the answer to each worldsmith call. The first `when` text found in the prompt wins.
+- A narration line has a `speaker_id` (the id of a person in the scenario's `world.json`) or `null` for plain narration.
+- A call with no script answer stops with an error that names the role. Nothing goes to an AI.
+- If you change the words that `record.py` types, change the `action` in `script.json` too. If you change a `seed` or a call, run the take again and make sure that the narration still agrees with the dice.
+- To change the scenes, edit the scene methods in `record.py`: `hook`, `loner`, `goons`, `relay`, `poke`, `create` and `end`.

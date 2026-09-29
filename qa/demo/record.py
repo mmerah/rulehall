@@ -2,14 +2,14 @@
 
 Run: uv run python qa/demo/record.py /tmp/rulehall-demo
 
-The app runs in an iframe of `stage.html`, which draws the window, cursor, captions, zoom and
-cards. Chromium's screencast saves every frame with its time; `cut.py` turns them into a video.
-A slow AI turn is marked with a speed, so the cut plays it faster instead of dropping it.
+The app runs in an iframe of `stage.html`, which draws the window, cursor, captions, zoom, slams
+and the end card. Chromium's screencast saves every frame with its time; `cut.py` turns them into
+a video. A slow AI turn is marked with a speed, so the cut plays it faster instead of dropping it,
+and a badge on the frame says so. A page load under a slam plays faster too.
 """
 
 import base64
 import json
-import re
 import sys
 import time
 from collections.abc import Callable
@@ -20,14 +20,15 @@ from playwright.sync_api import Frame, Locator, Page, sync_playwright
 
 HERE = Path(__file__).parent
 BASE = "http://localhost:8190"
-FAST = 7
-LOAD_SPEED = 25
+# How many times faster an AI turn plays; the worldsmith writes a whole opening.
+FAST = 20
+WORLDSMITH_SPEED = 90
+LOAD_SPEED = 60
 # Where `stage.html` puts the iframe, and its scale.
 FRAME_LEFT, FRAME_TOP, FRAME_SCALE = 192, 74, 1.2
 TRANSCRIPT = ".game-transcript .q-scrollarea__container"
 THEMES = {
     "title": ("#6b4fd8", "#c0507a"),
-    "home": ("#a8672e", "#7a3b5a"),
     "loner": ("#6b4fd8", "#b0507a"),
     "goons": ("#b0702a", "#6a2f1a"),
     "relay": ("#2f5fb0", "#1f8a9a"),
@@ -141,14 +142,15 @@ class Stage:
     def type(self, text: str, per_second: float = 24) -> None:
         self.page.keyboard.type(text, delay=1000 / per_second)
 
-    def caption(
-        self, step: str | None = None, text: str | None = None, sub: str | None = None
-    ) -> None:
-        self.demo("caption", step, text, sub)
+    def caption(self, text: str | None = None, sub: str | None = None) -> None:
+        """A word that starts with `*` takes the accent colour."""
+        self.demo("caption", text, sub)
 
-    def zoom(self, scale: float, target: Target | None = None, dy: float = 0.5) -> None:
+    def zoom(
+        self, scale: float, target: Target | None = None, dy: float = 0.5, ms: int = 850
+    ) -> None:
         x, y = (960, 540) if target is None else self.point(target, dy=dy, zoomed=False)
-        self.demo("zoom", scale, x, y)
+        self.demo("zoom", scale, x, y, ms)
 
 
 class Demo:
@@ -163,12 +165,10 @@ class Demo:
         self.st = Stage(self.page)
         self.app = self.st.app
         self.rec = Recorder(self.page, out / "frames")
-        self.has_relay = False
 
     def run(self) -> None:
         scenes: list[Callable[[], None]] = [
-            self.title,
-            self.home,
+            self.hook,
             self.loner,
             self.goons,
             self.relay,
@@ -192,7 +192,7 @@ class Demo:
 
     def fast(self, factor: float) -> None:
         self.rec.speed(factor)
-        self.st.demo("speed", factor, None)
+        self.st.demo("speed", factor)
 
     def theme(self, name: str) -> None:
         self.st.demo("theme", *THEMES[name])
@@ -213,232 +213,231 @@ class Demo:
             self.page.wait_for_timeout(200)
         raise TimeoutError("the game never went idle")
 
-    def scene(self, path: str, theme: str, scroll_up: int = 0) -> None:
-        """Go to another page under the veil; the load plays fast."""
-        self.st.caption()
-        self.st.demo("veil", True)
-        self.theme(theme)
-        self.wait(0.35)
+    def load(self, path: str) -> None:
+        """Go to a page while the slam covers the window; the load plays fast."""
         self.rec.speed(LOAD_SPEED)
         self.st.goto(path)
         self.st.demo("url", "localhost:8080" + path)
         if path.startswith("/game"):
             self.idle()
-        self.page.wait_for_timeout(1200)
-        self.app.evaluate(
-            f"(up) => {{ const t = document.querySelector('{TRANSCRIPT}');"
-            " if (t) t.scrollTop = t.scrollHeight - t.clientHeight - up; }",
-            scroll_up,
-        )
-        self.page.wait_for_timeout(600)
+        self.page.wait_for_timeout(1000)
+        self.scroll_to_end()
+        self.page.wait_for_timeout(500)
         self.app.evaluate(
             "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
         )
         self.rec.speed(1)
-        self.st.demo("veil", False)
-        self.wait(0.6)
+
+    def slam(self, word: str, kicker: str, theme: str, path: str) -> None:
+        """A full-screen word, the next page loading under it, then a punch back in."""
+        self.st.caption()
+        self.st.zoom(1, ms=350)
+        self.theme(theme)
+        self.st.demo("window", "blur")
+        self.st.demo("slam", True, word, kicker)
+        self.wait(0.75)
+        self.load(path)
+        self.st.zoom(1.1, ms=0)
+        self.st.demo("window", "on")
+        self.st.demo("slam", False)
+        self.st.zoom(1, ms=600)
+        self.wait(0.35)
+
+    def scroll_to_end(self) -> None:
+        self.app.evaluate(
+            f"() => {{ const t = document.querySelector('{TRANSCRIPT}');"
+            " if (t) t.scrollTop = t.scrollHeight; }"
+        )
 
     def turn(self, text: str) -> None:
         box = self.app.locator(".game-composer textarea")
-        self.st.click(box, 800, dx=0.25)
-        self.st.move_to(box, 450, dx=0.62, dy=1.9)
-        self.st.type(text)
-        self.wait(0.4)
-        self.st.click(self.app.locator('button[aria-label="Send"]'), 500)
-        self.wait(1.4)
+        self.st.zoom(1.7, box, ms=600)
+        self.page.wait_for_timeout(650)  # the click lands only once the zoom stops
+        self.st.click(box, 350, dx=0.2)
+        box.focus()
+        self.st.type(text, 38)
+        self.st.click(self.app.locator('button[aria-label="Send"]'), 350)
+        self.wait(0.25)
+        self.st.zoom(1, ms=600)
+        self.wait(0.3)
+        self.wait_for_roles()
+        commit = self.app.get_by_role("button", name="Commit")
+        if commit.is_visible():
+            self.st.caption("See the odds. Then *commit.", "every die, shown before it rolls")
+            self.st.zoom(1.5, commit, dy=-1.2, ms=600)
+            self.wait(1.6)
+            self.st.click(commit, 450)
+            self.wait(0.2)
+            self.st.zoom(1, ms=500)
+            self.wait_for_roles()
+
+    def wait_for_roles(self) -> None:
         self.fast(FAST)
         self.idle()
         self.page.wait_for_timeout(600)
+        self.scroll_to_end()
+        self.page.wait_for_timeout(500)
         self.fast(1)
 
-    def reveal(self, target: Locator) -> None:
-        target.evaluate("e => e.scrollIntoView({block: 'center', behavior: 'smooth'})")
-        self.wait(0.9)
+    def show(self, target: Locator, scale: float, hold: float, dy: float = 0.5) -> None:
+        """Scroll a part of the page into view and zoom on it."""
+        target.evaluate("e => e.scrollIntoView({block: 'center'})")
+        self.st.demo("unscroll")
+        self.page.wait_for_timeout(150)
+        self.st.move_to(target, 500, dy=dy + 0.9)
+        self.st.zoom(scale, target, dy=dy)
+        self.wait(hold)
+
+    def last_die(self) -> Locator | None:
+        die = self.app.locator(".game-transcript .game-die").last
+        return die if die.count() and die.is_visible() else None
 
     # Scenes.
-    def title(self) -> None:
+    def hook(self) -> None:
         self.theme("title")
         self.st.demo("cursor", False)
-        self.st.goto("/")
+        self.st.goto("/game/whispering-vault/kael")
+        self.idle()
         self.page.wait_for_timeout(1000)
-        self.has_relay = self.app.get_by_text("The Silent Relay").count() > 0
+        self.scroll_to_end()
+        self.st.demo("url", "localhost:8080/game/whispering-vault/kael")
         self.rec.start()
-        self.wait(0.4)
-        self.st.demo("card", "title", True)
-        self.wait(3.6)
-        self.st.demo("card", "title", False)
-        self.wait(0.5)
-        self.theme("home")
-        self.st.demo("window", True)
-        self.wait(1.2)
+        self.wait(0.2)
+        for word, kicker in (
+            ("You write<br>the hero.", "SOLO TABLETOP RPG"),
+            ("AI runs<br>the table.", "GAME MASTER · NARRATOR · WORLDSMITH"),
+            ("Code rolls<br>the dice.", "NO FUDGED ROLLS"),
+        ):
+            self.st.demo("slam", True, word, kicker)
+            self.wait(0.95)
+        self.st.demo("slam", False)
+        self.st.demo("window", "on")
+        self.wait(0.7)
         self.st.demo("cursor", True)
-
-    def home(self) -> None:
-        app, st = self.app, self.st
-        st.caption("01", "Pick a scenario and a character")
-        self.wait(1.0)
-        st.click(app.get_by_label("Scenario"), 1000, dx=0.3)
-        self.wait(0.8)
-        st.click(app.get_by_role("option", name="The Whispering Vault"), 800, dx=0.25)
-        self.wait(1.0)
-        # The click is drawn only: the next scene goes to the game under the veil.
-        start = app.get_by_role("button", name=re.compile("^(Start game|Resume)$")).first
-        st.move_to(start, 900)
-        self.page.wait_for_timeout(110)
-        st.demo("click")
-        self.wait(0.35)
 
     def loner(self) -> None:
         app, st = self.app, self.st
-        self.scene("/game/whispering-vault/kael", "loner")
-        st.caption("02", "Type what your character does", "in plain words")
-        self.wait(1.2)
-        self.turn("I raise my lantern and search the abbot's desk for anything he tried to hide.")
-        st.caption("03", "Code rolls every die", "the AI proposes, the engine decides")
-        die = app.locator(".game-die").last
-        self.reveal(die)
-        st.move_to(die, 700, dy=1.3)
-        st.zoom(1.75, die)
-        self.wait(3.2)
-        st.zoom(1)
-        self.wait(0.9)
-        st.caption(
-            "04",
-            "The narrator writes what you see",
-            "it knows only what your character has learned",
-        )
-        app.evaluate(
-            f"() => {{ const t = document.querySelector('{TRANSCRIPT}');"
-            " t.scrollTo({top: t.scrollHeight, behavior: 'smooth'}); }"
-        )
-        self.wait(1.0)
-        st.zoom(1.4, app.locator(".game-transcript .game-message").last, dy=0.2)
-        st.move_to((1500, 700), 1400)
-        self.wait(4.4)
-        st.zoom(1)
-        self.wait(1.0)
-        st.caption("05", "The journal keeps every clue and thread")
-        st.click(app.locator(".q-tab").filter(has_text="Journal").last, 900)
-        self.wait(0.9)
-        entry = app.locator(".q-tab-panel:visible .q-expansion-item").first
-        if entry.count():
-            st.click(entry, 700, dx=0.3, dy=0.2)
-        self.wait(2.8)
+        st.caption("Type *anything.", "Loner 4e · a gothic mystery")
+        self.turn("I search the abbot's desk for what he tried to hide.")
+        if die := self.last_die():
+            st.caption("The engine rolls. *For real.", "The AI proposes. Code decides.")
+            self.show(die, 2.1, 1.7)
+        message = app.locator(".game-transcript .game-message").last
+        st.caption("The narrator *tells the story.", "It only knows what you have found.")
+        self.show(message, 1.5, 1.9, dy=0.3)
 
     def goons(self) -> None:
-        app, st = self.app, self.st
-        self.scene("/game/buried-keep/kael", "goons")
-        st.caption(
-            "06",
-            "Four rule sets, each with its own table",
-            "Tunnel Goons: a dungeon that maps itself",
-        )
-        self.wait(1.5)
-        self.turn("I follow the scrape marks deeper into the dark, torch held low.")
-        chart = app.locator(".nicegui-echart").first
-        st.move_to(chart, 900)
-        st.zoom(1.5, chart)
-        self.wait(2.6)
-        st.zoom(1)
-        self.wait(0.8)
+        st = self.st
+        self.slam("Dungeon<br>crawl.", "TUNNEL GOONS", "goons", "/game/buried-keep/kael")
+        st.caption("Walk into the *dark.")
+        self.turn("I follow the scrape marks deeper into the dark.")
+        st.caption("The map *grows as you explore.")
+        self.show(self.app.locator(".nicegui-echart").first, 1.8, 1.7)
 
     def relay(self) -> None:
-        """Shows a played 24XX save, scrolled back to a skill roll; skipped without one."""
-        if not self.has_relay:
-            return
-        self.scene("/game/silent-relay/kael", "relay", scroll_up=1450)
-        self.st.caption("07", "24XX: hard science fiction", "one skill die, gear that breaks")
-        self.app.evaluate(
-            f"() => document.querySelector('{TRANSCRIPT}')"
-            ".scrollBy({top: -380, behavior: 'smooth'})"
-        )
-        self.st.move_to((1250, 420), 1200)
-        self.wait(3.4)
+        st = self.st
+        self.slam("Hard<br>sci-fi.", "24XX", "relay", "/game/silent-relay/kael")
+        st.caption("Four *rule sets. One table.")
+        self.turn("I cut the ring's power and slip through the airlock.")
+        if die := self.last_die():
+            st.caption("One skill die. *Everything rides on it.")
+            self.show(die, 2.1, 1.6)
 
     def poke(self) -> None:
         app, st = self.app, self.st
-        self.scene("/game/tern-isles/kael", "poke")
-        st.caption("08", "Pokemon: battles in the real Showdown simulator")
-        self.wait(0.5)
-        self.turn("I walk into the tall grass beside the road, looking for a wild Pokemon.")
+        self.slam("Pokémon.", "A WHOLE REGION", "poke", "/game/tern-isles/kael")
+        st.caption("Catch them *all.", "d20 checks, gyms and battles")
+        self.turn("I walk into the tall grass to find a wild Pokemon.")
         battle = app.get_by_role("button", name="Battle")
+        self.fast(FAST)
         battle.wait_for(timeout=60000)
-        self.wait(0.5)
-        st.click(battle, 900)
+        self.fast(1)
+        st.click(battle, 600)
+        st.caption("Real *Showdown battles.", "Pick a move. The simulator plays it.")
         choices = app.locator(".game-battle-choices button:enabled")
-        self.rec.speed(5)
-        choices.first.wait_for()
-        self.page.wait_for_timeout(2500)
-        self.rec.speed(1)
-        self.wait(0.6)
-        st.click(choices.first, 900)  # sends out the starter
-        self.wait(0.6)
-        st.zoom(1.25, app.locator(".game-battle").first, dy=0.35)
-        self.wait(1.2)
+        self.fast(FAST)
+        choices.first.wait_for(timeout=60000)
+        self.page.wait_for_timeout(1500)
+        self.fast(1)
+        st.zoom(1.35, app.locator(".game-battle").first, dy=0.3, ms=600)
+        st.click(choices.first, 600)  # sends out the starter
         # Weaken, then throw; the battle may end at any step.
         thrown = False
-        for move in ("Scratch", "Poké Ball", "Scratch", "Poké Ball", "Ember"):
+        for move in ("Scratch", "Poké Ball", "Scratch", "Poké Ball", "Poké Ball"):
             button = app.locator(".game-battle-choices button:enabled").filter(has_text=move)
-            end = time.time() + 25
+            self.fast(FAST)
+            end = time.time() + 40
             while not button.count() and not self.closed_battle() and time.time() < end:
                 self.page.wait_for_timeout(150)
+            self.page.wait_for_timeout(1500)
+            self.fast(1)
             if self.closed_battle() or not button.count():
                 break
             if move == "Poké Ball" and not thrown:
-                st.zoom(1)
-                st.caption("08", "Throw a ball and the dice decide", "catch rates, rolled in code")
+                st.caption("Throw a ball. The *dice decide.")
                 thrown = True
-                self.wait(0.8)
-            self.wait(1.8)
-            if self.closed_battle() or not button.count():
-                break
-            st.click(button, 800)
-        self.wait(1.2)
-        st.zoom(1)
-        if self.closed_battle():
-            die = app.locator(".game-transcript .game-die").last
-            self.reveal(die)
-            st.zoom(1.5, die)
-            self.wait(3.0)
-            st.zoom(1)
-        self.wait(1.2)
+            self.wait(0.5)
+            st.click(button, 550)
+        self.fast(FAST)
+        end = time.time() + 40
+        while not self.closed_battle() and time.time() < end:
+            self.page.wait_for_timeout(200)
+        self.page.wait_for_timeout(800)
+        self.scroll_to_end()
+        self.fast(1)
+        st.zoom(1, ms=500)
+        if self.closed_battle() and (die := self.last_die()):
+            self.show(die, 1.9, 1.6)
 
     def create(self) -> None:
         app, st = self.app, self.st
         document = self._lighthouse_pdf()
-        self.scene("/scenario", "create")
-        st.caption("09", "Write your own world", "or drop in an adventure as a PDF")
-        self.wait(0.6)
-        st.click(app.get_by_label("Title"), 900)
-        st.type("The Drowned Lighthouse", 26)
-        self.wait(0.4)
+        self.slam("Your<br>world.", "BRING ANY ADVENTURE", "create", "/rules/loner4e/scenario")
+        app.get_by_label("Backdrop").fill("A storm coast of fishing towns and old lighthouses.")
+        app.get_by_label("Scope").fill("One night. It ends when the lamp goes dark.")
+        st.caption("Drop in *any adventure.", "a PDF, a text, or one idea")
+        title = app.get_by_label("Title")
+        st.click(title, 500)
+        title.focus()
+        st.type("The Drowned Lighthouse", 40)
         uploader = app.locator(".q-uploader").first
-        self.reveal(uploader)
-        st.zoom(1.3, uploader, dy=0.8)
-        self.wait(1.0)
+        uploader.evaluate("e => e.scrollIntoView({block: 'center'})")
+        self.st.demo("unscroll")
+        st.zoom(1.4, uploader, dy=0.8, ms=600)
         # The file comes in from outside the window, carried by the cursor.
-        st.move_to((1760, 1000), 700)
+        st.move_to((1760, 1000), 400)
         st.demo("carry", True)
-        self.wait(0.3)
-        st.move_to(uploader, 1300, dy=0.45)
-        self.wait(0.2)
+        st.move_to(uploader, 900, dy=0.45)
         st.demo("click")
         st.demo("carry", False)
         app.locator(".q-uploader input[type=file]").set_input_files(document)
+        self.wait(1.0)
+        st.zoom(1, ms=500)
+        st.caption("The worldsmith *builds it.", "and writes the opening scene")
+        st.click(app.get_by_role("button", name="Write the opening"), 600)
+        self.wait(0.4)
+        self.fast(WORLDSMITH_SPEED)
+        app.wait_for_url("**/game/**", timeout=600000)
+        app.wait_for_load_state("networkidle")
+        self.idle(600)
+        self.page.wait_for_timeout(2500)
+        self.fast(1)
+        st.caption("Then *play it.")
+        header = app.locator(".game-scene").first
+        if header.count():
+            st.zoom(1.35, header, ms=900)
         self.wait(2.0)
-        st.zoom(1)
-        st.caption("10", "The worldsmith reads it", "and writes the opening scene")
-        st.move_to(app.get_by_role("button", name="Write the opening"), 1000)
-        self.wait(2.6)
 
     def end(self) -> None:
         self.st.caption()
         self.st.demo("cursor", False)
-        self.st.demo("window", False)
+        self.st.zoom(1, ms=400)
+        self.st.demo("window", "blur")
         self.theme("title")
+        self.st.demo("flash")
         self.st.demo("card", "end", True)
-        self.wait(5.5)
-        self.rec.stop(0.3)
+        self.wait(4.2)
+        self.rec.stop(0.2)
 
     def _lighthouse_pdf(self) -> Path:
         path = self.out / "The Drowned Lighthouse.pdf"

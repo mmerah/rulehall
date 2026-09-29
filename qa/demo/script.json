@@ -1,0 +1,126 @@
+{
+  "openings": {
+    "The Whispering Vault": [
+      {"speaker_id": null, "text": "You are Kael, and the abbot's study is the last lit room in a dead abbey. Mara scratches at her ledger by one stub of candle, and she does not look up."},
+      {"speaker_id": "mara", "text": "He locked that desk the night they all left. Search it if you like. I never dared."}
+    ],
+    "The Buried Keep": [
+      {"speaker_id": null, "text": "Grey light falls through the broken archway and dies on the steps below. Fresh scrape marks run down into the dark, too wide for any boot."},
+      {"speaker_id": "grix", "text": "Something dragged a body down there. Not mine. Not yet."}
+    ],
+    "The Silent Relay": [
+      {"speaker_id": null, "text": "QV-9 hums with full power, and every comm panel on the ring is dead. Vessa Rune waits at the airlock, override key in her fist."},
+      {"speaker_id": "vessa-rune", "text": "Nobody goes past this lock while the ring is lit. Nobody."}
+    ],
+    "The Tern Isles": [
+      {"speaker_id": null, "text": "Salt wind combs the tall grass above the ferry dock. Charmander's tail flame gutters, and something rustles in the green."},
+      {"speaker_id": "rook", "text": "New trainer? The grass here bites back. Go on, find out."}
+    ],
+    "The Drowned Lighthouse": [
+      {"speaker_id": null, "text": "The causeway to Grey Point is already under a hand of black water. High above, the lamp turns on with no keeper to crank it."},
+      {"speaker_id": "wenna-rook", "text": "It lit itself again. Father never left it dark a single night. Where is he?"}
+    ]
+  },
+  "turns": [
+    {
+      "action": "I search the abbot's desk for what he tried to hide.",
+      "seed": 6,
+      "calls": [
+        ["ask", {"question": "Does Kael find what the abbot hid in his desk?", "helps": ["Quiet Hands"]}],
+        ["direct", {"text": "a false bottom hides the vault key and the abbot's last letter; below, something knocks"}]
+      ],
+      "narration": [
+        {"speaker_id": null, "text": "Your fingers find a seam under the drawer. It clicks open: an iron key, and a letter in the abbot's hand. \"Do not open the vault. It is not asleep.\""},
+        {"speaker_id": "mara", "text": "He wrote that the night they all left. Kael, put the key back."},
+        {"speaker_id": null, "text": "Far below the floor, something knocks twice. Then it waits."}
+      ]
+    },
+    {
+      "action": "I follow the scrape marks deeper into the dark.",
+      "seed": 1,
+      "calls": [
+        ["move", {"to_id": "cellar"}],
+        ["reveal", {"target_id": "lurker"}],
+        ["roll", {"what": "Twist away from the thing in the water", "ability": "skulker", "difficulty": 10, "dangerous": true}],
+        ["direct", {"text": "the lurker lunges from the black water"}]
+      ],
+      "narration": [
+        {"speaker_id": null, "text": "The marks end at black water. It stills, and a pale shape lunges out of it, all teeth. You twist a heartbeat too late, and it rakes your arm."},
+        {"speaker_id": "grix", "text": "Told you! Told you it was down there!"}
+      ]
+    },
+    {
+      "action": "I cut the ring's power and slip through the airlock.",
+      "seed": 5,
+      "calls": [
+        ["roll", {"what": "Slip through the airlock in the dark", "skill": "Stealth", "risk": "Vessa seals the lock on him"}]
+      ]
+    },
+    {
+      "action": "Commit",
+      "calls": [
+        ["direct", {"text": "the ring goes dark and he is through before Vessa turns"}]
+      ],
+      "narration": [
+        {"speaker_id": null, "text": "The ring goes black. You are through the airlock before the emergency strips flicker on."},
+        {"speaker_id": "vessa-rune", "text": "Kael? Kael! Get back here!"}
+      ]
+    },
+    {
+      "action": "I walk into the tall grass to find a wild Pokemon.",
+      "seed": 1,
+      "calls": [
+        ["start_wild_battle", {"species_id": "pidgey"}],
+        ["direct", {"text": "a wild Pidgey bursts out of the grass"}]
+      ],
+      "narration": [
+        {"speaker_id": null, "text": "The grass explodes in feathers. A wild Pidgey flaps up, furious, and dives straight at Charmander."},
+        {"speaker_id": "rook", "text": "Told you it bites back!"}
+      ]
+    }
+  ],
+  "cues": [
+    {
+      "when": "caught",
+      "narration": [
+        {"speaker_id": null, "text": "The ball rocks once, twice, three times. Click. The Pidgey is yours."},
+        {"speaker_id": "rook", "text": "Beginner's luck. I'll take it off you on the road."}
+      ]
+    },
+    {
+      "when": "Pidgey",
+      "narration": [
+        {"speaker_id": null, "text": "The Pidgey tears free and beats away over the dock. A single brown feather drifts down into the grass."}
+      ]
+    }
+  ],
+  "worldsmith": [
+    {
+      "when": "A storm coast of fishing towns and old lighthouses.",
+      "answer": {
+        "place_id": "the-causeway",
+        "location": "Grey Point Lighthouse",
+        "title": "The Causeway",
+        "situation": "A stone path runs out to the lighthouse, and the tide already laps over it. Wenna Rook waits in a small boat at the causeway's edge. Above, the great lamp turns with no hand on the crank.",
+        "goal": "Reach the lamp room before the tide takes the causeway",
+        "details": ["Rising Tide", "Slick Stone", "A Turning Lamp"],
+        "present_ids": ["wenna-rook"],
+        "cast": {
+          "wenna-rook": {
+            "id": "wenna-rook",
+            "name": "Wenna Rook",
+            "brief": "The keeper's daughter. She rows out each dawn to look for her father.",
+            "concept": "A Stubborn Boatwoman",
+            "tags": {
+              "skill": ["Rows in Any Sea", "Knows the Tower"],
+              "frailty": ["Will Not Give Up Hope"],
+              "gear": ["Patched Rowboat"]
+            },
+            "goal": "Find her father",
+            "motive": "He is the only family she has"
+          }
+        }
+      }
+    }
+  ]
+}

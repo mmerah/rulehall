@@ -10,8 +10,7 @@ from itertools import pairwise
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).parents[2]
-LONGEST = 119.8  # seconds; the README promises two minutes at most
-PACE = 1.5
+LONGEST = 60.0  # seconds
 
 
 def main() -> None:
@@ -31,7 +30,7 @@ def main() -> None:
     end = min(length, LONGEST)
     _ffmpeg(
         *("-i", str(master), "-t", f"{end}"),
-        *("-vf", f"fade=in:0:d=0.5,fade=out:st={end - 0.9}:d=0.9"),
+        *("-vf", f"fade=in:0:d=0.2,fade=out:st={end - 0.5}:d=0.5"),
         *("-c:v", "libx264", "-preset", "veryslow", "-crf", "22", "-pix_fmt", "yuv420p"),
         *("-movflags", "+faststart", "-an", str(out / "demo.mp4")),
     )
@@ -53,14 +52,14 @@ def main() -> None:
 
 
 def _write_listing(frames: Path, listing: Path) -> float:
-    """An ffmpeg concat list: each frame lasts until the next, divided by its speed and PACE."""
+    """An ffmpeg concat list: each frame lasts until the next, divided by its speed."""
     timeline = json.loads((frames / "frames.json").read_text())
     shots: list[tuple[float, str]] = timeline["frames"]
     speeds: list[tuple[float, float]] = timeline["speeds"]
 
     def played(start: float, stop: float) -> float:
         cuts = sorted({start, stop, *(at for at, _ in speeds if start < at < stop)})
-        return sum((b - a) / _speed_at(speeds, a) / PACE for a, b in pairwise(cuts))
+        return sum((b - a) / _speed_at(speeds, a) for a, b in pairwise(cuts))
 
     lines: list[str] = []
     total = 0.0
