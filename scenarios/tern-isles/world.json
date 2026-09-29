@@ -143,6 +143,7 @@
         ],
         "badge": "Tide Badge",
         "style": "sets up behind her Horsea, then sweeps with Staryu",
+        "trial": "Cross the flooded hall on its stepping stones before the tide covers them.",
         "win_line": "The tide turns for everyone. Come back when you can ride it.",
         "lose_line": "You rode the tide well. The Tide Badge is yours.",
         "avatar_id": "acetrainerf"

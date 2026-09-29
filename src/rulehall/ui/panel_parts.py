@@ -7,7 +7,7 @@ from nicegui import ui
 
 from rulehall.core.decisions import ActionOption
 from rulehall.core.validation import Slug
-from rulehall.core.views import BattleChoice, Meter, PanelRow, Sprite, Tag
+from rulehall.core.views import Meter, PanelRow, Sprite, Tag
 from rulehall.ui.widgets import heading, help_tip, media_url
 
 type IconOf = Callable[[Slug], Sprite | Path | None]
@@ -115,17 +115,13 @@ def labeled_value(
     return row
 
 
-def choice_groups[T: ActionOption | BattleChoice](
-    items: Sequence[T],
-    pick: Callable[[T], Awaitable[object]],
-    *,
-    enabled: bool,
-    row_class: str,
-) -> list[tuple[ui.button, T]]:
+def choice_groups(
+    items: Sequence[ActionOption], pick: PickOption, *, enabled: bool, row_class: str
+) -> list[tuple[ui.button, ActionOption]]:
     groups = [
         (group, tuple(members)) for group, members in groupby(items, key=lambda item: item.group)
     ]
-    drawn: list[tuple[ui.button, T]] = []
+    drawn: list[tuple[ui.button, ActionOption]] = []
     for group, members in groups:
         if len(groups) > 1 and group:
             heading(group)
@@ -138,7 +134,6 @@ def choice_groups[T: ActionOption | BattleChoice](
                         partial(pick, item),
                         enabled=enabled and not item.refusal,
                         help=item.help,
-                        tags=item.tags if isinstance(item, BattleChoice) else (),
                     ),
                     item,
                 )
@@ -155,16 +150,22 @@ def choice_button(
     enabled: bool,
     help: str = "",
     tags: Sequence[Tag] = (),
+    meters: Sequence[Meter] = (),
+    icon: Sprite | Path | None = None,
 ) -> ui.button:
     button = ui.button(on_click=on_click).props("outline").classes("game-choice")
     if tint := next((tag.colour for tag in tags if tag.colour), ""):
         button.style(f"--game-tag: {tint}").classes("game-choice-tinted")
     with button.set_enabled(enabled), ui.column().classes("w-full game-gap-0"):
         with ui.row().classes("items-center w-full game-gap-sm game-choice-head"):
-            with ui.label(name):
+            if icon is not None:
+                avatar(icon, name)
+            with ui.label(name).classes("game-choice-name"):
                 help_tip(help)
             if tags:
                 tag_row(tags)
+        if meters:
+            meter_grid(meters)
         if brief:
             ui.label(brief).classes("text-xs opacity-70")
     return button

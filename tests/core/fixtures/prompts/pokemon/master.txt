@@ -88,7 +88,7 @@ final terms so far: the boss's ace is the next gym's level +0
 - Water: strong vs Fire, Ground, Rock; weak vs Dragon, Grass, Water
 
 # THE TEAM
-- Charmander[charmander] L5 Fire, 20/20 HP; moves: Growl (Normal) 64/64, Scratch (Normal) 56/56, Ember (Fire) 40/40 — From the time it is born, a flame burns at the tip of its tail. Its life would end if the flame were to go out.
+- Charmander[charmander] L5 Fire, 20/20 HP, help +2; moves: Growl (Normal) 64/64, Scratch (Normal) 56/56, Ember (Fire) 40/40 — From the time it is born, a flame burns at the tip of its tail. Its life would end if the flame were to go out.
 
 # THE BOX
 - (none)

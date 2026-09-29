@@ -40,7 +40,8 @@ RANK_MAX = 3
 RANKS_AT_CREATION = 4
 RANKS_PER_SKILL_AT_CREATION = 2
 SKILL_BONUS = 2
-HELP_BONUS = 2
+HELP_BONUSES = ((200, 4), (120, 3), (0, 2))
+FRIENDSHIP_PER_HELP = 3
 STARTER_LEVEL = 5
 START_MONEY = 3000
 TM_PREFIX = "tm-"
@@ -69,6 +70,7 @@ SEED_LIMIT = 0x10000
 CATCH_BASE = 80
 CATCH_PER_LEVEL = 2
 STATUS_BONUS = 10
+BAIT_BONUS = 15
 LEGENDARY_MALUS = -30
 EVOLUTION_BONUS = {0: -10, 1: 0, 2: 10}
 LEGENDARY_TAGS = frozenset(("Sub-Legendary", "Restricted Legendary", "Mythical"))
@@ -140,7 +142,7 @@ def tm_move(item_id: TmId) -> Move:
     return dex().moves[item_id.removeprefix(TM_PREFIX)]
 
 
-def catch_rate(foe: Battler, ball_bonus: int) -> int:
+def catch_rate(foe: Battler, ball_bonus: int, *, baited: bool) -> int:
     species = dex().species[foe.species_id]
     maximum = max_hp(foe)
     return (
@@ -151,7 +153,12 @@ def catch_rate(foe: Battler, ball_bonus: int) -> int:
         + EVOLUTION_BONUS[min(species.evolutions_left, 2)]
         + (LEGENDARY_MALUS if is_legendary(species) else 0)
         + ball_bonus
+        + (BAIT_BONUS if baited else 0)
     )
+
+
+def help_bonus(friendship: int) -> int:
+    return next(bonus for floor, bonus in HELP_BONUSES if friendship >= floor)
 
 
 def level_for(badges: int) -> int:

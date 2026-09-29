@@ -43,7 +43,7 @@ from rulehall.engines.pokemon.panels import (
 )
 from rulehall.engines.pokemon.rules import (
     CHALLENGES,
-    HELP_BONUS,
+    FRIENDSHIP_PER_HELP,
     RANKS_AT_CREATION,
     RANKS_PER_SKILL_AT_CREATION,
     SKILL_BONUS,
@@ -56,6 +56,7 @@ from rulehall.engines.pokemon.rules import (
     Challenge,
     Skill,
     counter_pick,
+    help_bonus,
     item_of,
     succeeds,
 )
@@ -97,6 +98,7 @@ AVATAR = "avatar"
 FIRST_MET = "your first Pokemon"
 TEAM_FALLEN = "Your whole team has fallen. The journey ends."
 TEAM_BEATEN = "The team is beaten. Your journey is complete."
+EDGE_LINE = "{edge}: the next battle here starts with it. It is lost when the player leaves."
 
 
 class PokemonEngine(
@@ -236,9 +238,11 @@ class PokemonEngine(
             f"weight {slot.weight} — {pokedex.species[slot.species_id].entry}"
             for slot in world.wild.get(world.current.id, ())
         )
+        edge = world.pending_edge
         return (
             *super().master_sections(state),
             ("CHALLENGE", sheet.challenge_line()),
+            *section_if("EDGE", "" if edge is None else EDGE_LINE.format(edge=edge)),
             *section_if("POKEMON CENTERS", world.centers_line()),
             *_rival_section(world),
             *section_if(SCHEME, world.scheme_lines(worldsmith=False)),
@@ -290,26 +294,32 @@ class PokemonEngine(
     @tool
     def check(self, draft: PokemonGame, args: SkillCheck, rng: Random) -> list[Fact]:
         """Roll a check when the player tries something hard outside a battle. The engine rolls
-        d20, adds twice the skill rank and 2 for a helping Pokemon, and compares the total with
-        the difficulty. You decide what a failure costs."""
+        d20, adds twice the skill rank and 2 to 4 for a helping Pokemon by its friendship, and
+        compares the total with the difficulty. A success earns the edge the attempt aims for.
+        You decide what a failure costs."""
         world = draft.world
         player = world.player
         sheet = world.player_sheet
         helper = None if args.helper_mon_id is None else sheet.require_mon(args.helper_mon_id)
         if helper is not None and helper.fainted:
             raise Refusal(f"{helper.name} has fainted and cannot help")
+        here = world.current
+        if args.edge == "bait" and not world.wild.get(here.id):
+            raise Refusal(f"{here.name} has no wild Pokemon to bait")
         dc = DIFFICULTY[args.difficulty]
         rolled = roll((20,), f"{args.what} — {args.skill}", rng)
-        total = (
-            rolled.total
-            + SKILL_BONUS * sheet.skills.get(args.skill, 0)
-            + (0 if helper is None else HELP_BONUS)
-        )
-        outcome = "success" if succeeds(rolled.total, total, dc) else "failure"
+        helped = 0 if helper is None else help_bonus(helper.friendship)
+        total = rolled.total + SKILL_BONUS * sheet.skills.get(args.skill, 0) + helped
+        success = succeeds(rolled.total, total, dc)
+        if helper is not None:
+            helper.befriend(FRIENDSHIP_PER_HELP)
+        if success and args.edge is not None:
+            world.earn_edge(args.edge)
         line = (
             f"{args.what} — {args.skill.title()} {total} vs DC {dc}"
-            + ("" if helper is None else f", helped by {helper.name} ({args.reason})")
-            + f" → {outcome}"
+            + ("" if helper is None else f", helped by {helper.name} +{helped} ({args.reason})")
+            + f" → {'success' if success else 'failure'}"
+            + (f"; edge earned: {args.edge}" if success and args.edge is not None else "")
         )
         return [rolled.fact, player.card_fact(line, (rolled.event,))]
 
@@ -382,6 +392,7 @@ class PokemonEngine(
     def move(self, draft: PokemonGame, args: MoveTo, rng: Random) -> list[Fact]:
         """Move the player through an unlocked way out of this place."""
         facts = super().move(draft, args, rng)
+        draft.world.drop_edge()
         placed, notes = draft.world.place_rival()
         for note in notes:
             draft.note(note)
@@ -392,7 +403,10 @@ class PokemonEngine(
         """Start a battle when a trainer here and the player agree to one. The battle screen plays
         the fight, and the engine applies the result. Call it last: it ends your turn. A trainer
         battles once per visit. A gym leader never battles again once beaten. The rival battles
-        once before the first badge, then once after each badge."""
+        once before the first badge, then once after each badge. A double trainer battles
+        two-on-two, and the player needs two Pokemon that can fight. In a tag battle, the first
+        party member with a team fights beside the player, two-on-two; the player then needs one
+        Pokemon that can fight."""
         world = draft.world
         trainer = world.require_person_here(args.trainer_id)
         if not trainer.roster and not trainer.rival:
@@ -403,8 +417,11 @@ class PokemonEngine(
             raise Refusal(f"{trainer.name} will battle you again after your next badge")
         if trainer.last_battle_visit == len(world.visited_place_ids):
             raise Refusal(f"{trainer.name} already battled you on this visit; come back later")
+        companion = world.require_companion(trainer) if args.tag else None
         foes = tuple(mon.battler() for mon in world.trainer_team(trainer, rng))
-        world.setup_battle(trainer, foes, rng)
+        world.setup_battle(
+            trainer, foes, rng, weather=args.weather, terrain=args.terrain, companion=companion
+        )
         return [trainer.card_fact(challenge_line(trainer.name, foes))]
 
     @tool
@@ -419,7 +436,9 @@ class PokemonEngine(
         row = rng.choices(rows, weights=[row.weight for row in rows])[0]
         level = rng.randint(row.lowest, row.highest)
         foe = Mon.new(row.species_id, level, rng, world.player_sheet.mon_ids())
-        world.setup_battle(None, (foe.battler(),), rng)
+        world.setup_battle(
+            None, (foe.battler(),), rng, weather=args.weather, terrain=args.terrain, companion=None
+        )
         return [world.player.card_fact(f"A wild {foe.species_name} appears")]
 
     @action

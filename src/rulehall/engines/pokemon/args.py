@@ -5,6 +5,7 @@ from pydantic import Field, model_validator
 from rulehall.core.tools import PlayerFacing
 from rulehall.core.validation import Frozen, Slug
 from rulehall.engines.args import Attempt
+from rulehall.engines.pokemon.battle.models import Edge, Terrain, Weather
 from rulehall.engines.pokemon.rules import NICKNAME_MAX, BagId, ItemId, Skill, TmId
 
 type Difficulty = Literal["easy", "hard", "very-hard"]
@@ -12,6 +13,15 @@ DIFFICULTY: dict[Difficulty, int] = {"easy": 10, "hard": 15, "very-hard": 20}
 ITEM_ID = "Exact id of the item."
 BAG_ID = "Exact id of the item. A TM is tm-<move id>, such as tm-thunderbolt."
 COUNT = "How many."
+WEATHER = (
+    "The weather of the battle, from the story: rain for a storm, sun for a sunny beach, sand "
+    "for a desert, snow for a snowfield. It lasts the whole battle. Null for none."
+)
+TERRAIN = (
+    "The terrain of the battle, from the story: electric for a power plant, grassy for a "
+    "meadow, misty for a foggy marsh, psychic for a strange place. It lasts the whole battle. "
+    "Null for none."
+)
 
 
 class SkillCheck(Attempt):
@@ -26,6 +36,11 @@ class SkillCheck(Attempt):
         default="",
         description="How the helper helps, such as 'Geodude breaks the rock'. The player reads "
         "it. Empty with no helper.",
+    )
+    edge: Edge | None = Field(
+        default=None,
+        description="The edge the attempt aims for in the next battle here, such as foe-asleep "
+        "for a Stealth ambush or bait for a Nature trap. A success earns it. Null for none.",
     )
 
     @model_validator(mode="after")
@@ -83,6 +98,13 @@ class RelearnMove(Frozen):
 
 class StartBattle(Frozen):
     trainer_id: Slug = Field(description="Exact id of the trainer here who battles the player.")
+    weather: Weather | None = Field(default=None, description=WEATHER)
+    terrain: Terrain | None = Field(default=None, description=TERRAIN)
+    tag: bool = Field(
+        default=False,
+        description="True for a tag battle: the first party member with a team fights beside "
+        "the player, two-on-two. The trainer needs two Pokemon or more.",
+    )
 
 
 class StartWildBattle(Frozen):
@@ -91,6 +113,8 @@ class StartWildBattle(Frozen):
         description="A species id from WILD HERE. Null lets the engine roll on the table. Always "
         "null in a Nuzlocke.",
     )
+    weather: Weather | None = Field(default=None, description=WEATHER)
+    terrain: Terrain | None = Field(default=None, description=TERRAIN)
 
 
 class LearnMove(Frozen):

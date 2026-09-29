@@ -40,7 +40,7 @@ def test_a_team_row_shows_types_hp_and_stats_as_tags_and_meters() -> None:
     row = mon_row(mon, LEVEL_MAX)
     stats = mon.stats()[1:]
 
-    assert tuple(tag.name for tag in row.tags) == ("Lv5", "Fire", "BRN", "Jolly", "♥ 70")
+    assert tuple(tag.name for tag in row.tags) == ("Lv5", "Fire", "BRN", "Jolly", "♥ 70 · help +2")
     assert row.tags[3].help == "Spe ▲ · SpA ▼"
     assert [(meter.name, meter.current, meter.maximum) for meter in row.meters] == [
         ("HP", 8, 20),

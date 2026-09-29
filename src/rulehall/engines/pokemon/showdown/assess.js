@@ -1,8 +1,5 @@
-(() => {
-  const me = battle.p2;
-  const foe = battle.p1;
-  const active = foe.active[0];
-  const target = active && !active.fainted ? active : undefined;
+((me, foe) => {
+  const targets = foe.active.flatMap((mon, index) => (mon && !mon.fainted ? [{ mon, target: index + 1 }] : []));
   const saved = battle.prng.clone();
   const randomizer = battle.randomizer;
   const damage = (source, victim, moveId) => {
@@ -18,7 +15,6 @@
     return low === null ? null : [low, at(100)];
   };
   const raised = (mon) => Object.fromEntries(Object.entries(mon.boosts).filter(([, stages]) => stages !== 0));
-  const seen = target ? target.baseMoveSlots.filter((slot) => slot.used) : [];
   const team = me.pokemon.map((mon, index) => ({
     slot: index + 1,
     name: mon.name,
@@ -31,14 +27,17 @@
     boosts: raised(mon),
     moves: mon.baseMoveSlots.map((slot) => {
       const move = battle.dex.moves.get(slot.id);
-      const dealt = damage(mon, target, slot.id);
-      const percent = dealt && target ? dealt.map((hp) => Math.floor((100 * hp) / target.maxhp)) : null;
-      return { name: move.name, type: move.type, pp: slot.pp, maxpp: slot.maxpp, disabled: !!slot.disabled, multihit: move.multihit || null, damage: dealt, percent };
+      const hits = targets.map(({ mon: victim, target }) => {
+        const dealt = damage(mon, victim, slot.id);
+        const percent = dealt ? dealt.map((hp) => Math.floor((100 * hp) / victim.maxhp)) : null;
+        return { target, name: victim.name, damage: dealt, percent };
+      });
+      return { name: move.name, type: move.type, pp: slot.pp, maxpp: slot.maxpp, disabled: !!slot.disabled, multihit: move.multihit || null, target: move.target, hits };
     }),
-    threats: seen.map((slot) => {
+    threats: targets.flatMap(({ mon: attacker }) => attacker.baseMoveSlots.filter((slot) => slot.used).map((slot) => {
       const move = battle.dex.moves.get(slot.id);
-      return { name: move.name, type: move.type, damage: damage(target, mon, slot.id) };
-    }),
+      return { user: attacker.name, name: move.name, type: move.type, damage: damage(attacker, mon, slot.id) };
+    })),
   }));
   const foes = foe.pokemon.map((mon) => ({
     name: mon.name,
@@ -54,4 +53,4 @@
   battle.randomizer = randomizer;
   battle.prng = saved;
   return { team, foes };
-})()
+})(SIDES)

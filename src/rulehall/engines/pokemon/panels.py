@@ -7,10 +7,12 @@ from rulehall.engines.pokemon.battle.models import FRIENDSHIP_MAX, LEVEL_MAX
 from rulehall.engines.pokemon.dex import ITEMS, Move, Species, dex
 from rulehall.engines.pokemon.rules import (
     FRIENDSHIP_EVOLVE,
+    HELP_BONUSES,
     SKILL_USES,
     STAT_NAMES,
     TIMES,
     BagId,
+    help_bonus,
     item_of,
     nature_effect,
     tm_move,
@@ -83,7 +85,13 @@ SCHEME_HELP = {
     "Now": "The operation the evil team runs now; beat its leader before your next badge.",
 }
 FRIENDSHIP_HELP = (
-    f"Grows as this Pokemon levels up; at {FRIENDSHIP_EVOLVE} some species are ready to evolve."
+    "Grows as this Pokemon levels up and as it helps in checks. It sets the help bonus in a "
+    "check: "
+    + ", ".join(
+        f"+{bonus} from {floor}" if floor else f"+{bonus} at first"
+        for floor, bonus in reversed(HELP_BONUSES)
+    )
+    + f". At {FRIENDSHIP_EVOLVE} some species are ready to evolve."
 )
 KIND_TEXT = {
     "ball": "Thrown at a wild Pokemon on the battle screen.",
@@ -111,6 +119,16 @@ def trainer_sprite(avatar_id: Slug) -> Sprite:
 
 def type_tag(kind: str) -> Tag:
     return Tag(name=kind, colour=TYPE_COLOURS[kind])
+
+
+def status_tag(status: str) -> Tag:
+    return Tag(name=status.upper(), colour=STATUS_COLOURS[status])
+
+
+def hp_meter(current: int, maximum: int) -> Meter:
+    share = current / maximum
+    colour = "#48d040" if share > 0.5 else "#f8d030" if share > 0.2 else "#f05030"
+    return Meter(name="HP", current=current, maximum=maximum, colour=colour)
 
 
 def team_panels(world: PokemonWorld) -> tuple[Panel, ...]:
@@ -174,8 +192,6 @@ def mon_row(mon: Mon, cap: int, options: tuple[ActionOption, ...] = ()) -> Panel
     lines = stat_lines[1:]
     top = max(value for _, value, _ in lines)
     status = "fnt" if mon.fainted else mon.status
-    share = mon.hp.current / mon.hp.maximum
-    hp_colour = "#48d040" if share > 0.5 else "#f8d030" if share > 0.2 else "#f05030"
     return PanelRow(
         name=f"{mon.label()} {GENDER_SIGNS[mon.gender]}".rstrip(),
         brief=" · ".join(f"{slot.move.name} {slot.pp}/{slot.move.pp}" for slot in mon.moves),
@@ -184,13 +200,16 @@ def mon_row(mon: Mon, cap: int, options: tuple[ActionOption, ...] = ()) -> Panel
             Tag(name=f"Lv{mon.level}"),
             *((_cap_tag(cap),) if cap < LEVEL_MAX and mon.level >= cap else ()),
             *(type_tag(kind) for kind in mon.species.types),
-            *((Tag(name=status.upper(), colour=STATUS_COLOURS[status]),) if status else ()),
+            *((status_tag(status),) if status else ()),
             nature_tag(mon.nature),
             *((Tag(name=ITEMS[mon.item_id].name),) if mon.item_id else ()),
-            Tag(name=f"♥ {mon.friendship}", help=FRIENDSHIP_HELP),
+            Tag(
+                name=f"♥ {mon.friendship} · help +{help_bonus(mon.friendship)}",
+                help=FRIENDSHIP_HELP,
+            ),
         ),
         meters=(
-            Meter(name="HP", current=mon.hp.current, maximum=mon.hp.maximum, colour=hp_colour),
+            hp_meter(mon.hp.current, mon.hp.maximum),
             *(
                 Meter(name=name, current=value, maximum=top, colour="#6890f0", help=help_text)
                 for name, value, help_text in lines

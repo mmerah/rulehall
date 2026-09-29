@@ -158,6 +158,17 @@ def test_a_blackout_halves_the_money_and_heals_the_team() -> None:
     assert charmander.hp.current == charmander.hp.maximum
 
 
+def test_a_won_battle_does_not_black_out_when_the_players_team_has_fainted() -> None:
+    draft = started().draft()
+    setup = _wild(draft)
+    fainted = setup.team[0].model_copy(update={"hp": 0})
+    won = _won(setup).model_copy(update={"team": (fainted,)})
+
+    _ = end_battle(draft, won)
+
+    assert draft.world.player_sheet.money == 3000
+
+
 def test_exp_stops_at_the_level_cap_and_a_rare_candy_is_refused_there() -> None:
     draft = started().draft()
     sheet = draft.world.player_sheet
@@ -210,6 +221,25 @@ def test_a_nuzlocke_offers_balls_only_at_the_first_wild_battle_of_a_place() -> N
     )
 
     assert _rolled_wild(draft).balls == ()
+
+
+def test_an_edge_won_in_a_check_reaches_the_next_battle_here_and_a_move_clears_it() -> None:
+    draft = started().draft()
+    ambush = {"what": "Sneak up", "skill": "stealth", "difficulty": "easy", "edge": "foe-asleep"}
+    _ = change(ENGINE, draft, "check", **ambush)
+
+    _ = change(ENGINE, draft, "start_wild_battle", species_id="pidgey", weather="rain")
+
+    assert draft.world.battle is not None
+    setup = draft.world.battle.setup
+    assert (setup.edge, setup.weather, setup.terrain) == ("foe-asleep", "rain", None)
+    assert draft.world.pending_edge is None
+    draft.world.battle = None
+    _ = change(ENGINE, draft, "check", **ambush)
+    _ = change(ENGINE, draft, "move", to_id="tern-harbour")
+    assert draft.world.pending_edge is None
+    bait = {**ambush, "edge": "bait"}
+    assert "no wild Pokemon to bait" in refused(ENGINE, draft, "check", **bait)
 
 
 def _wild(draft: PokemonGame) -> BattleSetup:

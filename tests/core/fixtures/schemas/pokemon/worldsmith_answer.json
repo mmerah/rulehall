@@ -123,6 +123,11 @@
               "description": "One line on how this key trainer (a gym leader, the rival, an operation's leader or the team's boss) battles, such as 'sets up rain, then sweeps'. Empty for anyone else.",
               "type": "string"
             },
+            "trial": {
+              "default": "",
+              "description": "One sentence, only for a gym leader: the trial the challenger meets before the leader, such as a maze, a quiz or a puzzle a Pokemon solves. Empty for anyone else.",
+              "type": "string"
+            },
             "win_line": {
               "default": "",
               "description": "What this key trainer (a gym leader, the rival, an operation's leader or the team's boss) says on beating the player. Empty for anyone else.",
@@ -136,6 +141,11 @@
             "rival": {
               "default": false,
               "description": "True for the one rival of the story, who stands in the opening map. A rival has no `roster`: code builds their team at each battle.",
+              "type": "boolean"
+            },
+            "double": {
+              "default": false,
+              "description": "True for a trainer who always battles two-on-two, such as twins, a pair or a gym that fights in doubles. Needs a `roster` of at least two.",
               "type": "boolean"
             },
             "avatar_id": {

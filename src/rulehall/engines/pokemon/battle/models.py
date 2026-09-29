@@ -4,19 +4,75 @@ from typing import Literal, Self
 from pydantic import Field, model_validator
 
 from rulehall.core.facts import Fact
-from rulehall.core.validation import Frozen, Mutable, Slug
+from rulehall.core.validation import Frozen, Loose, Mutable, Slug
+from rulehall.core.views import Pip
 from rulehall.engines.pokemon.dex import Stats, dex
 
 type Policy = Literal["random", "scripted", "model"]
 type Outcome = Literal["won", "lost", "fled", "caught"]
+type Seat = Literal["player", "ally", "foe"]
+type RoleSeat = Literal["ally", "foe"]
 type Status = Literal["", "brn", "frz", "par", "psn", "tox", "slp"]
 type Gender = Literal["M", "F", "N"]
+type Edge = Literal[
+    "foe-asleep",
+    "foe-paralysed",
+    "attack-up",
+    "special-attack-up",
+    "speed-up",
+    "stealth-rock",
+    "spikes",
+    "bait",
+]
+type Weather = Literal["rain", "sun", "sand", "snow"]
+type Terrain = Literal["electric", "grassy", "misty", "psychic"]
 
 STATUSES: tuple[Status, ...] = ("brn", "frz", "par", "psn", "tox", "slp")
 TEAM_MAX = 6
+DOUBLE_TEAM_MIN = 2
 MOVES_MAX = 4
 LEVEL_MAX = 100
 FRIENDSHIP_MAX = 255
+EDGES: dict[Edge, str] = {
+    "foe-asleep": "{foe} is asleep",
+    "foe-paralysed": "{foe} is paralysed",
+    "attack-up": "your lead's Attack rises",
+    "special-attack-up": "your lead's Sp. Atk rises",
+    "speed-up": "your lead's Speed rises",
+    "stealth-rock": "pointed stones hurt each foe that comes in",
+    "spikes": "spikes hurt each foe that comes in",
+    "bait": "the bait is out, so a ball catches more easily",
+}
+
+
+class FieldCondition(Frozen):
+    text: str
+    showdown_id: str
+    colour_type: str
+
+
+WEATHERS: dict[Weather, FieldCondition] = {
+    "rain": FieldCondition(text="Rain falls", showdown_id="raindance", colour_type="Water"),
+    "sun": FieldCondition(text="The sunlight is harsh", showdown_id="sunnyday", colour_type="Fire"),
+    "sand": FieldCondition(text="A sandstorm rages", showdown_id="sandstorm", colour_type="Rock"),
+    "snow": FieldCondition(text="Snow falls", showdown_id="snowscape", colour_type="Ice"),
+}
+TERRAINS: dict[Terrain, FieldCondition] = {
+    "electric": FieldCondition(
+        text="An electric current runs across the field",
+        showdown_id="electricterrain",
+        colour_type="Electric",
+    ),
+    "grassy": FieldCondition(
+        text="Grass grows over the field", showdown_id="grassyterrain", colour_type="Grass"
+    ),
+    "misty": FieldCondition(
+        text="Mist covers the field", showdown_id="mistyterrain", colour_type="Fairy"
+    ),
+    "psychic": FieldCondition(
+        text="The field turns strange", showdown_id="psychicterrain", colour_type="Psychic"
+    ),
+}
 
 
 class BattleMove(Frozen):
@@ -53,6 +109,13 @@ class Ball(Frozen):
     count: int = Field(ge=1)
 
 
+class Ally(Frozen):
+    name: str = Field(min_length=1)
+    style: str
+    avatar_id: Slug
+    team: tuple[Battler, ...] = Field(min_length=1, max_length=TEAM_MAX)
+
+
 class BattleSetup(Frozen):
     policy: Policy
     foe_style: str
@@ -65,9 +128,21 @@ class BattleSetup(Frozen):
     team: tuple[Battler, ...] = Field(min_length=1, max_length=TEAM_MAX)
     foes: tuple[Battler, ...] = Field(min_length=1, max_length=TEAM_MAX)
     balls: tuple[Ball, ...] = ()
+    edge: Edge | None = None
+    weather: Weather | None = None
+    terrain: Terrain | None = None
+    double: bool = False
+    ally: Ally | None = None
 
     @model_validator(mode="after")
     def _can_start(self) -> Self:
+        fewest = min(len(self.player_side()), len(self.foes))
+        if self.double and (self.wild or fewest < DOUBLE_TEAM_MIN):
+            raise ValueError("a double battle is a trainer battle with two Pokemon a side or more")
+        if self.ally is not None and not self.double:
+            raise ValueError("an ally fights only in a double battle")
+        if self.edge == "bait" and not self.wild:
+            raise ValueError("bait works only in a wild battle")
         if self.wild and len(self.foes) > 1:
             raise ValueError("a wild battle has one foe")
         if self.wild != (self.foe_avatar_id is None):
@@ -75,13 +150,25 @@ class BattleSetup(Frozen):
         if self.wild != (self.policy == "random"):
             raise ValueError("a wild battle, and only a wild battle, picks at random")
         # Showdown's `sethp` lifts 0 HP to 1, so a fainted Pokemon would fight again.
-        if any(battler.hp == 0 for battler in (*self.team, *self.foes)):
+        if any(battler.hp == 0 for battler in (*self.player_side(), *self.foes)):
             raise ValueError("a fainted Pokemon cannot enter a battle")
         return self
 
     @property
     def wild(self) -> bool:
         return self.foe_id is None
+
+    def player_side(self) -> tuple[Battler, ...]:
+        return self.team if self.ally is None else (*self.team, *self.ally.team)
+
+    def condition_texts(self) -> tuple[str, ...]:
+        lead = self.foes[0].name
+        foe = f"the wild {lead}" if self.wild else f"{self.foe_name}'s {lead}"
+        return (
+            *(() if self.weather is None else (WEATHERS[self.weather].text,)),
+            *(() if self.terrain is None else (TERRAINS[self.terrain].text,)),
+            *(() if self.edge is None else (f"Edge: {EDGES[self.edge].format(foe=foe)}",)),
+        )
 
 
 class BattleResult(Frozen):
@@ -90,6 +177,7 @@ class BattleResult(Frozen):
     sent_out_foes: tuple[Battler, ...]
     on_field_mon_ids: tuple[Slug, ...]
     caught: Battler | None = None
+    highlights: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def _caught_fits_the_outcome(self) -> Self:
@@ -99,6 +187,19 @@ class BattleResult(Frozen):
 
     def fainted_foes(self) -> tuple[Battler, ...]:
         return tuple(foe for foe in self.sent_out_foes if foe.hp == 0)
+
+
+class DumpMon(Loose):
+    slot: int
+    hp: int
+    status: str
+    pp: tuple[int, ...]
+    out: int
+    held: bool
+
+    @property
+    def pip(self) -> Pip:
+        return "fainted" if self.hp == 0 else "able" if self.out else "reserve"
 
 
 class Throw(Frozen):

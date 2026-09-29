@@ -12,6 +12,8 @@ from rulehall.core.validation import Frozen, Refusal, Slug, check_unique
 SCENE_TAB = "Scene"
 
 type Rows = tuple[tuple[str, str], ...]
+type Pip = Literal["able", "fainted", "reserve"]
+type BattleChoiceKind = Literal["move", "switch", "item", "next", "back", "leave"]
 
 
 class Tag(Frozen):
@@ -50,12 +52,29 @@ class PanelRow(Frozen):
 
 class BattleChoice(Frozen):
     command: str
+    kind: BattleChoiceKind
     name: str
     brief: str = ""
     help: str = ""
     group: str = ""
     refusal: str = ""
     tags: tuple[Tag, ...] = ()
+    meters: tuple[Meter, ...] = ()
+    sprite: Sprite | None = None
+
+
+class BattleSide(Frozen):
+    name: str
+    sprite: Sprite
+    pips: tuple[Pip, ...]
+    said: str = ""
+
+
+class BattleHeader(Frozen):
+    player: BattleSide
+    ally: BattleSide | None
+    foe: BattleSide
+    conditions: tuple[Tag, ...]
 
 
 class Subject(Frozen):

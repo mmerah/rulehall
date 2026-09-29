@@ -9,14 +9,19 @@ from rulehall.core.game import Game
 from rulehall.core.validation import Frozen, Mutable, Refusal, Slug
 from rulehall.core.views import Rows
 from rulehall.engines.pokemon.battle.models import (
+    DOUBLE_TEAM_MIN,
     LEVEL_MAX,
     TEAM_MAX,
+    Ally,
     Ball,
     Battle,
     Battler,
     BattleResult,
     BattleSetup,
+    Edge,
+    Terrain,
     Throw,
+    Weather,
 )
 from rulehall.engines.pokemon.dex import ITEMS, dex
 from rulehall.engines.pokemon.rules import (
@@ -99,10 +104,13 @@ class RivalRecord(Mutable):
     due: bool = False
     ledger: list[str] = Field(default_factory=list)
 
-    def record_battle(self, place_name: str, badges: int, winner: str) -> None:
+    def record_battle(
+        self, place_name: str, badges: int, winner: str, highlights: Sequence[str]
+    ) -> None:
         self.fought_at_badges = badges
         plural = "" if badges == 1 else "s"
-        self.ledger.append(f"{place_name}, {badges} badge{plural}: {winner} won")
+        best = f". {highlights[0]}" if highlights else ""
+        self.ledger.append(f"{place_name}, {badges} badge{plural}: {winner} won{best}")
 
     def roster(
         self,
@@ -137,6 +145,7 @@ class PokemonWorld(RoomWorld[Trainer]):
     species_ids: tuple[Slug, ...] = Field(min_length=1)
     wild: dict[Slug, tuple[WildSlot, ...]] = Field(default_factory=dict)
     battle: Battle | None = None
+    pending_edge: Edge | None = None
     center_place_ids: list[Slug] = Field(default_factory=list)
     encountered_place_ids: list[Slug] = Field(default_factory=list)
     rival_record: RivalRecord = Field(default_factory=RivalRecord)
@@ -240,12 +249,37 @@ class PokemonWorld(RoomWorld[Trainer]):
         if proposal.operation is not None:
             self.open_operation(proposal.operation)
 
-    def setup_battle(self, trainer: Trainer | None, foes: tuple[Battler, ...], rng: Random) -> None:
+    def earn_edge(self, edge: Edge) -> None:
+        self.pending_edge = edge
+
+    def drop_edge(self) -> None:
+        self.pending_edge = None
+
+    def setup_battle(
+        self,
+        trainer: Trainer | None,
+        foes: tuple[Battler, ...],
+        rng: Random,
+        *,
+        weather: Weather | None,
+        terrain: Terrain | None,
+        companion: Trainer | None,
+    ) -> None:
         player = self.player
         sheet = self.player_sheet
         able = sheet.able()
         if not able:
             raise Refusal("no team Pokemon can fight: heal the team first")
+        if trainer is not None and companion is not None and len(foes) < DOUBLE_TEAM_MIN:
+            raise Refusal(
+                f"{trainer.name} has {len(foes)} Pokemon; a tag battle needs {DOUBLE_TEAM_MIN}"
+            )
+        alone = companion is None
+        if trainer is not None and trainer.double and alone and len(able) < DOUBLE_TEAM_MIN:
+            raise Refusal(
+                f"{player.name} needs {DOUBLE_TEAM_MIN} Pokemon that can fight: "
+                f"{trainer.name} battles two-on-two"
+            )
         here = self.current.id
         first_here = here not in self.encountered_place_ids
         catchable = trainer is None and (first_here or sheet.challenge != "nuzlocke")
@@ -260,6 +294,8 @@ class PokemonWorld(RoomWorld[Trainer]):
         )
         if trainer is None and first_here:
             self.encountered_place_ids.append(here)
+        edge = self.pending_edge
+        self.drop_edge()
         setup = BattleSetup(
             policy="random"
             if trainer is None
@@ -281,8 +317,29 @@ class PokemonWorld(RoomWorld[Trainer]):
             team=tuple(mon.battler() for mon in able),
             foes=foes,
             balls=balls,
+            edge=None if trainer is not None and edge == "bait" else edge,
+            weather=weather,
+            terrain=terrain,
+            double=trainer is not None and (trainer.double or companion is not None),
+            ally=None
+            if companion is None
+            else Ally(
+                name=companion.name,
+                style=companion.style,
+                avatar_id=companion.avatar_id,
+                team=tuple(mon.battler() for mon in self.trainer_team(companion, rng)),
+            ),
         )
         self.battle = Battle(setup=setup)
+
+    def require_companion(self, foe: Trainer) -> Trainer:
+        companion = next(
+            (member for member in self.party_members() if member.roster and member.id != foe.id),
+            None,
+        )
+        if companion is None:
+            raise Refusal("no party member has a team to fight beside the player")
+        return companion
 
     def throw_ball(self, ball_id: Slug, foe: Battler, rng: Random) -> Throw:
         battle = self.battle
@@ -292,7 +349,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         if ball is None or ball.kind != "ball":
             raise Refusal(f"{ball_id!r} is no ball")
         self.player_sheet.take(ball_id)
-        rate = catch_rate(foe, ball.catch_bonus)
+        rate = catch_rate(foe, ball.catch_bonus, baited=battle.setup.edge == "bait")
         rolled = roll((100,), f"{ball.name} at {foe.name}", rng, label="d100")
         success = rolled.face == 1 or rolled.face <= rate
         line = f"{ball.name} at {foe.name} — d100 {rolled.face} vs {rate} → " + (
@@ -399,6 +456,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         )
         if not setup.wild and result.sent_out_foes:
             facts.append(player.fact(_sent_out_line(setup, result)))
+        facts += [player.fact(highlight) for highlight in result.highlights]
         facts.append(player.card_fact(_outcome(setup, result, where)))
         cap = sheet.level_cap()
         shares = sheet.exp_shares(result, trainer=not setup.wild)
@@ -423,7 +481,7 @@ class PokemonWorld(RoomWorld[Trainer]):
             facts += moved
         if sheet.challenge == "nuzlocke":
             facts += self._bury(setup)
-        elif all(mon.fainted for mon in sheet.team):
+        elif result.outcome != "won" and all(mon.fainted for mon in sheet.team):
             lost = sheet.money // 2
             sheet.money -= lost
             sheet.heal_team()
@@ -460,7 +518,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         if key and (line := trainer.lose_line if won else trainer.win_line):
             facts.append(trainer.card_fact(f'{trainer.name}: "{line}"'))
         if trainer.rival:
-            facts += self._rival_leaves(trainer, won=won)
+            facts += self._rival_leaves(trainer, result.highlights, won=won)
         return facts
 
     def _move_scheme(
@@ -481,10 +539,11 @@ class PokemonWorld(RoomWorld[Trainer]):
         note = (FOILED if foiled else SUCCEEDED).format(place=self.places[operation.place_id].name)
         return [self.player.card_fact(revealed_stage)], [note]
 
-    def _rival_leaves(self, rival: Trainer, *, won: bool) -> list[Fact]:
+    def _rival_leaves(self, rival: Trainer, highlights: Sequence[str], *, won: bool) -> list[Fact]:
         badges = len(self.player_sheet.badges)
         here = self.current
-        self.rival_record.record_battle(here.name, badges, self.player.name if won else rival.name)
+        winner = self.player.name if won else rival.name
+        self.rival_record.record_battle(here.name, badges, winner, highlights)
         away = [
             *(place_id for place_id in reversed(self.visited_place_ids) if place_id != here.id),
             *(way.to_id for way in self.ways.get(here.id, ()) if not way.locked),

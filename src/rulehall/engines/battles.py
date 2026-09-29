@@ -6,7 +6,7 @@ from typing import Protocol, TypeGuard
 
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyGame, RoleAnswer
-from rulehall.core.views import BattleChoice
+from rulehall.core.views import BattleChoice, BattleHeader
 from rulehall.engines.engine import AnyEngine, Resolution
 
 
@@ -22,6 +22,7 @@ class BattleRun[G](Protocol):
     @property
     def facts(self) -> Sequence[Fact]: ...
     def props(self) -> Mapping[str, str | bool]: ...
+    def header(self) -> BattleHeader: ...
     @property
     def resolution(self) -> Resolution | None: ...
     def choices(self) -> tuple[BattleChoice, ...]: ...

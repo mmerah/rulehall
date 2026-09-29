@@ -9,6 +9,7 @@ from rulehall.engines.pokemon.battle.simulator import DUMPED
 
 FIXTURES = Path(__file__).parents[1] / "pokemon" / "fixtures"
 RECORDED = FIXTURES / "battle.txt"
+RECORDED_DOUBLES = FIXTURES / "doubles.txt"
 ASSESSED = FIXTURES / "assessment.txt"
 type Block = tuple[str, ...]
 PIKACHU = Battler(
@@ -54,6 +55,50 @@ WILD_SETUP = BattleSetup(
     team=(PIKACHU,),
     foes=(RATTATA,),
 )
+CHARMANDER = Battler(
+    mon_id="charmander",
+    species_id="charmander",
+    name="Charmander",
+    level=8,
+    nature="Hardy",
+    ability="Blaze",
+    gender="M",
+    ivs=(31, 31, 31, 31, 31, 31),
+    evs=(0, 0, 0, 0, 0, 0),
+    friendship=70,
+    moves=(
+        BattleMove(move_id="scratch", name="Scratch", type="Normal", pp=56),
+        BattleMove(move_id="ember", name="Ember", type="Fire", pp=40),
+    ),
+    hp=26,
+)
+PIDGEY = Battler(
+    mon_id="pidgey",
+    species_id="pidgey",
+    name="Pidgey",
+    level=4,
+    nature="Hardy",
+    ability="Keen Eye",
+    gender="F",
+    ivs=(31, 31, 31, 31, 31, 31),
+    evs=(0, 0, 0, 0, 0, 0),
+    friendship=70,
+    moves=(BattleMove(move_id="tackle", name="Tackle", type="Normal", pp=56),),
+    hp=18,
+)
+DOUBLES_SETUP = BattleSetup(
+    policy="scripted",
+    foe_style="",
+    foe_id="rook",
+    player_name="Kael",
+    foe_name="Rook",
+    player_avatar_id="ethan",
+    foe_avatar_id="camper",
+    seed=(1, 2, 3, 4),
+    team=(PIKACHU, CHARMANDER),
+    foes=(RATTATA, PIDGEY),
+    double=True,
+)
 
 
 @dataclass(slots=True)
@@ -74,8 +119,8 @@ class ScriptedSimulator:
         self.closed = True
 
 
-def recorded() -> list[Block]:
-    return [tuple(text.split("\n")) for text in RECORDED.read_text().strip().split("\n\n")]
+def recorded(fixture: Path = RECORDED) -> list[Block]:
+    return [tuple(text.split("\n")) for text in fixture.read_text().strip().split("\n\n")]
 
 
 def assessed() -> list[Block]:
@@ -105,7 +150,7 @@ def _update(setup: BattleSetup) -> Block:
 def _dumped(setup: BattleSetup, *, out: int = 0, foe_hp: int | None = None) -> str:
     team = [
         _dumped_mon(slot, battler, battler.hp, out=out if slot == 0 else 0)
-        for slot, battler in enumerate(setup.team)
+        for slot, battler in enumerate(setup.player_side())
     ]
     foes = [
         _dumped_mon(slot, battler, battler.hp if foe_hp is None else foe_hp, out=0)
@@ -129,7 +174,7 @@ def _dumped_mon(slot: int, battler: Battler, hp: int, *, out: int) -> dict[str, 
 def _asks(setup: BattleSetup, *, moving: bool) -> list[Block]:
     return [
         ("sideupdate", side, f"|request|{json.dumps(_request(side, battlers, moving=moving))}")
-        for side, battlers in (("p1", setup.team), ("p2", setup.foes))
+        for side, battlers in (("p1", setup.player_side()), ("p2", setup.foes))
     ]
 
 

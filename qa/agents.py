@@ -162,10 +162,11 @@ class ScriptedAgents:
         return json.dumps({"lines": lines})
 
     def _opponent(self, prompt: str) -> str:
-        first = re.search(r"^- (\w+ \d+):", _section(prompt, "THE CHOICES"), re.M)
-        if first is None:
+        blocks = _section(prompt, "THE CHOICES").split("For ")[1:]
+        firsts = [re.search(r"^- ([\w-]+(?: -?\d+)*):", block, re.M) for block in blocks]
+        if not firsts or None in firsts:
             raise Refusal("scripted: the opponent was offered no choice")
-        return json.dumps({"command": first.group(1)})
+        return json.dumps({"commands": [first.group(1) for first in firsts if first]})
 
     def _worldsmith(self, prompt: str) -> str:
         schema = _section(prompt, "ANSWER WITH")

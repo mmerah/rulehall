@@ -1,6 +1,7 @@
 from collections.abc import Collection
 
 from rulehall.core.validation import Refusal, Slug
+from rulehall.engines.pokemon.battle.models import DOUBLE_TEAM_MIN
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.rules import (
     BADGE_LEVELS,
@@ -29,8 +30,11 @@ WORLDSMITH_GUIDANCE = (
     "weight. A route, a cave or a shore has a table. A town or a building has none. Every town "
     "has a Pokemon Center, a place of its own that `center_place_ids` lists: the team heals only "
     "there, so the opening map has one. A person who battles has a `roster` of one to six "
-    "species ids with levels. A gym leader also has a `badge`, such as 'Tide Badge'. The ace of "
-    "a gym leader, the highest level of the roster, "
+    "species ids with levels. A gym leader also has a `badge`, such as 'Tide Badge', and a "
+    "`trial`, the task the challenger meets before the leader. Lock the way to the leader until "
+    "the trial is done. A trainer with `double` true, such "
+    "as twins, a pair or a gym that fights in doubles, always battles two-on-two and needs a "
+    "roster of at least two. The ace of a gym leader, the highest level of the roster, "
     f"follows the badge table: the first gym's ace is level {BADGE_LEVELS[0]}, the second's "
     f"{BADGE_LEVELS[1]}, the third's {BADGE_LEVELS[2]}, then {LATER_ACES} and {BADGE_LEVELS[-1]}, "
     f"each give or take {LEVEL_SPREAD}. Write a few meaningful trainers: at most "
@@ -109,6 +113,10 @@ def _check_pokemon_map(
         if npc.is_key(named) and not (npc.style and npc.win_line and npc.lose_line)
     ]:
         raise Refusal(f"each {KEY_TRAINER} needs a style, a win_line and a lose_line: {mute}")
+    if short := [npc.id for npc in trainers if npc.double and len(npc.roster) < DOUBLE_TEAM_MIN]:
+        raise Refusal(f"a `double` trainer needs a roster of at least {DOUBLE_TEAM_MIN}: {short}")
+    if untried := [npc.id for npc in trainers if npc.badge and not npc.trial]:
+        raise Refusal(f"each gym leader needs a trial: {untried}")
     for index, leader in enumerate((npc for npc in trainers if npc.badge), gyms_before):
         _check_ace(leader, index)
     regulars = [npc.id for npc in trainers if npc.roster and not npc.is_key(named)]

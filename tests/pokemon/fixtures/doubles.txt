@@ -1,0 +1,234 @@
+update
+|t:|1790692987
+|gametype|doubles
+|player|p1|Kael|ethan|
+|player|p2|Rook|camper|
+|gen|9
+|tier|[Gen 9] Doubles Custom Game
+|rule|Terastal Clause: You cannot Terastallize
+|raw|<div class="infobox"><details class="readmore" open><summary><strong>1 custom rule:</strong></summary> Terastal Clause</details></div>
+|clearpoke
+|poke|p1|Pikachu, L7, M|
+|poke|p1|Charmander, L8, M|
+|poke|p2|Rattata, L3, F|
+|poke|p2|Pidgey, L4, F|
+|teampreview
+||>>> const states = [[[24, "", [48, 64]], [26, "", [56, 40]]], [[15, "", [56]], [18, "", [56]]]]; [battle.p1, battle.p2].forEach((side, number) => states[number].forEach(([hp, status, pp], index) => { const mon = side.pokemon[index]; mon.sethp(hp); if (status) mon.setStatus(status, null, null, true); mon.baseMoveSlots.forEach((slot, move) => { slot.pp = pp[move]; }); }))
+||<<< undefined
+||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))
+||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":0,"held":true},{"slot":1,"hp":26,"status":"","pp":[56,40],"out":0,"held":true}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":0,"held":true},{"slot":1,"hp":18,"status":"","pp":[56],"out":0,"held":true}]}"
+
+sideupdate
+p1
+|request|{"teamPreview":true,"side":{"name":"Kael","id":"p1","pokemon":[{"ident":"p1: Pikachu","details":"Pikachu, L7, M","condition":"24/24","active":true,"stats":{"atk":14,"def":12,"spa":14,"spd":14,"spe":19},"moves":["thundershock","growl"],"baseAbility":"static","item":"","pokeball":"pokeball","ability":"static","commanding":false,"reviving":false,"teraType":"Electric","terastallized":""},{"ident":"p1: Charmander","details":"Charmander, L8, M","condition":"26/26","active":true,"stats":{"atk":15,"def":14,"spa":17,"spd":15,"spe":17},"moves":["scratch","ember"],"baseAbility":"blaze","item":"","pokeball":"pokeball","ability":"blaze","commanding":false,"reviving":false,"teraType":"Fire","terastallized":""}]}}
+
+sideupdate
+p2
+|request|{"teamPreview":true,"side":{"name":"Rook","id":"p2","pokemon":[{"ident":"p2: Rattata","details":"Rattata, L3, F","condition":"15/15","active":true,"stats":{"atk":9,"def":8,"spa":7,"spd":8,"spe":10},"moves":["tackle"],"baseAbility":"guts","item":"","pokeball":"pokeball","ability":"guts","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""},{"ident":"p2: Pidgey","details":"Pidgey, L4, F","condition":"18/18","active":true,"stats":{"atk":9,"def":9,"spa":9,"spd":9,"spe":10},"moves":["tackle"],"baseAbility":"keeneye","item":"","pokeball":"pokeball","ability":"keeneye","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""}]}}
+
+update
+|
+|t:|1790692988
+|teamsize|p1|2
+|teamsize|p2|2
+|start
+|split|p1
+|switch|p1a: Pikachu|Pikachu, L7, M|24/24
+|switch|p1a: Pikachu|Pikachu, L7, M|24/24
+|split|p1
+|switch|p1b: Charmander|Charmander, L8, M|26/26
+|switch|p1b: Charmander|Charmander, L8, M|26/26
+|split|p2
+|switch|p2a: Rattata|Rattata, L3, F|15/15
+|switch|p2a: Rattata|Rattata, L3, F|15/15
+|split|p2
+|switch|p2b: Pidgey|Pidgey, L4, F|18/18
+|switch|p2b: Pidgey|Pidgey, L4, F|18/18
+|turn|1
+||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))
+||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":1,"held":true},{"slot":1,"hp":26,"status":"","pp":[56,40],"out":1,"held":true}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":1,"held":true},{"slot":1,"hp":18,"status":"","pp":[56],"out":1,"held":true}]}"
+
+sideupdate
+p1
+|request|{"active":[{"moves":[{"move":"Thunder Shock","id":"thundershock","pp":48,"maxpp":48,"target":"normal","disabled":false},{"move":"Growl","id":"growl","pp":64,"maxpp":64,"target":"allAdjacentFoes","disabled":false}]},{"moves":[{"move":"Scratch","id":"scratch","pp":56,"maxpp":56,"target":"normal","disabled":false},{"move":"Ember","id":"ember","pp":40,"maxpp":40,"target":"normal","disabled":false}]}],"side":{"name":"Kael","id":"p1","pokemon":[{"ident":"p1: Pikachu","details":"Pikachu, L7, M","condition":"24/24","active":true,"stats":{"atk":14,"def":12,"spa":14,"spd":14,"spe":19},"moves":["thundershock","growl"],"baseAbility":"static","item":"","pokeball":"pokeball","ability":"static","commanding":false,"reviving":false,"teraType":"Electric","terastallized":""},{"ident":"p1: Charmander","details":"Charmander, L8, M","condition":"26/26","active":true,"stats":{"atk":15,"def":14,"spa":17,"spd":15,"spe":17},"moves":["scratch","ember"],"baseAbility":"blaze","item":"","pokeball":"pokeball","ability":"blaze","commanding":false,"reviving":false,"teraType":"Fire","terastallized":""}]}}
+
+sideupdate
+p2
+|request|{"active":[{"moves":[{"move":"Tackle","id":"tackle","pp":56,"maxpp":56,"target":"normal","disabled":false}]},{"moves":[{"move":"Tackle","id":"tackle","pp":56,"maxpp":56,"target":"normal","disabled":false}]}],"side":{"name":"Rook","id":"p2","pokemon":[{"ident":"p2: Rattata","details":"Rattata, L3, F","condition":"15/15","active":true,"stats":{"atk":9,"def":8,"spa":7,"spd":8,"spe":10},"moves":["tackle"],"baseAbility":"guts","item":"","pokeball":"pokeball","ability":"guts","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""},{"ident":"p2: Pidgey","details":"Pidgey, L4, F","condition":"18/18","active":true,"stats":{"atk":9,"def":9,"spa":9,"spd":9,"spe":10},"moves":["tackle"],"baseAbility":"keeneye","item":"","pokeball":"pokeball","ability":"keeneye","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""}]}}
+
+update
+||>>> JSON.stringify({...Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])), assessment: (() => {
+||  const me = battle.p2;
+||  const foe = battle.p1;
+||  const targets = foe.active.flatMap((mon, index) => (mon && !mon.fainted ? [{ mon, target: index + 1 }] : []));
+||  const saved = battle.prng.clone();
+||  const randomizer = battle.randomizer;
+||  const damage = (source, victim, moveId) => {
+||    if (!source || !victim || source.fainted || victim.fainted) return null;
+||    const move = battle.dex.getActiveMove(moveId);
+||    move.willCrit = false;
+||    const at = (roll) => {
+||      battle.randomizer = (base) => battle.trunc(battle.trunc(base * roll) / 100);
+||      const dealt = battle.actions.getDamage(source, victim, move, true);
+||      return typeof dealt === "number" ? dealt : dealt === false ? 0 : null;
+||    };
+||    const low = at(85);
+||    return low === null ? null : [low, at(100)];
+||  };
+||  const raised = (mon) => Object.fromEntries(Object.entries(mon.boosts).filter(([, stages]) => stages !== 0));
+||  const team = me.pokemon.map((mon, index) => ({
+||    slot: index + 1,
+||    name: mon.name,
+||    level: mon.level,
+||    types: mon.getTypes(),
+||    hp: mon.hp,
+||    maxhp: mon.maxhp,
+||    status: mon.status,
+||    active: mon.isActive,
+||    boosts: raised(mon),
+||    moves: mon.baseMoveSlots.map((slot) => {
+||      const move = battle.dex.moves.get(slot.id);
+||      const hits = targets.map(({ mon: victim, target }) => {
+||        const dealt = damage(mon, victim, slot.id);
+||        const percent = dealt ? dealt.map((hp) => Math.floor((100 * hp) / victim.maxhp)) : null;
+||        return { target, name: victim.name, damage: dealt, percent };
+||      });
+||      return { name: move.name, type: move.type, pp: slot.pp, maxpp: slot.maxpp, disabled: !!slot.disabled, multihit: move.multihit || null, hits };
+||    }),
+||    threats: targets.flatMap(({ mon: attacker }) => attacker.baseMoveSlots.filter((slot) => slot.used).map((slot) => {
+||      const move = battle.dex.moves.get(slot.id);
+||      return { user: attacker.name, name: move.name, type: move.type, damage: damage(attacker, mon, slot.id) };
+||    })),
+||  }));
+||  const foes = foe.pokemon.map((mon) => ({
+||    name: mon.name,
+||    level: mon.level,
+||    types: mon.getTypes(),
+||    percent: Math.ceil((100 * mon.hp) / mon.maxhp),
+||    status: mon.status,
+||    active: mon.isActive,
+||    out: mon.previouslySwitchedIn > 0,
+||    boosts: raised(mon),
+||    moves: mon.baseMoveSlots.filter((slot) => slot.used).map((slot) => { const move = battle.dex.moves.get(slot.id); return { name: move.name, type: move.type }; }),
+||  }));
+||  battle.randomizer = randomizer;
+||  battle.prng = saved;
+||  return { team, foes };
+||})()})
+||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":1,"held":true},{"slot":1,"hp":26,"status":"","pp":[56,40],"out":1,"held":true}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":1,"held":true},{"slot":1,"hp":18,"status":"","pp":[56],"out":1,"held":true}],"assessment":{"team":[{"slot":1,"name":"Rattata","level":3,"types":["Normal"],"hp":15,"maxhp":15,"status":"","active":true,"boosts":{},"moves":[{"name":"Tackle","type":"Normal","pp":56,"maxpp":56,"disabled":false,"multihit":null,"target":"normal","hits":[{"target":1,"name":"Pikachu","damage":[3,4],"percent":[12,16]},{"target":2,"name":"Charmander","damage":[3,4],"percent":[11,15]}]}],"threats":[]},{"slot":2,"name":"Pidgey","level":4,"types":["Normal","Flying"],"hp":18,"maxhp":18,"status":"","active":true,"boosts":{},"moves":[{"name":"Tackle","type":"Normal","pp":56,"maxpp":56,"disabled":false,"multihit":null,"target":"normal","hits":[{"target":1,"name":"Pikachu","damage":[3,4],"percent":[12,16]},{"target":2,"name":"Charmander","damage":[3,4],"percent":[11,15]}]}],"threats":[]}],"foes":[{"name":"Pikachu","level":7,"types":["Electric"],"percent":100,"status":"","active":true,"out":true,"boosts":{},"moves":[]},{"name":"Charmander","level":8,"types":["Fire"],"percent":100,"status":"","active":true,"out":true,"boosts":{},"moves":[]}]}}"
+
+update
+|
+|t:|1790692988
+|move|p1a: Pikachu|Thunder Shock|p2b: Pidgey
+|-supereffective|p2b: Pidgey
+|split|p2
+|-damage|p2b: Pidgey|4/18
+|-damage|p2b: Pidgey|4/18
+|move|p1b: Charmander|Scratch|p2a: Rattata
+|split|p2
+|-damage|p2a: Rattata|8/15
+|-damage|p2a: Rattata|8/15
+|move|p2b: Pidgey|Tackle|p1a: Pikachu
+|split|p1
+|-damage|p1a: Pikachu|21/24
+|-damage|p1a: Pikachu|21/24
+|move|p2a: Rattata|Tackle|p1a: Pikachu
+|split|p1
+|-damage|p1a: Pikachu|18/24
+|-damage|p1a: Pikachu|18/24
+|
+|upkeep
+|turn|2
+||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))
+||<<< "{"p1":[{"slot":0,"hp":18,"status":"","pp":[47,64],"out":1,"held":true},{"slot":1,"hp":26,"status":"","pp":[55,40],"out":1,"held":true}],"p2":[{"slot":0,"hp":8,"status":"","pp":[55],"out":1,"held":true},{"slot":1,"hp":4,"status":"","pp":[55],"out":1,"held":true}]}"
+
+sideupdate
+p1
+|request|{"active":[{"moves":[{"move":"Thunder Shock","id":"thundershock","pp":47,"maxpp":48,"target":"normal","disabled":false},{"move":"Growl","id":"growl","pp":64,"maxpp":64,"target":"allAdjacentFoes","disabled":false}]},{"moves":[{"move":"Scratch","id":"scratch","pp":55,"maxpp":56,"target":"normal","disabled":false},{"move":"Ember","id":"ember","pp":40,"maxpp":40,"target":"normal","disabled":false}]}],"side":{"name":"Kael","id":"p1","pokemon":[{"ident":"p1: Pikachu","details":"Pikachu, L7, M","condition":"18/24","active":true,"stats":{"atk":14,"def":12,"spa":14,"spd":14,"spe":19},"moves":["thundershock","growl"],"baseAbility":"static","item":"","pokeball":"pokeball","ability":"static","commanding":false,"reviving":false,"teraType":"Electric","terastallized":""},{"ident":"p1: Charmander","details":"Charmander, L8, M","condition":"26/26","active":true,"stats":{"atk":15,"def":14,"spa":17,"spd":15,"spe":17},"moves":["scratch","ember"],"baseAbility":"blaze","item":"","pokeball":"pokeball","ability":"blaze","commanding":false,"reviving":false,"teraType":"Fire","terastallized":""}]}}
+
+sideupdate
+p2
+|request|{"active":[{"moves":[{"move":"Tackle","id":"tackle","pp":55,"maxpp":56,"target":"normal","disabled":false}]},{"moves":[{"move":"Tackle","id":"tackle","pp":55,"maxpp":56,"target":"normal","disabled":false}]}],"side":{"name":"Rook","id":"p2","pokemon":[{"ident":"p2: Rattata","details":"Rattata, L3, F","condition":"8/15","active":true,"stats":{"atk":9,"def":8,"spa":7,"spd":8,"spe":10},"moves":["tackle"],"baseAbility":"guts","item":"","pokeball":"pokeball","ability":"guts","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""},{"ident":"p2: Pidgey","details":"Pidgey, L4, F","condition":"4/18","active":true,"stats":{"atk":9,"def":9,"spa":9,"spd":9,"spe":10},"moves":["tackle"],"baseAbility":"keeneye","item":"","pokeball":"pokeball","ability":"keeneye","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""}]}}
+
+update
+||>>> JSON.stringify({...Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])), assessment: (() => {
+||  const me = battle.p2;
+||  const foe = battle.p1;
+||  const targets = foe.active.flatMap((mon, index) => (mon && !mon.fainted ? [{ mon, target: index + 1 }] : []));
+||  const saved = battle.prng.clone();
+||  const randomizer = battle.randomizer;
+||  const damage = (source, victim, moveId) => {
+||    if (!source || !victim || source.fainted || victim.fainted) return null;
+||    const move = battle.dex.getActiveMove(moveId);
+||    move.willCrit = false;
+||    const at = (roll) => {
+||      battle.randomizer = (base) => battle.trunc(battle.trunc(base * roll) / 100);
+||      const dealt = battle.actions.getDamage(source, victim, move, true);
+||      return typeof dealt === "number" ? dealt : dealt === false ? 0 : null;
+||    };
+||    const low = at(85);
+||    return low === null ? null : [low, at(100)];
+||  };
+||  const raised = (mon) => Object.fromEntries(Object.entries(mon.boosts).filter(([, stages]) => stages !== 0));
+||  const team = me.pokemon.map((mon, index) => ({
+||    slot: index + 1,
+||    name: mon.name,
+||    level: mon.level,
+||    types: mon.getTypes(),
+||    hp: mon.hp,
+||    maxhp: mon.maxhp,
+||    status: mon.status,
+||    active: mon.isActive,
+||    boosts: raised(mon),
+||    moves: mon.baseMoveSlots.map((slot) => {
+||      const move = battle.dex.moves.get(slot.id);
+||      const hits = targets.map(({ mon: victim, target }) => {
+||        const dealt = damage(mon, victim, slot.id);
+||        const percent = dealt ? dealt.map((hp) => Math.floor((100 * hp) / victim.maxhp)) : null;
+||        return { target, name: victim.name, damage: dealt, percent };
+||      });
+||      return { name: move.name, type: move.type, pp: slot.pp, maxpp: slot.maxpp, disabled: !!slot.disabled, multihit: move.multihit || null, hits };
+||    }),
+||    threats: targets.flatMap(({ mon: attacker }) => attacker.baseMoveSlots.filter((slot) => slot.used).map((slot) => {
+||      const move = battle.dex.moves.get(slot.id);
+||      return { user: attacker.name, name: move.name, type: move.type, damage: damage(attacker, mon, slot.id) };
+||    })),
+||  }));
+||  const foes = foe.pokemon.map((mon) => ({
+||    name: mon.name,
+||    level: mon.level,
+||    types: mon.getTypes(),
+||    percent: Math.ceil((100 * mon.hp) / mon.maxhp),
+||    status: mon.status,
+||    active: mon.isActive,
+||    out: mon.previouslySwitchedIn > 0,
+||    boosts: raised(mon),
+||    moves: mon.baseMoveSlots.filter((slot) => slot.used).map((slot) => { const move = battle.dex.moves.get(slot.id); return { name: move.name, type: move.type }; }),
+||  }));
+||  battle.randomizer = randomizer;
+||  battle.prng = saved;
+||  return { team, foes };
+||})()})
+||<<< "{"p1":[{"slot":0,"hp":18,"status":"","pp":[47,64],"out":1,"held":true},{"slot":1,"hp":26,"status":"","pp":[55,40],"out":1,"held":true}],"p2":[{"slot":0,"hp":8,"status":"","pp":[55],"out":1,"held":true},{"slot":1,"hp":4,"status":"","pp":[55],"out":1,"held":true}],"assessment":{"team":[{"slot":1,"name":"Rattata","level":3,"types":["Normal"],"hp":8,"maxhp":15,"status":"","active":true,"boosts":{},"moves":[{"name":"Tackle","type":"Normal","pp":55,"maxpp":56,"disabled":false,"multihit":null,"target":"normal","hits":[{"target":1,"name":"Pikachu","damage":[3,4],"percent":[12,16]},{"target":2,"name":"Charmander","damage":[3,4],"percent":[11,15]}]}],"threats":[{"user":"Pikachu","name":"Thunder Shock","type":"Electric","damage":[7,10]},{"user":"Charmander","name":"Scratch","type":"Normal","damage":[7,9]}]},{"slot":2,"name":"Pidgey","level":4,"types":["Normal","Flying"],"hp":4,"maxhp":18,"status":"","active":true,"boosts":{},"moves":[{"name":"Tackle","type":"Normal","pp":55,"maxpp":56,"disabled":false,"multihit":null,"target":"normal","hits":[{"target":1,"name":"Pikachu","damage":[3,4],"percent":[12,16]},{"target":2,"name":"Charmander","damage":[3,4],"percent":[11,15]}]}],"threats":[{"user":"Pikachu","name":"Thunder Shock","type":"Electric","damage":[14,18]},{"user":"Charmander","name":"Scratch","type":"Normal","damage":[6,8]}]}],"foes":[{"name":"Pikachu","level":7,"types":["Electric"],"percent":75,"status":"","active":true,"out":true,"boosts":{},"moves":[{"name":"Thunder Shock","type":"Electric"}]},{"name":"Charmander","level":8,"types":["Fire"],"percent":100,"status":"","active":true,"out":true,"boosts":{},"moves":[{"name":"Scratch","type":"Normal"}]}]}}"
+
+update
+|
+|t:|1790692988
+|move|p1a: Pikachu|Thunder Shock|p2a: Rattata
+|split|p2
+|-damage|p2a: Rattata|0 fnt
+|-damage|p2a: Rattata|0 fnt
+|faint|p2a: Rattata
+|move|p1b: Charmander|Scratch|p2b: Pidgey
+|split|p2
+|-damage|p2b: Pidgey|0 fnt
+|-damage|p2b: Pidgey|0 fnt
+|faint|p2b: Pidgey
+|
+|win|Kael
+||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))
+||<<< "{"p1":[{"slot":0,"hp":18,"status":"","pp":[46,64],"out":1,"held":true},{"slot":1,"hp":26,"status":"","pp":[54,40],"out":1,"held":true}],"p2":[{"slot":0,"hp":0,"status":"","pp":[55],"out":1,"held":true},{"slot":1,"hp":0,"status":"","pp":[55],"out":1,"held":true}]}"
+
+end
+{"winner":"Kael","seed":"1,2,3,4","turns":2,"p1":"Kael","p2":"Rook","p1team":[{"name":"Pikachu","species":"Pikachu","item":"","ability":"Static","moves":["Thunder Shock","Growl"],"nature":"Hardy","evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"gender":"M","ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"level":7,"happiness":70,"hpType":"","pokeball":"","gigantamax":false,"dynamaxLevel":10},{"name":"Charmander","species":"Charmander","item":"","ability":"Blaze","moves":["Scratch","Ember"],"nature":"Hardy","evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"gender":"M","ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"level":8,"happiness":70,"hpType":"","pokeball":"","gigantamax":false,"dynamaxLevel":10}],"p2team":[{"name":"Rattata","species":"Rattata","item":"","ability":"Guts","moves":["Tackle"],"nature":"Hardy","evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"gender":"F","ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"level":3,"happiness":70,"hpType":"","pokeball":"","gigantamax":false,"dynamaxLevel":10},{"name":"Pidgey","species":"Pidgey","item":"","ability":"Keen Eye","moves":["Tackle"],"nature":"Hardy","evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"gender":"F","ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"level":4,"happiness":70,"hpType":"","pokeball":"","gigantamax":false,"dynamaxLevel":10}],"score":[2,0],"inputLog":[">start {\"formatid\":\"gen9doublescustomgame@@@Terastal Clause\",\"seed\":\"1,2,3,4\"}",">player p1 {\"name\":\"Kael\",\"avatar\":\"ethan\",\"team\":\"Pikachu|pikachu||Static|thundershock,growl|Hardy|0,0,0,0,0,0|M|31,31,31,31,31,31||7|70]Charmander|charmander||Blaze|scratch,ember|Hardy|0,0,0,0,0,0|M|31,31,31,31,31,31||8|70\"}",">player p2 {\"name\":\"Rook\",\"avatar\":\"camper\",\"team\":\"Rattata|rattata||Guts|tackle|Hardy|0,0,0,0,0,0|F|31,31,31,31,31,31||3|70]Pidgey|pidgey||Keen Eye|tackle|Hardy|0,0,0,0,0,0|F|31,31,31,31,31,31||4|70\"}",">eval const states = [[[24, \"\", [48, 64]], [26, \"\", [56, 40]]], [[15, \"\", [56]], [18, \"\", [56]]]]; [battle.p1, battle.p2].forEach((side, number) => states[number].forEach(([hp, status, pp], index) => { const mon = side.pokemon[index]; mon.sethp(hp); if (status) mon.setStatus(status, null, null, true); mon.baseMoveSlots.forEach((slot, move) => { slot.pp = pp[move]; }); }))",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))",">p1 team 1, 2",">p2 team 1, 2",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))",">eval JSON.stringify({...Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])), assessment: (() => {\f  const me = battle.p2;\f  const foe = battle.p1;\f  const targets = foe.active.flatMap((mon, index) => (mon && !mon.fainted ? [{ mon, target: index + 1 }] : []));\f  const saved = battle.prng.clone();\f  const randomizer = battle.randomizer;\f  const damage = (source, victim, moveId) => {\f    if (!source || !victim || source.fainted || victim.fainted) return null;\f    const move = battle.dex.getActiveMove(moveId);\f    move.willCrit = false;\f    const at = (roll) => {\f      battle.randomizer = (base) => battle.trunc(battle.trunc(base * roll) / 100);\f      const dealt = battle.actions.getDamage(source, victim, move, true);\f      return typeof dealt === \"number\" ? dealt : dealt === false ? 0 : null;\f    };\f    const low = at(85);\f    return low === null ? null : [low, at(100)];\f  };\f  const raised = (mon) => Object.fromEntries(Object.entries(mon.boosts).filter(([, stages]) => stages !== 0));\f  const team = me.pokemon.map((mon, index) => ({\f    slot: index + 1,\f    name: mon.name,\f    level: mon.level,\f    types: mon.getTypes(),\f    hp: mon.hp,\f    maxhp: mon.maxhp,\f    status: mon.status,\f    active: mon.isActive,\f    boosts: raised(mon),\f    moves: mon.baseMoveSlots.map((slot) => {\f      const move = battle.dex.moves.get(slot.id);\f      const hits = targets.map(({ mon: victim, target }) => {\f        const dealt = damage(mon, victim, slot.id);\f        const percent = dealt ? dealt.map((hp) => Math.floor((100 * hp) / victim.maxhp)) : null;\f        return { target, name: victim.name, damage: dealt, percent };\f      });\f      return { name: move.name, type: move.type, pp: slot.pp, maxpp: slot.maxpp, disabled: !!slot.disabled, multihit: move.multihit || null, hits };\f    }),\f    threats: targets.flatMap(({ mon: attacker }) => attacker.baseMoveSlots.filter((slot) => slot.used).map((slot) => {\f      const move = battle.dex.moves.get(slot.id);\f      return { user: attacker.name, name: move.name, type: move.type, damage: damage(attacker, mon, slot.id) };\f    })),\f  }));\f  const foes = foe.pokemon.map((mon) => ({\f    name: mon.name,\f    level: mon.level,\f    types: mon.getTypes(),\f    percent: Math.ceil((100 * mon.hp) / mon.maxhp),\f    status: mon.status,\f    active: mon.isActive,\f    out: mon.previouslySwitchedIn > 0,\f    boosts: raised(mon),\f    moves: mon.baseMoveSlots.filter((slot) => slot.used).map((slot) => { const move = battle.dex.moves.get(slot.id); return { name: move.name, type: move.type }; }),\f  }));\f  battle.randomizer = randomizer;\f  battle.prng = saved;\f  return { team, foes };\f})()})",">p1 move thundershock +2, move scratch +1",">p2 move tackle +1, move tackle +1",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))",">eval JSON.stringify({...Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])), assessment: (() => {\f  const me = battle.p2;\f  const foe = battle.p1;\f  const targets = foe.active.flatMap((mon, index) => (mon && !mon.fainted ? [{ mon, target: index + 1 }] : []));\f  const saved = battle.prng.clone();\f  const randomizer = battle.randomizer;\f  const damage = (source, victim, moveId) => {\f    if (!source || !victim || source.fainted || victim.fainted) return null;\f    const move = battle.dex.getActiveMove(moveId);\f    move.willCrit = false;\f    const at = (roll) => {\f      battle.randomizer = (base) => battle.trunc(battle.trunc(base * roll) / 100);\f      const dealt = battle.actions.getDamage(source, victim, move, true);\f      return typeof dealt === \"number\" ? dealt : dealt === false ? 0 : null;\f    };\f    const low = at(85);\f    return low === null ? null : [low, at(100)];\f  };\f  const raised = (mon) => Object.fromEntries(Object.entries(mon.boosts).filter(([, stages]) => stages !== 0));\f  const team = me.pokemon.map((mon, index) => ({\f    slot: index + 1,\f    name: mon.name,\f    level: mon.level,\f    types: mon.getTypes(),\f    hp: mon.hp,\f    maxhp: mon.maxhp,\f    status: mon.status,\f    active: mon.isActive,\f    boosts: raised(mon),\f    moves: mon.baseMoveSlots.map((slot) => {\f      const move = battle.dex.moves.get(slot.id);\f      const hits = targets.map(({ mon: victim, target }) => {\f        const dealt = damage(mon, victim, slot.id);\f        const percent = dealt ? dealt.map((hp) => Math.floor((100 * hp) / victim.maxhp)) : null;\f        return { target, name: victim.name, damage: dealt, percent };\f      });\f      return { name: move.name, type: move.type, pp: slot.pp, maxpp: slot.maxpp, disabled: !!slot.disabled, multihit: move.multihit || null, hits };\f    }),\f    threats: targets.flatMap(({ mon: attacker }) => attacker.baseMoveSlots.filter((slot) => slot.used).map((slot) => {\f      const move = battle.dex.moves.get(slot.id);\f      return { user: attacker.name, name: move.name, type: move.type, damage: damage(attacker, mon, slot.id) };\f    })),\f  }));\f  const foes = foe.pokemon.map((mon) => ({\f    name: mon.name,\f    level: mon.level,\f    types: mon.getTypes(),\f    percent: Math.ceil((100 * mon.hp) / mon.maxhp),\f    status: mon.status,\f    active: mon.isActive,\f    out: mon.previouslySwitchedIn > 0,\f    boosts: raised(mon),\f    moves: mon.baseMoveSlots.filter((slot) => slot.used).map((slot) => { const move = battle.dex.moves.get(slot.id); return { name: move.name, type: move.type }; }),\f  }));\f  battle.randomizer = randomizer;\f  battle.prng = saved;\f  return { team, foes };\f})()})",">p1 move thundershock +1, move scratch +1",">p2 move tackle +1, move tackle +1",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))"]}

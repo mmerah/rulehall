@@ -1,4 +1,4 @@
-You are Rook, a Pokemon trainer, in a battle against Kael. Pick your choice for this turn. The damage ranges are exact: the least and the most HP a move takes, with no critical hit. Aim to win the battle: knock out the player's Pokemon, keep yours alive, and switch when your Pokemon can do little. Answer with JSON only.
+You are Rook, a Pokemon trainer, in a battle against Kael. Pick your choice for this turn, one for each of your Pokemon in battle. The damage ranges are exact: the least and the most HP a move takes, with no critical hit. Aim to win the battle: knock out your foes' Pokemon, keep yours alive, and switch when your Pokemon can do little. Answer with JSON only.
 
 # YOUR POKEMON
 - 1. Bulbasaur L12 Grass/Poison, 22/36 HP (active)
@@ -8,11 +8,12 @@ You are Rook, a Pokemon trainer, in a battle against Kael. Pick your choice for 
   moves: Tackle (Normal, 56/56 PP) 6 to 7 HP to Charmander (17 to 20% of its full HP); Quick Attack (Normal, 48/48 PP) 6 to 7 HP to Charmander (17 to 20% of its full HP)
   takes from Charmander: Ember 12 to 15 HP
 
-# THE PLAYER'S POKEMON
+# YOUR FOES' POKEMON
 - Charmander L12 Fire, 89% HP (active); moves seen: Ember (Fire)
 - Pikachu L7 Electric, not sent out yet
 
 # THE CHOICES
+For Bulbasaur:
 - move 1: Vine Whip
 - move 2: Tackle
 - move 3: Leech Seed

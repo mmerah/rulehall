@@ -7,37 +7,53 @@ from pathlib import Path
 from random import Random
 from typing import Literal, Self
 
-from pydantic import Field
-
 from rulehall.core.facts import Fact
 from rulehall.core.game import RoleAnswer
 from rulehall.core.stores import read_cached_text
 from rulehall.core.validation import Loose, parse_json
-from rulehall.core.views import BattleChoice
+from rulehall.core.views import BattleChoice, BattleHeader
 from rulehall.engines.battles import Transport
 from rulehall.engines.engine import Resolution
+from rulehall.engines.pokemon.battle.choices import (
+    Hand,
+    SeatRequest,
+    SideRequest,
+    opponent_choice,
+)
+from rulehall.engines.pokemon.battle.header import battle_header
+from rulehall.engines.pokemon.battle.highlights import battle_highlights
 from rulehall.engines.pokemon.battle.models import (
     STATUSES,
+    TERRAINS,
+    WEATHERS,
+    Ally,
     Battle,
     Battler,
     BattleResult,
     BattleSetup,
+    DumpMon,
+    Edge,
     Outcome,
     Policy,
+    RoleSeat,
+    Seat,
 )
 from rulehall.engines.pokemon.battle.opponent import (
     Assessment,
+    Offer,
     OpponentAnswer,
-    check_command,
+    check_commands,
     greedy_choice,
     render_opponent,
 )
-from rulehall.engines.pokemon.dex import dex
-from rulehall.engines.pokemon.panels import move_summary, type_tag
-from rulehall.engines.pokemon.rules import TIMES, max_hp
+from rulehall.engines.pokemon.panels import item_sprite
+from rulehall.engines.pokemon.rules import TIMES
 from rulehall.engines.pokemon.world import PokemonGame
 
-FORMAT = "gen9customgame@@@Terastal Clause"
+type SideId = Literal["p1", "p2"]
+
+SINGLES_FORMAT = "gen9customgame@@@Terastal Clause"
+DOUBLES_FORMAT = "gen9doublescustomgame@@@Terastal Clause"
 SHOWDOWN = Path(__file__).parents[1] / "showdown"
 ASSESS_JS = SHOWDOWN / "assess.js"
 BOSS_BEATEN = (
@@ -46,11 +62,14 @@ BOSS_BEATEN = (
 )
 BATTLE_OVER = (
     "The battle is over. Tell how it ended from WHAT HAPPENED, in a few sentences. The player "
-    "watched every move, so do not tell the fight again. Settle nothing else."
+    "watched every move, so do not tell the fight again; you may give one short nod to a "
+    "highlight. Settle nothing else."
 )
-SIDES = ("p1", "p2")
-SWITCH = "Switch"
-BALLS = "Balls"
+SIDES: tuple[SideId, ...] = ("p1", "p2")
+SIDE_OF: dict[RoleSeat, SideId] = {"foe": "p2", "ally": "p1"}
+TURN_ENDS = ("|upkeep", "|turn|", "|win|", "|tie")
+BACK = "back"
+NEXT = "next"
 BALL = "ball "
 LEAVE = "leave"
 DUMPED = '||<<< "'
@@ -67,60 +86,24 @@ RESTORE = (
     "mon.sethp(hp); if (status) mon.setStatus(status, null, null, true); "
     "mon.baseMoveSlots.forEach((slot, move) => { slot.pp = pp[move]; }); }))"
 )
-
-
-class DumpMon(Loose):
-    slot: int
-    hp: int
-    status: str
-    pp: tuple[int, ...]
-    out: int
-    held: bool
+# A duration of 0 never runs out: story weather and terrain last until a move changes them.
+WEATHER_JS = "battle.field.setWeather('{id}', 'debug'); battle.field.weatherState.duration = 0"
+TERRAIN_JS = "battle.field.setTerrain('{id}', 'debug'); battle.field.terrainState.duration = 0"
+EDGE_JS: dict[Edge, str] = {
+    "foe-asleep": "battle.p2.active[0].setStatus('slp', null, null, true)",
+    "foe-paralysed": "battle.p2.active[0].setStatus('par', null, null, true)",
+    "attack-up": "battle.boost({atk: 1}, battle.p1.active[0])",
+    "special-attack-up": "battle.boost({spa: 1}, battle.p1.active[0])",
+    "speed-up": "battle.boost({spe: 1}, battle.p1.active[0])",
+    "stealth-rock": "battle.p2.addSideCondition('stealthrock', 'debug')",
+    "spikes": "battle.p2.addSideCondition('spikes', 'debug')",
+}
 
 
 class Dump(Loose):
     p1: tuple[DumpMon, ...]
     p2: tuple[DumpMon, ...]
     assessment: Assessment | None = None
-
-
-class RequestMove(Loose):
-    move: str
-    id: str
-    pp: int | None = None
-    maxpp: int | None = None
-    disabled: bool | str = False
-
-
-class ActiveRequest(Loose):
-    moves: tuple[RequestMove, ...]
-    trapped: bool = False
-
-
-class SideMon(Loose):
-    ident: str
-    condition: str
-    active: bool
-
-    @property
-    def fainted(self) -> bool:
-        return self.condition.endswith(" fnt")
-
-    @property
-    def name(self) -> str:
-        return self.ident.partition(": ")[2]
-
-
-class Side(Loose):
-    pokemon: tuple[SideMon, ...]
-
-
-class SideRequest(Loose):
-    side: Side
-    active: tuple[ActiveRequest, ...] = ()
-    force_switch: tuple[bool, ...] = Field(default=(), alias="forceSwitch")
-    team_preview: bool = Field(default=False, alias="teamPreview")
-    wait: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -153,7 +136,10 @@ class ShowdownRun:
     outcome: Outcome | None = None
     result: BattleResult | None = None
     resolution: Resolution | None = None
-    thinking: Task[OpponentAnswer] | None = None
+    thinking: dict[RoleSeat, Task[OpponentAnswer]] = field(default_factory=dict)
+    said: list[str] = field(default_factory=list)
+    picks: list[str] = field(default_factory=list)
+    aiming: str = ""
 
     @classmethod
     async def start(
@@ -171,8 +157,11 @@ class ShowdownRun:
             battle=battle,
             transport=transport,
             policy=policy,
-            opponent=opponent if policy == "model" else None,
-            facts=[throw.fact for throw in battle.throws],
+            opponent=opponent if policy == "model" or battle.setup.ally is not None else None,
+            facts=[
+                *(draft.world.player.card_fact(text) for text in battle.setup.condition_texts()),
+                *(throw.fact for throw in battle.throws),
+            ],
         )
         await transport.send(start_lines(battle.setup))
         await run._play(list(battle.inputs))
@@ -188,6 +177,10 @@ class ShowdownRun:
     def props(self) -> Mapping[str, str | bool]:
         return {"wild": self.setup.wild}
 
+    def header(self) -> BattleHeader:
+        assert self.dump is not None
+        return battle_header(self.setup, self.dump.p1, self.dump.p2, self.log)
+
     def choices(self) -> tuple[BattleChoice, ...]:
         request = self.side_request
         if request is None:
@@ -196,14 +189,17 @@ class ShowdownRun:
         balls = tuple(
             BattleChoice(
                 command=f"{BALL}{ball.item_id}",
+                kind="item",
                 name=f"{ball.name} {TIMES}{ball.count}",
-                group=BALLS,
                 refusal=refusal,
+                sprite=item_sprite(ball.item_id),
             )
             for ball in self.battle.balls_left()
         )
-        leave = BattleChoice(command=LEAVE, name="Run" if self.setup.wild else "Forfeit")
-        return (*choices_of(request, self.setup.team), *balls, leave)
+        leave = BattleChoice(
+            command=LEAVE, kind="leave", name="Run" if self.setup.wild else "Forfeit"
+        )
+        return (*self._slot_choices(request), *balls, leave)
 
     async def choose(self, draft: PokemonGame, command: str, rng: Random) -> None:
         draft.world.battle = self.battle
@@ -214,15 +210,54 @@ class ShowdownRun:
             self.facts.append(throw.fact)
             if throw.caught:
                 await self._end("caught")
+        elif command == BACK:
+            if self.aiming:
+                self.aiming = ""
+            else:
+                self.picks.pop()
         else:
-            await self._play([f">p1 {command}"])
+            await self._pick(command)
         self._settle(draft)
 
     async def close(self) -> None:
-        if self.thinking is not None:
-            self.thinking.cancel()
-            await gather(self.thinking, return_exceptions=True)
+        for thinking in self.thinking.values():
+            thinking.cancel()
+        await gather(*self.thinking.values(), return_exceptions=True)
         await self.transport.close()
+
+    def _slot_choices(self, request: SideRequest) -> tuple[BattleChoice, ...]:
+        seated = self._seated("player", request)
+        slots = seated.deciding_slots()
+        if not slots:
+            help = "None of your Pokemon can act. Your partner fights this turn."
+            return (BattleChoice(command=NEXT, kind="next", name="Next turn", help=help),)
+        slot = slots[len(self.picks)]
+        choices = (
+            seated.target_choices(slot, self.aiming)
+            if self.aiming
+            else seated.choices(slot, self.picks)
+        )
+        if not (self.picks or self.aiming):
+            return choices
+        back = BattleChoice(
+            command=BACK, kind="back", name="Back", group=request.side.pokemon[slot].name
+        )
+        return (*choices, back)
+
+    async def _pick(self, command: str) -> None:
+        request = self.side_request
+        assert request is not None
+        slots = self._seated("player", request).deciding_slots()
+        if command != NEXT:
+            if not self.aiming and request.needs_target(slots[len(self.picks)], command):
+                self.aiming = command
+                return
+            self.aiming = ""
+            self.picks.append(command)
+        if len(self.picks) == len(slots):
+            picked = dict(zip(slots, self.picks, strict=True)) | await self._decide("ally", request)
+            self.picks = []
+            await self._play([f">p1 {request.joined(picked)}"])
 
     def _foe(self) -> Battler:
         assert self.dump is not None
@@ -250,22 +285,91 @@ class ShowdownRun:
     async def _block(self) -> Block:
         return Block.of(await self.transport.receive())
 
-    async def _think(self, ask: SideRequest) -> Task[OpponentAnswer] | None:
-        if self.opponent is None or ask.wait or ask.team_preview:
-            return None
-        choices = tuple(choice for choice in choices_of(ask, self.setup.foes) if not choice.refusal)
-        if len(choices) == 1:
-            return None
-        prompt = render_opponent(self.setup, await self._assess(), choices)
-        return create_task(self.opponent(prompt, OpponentAnswer, partial(check_command, choices)))
+    def _hand(self, seat: Seat) -> Hand:
+        assert self.dump is not None
+        if seat == "foe":
+            return frozenset(range(len(self.dump.p2)))
+        allied = len(self.setup.team)
+        return frozenset(
+            at for at, mon in enumerate(self.dump.p1) if (mon.slot >= allied) == (seat == "ally")
+        )
 
-    async def _scripted(self, ask: SideRequest) -> str:
-        if self.policy == "scripted" and not ask.team_preview:
-            return greedy_choice(await self._assess(), choices_of(ask, self.setup.foes))
-        return opponent_choice(ask, Random(f"{self.setup.seed} {len(self.inputs)}"))
+    def _slots(self, seat: Seat) -> frozenset[int]:
+        tag = self.setup.ally is not None
+        match seat:
+            case "ally":
+                return frozenset({1} if tag else ())
+            case "player" if tag:
+                return frozenset({0})
+            case _:
+                return frozenset(range(2 if self.setup.double else 1))
 
-    async def _assess(self) -> Assessment:
-        await self.transport.send([assess_line()])
+    def _seated(self, seat: Seat, ask: SideRequest) -> SeatRequest:
+        assert self.dump is not None
+        dumped, battlers, foe = (
+            (self.dump.p2, self.setup.foes, "p1")
+            if seat == "foe"
+            else (self.dump.p1, self.setup.player_side(), "p2")
+        )
+        return SeatRequest(
+            request=ask,
+            battlers=tuple(battlers[mon.slot] for mon in dumped),
+            foe_side=self.asks[foe].side,
+            hand=self._hand(seat),
+            slots=self._slots(seat),
+        )
+
+    def _ally(self) -> Ally:
+        assert self.setup.ally is not None
+        return self.setup.ally
+
+    async def _think(self, seat: RoleSeat, ask: SideRequest) -> Task[OpponentAnswer] | None:
+        role = self.opponent
+        if role is None or (seat == "foe" and self.policy != "model"):
+            return None
+        if ask.wait or ask.team_preview:
+            return None
+        seated = self._seated(seat, ask)
+        offers = tuple(
+            Offer(
+                mon_name=ask.side.pokemon[slot].name,
+                choices=tuple(
+                    choice for choice in seated.aimed_choices(slot, ()) if not choice.refusal
+                ),
+            )
+            for slot in seated.deciding_slots()
+        )
+        if all(len(offer.choices) == 1 for offer in offers):
+            return None
+        assessment = await self._assess(SIDE_OF[seat])
+        prompt = render_opponent(self.setup, seat, assessment, offers, self._hand(seat))
+        return create_task(role(prompt, OpponentAnswer, partial(check_commands, offers)))
+
+    async def _decide(self, seat: RoleSeat, ask: SideRequest) -> dict[int, str]:
+        seated = self._seated(seat, ask)
+        slots = seated.deciding_slots()
+        if not slots:
+            return {}
+        if ask.team_preview:
+            leads = sorted(seated.hand)
+            return {slot: f"team {at + 1}" for slot, at in zip(slots, leads, strict=False)}
+        if thinking := self.thinking.pop(seat, None) or await self._think(seat, ask):
+            answer = await thinking
+            if answer.line:
+                name = self.setup.foe_name if seat == "foe" else self._ally().name
+                self.said.append(f"|c|{name}|{answer.line}")
+            return dict(zip(slots, answer.commands, strict=True))
+        if self.policy == "random":
+            rng = Random(f"{self.setup.seed} {len(self.inputs)}")
+            return {slot: opponent_choice(ask, rng) for slot in slots}
+        assessment = await self._assess(SIDE_OF[seat])
+        picks: list[str] = []
+        for slot in slots:
+            picks.append(greedy_choice(assessment, seated.aimed_choices(slot, picks), slot))
+        return dict(zip(slots, picks, strict=True))
+
+    async def _assess(self, side: SideId) -> Assessment:
+        await self.transport.send([assess_line(side)])
         self._read(await self._block())
         assert self.dump is not None and self.dump.assessment is not None
         return self.dump.assessment
@@ -273,6 +377,8 @@ class ShowdownRun:
     async def _play(self, queue: list[str]) -> None:
         while self.result is None:
             if all(side in self.asks for side in SIDES):
+                # The leads are out once team preview is answered: the conditions go in then.
+                opening = condition_lines(self.setup) if self.asks["p1"].team_preview else ()
                 lines: list[str] = []
                 for side in SIDES:
                     ask = self.asks[side]
@@ -280,26 +386,40 @@ class ShowdownRun:
                         continue
                     if queue:
                         lines.append(queue.pop(0))
-                    elif side == "p1":
-                        self.thinking = await self._think(self.asks["p2"])
+                    elif side == "p2":
+                        self.side_request = None
+                        lines.append(f">p2 {ask.joined(await self._decide('foe', ask))}")
+                    elif self._waits_on_player(ask):
+                        for seat, seat_side in SIDE_OF.items():
+                            if thinking := await self._think(seat, self.asks[seat_side]):
+                                self.thinking[seat] = thinking
                         self.side_request = ask
                         return
-                    elif thinking := self.thinking or await self._think(ask):
-                        self.side_request = None
-                        lines.append(f">p2 {(await thinking).command}")
                     else:
-                        lines.append(f">p2 {await self._scripted(ask)}")
+                        lines.append(f">p1 {ask.joined(await self._decide('ally', ask))}")
                 self.inputs.extend(lines)
                 self.asks.clear()
                 self.side_request = None
-                self.thinking = None
-                await self.transport.send([*lines, DUMP])
+                self.thinking.clear()
+                await self.transport.send([*lines, *opening, DUMP])
             self._read(await self._block())
+
+    def _waits_on_player(self, ask: SideRequest) -> bool:
+        # A player with no Pokemon to play still sees each turn, to watch it or to forfeit.
+        new_turn = bool(ask.active) and not (ask.team_preview or any(ask.force_switch))
+        return new_turn or bool(self._seated("player", ask).deciding_slots())
 
     def _read(self, block: Block) -> None:
         match block.kind:
             case "update":
                 view, dump = read_update(block.lines, opening=not self.log)
+                # Chat lines go before the turn's end marker so they show inside the turn they
+                # were chosen for.
+                if self.said and view:
+                    ends = (at for at, line in enumerate(view) if line.startswith(TURN_ENDS))
+                    at = next(ends, len(view))
+                    view = (*view[:at], *self.said, *view[at:])
+                    self.said.clear()
                 self.log.extend(view)
                 if dump is not None:
                     self.dump = dump
@@ -312,7 +432,8 @@ class ShowdownRun:
                         self.asks[side] = parse_json(SideRequest, message.removeprefix("|request|"))
             case "end":
                 assert self.dump is not None
-                self.result = battle_result(self.setup, self.dump, self.outcome)
+                highlights = battle_highlights(self.battle, self.log)
+                self.result = battle_result(self.setup, self.dump, self.outcome, highlights)
 
 
 def packed(battler: Battler) -> str:
@@ -328,12 +449,13 @@ def packed(battler: Battler) -> str:
 def start_lines(setup: BattleSetup) -> tuple[str, ...]:
     states = [
         [[battler.hp, battler.status, [move.pp for move in battler.moves]] for battler in side]
-        for side in (setup.team, setup.foes)
+        for side in (setup.player_side(), setup.foes)
     ]
+    format_id = DOUBLES_FORMAT if setup.double else SINGLES_FORMAT
     p1 = {
         "name": setup.player_name,
         "avatar": setup.player_avatar_id,
-        "team": _packed_team(setup.team),
+        "team": _packed_team(setup.player_side()),
     }
     p2 = {
         "name": setup.foe_name,
@@ -341,12 +463,23 @@ def start_lines(setup: BattleSetup) -> tuple[str, ...]:
         "team": _packed_team(setup.foes),
     }
     return (
-        f">start {json.dumps({'formatid': FORMAT, 'seed': list(setup.seed)})}",
+        f">start {json.dumps({'formatid': format_id, 'seed': list(setup.seed)})}",
         f">player p1 {json.dumps(p1)}",
         f">player p2 {json.dumps(p2)}",
         RESTORE.replace("STATES", json.dumps(states)),
         DUMP,
     )
+
+
+def condition_lines(setup: BattleSetup) -> tuple[str, ...]:
+    # The edge goes first: a misty or electric terrain would block its sleep.
+    code = (
+        "" if setup.edge is None else EDGE_JS.get(setup.edge, ""),
+        "" if setup.weather is None else WEATHER_JS.format(id=WEATHERS[setup.weather].showdown_id),
+        "" if setup.terrain is None else TERRAIN_JS.format(id=TERRAINS[setup.terrain].showdown_id),
+    )
+    joined = "; ".join(part for part in code if part)
+    return (f">eval {joined}",) if joined else ()
 
 
 def read_update(lines: Sequence[str], *, opening: bool) -> tuple[tuple[str, ...], Dump | None]:
@@ -366,70 +499,12 @@ def read_update(lines: Sequence[str], *, opening: bool) -> tuple[tuple[str, ...]
     return tuple(view), dump
 
 
-def opponent_choice(request: SideRequest, rng: Random) -> str:
-    if request.team_preview:
-        return "team 1"
-    if any(request.force_switch):
-        bench = [
-            number
-            for number, mon in enumerate(request.side.pokemon, 1)
-            if not mon.active and not mon.fainted
-        ]
-        return f"switch {rng.choice(bench)}"
-    moves = [number for number, move in enumerate(request.active[0].moves, 1) if not move.disabled]
-    return f"move {rng.choice(moves)}"
-
-
-def assess_line() -> str:
+def assess_line(side: SideId) -> str:
     # `>eval` turns each form feed back into a newline, so the file goes as one input line.
     code = "\f".join(line for line in read_cached_text(ASSESS_JS).splitlines() if line)
+    opposite = "p2" if side == "p1" else "p1"
+    code = code.replace("SIDES", f"battle.{side}, battle.{opposite}")
     return f">eval JSON.stringify({{...{SNAPSHOT}, assessment: {code}}})"
-
-
-def choices_of(request: SideRequest, battlers: Sequence[Battler]) -> tuple[BattleChoice, ...]:
-    team = request.side.pokemon
-    tags = {
-        battler.name: tuple(type_tag(kind) for kind in dex().species[battler.species_id].types)
-        for battler in battlers
-    }
-    if request.team_preview:
-        # The preview request comes before RESTORE: its conditions are all full HP.
-        return tuple(
-            BattleChoice(
-                command=f"team {number}",
-                name=mon.name,
-                brief=f"HP {battler.hp}/{max_hp(battler)} {battler.status}".rstrip(),
-                tags=tags.get(mon.name, ()),
-            )
-            for number, (mon, battler) in enumerate(zip(team, battlers, strict=True), 1)
-        )
-    switches = tuple(
-        BattleChoice(
-            command=f"switch {number}",
-            name=mon.name,
-            brief=f"HP {mon.condition}",
-            group=SWITCH,
-            refusal="Fainted" if mon.fainted else "",
-            tags=tags.get(mon.name, ()),
-        )
-        for number, mon in enumerate(team, 1)
-        if not mon.active
-    )
-    if any(request.force_switch):
-        return switches
-    move_types = {move.move_id: move.type for battler in battlers for move in battler.moves}
-    moves = tuple(
-        BattleChoice(
-            command=f"move {number}",
-            name=move.move,
-            brief="" if move.pp is None else f"{move.pp}/{move.maxpp} PP",
-            help="" if (known := dex().moves.get(move.id)) is None else move_summary(known),
-            refusal="Disabled" if move.disabled else "",
-            tags=(type_tag(kind),) if (kind := move_types.get(move.id)) else (),
-        )
-        for number, move in enumerate(request.active[0].moves, 1)
-    )
-    return moves if request.active[0].trapped else moves + switches
 
 
 def as_dumped(battler: Battler, dumped: DumpMon) -> Battler:
@@ -444,19 +519,24 @@ def as_dumped(battler: Battler, dumped: DumpMon) -> Battler:
     )
 
 
-def battle_result(setup: BattleSetup, dump: Dump, outcome: Outcome | None) -> BattleResult:
+def battle_result(
+    setup: BattleSetup, dump: Dump, outcome: Outcome | None, highlights: tuple[str, ...]
+) -> BattleResult:
     won = all(mon.hp == 0 for mon in dump.p2) and any(mon.hp > 0 for mon in dump.p1)
     decided: Outcome = outcome or ("won" if won else "lost")
+    # An ally's Pokemon come after the player's and fight fresh each battle: none is kept.
+    own = tuple(mon for mon in dump.p1 if mon.slot < len(setup.team))
     return BattleResult(
         outcome=decided,
-        team=tuple(as_dumped(setup.team[mon.slot], mon) for mon in dump.p1),
+        team=tuple(as_dumped(setup.team[mon.slot], mon) for mon in own),
         sent_out_foes=tuple(
             as_dumped(setup.foes[mon.slot], mon)
             for mon in sorted(dump.p2, key=lambda foe: foe.slot)
             if mon.out > 0
         ),
-        on_field_mon_ids=tuple(setup.team[mon.slot].mon_id for mon in dump.p1 if mon.out > 0),
+        on_field_mon_ids=tuple(setup.team[mon.slot].mon_id for mon in own if mon.out > 0),
         caught=_first_foe(setup, dump) if decided == "caught" else None,
+        highlights=highlights,
     )
 
 

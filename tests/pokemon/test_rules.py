@@ -13,6 +13,7 @@ from rulehall.engines.pokemon.dex import (
 from rulehall.engines.pokemon.rules import (
     STARTER_LEVEL,
     counter_pick,
+    help_bonus,
     signature_moves,
     stats,
     succeeds,
@@ -68,6 +69,33 @@ def test_a_check_succeeds_on_the_total_and_on_a_natural_twenty() -> None:
     assert not succeeds(1, 30, 10)
     assert succeeds(8, 10, 10)
     assert not succeeds(8, 9, 10)
+
+
+@pytest.mark.parametrize(
+    ("friendship", "bonus"), [(0, 2), (119, 2), (120, 3), (199, 3), (200, 4), (255, 4)]
+)
+def test_the_help_bonus_rises_with_friendship(friendship: int, bonus: int) -> None:
+    assert help_bonus(friendship) == bonus
+
+
+def test_a_helper_grows_closer_up_to_the_max_and_the_check_shows_its_bonus() -> None:
+    draft = started().draft()
+    charmander = draft.world.player_sheet.require_mon("charmander")
+    charmander.friendship = 254
+
+    facts = change(
+        ENGINE,
+        draft,
+        "check",
+        what="Climb",
+        skill="athletics",
+        difficulty="hard",
+        helper_mon_id="charmander",
+        reason="Charmander lights the way",
+    )
+
+    assert charmander.friendship == 255
+    assert "helped by Charmander +4" in facts[-1].trace
 
 
 def test_a_new_pokemon_knows_its_last_four_level_up_moves() -> None:

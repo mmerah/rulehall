@@ -33,7 +33,7 @@ from rulehall.core.log import (
 )
 from rulehall.core.stores import Library, SaveStore
 from rulehall.core.validation import Refusal, Slug
-from rulehall.core.views import BattleChoice, NarratorView, PlayerView, Sprite
+from rulehall.core.views import BattleChoice, BattleHeader, NarratorView, PlayerView, Sprite
 from rulehall.engines.battles import BattleRun, Battling, Transport, in_battle
 from rulehall.engines.engine import AnyEngine, Resolution
 
@@ -69,6 +69,7 @@ class SessionSnapshot:
     battle_log: tuple[str, ...]
     battle_facts: tuple[Fact, ...]
     battle_choices: tuple[BattleChoice, ...]
+    battle_header: BattleHeader | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -233,6 +234,7 @@ class GameSession:
             battle_log=() if run is None else tuple(run.log),
             battle_facts=() if run is None else tuple(run.facts),
             battle_choices=() if run is None else run.choices(),
+            battle_header=None if run is None else run.header(),
         )
 
     def player_view(self) -> PlayerView:
@@ -246,10 +248,16 @@ class GameSession:
 
     def icon(self, entity_id: Slug) -> Sprite | Path | None:
         sprite = self.engine.sprite(self.state, entity_id)
-        if sprite is None or self.engine.assets is None:
+        if sprite is None:
             return self.illustrator.icon(entity_id)
-        path = self.engine.assets / sprite.path
-        return sprite.model_copy(update={"path": path}) if path.is_file() else None
+        return self.find_asset(sprite)
+
+    def find_asset(self, sprite: Sprite) -> Sprite | None:
+        assets = self.engine.assets
+        path = None if assets is None else assets / sprite.path
+        return (
+            None if path is None or not path.is_file() else sprite.model_copy(update={"path": path})
+        )
 
     def save(self, state: AnyGame) -> None:
         self.store.write(self.key.save_id, state)

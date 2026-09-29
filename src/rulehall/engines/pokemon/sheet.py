@@ -64,6 +64,7 @@ from rulehall.engines.pokemon.rules import (
     TmId,
     attacks_physically,
     check_species,
+    help_bonus,
     item_of,
     latest_moves,
     level_for,
@@ -86,11 +87,19 @@ STYLE = (
     f"One line on how this {KEY_TRAINER} battles, such as 'sets up rain, then sweeps'. Empty for "
     "anyone else."
 )
+TRIAL = (
+    "One sentence, only for a gym leader: the trial the challenger meets before the leader, such "
+    "as a maze, a quiz or a puzzle a Pokemon solves. Empty for anyone else."
+)
 WIN_LINE = f"What this {KEY_TRAINER} says on beating the player. Empty for anyone else."
 LOSE_LINE = f"What this {KEY_TRAINER} says when the player beats them. Empty for anyone else."
 RIVAL = (
     "True for the one rival of the story, who stands in the opening map. A rival has no `roster`: "
     "code builds their team at each battle."
+)
+DOUBLE = (
+    "True for a trainer who always battles two-on-two, such as twins, a pair or a gym that "
+    "fights in doubles. Needs a `roster` of at least two."
 )
 SHARED_MON_FIELDS = {
     "mon_id",
@@ -291,7 +300,8 @@ class Mon(Mutable):
             f"{slot.move.name} ({slot.move.type}) {slot.pp}/{slot.move.pp}" for slot in self.moves
         )
         return (
-            f"- {ref} L{self.level} {self.species.types_text()}, {self._health()}{held}; "
+            f"- {ref} L{self.level} {self.species.types_text()}, {self._health()}, "
+            f"help +{help_bonus(self.friendship)}{held}; "
             f"moves: {moves} — {self.species.entry}"
         )
 
@@ -333,11 +343,12 @@ class Mon(Mutable):
             self.level += 1
             reached.append(self.level)
         if reached:
-            self.friendship = min(
-                self.friendship + FRIENDSHIP_PER_LEVEL * len(reached), FRIENDSHIP_MAX
-            )
+            self.befriend(FRIENDSHIP_PER_LEVEL * len(reached))
             self._grow_hp()
         return reached, exp > room
+
+    def befriend(self, amount: int) -> None:
+        self.friendship = min(self.friendship + amount, FRIENDSHIP_MAX)
 
     def moves_at(self, level: int) -> tuple[Slug, ...]:
         return tuple(move_id for learned_at, move_id in self.species.levelup if learned_at == level)
@@ -588,9 +599,11 @@ class Trainer(Sheeted[TrainerSheet], Dweller):
     roster: tuple[RosterSlot, ...] = Field(default=(), max_length=TEAM_MAX, description=ROSTER)
     badge: str = Field(default="", description=BADGE)
     style: str = Field(default="", description=STYLE)
+    trial: str = Field(default="", description=TRIAL)
     win_line: str = Field(default="", description=WIN_LINE)
     lose_line: str = Field(default="", description=LOSE_LINE)
     rival: bool = Field(default=False, description=RIVAL)
+    double: bool = Field(default=False, description=DOUBLE)
     avatar_id: Slug = Field(description=AVATAR_ID)
     team: SkipJsonSchema[list[Mon]] = Field(default_factory=list)
     beaten: SkipJsonSchema[bool] = False
@@ -613,7 +626,9 @@ class Trainer(Sheeted[TrainerSheet], Dweller):
             roster = ", ".join(slot.text() for slot in self.roster)
             shown = (
                 ("Team", roster),
+                ("Double", "battles two-on-two" if self.double else ""),
                 ("Style", self.style),
+                ("Trial", self.trial),
                 ("Badge", self.badge),
                 ("Beaten", "yes" if self.beaten else ""),
             )

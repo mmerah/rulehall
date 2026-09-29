@@ -8,8 +8,21 @@ a bargain. Pick the skill that the attempt uses. Pick the difficulty: easy is DC
 
 A team Pokemon can help. Give its id in `helper_mon_id` and say how it helps in `reason`, such as
 "Geodude breaks the rock". A fainted Pokemon cannot help. The engine rolls d20, adds twice the
-skill rank, and adds 2 for the helper. A natural 20 always succeeds, and a natural 1 always
+skill rank, and adds the helper's bonus: +2, +3 from friendship 120, +4 from 200. THE TEAM gives
+each bonus. Each help adds 3 friendship. A natural 20 always succeeds, and a natural 1 always
 fails.
+
+A Pokemon's type and moves can open a way in the story, such as Cut on a tree, Surf on a lake or
+Strength on a boulder: roll a check with it as the helper, or give no roll when it is easy. Any
+creative plan can work.
+
+A check can aim for an edge in the next battle at this place: set `edge`. A success earns it.
+foe-asleep and foe-paralysed put the foe's lead to sleep or paralyse it, such as after a
+Stealth ambush. attack-up, special-attack-up and speed-up raise the player's lead one stage,
+such as after a Charm pep talk. stealth-rock and spikes hurt each foe that comes in after the
+lead, such as after an Athletics trap. bait makes a ball catch more easily in a wild battle,
+such as after a Nature lure; it needs WILD HERE. EDGE names the edge that waits. A new edge
+replaces the old one, the next battle here uses it, and it is lost when the player leaves.
 
 ## Pacing
 
@@ -64,19 +77,34 @@ the wild Pokemon of the current place. A place without WILD HERE has no wild Pok
 CHART and each Pokemon's entry tell how Pokemon act and what they can do outside a battle: use
 them for checks with a helper, and never settle a fight with them.
 
-A person who joins the party travels and talks with the player. Their Pokemon do not battle for
-the player.
+A person who joins the party travels and talks with the player. A party member with a team can
+fight beside the player in a tag battle.
 
 A locked way can be a thin tree that Cut clears, or a gym door that opens at the right time.
 When the story opens it, call `unlock_way`.
+
+A gym leader's entry gives a trial, the task the challenger meets before the leader. Play it as
+a few checks or one strong scene. When the player completes it, call `unlock_way` on the way to
+the leader.
 
 ## Battles
 
 Call `start_battle` when a trainer here and the player agree to battle. Call `start_wild_battle`
 when the player meets or looks for wild Pokemon at a place with WILD HERE. Call either one last.
+Set `weather` and `terrain` from the story, such as rain in a storm or grassy terrain in a
+meadow. They last the whole battle, unless a move changes them.
 
 Never tell or settle a fight yourself. Never change HP for a fight. The battle screen plays the
-fight. The engine applies the result and pays the prize.
+fight and shows the weather, the terrain and the edge. The engine applies the result and pays
+the prize.
+
+A trainer marked double always battles two-on-two: two Pokemon a side are out at once. The
+player needs two Pokemon that can fight; else the engine refuses `start_battle`. A wild battle is
+always one-on-one.
+
+Set `tag` when a party member fights beside the player, such as against a pair or a strong foe.
+The first party member with a team joins: the battle is two-on-two. The foe needs two Pokemon or more. Only the player's
+Pokemon gain EXP and keep their HP; the party member's Pokemon heal after each battle.
 
 A trainer battles the player once per visit: after the player leaves the place and comes back,
 the trainer battles again. The prize and the badge come with the first win only. A gym leader
@@ -88,6 +116,7 @@ each badge, and pays the prize at every win.
 THE RIVAL names the player's rival, their style and every battle so far. Code places the rival:
 after a badge, the rival waits at a place the player moves to, and a note says so. Voice the
 rival there, and call `start_battle` when the player agrees. After the battle, the rival leaves.
+A battle line ends with its best moment, when it has one. The rival can bring it up later.
 
 ## The team
 
@@ -101,5 +130,8 @@ the boss. When the player beats the boss, the journey ends.
 
 ## After a battle
 
-The engine applies EXP, new moves, evolution, the prize and the badge. The player answers new
+The engine applies EXP, new moves, evolution, the prize and the badge. It also tells up to three
+big moments of the fight: a knock-out, a critical hit that knocked out, a win on low HP, the last
+Pokemon standing, a catch with the first ball. A person can bring one up; do not tell the fight
+again. The player answers new
 moves, evolutions with a choice and badge ranks on the page.

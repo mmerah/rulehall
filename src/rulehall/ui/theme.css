@@ -840,15 +840,79 @@ body, body.body--dark {
 .game-row-dialog .game-choice .q-btn__content { text-align: left }
 .game-entity + .game-entity:has(.game-meters) { border-top: 1px solid var(--game-border-soft) }
 
-/* The battle: one measure for the stage and the choices, room around them. */
-.game-battle { padding: 1.25rem 1.5rem 1.5rem; align-items: center }
+/* The battle: a framed arena. The trainers on top, the view and the lines, then the choices. */
+.game-battle { padding: 1rem 1.5rem 1.5rem; align-items: center }
 /* The cards' wrapper is `display: contents`: its children are the battle's items. */
 .game-battle-cards { display: contents }
-.game-battle > *, .game-battle-cards > * { width: 100%; max-width: 36rem }
+.game-battle > *, .game-battle-cards > * { flex: none; width: 100%; max-width: 50rem }
 .game-battle .game-eyebrow { font-size: .62rem; margin-top: .25rem }
-.game-battle-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: .5rem }
+.game-battle-head {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .6rem .8rem;
+  background: linear-gradient(100deg, var(--game-accent-soft), transparent 40%, transparent 60%, var(--game-wash)), var(--game-surface-raised);
+  border: 1px solid var(--game-border-soft);
+  border-radius: calc(var(--game-radius) * .85);
+  box-shadow: var(--game-shadow-sm), var(--game-highlight);
+}
+.game-battle-sides { display: flex; align-items: center; gap: 1rem; flex: 1 1 0; min-width: 0 }
+.game-battle-foe { justify-content: flex-end }
+.game-battle-side { display: flex; align-items: center; gap: .55rem; min-width: 0 }
+.game-battle-foe .game-battle-side { flex-direction: row-reverse }
+.game-battle-foe .game-battle-trainer { align-items: flex-end }
+.game-battle-trainer { min-width: 0 }
+.game-battle-side .game-sprite-frame { zoom: 1.4; align-self: center }
+.game-battle-name {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: 700; font-size: .95rem; line-height: 1.2;
+}
+.game-battle-vs {
+  flex: none; color: var(--game-accent);
+  font-family: var(--game-heading); font-style: italic; font-weight: 700; font-size: 1.15rem;
+}
+.game-battle-pips { display: flex; gap: .22rem }
+.game-pip { width: .6rem; height: .6rem; border-radius: 50%; box-sizing: border-box }
+.game-pip-able { background: var(--game-success); box-shadow: 0 0 6px -1px var(--game-success) }
+.game-pip-fainted { background: var(--game-danger); opacity: .45 }
+.game-pip-reserve { border: 1.5px solid var(--game-muted); opacity: .8 }
+.game-battle > .game-tags { justify-content: center; margin: 0 }
+.game-battle-arena { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; align-items: start }
+.game-battle-voices { display: flex; flex-direction: column; gap: .5rem }
+.game-battle-speech {
+  position: relative; padding: .55rem .8rem;
+  background: var(--game-surface-raised);
+  border: 1px solid var(--game-border-soft);
+  border-radius: calc(var(--game-radius) * .8);
+  box-shadow: var(--game-shadow-sm), var(--game-highlight);
+  font-size: .9rem; font-style: italic; line-height: 1.4;
+}
+.game-battle-speech:before {
+  content: ''; position: absolute; left: 1.25rem; top: -.4rem;
+  width: .7rem; height: .7rem; transform: rotate(45deg);
+  background: inherit; border: inherit; border-right: 0; border-bottom: 0;
+}
+.game-battle-speaker { color: var(--game-accent); font-size: .66rem; font-style: normal; font-weight: 700; letter-spacing: .06em; text-transform: uppercase }
+@media (min-width: 900px) {
+  .game-battle-arena:has(.game-battle-voices) { grid-template-columns: minmax(0, 1fr) 13rem; align-items: center }
+  .game-battle-speech:before { left: -.4rem; top: 1rem; transform: rotate(-45deg) }
+}
 .game-battle .game-choice { min-height: 2.75rem; padding: .45rem .8rem }
-.game-choice-head > :first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis }
+.game-battle-moves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem }
+.game-battle .game-choice-move { min-height: 3.5rem }
+.game-choice-move .game-choice-name { font-weight: 600 }
+.q-btn--outline.game-choice-move.game-choice-tinted { background: linear-gradient(100deg, color-mix(in srgb, var(--game-tag) 26%, transparent), var(--game-wash) 70%) !important }
+.game-choice-move.game-choice-tinted { box-shadow: inset 4px 0 0 var(--game-tag) }
+.game-battle-team {
+  display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .2rem;
+  scroll-snap-type: x proximity; overscroll-behavior-x: contain;
+}
+.game-battle-team > .game-choice { flex: 1 0 10.5rem; scroll-snap-align: start }
+.game-choice .game-sprite-frame { zoom: 1; align-self: center; margin: -.2rem 0 }
+.game-choice .game-avatar { font-size: 1.75rem !important; background: none; border: 0; box-shadow: none }
+.game-choice .game-meters { margin: .3rem 0 0 }
+.game-battle-foot { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem }
+.game-battle-foot > .game-choice-leave { margin-left: auto }
+.game-battle-foot > .game-choice { flex: 0 1 auto }
+.game-choice-name { min-width: 0; overflow: hidden; text-overflow: ellipsis }
 .q-btn--outline.game-choice-tinted { background: color-mix(in srgb, var(--game-tag) 16%, var(--game-wash)) !important }
 .game-choice-tinted:before { border-color: color-mix(in srgb, var(--game-tag) 55%, var(--game-border)) }
 .game-choice .game-tags { margin: 0 0 0 auto; flex: none }
@@ -979,6 +1043,17 @@ body, body.body--dark {
   .q-btn.game-send.game-send-named { width: 2.75rem; padding: 0; border-radius: 50% }
   .game-send-named .q-btn__content { font-size: 0 }
   .game-send-named .q-icon { font-size: 1.5rem; margin: 0 }
+  .game-battle { padding: .6rem .6rem 1rem }
+  .game-battle-head { padding: .45rem .55rem; gap: .4rem }
+  .game-battle-sides { flex-direction: column; align-items: flex-start; gap: .35rem }
+  .game-battle-foe { align-items: flex-end }
+  .game-battle-side { gap: .4rem }
+  .game-battle-side .q-avatar { font-size: 34px !important }
+  .game-battle-side .game-sprite-frame { zoom: 1 }
+  .game-battle-name { font-size: .82rem }
+  .game-battle-vs { font-size: .95rem }
+  .game-pip { width: .5rem; height: .5rem }
+  .game-battle-team > .game-choice { flex: 0 0 9.5rem }
   .q-btn.game-sheet-button { width: 2.75rem; min-width: 2.75rem; height: 2.75rem; padding: 0 }
   .game-sheet-button .block { display: none !important }  /* beats Quasar's `.block` */
   .game-sheet-button .on-left { margin: 0 }

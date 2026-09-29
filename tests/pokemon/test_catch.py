@@ -21,7 +21,7 @@ def test_the_catch_rate_follows_the_table(hp: int, status: Status, rate: int) ->
     assert pidgey.hp == 16
     foe = pidgey.model_copy(update={"hp": hp, "status": status})
 
-    assert catch_rate(foe, ITEMS["poke-ball"].catch_bonus) == rate
+    assert catch_rate(foe, ITEMS["poke-ball"].catch_bonus, baited=False) == rate
 
 
 def test_one_ball_each_turn() -> None:
