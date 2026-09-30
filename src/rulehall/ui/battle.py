@@ -295,7 +295,7 @@ class BattlePanel:
         with self.column:
             chosen = await attempt(lambda: self.session.battle_command(command), failed=MOVE_FAILED)
         self.grid.classes(remove=RESOLVING)
-        if picked is not None:
+        if picked is not None and not picked.is_deleted:
             picked.classes(remove=PICKED)
         if not chosen and self.shown and self.session.battle_run is None:
             self._open()
