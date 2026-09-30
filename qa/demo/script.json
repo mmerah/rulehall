@@ -110,6 +110,7 @@
             "id": "wenna-rook",
             "name": "Wenna Rook",
             "brief": "The keeper's daughter. She rows out each dawn to look for her father.",
+            "voice": "feminine",
             "concept": "A Stubborn Boatwoman",
             "tags": {
               "skill": ["Rows in Any Sea", "Knows the Tower"],

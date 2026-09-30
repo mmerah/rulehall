@@ -287,6 +287,7 @@ async def test_a_re_filed_cast_member_takes_the_new_brief_and_keeps_their_name_a
                     "id": "mara",
                     "name": "Mara",
                     "brief": "Waiting under the arcade with the lantern shuttered.",
+                    "voice": "feminine",
                 }
             },
         )

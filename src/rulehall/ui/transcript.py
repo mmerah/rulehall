@@ -1,4 +1,5 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from functools import partial
 from html import escape
 from time import monotonic
 
@@ -33,6 +34,9 @@ CAUSE_LABELS: dict[Cause, str] = {
 }
 FACT_ICONS = {False: "sym_r_bolt", True: "sym_r_casino"}
 SPUN_LINES = 12
+READ_ALOUD = "Read aloud"
+
+type ReadAloud = Callable[[SpokenLine, int], None]
 
 
 class TurnBlock:
@@ -97,16 +101,34 @@ class TurnBlock:
             )
         self.lines = tuple(lines)
 
+    def add_read_aloud(self, read_aloud: ReadAloud) -> None:
+        for line, (message, body) in zip(self.lines, self.bubbles, strict=True):
+            draw_read_aloud_button(message, body, partial(read_aloud, line, message.id))
+
+    def spoken_bubbles(self) -> list[tuple[SpokenLine, int]]:
+        return [
+            (line, message.id) for line, (message, _) in zip(self.lines, self.bubbles, strict=True)
+        ]
+
 
 class Transcript:
-    def __init__(self, now: SessionSnapshot, icon_of: IconOf, sounds: Sounds) -> None:
+    def __init__(
+        self,
+        now: SessionSnapshot,
+        icon_of: IconOf,
+        sounds: Sounds,
+        read_aloud: ReadAloud | None,
+    ) -> None:
         self.icon_of = icon_of
         self.sounds = sounds
+        self.read_aloud = read_aloud
         self.premise: ui.label | None = None
         self.pause_line: ui.label | None = None
         self.column = ui.element("div").style(PASS_THROUGH)
         self.live_block: TurnBlock
         self.landed_block: TurnBlock | None = None
+        self.landed_bubbles: list[tuple[SpokenLine, int]] = []
+        self.redrawn = False
         self.redraw(now)
         self.show_pause(now.view)
         self.step_started = monotonic()
@@ -119,7 +141,9 @@ class Transcript:
         return block.bubbles[0][0].id if block is not None and block.bubbles else None
 
     def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
+        self.landed_bubbles = []
         appended = appended_since(now.log_entries, drawn.log_entries)
+        self.redrawn = appended is None
         if appended is None:
             self.redraw(now)
         else:
@@ -151,10 +175,13 @@ class Transcript:
         if self.pause_line is not None:
             self.pause_line.set_visibility(True)
         for entry in entries:
-            fresh = self.live_block.show_entry(entry, entering=entering)
+            block = self.landed_block = self.live_block
+            fresh = block.show_entry(entry, entering=entering)
+            if self.read_aloud is not None:
+                block.add_read_aloud(self.read_aloud)
             if entering and entry.cause != "battle":
                 self.sounds.roll_dice(told_cards(fresh))
-            self.landed_block = self.live_block
+                self.landed_bubbles.extend(block.spoken_bubbles())
             with self.column:
                 self.pause_line = (
                     ui.label(f"Paused: {entry.decision}").classes("game-paused")
@@ -248,6 +275,17 @@ def draw_speaker_message(
         with message.add_slot("avatar"):
             avatar(icon_of(speaker_id), line.speaker)
     return message, body
+
+
+def draw_read_aloud_button(
+    message: ui.chat_message, body: ui.html, read_aloud: Callable[[], None]
+) -> None:
+    # One child: Quasar wraps each child of a chat message in a bubble of its own.
+    with message, ui.element("div").style(PASS_THROUGH) as wrapper:
+        body.move(wrapper)
+        ui.button(icon="sym_r_volume_up", on_click=read_aloud).props(
+            f'flat round dense aria-label="{READ_ALOUD}"'
+        ).classes("game-read-aloud")
 
 
 def draw_working_status_row(role: Role) -> ui.label:

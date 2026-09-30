@@ -7,6 +7,7 @@ from pydantic.json_schema import SkipJsonSchema
 
 from rulehall.core.facts import DiceEvent, Fact, Rolled, roll
 from rulehall.core.game import Game
+from rulehall.core.log import Voice
 from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, as_tuple
 from rulehall.engines.args import BE_SHORT
 from rulehall.engines.loner4e.rules import (
@@ -414,7 +415,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         known = self.find_entity(entity_id)
         if known is not None and (known is self.player or known.id in self.scene.here_ids):
             return self.require_living_here(known.id), []
-        facts = self.enter(entity_id)
+        facts = self.enter(entity_id, None)
         return self.require_living_here(entity_id), facts
 
     def conflict_lines(self) -> str:
@@ -495,9 +496,9 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
             for fact in side.refill(f"the conflict is over: {why}")
         ]
 
-    def enter(self, entity_id: Slug) -> list[Fact]:
+    def enter(self, entity_id: Slug, voice: Voice | None) -> list[Fact]:
         self.require_open()
-        return super().enter(entity_id)
+        return super().enter(entity_id, voice)
 
     def leave(self, entity_id: Slug) -> list[Fact]:
         self.require_open()

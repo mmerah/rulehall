@@ -35,8 +35,10 @@ open_crew = partial(open_table, engine_id=TWENTYFOURXX, state_type=TwentyFourXXG
 
 
 def small_world() -> TwentyFourXXGame:
-    kestrel = Crewmate(id=KESTREL, name="Kestrel", brief="A dockhand", known=True)
-    sable = Crewmate(id=SABLE, name="Sable", brief="A rival operator", known=False)
+    kestrel = Crewmate(id=KESTREL, name="Kestrel", voice="feminine", brief="A dockhand", known=True)
+    sable = Crewmate(
+        id=SABLE, name="Sable", voice="feminine", brief="A rival operator", known=False
+    )
     world = TwentyFourXXWorld(
         cast={KESTREL: kestrel, SABLE: sable},
         player=_player(),
@@ -86,6 +88,7 @@ def _player() -> Crewmate:
     return Crewmate(
         id=PLAYER_ID,
         name="Rook",
+        voice="masculine",
         brief="A quiet operator",
         known=True,
         sheet=CrewSheet(

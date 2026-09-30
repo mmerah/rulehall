@@ -46,6 +46,29 @@ class Sounds(ui.element, component="sounds.js"):
             self.run_method("play")
 
 
+class Speech(ui.element, component="speech.js"):
+    def play(self, path: Path, bubble_id: int) -> None:
+        self.run_method("play", media_url(path), bubble_id)
+
+    def replay(self, path: Path, bubble_id: int) -> None:
+        self.run_method("replay", media_url(path), bubble_id)
+
+    def wait(self, bubble_id: int) -> None:
+        self.run_method("wait", bubble_id)
+
+    def stop(self) -> None:
+        self.run_method("stop")
+
+    def reveal(self) -> None:
+        self.run_method("reveal")
+
+    def toggle_auto_read(self) -> None:
+        self.run_method("toggleAutoRead")
+
+    def toggle_recording(self) -> None:
+        self.run_method("toggleRecording")
+
+
 class Confirm(ui.dialog):
     def __init__(self, *, keep: str, confirm: str) -> None:
         super().__init__()

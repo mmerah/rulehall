@@ -1,8 +1,8 @@
-import json
 from collections.abc import AsyncGenerator, AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
+from json import dumps
 from random import Random
 
 import pytest
@@ -20,7 +20,7 @@ from rulehall.core.validation import Refusal
 CHANGE_TAGS = ENGINES_BUILT[LONER4E].tools["change_tags"]
 DIRECT = ENGINES_BUILT[LONER4E].tools["direct"]
 TRACE = "- the player Kael[player] gained the tag Listening"
-DIRECTED = json.dumps({"text": "He listens."})
+DIRECTED = dumps({"text": "He listens."})
 FENCED = '```json\n{"lines": []}\n```'
 _, STATE = initialized()
 
@@ -59,8 +59,10 @@ def _post(
             raise reply
         return reply
 
-    async def scripted(_provider: object, body: Mapping[str, JsonValue]) -> bytes:
-        return json.dumps(next_reply(body)).encode()
+    async def scripted(
+        _provider: object, _endpoint: str, *, json: Mapping[str, JsonValue]
+    ) -> bytes:
+        return dumps(next_reply(json)).encode()
 
     @asynccontextmanager
     async def streamed(
@@ -69,7 +71,7 @@ def _post(
         assert body["stream"] is True
         yield _chunks(next_reply(body))
 
-    monkeypatch.setattr("rulehall.app.api_roles.post_chat_completion", scripted)
+    monkeypatch.setattr("rulehall.app.api_roles.post", scripted)
     monkeypatch.setattr("rulehall.app.api_roles.stream_chat_completion", streamed)
     return sent
 
@@ -78,7 +80,7 @@ async def _chunks(reply: JsonValue) -> AsyncIterator[str]:
     assert isinstance(reply, dict)
     choices = reply.get("choices")
     if not isinstance(choices, list):
-        yield f"data: {json.dumps(reply)}"
+        yield f"data: {dumps(reply)}"
     for choice in choices if isinstance(choices, list) else ():
         assert isinstance(choice, dict)
         message = choice["message"]
@@ -88,7 +90,7 @@ async def _chunks(reply: JsonValue) -> AsyncIterator[str]:
         yield ": OPENROUTER PROCESSING"
         for part in parts:
             delta = {**message, "content": part}
-            yield f"data: {json.dumps({'choices': [{'delta': delta}]})}"
+            yield f"data: {dumps({'choices': [{'delta': delta}]})}"
     yield "data: [DONE]"
 
 
@@ -117,7 +119,7 @@ async def test_the_master_plays_its_tools_in_process_and_echoes_each_reply_whole
         "kind": "condition",
         "gained": ["Listening"],
     }
-    arguments = json.dumps(change)
+    arguments = dumps(change)
     first = _said(
         None,
         _call("a", "change_tags", arguments),

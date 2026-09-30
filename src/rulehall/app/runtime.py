@@ -8,6 +8,7 @@ from rulehall.app.game_session import GameSession, Gate
 from rulehall.app.http_client import close_client
 from rulehall.app.illustration import ICON_DIR, Illustrator
 from rulehall.app.roles import ProviderRoleRunner, RoleRunner, role_answer
+from rulehall.app.speech import Speaker
 from rulehall.config import LiveSettings, Settings
 from rulehall.core.documents import given_text
 from rulehall.core.game import AnyScenario, ScenarioDescription
@@ -140,5 +141,8 @@ class Runtime:
                     self.library.character_folder(key.character_id) / ICON_DIR,
                 ),
                 portraits=engine.portraits,
+            ),
+            speaker=Speaker(
+                live_settings=self.live_settings, saves=self.store.media_dir(key.save_id)
             ),
         )

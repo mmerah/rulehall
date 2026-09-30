@@ -27,6 +27,7 @@
         "id": "mara",
         "name": "Mara",
         "brief": "The abbey's last scribe, cautious and tired, still cataloguing books nobody will read.",
+        "voice": "feminine",
         "concept": "A Cautious Scribe",
         "tags": {
           "skill": [
@@ -47,6 +48,7 @@
         "id": "brother-tomas",
         "name": "Brother Tomas",
         "brief": "A deaf old porter who sweeps the cloister and knows almost nothing about the vault.",
+        "voice": "masculine",
         "concept": "A Deaf Old Porter",
         "tags": {
           "skill": [
@@ -64,6 +66,7 @@
         "id": "elena",
         "name": "Elena",
         "brief": "The vault's former archivist; she alone remembers the sealing rite, and she names a price before she gives it up. She catalogued the vault ledgers beside Mara for two winters, until the night she went below alone and never came back up. The rite is in her head and nowhere else.",
+        "voice": "feminine",
         "concept": "A Ruined Archivist",
         "tags": {
           "skill": [
@@ -84,6 +87,7 @@
         "id": "a-bloated-rat",
         "name": "a bloated rat",
         "brief": "It has grown fat on the dead garden and does not run from a lantern.",
+        "voice": "other",
         "concept": "A Bloated Cloister Rat",
         "tags": {
           "skill": [

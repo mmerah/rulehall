@@ -85,6 +85,15 @@
               "default": false,
               "type": "boolean"
             },
+            "voice": {
+              "description": "How this person sounds read aloud: feminine, masculine, or other for creatures, machines and voices that are neither.",
+              "enum": [
+                "feminine",
+                "masculine",
+                "other"
+              ],
+              "type": "string"
+            },
             "place_id": {
               "type": "string"
             },
@@ -109,6 +118,7 @@
             "id",
             "name",
             "brief",
+            "voice",
             "place_id",
             "hp"
           ],

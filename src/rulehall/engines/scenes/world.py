@@ -4,6 +4,7 @@ from typing import Self
 from pydantic import Field, model_validator
 
 from rulehall.core.facts import Fact
+from rulehall.core.log import Voice
 from rulehall.core.prompt import lines_of, sentence
 from rulehall.core.validation import (
     Frozen,
@@ -18,6 +19,8 @@ from rulehall.engines.sheet import PLAYER_ID, Entity, Person
 from rulehall.engines.world import IS_DEAD, UNKNOWN_ID, OpeningProposal, World, check_filing
 
 SETTLED_SHOWN = 12
+# A stranger filed without a voice: nothing says how it sounds.
+STRANGER_VOICE: Voice = "other"
 ARC_DESCRIPTION = (
     "The long game that spans the scenes: pressure, intent and what can come later. Never "
     "restate or change what happened, and never what is true in this scene now. The player "
@@ -252,12 +255,15 @@ class SceneWorld[P: Person](World[P]):
             raise Refusal(f"{entity_id!r} is not hidden here")
         return entity.reveal(card=sentence(f"{entity.name} discovered"))
 
-    def enter(self, entity_id: Slug) -> list[Fact]:
+    def enter(self, entity_id: Slug, voice: Voice | None) -> list[Fact]:
         if entity_id == self.player.id:
             raise Refusal("the player is in every scene; move the story on instead")
         known_id = find_cast_id(entity_id, self.cast)
         if known_id is None:
-            return [self.file_stranger(entity_id), *self.enter(entity_id)]
+            return [
+                self.file_stranger(entity_id, voice or STRANGER_VOICE),
+                *self.enter(entity_id, voice),
+            ]
         entity = self.cast[known_id]
         if entity.id in self.scene.here_ids:
             if not entity.known:
@@ -288,19 +294,19 @@ class SceneWorld[P: Person](World[P]):
         entity = self.require_here(entity_id)
         return [entity.fact(f"{entity.mention} is dead", card=self.die(entity))]
 
-    def file_stranger(self, entity_id: Slug) -> Fact:
+    def file_stranger(self, entity_id: Slug, voice: Voice) -> Fact:
         name = stranger_name(entity_id)
         self.refuse_unmet_names(name)
         others = ", ".join(entry.ref for entry in self.cast.values() if entry.alive)
         brief = f"met at {self.scene.title}"
-        self.cast[entity_id] = type(self.player)(id=entity_id, name=name, brief=brief)
+        self.cast[entity_id] = type(self.player)(id=entity_id, name=name, brief=brief, voice=voice)
         return Fact(trace=FILED.format(name=name, entity_id=entity_id, others=others or "(no one)"))
 
     def merged_cast(self, cast: Mapping[Slug, P]) -> dict[Slug, P]:
         return {
             **self.cast,
             **{
-                entity_id: filed.model_copy(update={"brief": entry.brief})
+                entity_id: filed.model_copy(update={"brief": entry.brief, "voice": entry.voice})
                 if (filed := self.cast.get(entity_id)) is not None
                 else entry
                 for entity_id, entry in cast.items()

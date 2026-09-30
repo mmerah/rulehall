@@ -225,7 +225,9 @@ def test_a_deadly_setback_maims_once_and_a_wound_is_its_own_hindrance() -> None:
 def test_a_name_told_to_the_player_makes_them_met_unless_they_are_hidden_here(
     draft: TwentyFourXXGame,
 ) -> None:
-    buyer = Crewmate(id="bray-kell", name="Bray Kell", brief="The buyer on Anvil")
+    buyer = Crewmate(
+        id="bray-kell", name="Bray Kell", voice="masculine", brief="The buyer on Anvil"
+    )
     draft.world.cast[buyer.id] = buyer
     _ = change(ENGINE, draft, "direct", text="Ilsa says the buyer is Bray Kell, on Anvil.")
     assert buyer.known
@@ -625,8 +627,9 @@ def test_a_let_go_member_is_named_so_and_repeat_leaves_do_nothing() -> None:
 def test_enter_files_a_stranger_the_player_names_who_can_then_be_hired(
     draft: TwentyFourXXGame,
 ) -> None:
-    facts = change(ENGINE, draft, "enter", target_id="juno-pell")
+    facts = change(ENGINE, draft, "enter", target_id="juno-pell", voice="feminine")
     assert draft.world.cast["juno-pell"].name == "Juno Pell"
+    assert draft.world.cast["juno-pell"].voice == "feminine"
     assert any(fact.card == "Juno Pell arrives" for fact in facts)
 
     _ = change(ENGINE, draft, "join_party", target_id="juno", terms="Watch my back")

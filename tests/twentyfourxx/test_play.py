@@ -198,6 +198,7 @@ async def test_a_lone_death_brings_in_a_newcomer_who_leads_here(tmp_path: Path) 
     newcomer = {
         "name": "Juno",
         "brief": "A pilot who owes the dead a favour",
+        "voice": "other",
         "sheet": {
             "specialty": "Tech",
             "origin": "Android",

@@ -10,7 +10,7 @@ DROP = ActionOption(id="drop", name="Drop", action_name="drop_here", args={"item
 def _view(*rows: PanelRow) -> PlayerView:
     return PlayerView(
         premise="",
-        player=Subject(id="player", name="Wren"),
+        player=Subject(id="player", name="Wren", voice="feminine"),
         scene_title="The Cloister Walk",
         situation="Rain drums the arcade.",
         panels=(Panel(title="Carrying", rows=rows),),

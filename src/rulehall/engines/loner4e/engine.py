@@ -17,6 +17,7 @@ from rulehall.core.game import (
     RoleAnswer,
     WorldsmithRequest,
 )
+from rulehall.core.log import Voice
 from rulehall.core.prompt import Sections, section_if
 from rulehall.core.tools import MasterTool, NoArgs, action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
@@ -388,7 +389,7 @@ class Loner4eEngine(
         )
 
     def build_character(
-        self, name: str, brief: str, pack_id: Slug, picks: Picks
+        self, name: str, brief: str, voice: Voice, pack_id: Slug, picks: Picks
     ) -> Character[Loner4eEntity]:
         steps = self.creation_steps(pack_id, picks)
         by_id = {step.id: step for step in steps}
@@ -402,6 +403,7 @@ class Loner4eEngine(
             id=PLAYER_ID,
             name=name,
             brief=brief,
+            voice=voice,
             known=True,
             concept=picks.get("concept", ""),
             tags={

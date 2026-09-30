@@ -76,6 +76,7 @@ def _map_pieces() -> tuple[
     mira = Goon(
         id=MIRA,
         name="Mira",
+        voice="feminine",
         brief="A cautious guide",
         known=True,
         place_id=START,
@@ -84,6 +85,7 @@ def _map_pieces() -> tuple[
     mantis = Goon(
         id=MANTIS,
         name="Robo Mantis",
+        voice="other",
         brief="A clicking husk of gears",
         known=False,
         place_id=HALL,
@@ -106,6 +108,7 @@ def _kael() -> Goon:
     return Goon(
         id=PLAYER_ID,
         name="Kael",
+        voice="masculine",
         brief="A wiry scavenger",
         known=True,
         place_id=PLAYER_ID,
@@ -164,6 +167,7 @@ def keep() -> TunnelGoonsGame:
     warden = Goon(
         id=WARDEN,
         name="Warden",
+        voice="other",
         brief="Keeps the gate",
         known=True,
         place_id=GATE,

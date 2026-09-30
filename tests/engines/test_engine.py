@@ -40,7 +40,7 @@ def test_player_of_refuses_a_sheet_the_engine_does_not_write(engine_id: EngineId
     stranger = Character[Person](
         id="wren",
         engine_id=engine.id,
-        person=Person(id=PLAYER_ID, name="Wren", brief="", known=True),
+        person=Person(id=PLAYER_ID, name="Wren", voice="feminine", brief="", known=True),
     )
 
     with pytest.raises(Refusal, match="is not a"):

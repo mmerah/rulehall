@@ -23,7 +23,7 @@ from rulehall.core.game import (
     ScenarioDescription,
     WorldsmithRequest,
 )
-from rulehall.core.log import Cause, Chapter, LogEntry, SpokenLine
+from rulehall.core.log import Cause, Chapter, LogEntry, SpokenLine, Voice
 from rulehall.core.prompt import Prompt, Sections, sections
 from rulehall.core.stores import read_cached_text, read_model
 from rulehall.core.tools import MasterTool, action, marked_methods, player_facing_texts, tool
@@ -437,9 +437,11 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     def grown_character(self, _state: Game[W], /) -> AnyCharacter | None:
         return None
 
-    def create_character(self, name: str, brief: str, pack_id: Slug, picks: Picks) -> AnyCharacter:
+    def create_character(
+        self, name: str, brief: str, voice: Voice, pack_id: Slug, picks: Picks
+    ) -> AnyCharacter:
         check_picks(self.creation_steps(pack_id, picks), picks)
-        return self.build_character(name, brief, pack_id, picks)
+        return self.build_character(name, brief, voice, pack_id, picks)
 
     def validate(self, state: Game[W]) -> None:
         if not state.chapters:
@@ -452,7 +454,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     def creation_steps(self, pack_id: Slug, picks: Picks, /) -> tuple[CreationStep, ...]: ...
     @abstractmethod
     def build_character(
-        self, name: str, brief: str, pack_id: Slug, picks: Picks, /
+        self, name: str, brief: str, voice: Voice, pack_id: Slug, picks: Picks, /
     ) -> AnyCharacter: ...
     @abstractmethod
     def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> W: ...

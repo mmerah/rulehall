@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Awaitable, Callable, Generator
+from collections.abc import Awaitable, Callable, Generator, Sequence
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -19,6 +19,7 @@ from rulehall.app.role_prompts import (
     render_narrator,
 )
 from rulehall.app.roles import RoleRunner, ask, role_answer
+from rulehall.app.speech import Speaker
 from rulehall.app.turn import Turn
 from rulehall.config import LiveSettings, Role
 from rulehall.core.decisions import ActionOption, PlayerInput
@@ -97,6 +98,7 @@ class GameSession:
     state: AnyGame
     gate: "Gate" = field(repr=False, compare=False)
     illustrator: Illustrator
+    speaker: Speaker
     start_transport: Callable[[Battling], Awaitable[Transport]] = start_battle_process
     live_settings: LiveSettings
     rng: Random = field(default_factory=Random)
@@ -252,6 +254,18 @@ class GameSession:
             return self.illustrator.icon(entity_id)
         return self.find_asset(sprite)
 
+    def find_clip(self, line: SpokenLine) -> Path | None:
+        return self.speaker.find_clip(line)
+
+    def clip_refused(self, line: SpokenLine) -> bool:
+        return self.speaker.clip_refused(line)
+
+    def speak_later(self, lines: Sequence[SpokenLine]) -> None:
+        self.speaker.speak_later(lines)
+
+    async def transcribe(self, audio: bytes, mime: str) -> str:
+        return await self.speaker.transcribe(audio, mime)
+
     def find_asset(self, sprite: Sprite) -> Sprite | None:
         assets = self.engine.assets
         path = None if assets is None else assets / sprite.path
@@ -266,6 +280,7 @@ class GameSession:
     async def close(self) -> None:
         await self._close_battle()
         await self.illustrator.close()
+        await self.speaker.close()
 
     @contextmanager
     def mark_working(self, role: Role) -> Generator[None]:

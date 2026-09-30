@@ -409,7 +409,9 @@ async def test_the_debrief_prompt_holds_no_hidden_entity_and_no_untold_fact(
     tmp_path: Path,
 ) -> None:
     table = open_game(tmp_path)
-    hidden = Loner4eEntity(id="the-lurker", name="The Lurker", brief="It waits.", known=False)
+    hidden = Loner4eEntity(
+        id="the-lurker", name="The Lurker", voice="other", brief="It waits.", known=False
+    )
     draft = with_entity(table.state, hidden).draft()
     facts = (Fact(trace="The door creaks.", told=True), Fact(trace="A trap arms below."))
     table.session.save(table.session.engine.record(draft, (), facts, words="I open the door."))

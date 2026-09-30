@@ -52,12 +52,22 @@
             "known": {
               "default": false,
               "type": "boolean"
+            },
+            "voice": {
+              "description": "How this person sounds read aloud: feminine, masculine, or other for creatures, machines and voices that are neither.",
+              "enum": [
+                "feminine",
+                "masculine",
+                "other"
+              ],
+              "type": "string"
             }
           },
           "required": [
             "id",
             "name",
-            "brief"
+            "brief",
+            "voice"
           ],
           "type": "object"
         }

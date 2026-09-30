@@ -214,6 +214,7 @@ class ScriptedAgents:
                             "id": f"qa-npc-{number}",
                             "name": f"QA Npc {number}",
                             "brief": "A test dweller.",
+                            "voice": "other",
                             "known": opening,
                             "place_id": room,
                             "hp": {"current": 8, "maximum": 8},
@@ -231,7 +232,12 @@ class ScriptedAgents:
         }
         if '"sheet"' in schema:
             return json.dumps(
-                {"name": f"QA Newcomer {number}", "brief": "A test operator.", "sheet": sheet}
+                {
+                    "name": f"QA Newcomer {number}",
+                    "brief": "A test operator.",
+                    "voice": "feminine",
+                    "sheet": sheet,
+                }
             )
         if '"specialty"' in schema:
             return json.dumps(sheet)
@@ -258,6 +264,7 @@ class ScriptedAgents:
                     "id": person,
                     "name": f"QA {'Boss' if lair else 'Chief'} {number}",
                     "brief": "A test member of the team.",
+                    "voice": "masculine",
                     "known": False,
                     "place_id": room,
                     "roster": [{"species_id": "zubat", "level": 10}],
@@ -292,6 +299,7 @@ class ScriptedAgents:
                     "id": f"qa-npc-{number}",
                     "name": f"QA Npc {number}",
                     "brief": "A test person.",
+                    "voice": "feminine",
                 }
             },
             "arc": "",

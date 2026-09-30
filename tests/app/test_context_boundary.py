@@ -18,8 +18,8 @@ def _state() -> TwentyFourXXGame:
     _, begun = game(TWENTYFOURXX)
     draft = narrowed(begun, TwentyFourXXGame).draft()
     for entity in (
-        Crewmate(id=SECRET, name="The Secret", brief=UNREVEALED),
-        Crewmate(id="ledger", name="a ledger", brief="Vessa's notes.", known=True),
+        Crewmate(id=SECRET, name="The Secret", voice="other", brief=UNREVEALED),
+        Crewmate(id="ledger", name="a ledger", voice="other", brief="Vessa's notes.", known=True),
     ):
         draft.world.cast[entity.id] = entity
         draft.world.scene.here_ids.append(entity.id)

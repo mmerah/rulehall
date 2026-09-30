@@ -22,18 +22,21 @@
         "id": "vessa-rune",
         "name": "Vessa Rune",
         "brief": "QV-9's keeper for eleven years, she knows every corridor by feel and won't say why she hasn't left the docking ring in six days; her override codes can lock anyone out of the whole station.",
+        "voice": "feminine",
         "alive": true
       },
       "harl-odum": {
         "id": "harl-odum",
         "name": "Harl Odum",
         "brief": "A salvage pilot who claims he only just made port, though his skiff has sat cold at the outer berth since before the relay went dark; his cutting torch opens more than hull plate.",
+        "voice": "masculine",
         "alive": true
       },
       "warden-six": {
         "id": "warden-six",
         "name": "Warden Six",
         "brief": "QV-9's maintenance android, still carrying out a shutdown order it was never told to stand down from; its manipulator arms can crush a suit seal without meaning to kill.",
+        "voice": "other",
         "alive": true
       }
     },

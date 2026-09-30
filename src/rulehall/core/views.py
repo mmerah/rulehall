@@ -5,7 +5,7 @@ from typing import Literal, Self
 from pydantic import Field, model_validator
 
 from rulehall.core.decisions import ActionOption, Decision
-from rulehall.core.log import Line, Narration, SpokenLine
+from rulehall.core.log import Line, Narration, SpokenLine, Voice
 from rulehall.core.prompt import headline_of
 from rulehall.core.validation import Frozen, Refusal, Slug, check_unique
 
@@ -91,6 +91,7 @@ class Subject(Frozen):
     name: str = Field(min_length=1)
     brief: str = ""
     alive: bool = True
+    voice: Voice
 
     @property
     def headline(self) -> str:
@@ -159,7 +160,7 @@ class NarratorView(Frozen):
             who = None if line.speaker_id is None else voices.get(line.speaker_id)
             if who is None:
                 return SpokenLine(text=line.text)
-            return SpokenLine(speaker_id=who.id, speaker=who.name, text=line.text)
+            return SpokenLine(speaker_id=who.id, speaker=who.name, voice=who.voice, text=line.text)
 
         return tuple(spoken_line(line) for line in lines)
 

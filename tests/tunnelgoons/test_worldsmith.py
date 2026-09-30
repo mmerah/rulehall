@@ -82,7 +82,14 @@ def test_the_shipped_scenario_passes_the_map_bar() -> None:
 
 def test_a_living_npc_is_written_with_hp_above_zero() -> None:
     with pytest.raises(ValidationError, match="hp is above zero"):
-        Goon(id="corpse", name="Corpse", brief="", place_id=ONLY, hp=Gauge(current=0, maximum=4))
+        Goon(
+            id="corpse",
+            name="Corpse",
+            voice="other",
+            brief="",
+            place_id=ONLY,
+            hp=Gauge(current=0, maximum=4),
+        )
 
 
 def test_check_next_refuses_an_item_planted_on_the_player() -> None:
@@ -121,6 +128,7 @@ def _hiding_gremlin(
     gremlin = Goon(
         id="gremlin",
         name="Gremlin",
+        voice="other",
         brief="",
         place_id=place_id,
         known=False,

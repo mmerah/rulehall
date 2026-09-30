@@ -59,6 +59,19 @@
         "target_id": {
           "description": "Exact id of a cast member not already here.",
           "type": "string"
+        },
+        "voice": {
+          "enum": [
+            "feminine",
+            "masculine",
+            "other"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Only for someone not yet in the cast: how they sound read aloud. Feminine, masculine, or other for creatures, machines and voices that are neither. Leave it null for a cast member."
         }
       },
       "required": [

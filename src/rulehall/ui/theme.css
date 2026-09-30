@@ -723,6 +723,56 @@ body, body.body--dark {
 @keyframes game-nudge {
   50% { transform: translateY(3px) }
 }
+.game-speaking {
+  align-self: center; border-radius: 999px; padding: .1rem .2rem .1rem .45rem;
+  background: linear-gradient(180deg, var(--game-accent-strong), var(--game-accent));
+  box-shadow: 0 12px 28px -10px var(--game-accent-glow), var(--game-shadow-md);
+}
+.game-speaking .q-btn--flat, .game-speaking .q-btn--flat:hover { color: var(--game-bg) !important }
+.game-speaking .q-btn--flat:hover { background: rgb(0 0 0 / .1) }
+
+/* The read-aloud badge sits on the bubble's lower edge; a data attribute, set by speech.js, marks the line. */
+.game-message .q-message-text { position: relative }
+.game-message[data-voice="speaking"] .q-message-text {
+  border-color: var(--game-accent);
+  background: linear-gradient(var(--game-accent-soft), var(--game-accent-soft)), var(--game-surface-raised);
+  box-shadow: inset 3px 0 0 var(--game-accent), 0 10px 24px -14px var(--game-accent-glow), var(--game-shadow-sm);
+}
+.game-message[data-voice="waiting"] .q-message-text { animation: game-voice-wait 1.6s ease-in-out infinite }
+@keyframes game-voice-wait {
+  50% { border-color: color-mix(in srgb, var(--game-accent) 45%, transparent) }
+}
+.q-btn.game-read-aloud {
+  position: absolute; right: .75rem; bottom: -.875rem;
+  width: 1.75rem; min-width: 1.75rem; height: 1.75rem; min-height: 1.75rem; padding: 0;
+  font-size: .6rem;
+  background: var(--game-surface-raised);
+  border: 1px solid var(--game-border-soft);
+  box-shadow: var(--game-shadow-sm);
+  transition: opacity var(--game-fast);
+}
+.q-btn.game-read-aloud:focus-visible { outline: 2px solid var(--game-accent); outline-offset: 2px }
+.game-message[data-voice] .q-btn.game-read-aloud { opacity: 1 }
+.game-message[data-voice="speaking"] .q-btn.game-read-aloud {
+  color: var(--game-bg) !important; border-color: transparent;
+  background: linear-gradient(180deg, var(--game-accent-strong), var(--game-accent));
+}
+.game-message[data-voice="speaking"] .game-read-aloud .q-icon { display: none }
+.game-message[data-voice="speaking"] .game-read-aloud .q-btn__content:after {
+  content: ''; width: .75rem; height: .75rem;
+  background:
+    linear-gradient(currentColor 0 0) 0 100% / 3px 40% no-repeat,
+    linear-gradient(currentColor 0 0) 50% 100% / 3px 100% no-repeat,
+    linear-gradient(currentColor 0 0) 100% 100% / 3px 60% no-repeat;
+  animation: game-bars .9s ease-in-out infinite;
+}
+@keyframes game-bars {
+  50% { background-size: 3px 100%, 3px 45%, 3px 85% }
+}
+@media (hover: hover) {
+  .q-btn.game-read-aloud { opacity: 0 }
+  .game-message:hover .q-btn.game-read-aloud, .game-message:focus-within .q-btn.game-read-aloud { opacity: 1 }
+}
 
 .game-enter { animation: game-enter var(--game-medium) var(--game-ease) both }
 @keyframes game-enter {
@@ -797,6 +847,11 @@ body, body.body--dark {
 }
 .q-btn.game-send:not(.disabled):hover { transform: translateY(-1px) scale(1.05) }
 .q-btn.game-send.disabled { background: var(--game-border); box-shadow: none }
+.q-btn.game-mic { color: var(--game-muted) }
+.q-btn.game-mic.game-mic-on { color: var(--game-danger); animation: game-mic-pulse 1.2s var(--game-ease) infinite }
+@keyframes game-mic-pulse {
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--game-danger) 30%, transparent) }
+}
 .game-foot-body { padding: .5rem .75rem .75rem }
 .game-banner-text { flex: 1 1 auto; min-width: 0 }
 
@@ -1194,15 +1249,19 @@ body, body.body--dark {
 /* iOS zooms into any focused field under 16px and never zooms back out. Quasar's is 14px. */
 @media (pointer: coarse) {
   .q-field { font-size: 16px }
+  .q-btn.game-read-aloud:before { content: ''; inset: calc((1.75rem - 44px) / 2); box-shadow: none }
 }
 @media (hover: none) {
   .game-help-tip { display: none }
+  .game-message:not([data-voice]) .q-btn.game-read-aloud { opacity: .55 }
   .game-door:hover, .game-save:hover, .game-entry:hover, .game-choice:hover, .q-btn.bg-primary:hover { transform: none }
 }
 @media (prefers-reduced-motion: reduce) {
   .game-die-live, .game-die-live .game-die-value, .game-enter, .nicegui-content,
-  .game-asking.game-enter .game-moves, .game-activity .q-icon, .game-working:before, .game-working:after { animation: none }
+  .game-asking.game-enter .game-moves, .game-activity .q-icon, .q-btn.game-mic.game-mic-on, .game-working:before, .game-working:after,
+  .game-message[data-voice] .q-message-text, .game-message[data-voice] .game-read-aloud .q-btn__content:after { animation: none }
   .game-dots span { animation: none; opacity: .7 }
+  .game-message[data-voice="waiting"] .q-message-text { border-style: dashed; border-color: color-mix(in srgb, var(--game-accent) 45%, transparent) }
   .q-btn, .q-btn .q-icon, .game-scene-chevron, .game-choice, .game-fact, .game-entry, .game-door, .game-save { transition: none }
   .game-door:hover .game-die { animation: none }
   .q-btn:hover, .q-btn:active, .game-entry:hover, .game-choice:hover { transform: none !important }

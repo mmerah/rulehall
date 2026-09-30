@@ -5,6 +5,7 @@
     "id": "player",
     "name": "Kael",
     "brief": "A scarred relic-hunter who comes wherever something old lies sealed, and does not leave it shut.",
+    "voice": "masculine",
     "known": true,
     "concept": "A Wary Relic-Hunter",
     "tags": {

@@ -1,14 +1,12 @@
 import binascii
 import logging
-from asyncio import Task, create_task, gather
 from base64 import b64decode
-from collections.abc import Generator
-from contextlib import contextmanager
 from dataclasses import dataclass, field
 from hashlib import sha1
 from pathlib import Path
 
-from rulehall.app.http_client import post_chat_completion
+from rulehall.app.background import BackgroundTasks, Claims
+from rulehall.app.http_client import post
 from rulehall.config import LiveSettings
 from rulehall.core.stores import publish
 from rulehall.core.validation import Loose, Refusal, Slug, parse_json
@@ -20,22 +18,6 @@ ICON_DIR = "icons"
 SUFFIXES = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp"}
 SCENE_RATIO = "16:9"
 ICON_RATIO = "1:1"
-
-
-@dataclass(slots=True)
-class Claims:
-    held: set[str] = field(default_factory=set)
-
-    @contextmanager
-    def hold(self, key: str) -> Generator[bool]:
-        # Synchronous: an await between the read and the write would let two callers both pay.
-        won = key not in self.held
-        self.held.add(key)
-        try:
-            yield won
-        finally:
-            if won:
-                self.held.discard(key)
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,7 +34,7 @@ class Illustrator:
     style: str
     portraits: bool
     claims: Claims = field(default_factory=Claims)
-    tasks: set[Task[None]] = field(default_factory=set)
+    tasks: BackgroundTasks = field(default_factory=BackgroundTasks)
 
     def scene_art(self, scene: NarratorView) -> Path | None:
         if not self.live_settings.current.media.enabled:
@@ -69,16 +51,10 @@ class Illustrator:
         return None
 
     def illustrate_later(self, scene: NarratorView, player: Subject) -> None:
-        task = create_task(self.illustrate(scene, player))
-        # Kept because asyncio can collect a task that nothing refers to.
-        self.tasks.add(task)
-        task.add_done_callback(self._finished)
+        self.tasks.start(self.illustrate(scene, player), "scene art failed")
 
     async def close(self) -> None:
-        tasks = list(self.tasks)
-        for task in tasks:
-            task.cancel()
-        await gather(*tasks, return_exceptions=True)
+        await self.tasks.close()
 
     async def illustrate(self, scene: NarratorView, player: Subject) -> None:
         if not self.live_settings.current.media.enabled:
@@ -93,11 +69,6 @@ class Illustrator:
                     await self._drawn_icon(subject)
         except Refusal as failed:
             LOGGER.warning("image generation failed: %s", failed)
-
-    def _finished(self, task: Task[None]) -> None:
-        self.tasks.discard(task)
-        if not task.cancelled() and (failed := task.exception()) is not None:
-            LOGGER.exception("scene art failed", exc_info=failed)
 
     async def _draw(self, scene: NarratorView, key: str) -> None:
         generated = await self._generate(illustration_request(scene, self.style), SCENE_RATIO)
@@ -121,15 +92,16 @@ class Illustrator:
 
     async def _generate(self, prompt: str, ratio: str) -> GeneratedImage:
         settings = self.live_settings.current
-        content = await post_chat_completion(
+        content = await post(
             settings.providers.for_name(settings.media.provider),
-            {
+            "chat/completions",
+            timeout=settings.media.timeout,
+            json={
                 "model": settings.media.model,
                 "modalities": ["image", "text"],
                 "image_config": {"aspect_ratio": ratio},
                 "messages": [{"role": "user", "content": prompt}],
             },
-            settings.media.timeout,
         )
         url = parse_json(_ImageReply, content).url()
         if url is None:

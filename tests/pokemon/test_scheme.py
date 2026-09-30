@@ -83,6 +83,7 @@ def _boss(draft: PokemonGame) -> Trainer:
     boss = Trainer(
         id="boss",
         name="Boss Maren",
+        voice="masculine",
         brief="The boss of the team.",
         known=True,
         place_id=world.current.id,

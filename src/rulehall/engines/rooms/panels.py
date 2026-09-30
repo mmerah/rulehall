@@ -24,15 +24,18 @@ def carried_panel[P: Dweller](world: RoomWorld[P]) -> Panel:
         title="Carrying",
         help="What you hold; drop an item to leave it in this place.",
         rows=tuple(
-            item.subject().row(
-                (
+            PanelRow(
+                name=item.name,
+                brief=item.brief,
+                icon_id=item.id,
+                options=(
                     ActionOption(
                         id=f"drop-{item.id}",
                         name="Drop here",
                         action_name="drop_here",
                         args={"item_id": item.id},
                     ),
-                )
+                ),
             )
             for item in world.carried(world.player.id)
         ),

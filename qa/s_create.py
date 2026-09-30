@@ -1,5 +1,6 @@
 """Character creation for every engine, scenario creation, and the lobby and hall afterwards."""
 
+import os
 import sys
 from pathlib import Path
 
@@ -20,6 +21,7 @@ from drive import (
 )
 
 SOURCE = Path(__file__).parents[1] / "tests/core/fixtures/source/drowned-road.md"
+WORK = Path(os.environ.get("QA_WORK", "/tmp/rulehall-qa-work"))
 
 
 def body(s: Session) -> None:
@@ -37,6 +39,11 @@ def body(s: Session) -> None:
         s.check(False, "Create offered before the form is filled")
     text(page, "Name", "Quinn")
     text(page, "Brief", "A goon.")
+    s.check(
+        "Feminine" in clean(page.inner_text(".q-select:has(.q-field__label:text-is('Voice'))")),
+        "the voice is not preselected",
+    )
+    select(page, "Voice", "Masculine")
     for ability, points in (("Brute", "2"), ("Skulker", "2"), ("Erudite", "0")):
         select(page, f"Points in {ability}", points)
     for n in range(1, 4):
@@ -58,6 +65,10 @@ def body(s: Session) -> None:
     page.get_by_role("button", name="Create").click()
     page.wait_for_url("**/rules/tunnelgoons?character=quinn")
     s.check("Quinn" in clean(page.inner_text(".game-chip-on")), "the hall did not select Quinn")
+    s.check(
+        '"voice": "masculine"' in (WORK / "characters/quinn/tunnelgoons.json").read_text(),
+        "the chosen voice was not saved",
+    )
     s.shot(page, "hall-quinn")
 
     # The same name again is refused; an empty name is refused before anything runs.
@@ -122,10 +133,7 @@ def body(s: Session) -> None:
     page.get_by_role("button", name="Create").click()
     page.wait_for_url("**/rules/twentyfourxx?character=wren")
     s.check(
-        (
-            Path(__import__("os").environ.get("QA_WORK", "/tmp/rulehall-qa-work"))
-            / "characters/wren"
-        ).is_dir(),
+        (WORK / "characters/wren").is_dir(),
         "wren folder missing",
     )
 

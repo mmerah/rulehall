@@ -26,7 +26,13 @@ from rulehall.engines.twentyfourxx.sheet import Crewmate
 from rulehall.engines.twentyfourxx.world import TwentyFourXXWorld
 
 BAR_RECAP = "They moved on."
-DECOY_CAST_ENTRY = {"id": PLAYER_ID, "name": "Someone", "brief": "filed wrongly", "known": True}
+DECOY_CAST_ENTRY = {
+    "id": PLAYER_ID,
+    "name": "Someone",
+    "brief": "filed wrongly",
+    "voice": "masculine",
+    "known": True,
+}
 LONER4E_BASE: Mapping[str, object] = {
     "place_id": "cloister",
     "location": "The abbey",
@@ -186,7 +192,12 @@ def test_apply_scene_lands_new_cast(case: SceneCase) -> None:
         {
             "present_ids": (str(case.met), stranger),
             "cast": {
-                stranger: {"id": stranger, "name": "A Stranger", "brief": "unknown to the world"}
+                stranger: {
+                    "id": stranger,
+                    "name": "A Stranger",
+                    "brief": "unknown to the world",
+                    "voice": "masculine",
+                }
             },
         },
     )

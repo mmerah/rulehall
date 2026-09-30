@@ -5,6 +5,7 @@ from rulehall.core.creation import CreationStep, Picks
 from rulehall.core.decisions import DecisionOption
 from rulehall.core.facts import Fact, roll
 from rulehall.core.game import AnyCharacter, AnyScenario, Character, RoleAnswer
+from rulehall.core.log import Voice
 from rulehall.core.prompt import Sections, lines_of, ref_of, section_if, sentence
 from rulehall.core.tools import NoArgs, action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
@@ -171,7 +172,7 @@ class PokemonEngine(
         )
 
     def build_character(
-        self, name: str, brief: str, _pack_id: Slug, picks: Picks
+        self, name: str, brief: str, voice: Voice, _pack_id: Slug, picks: Picks
     ) -> Character[Trainer]:
         ranks = _rank_picks(picks)
         skills: dict[Skill, int] = {skill: ranks.count(skill) for skill in SKILLS}
@@ -182,6 +183,7 @@ class PokemonEngine(
             id=PLAYER_ID,
             name=name,
             brief=brief,
+            voice=voice,
             known=True,
             place_id=PLAYER_ID,
             avatar_id=picks.get(AVATAR, ""),

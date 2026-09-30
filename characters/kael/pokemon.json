@@ -5,6 +5,7 @@
     "id": "player",
     "name": "Kael",
     "brief": "A quiet trainer from Tern Harbour who wants to see every island.",
+    "voice": "masculine",
     "known": true,
     "alive": true,
     "place_id": "player",

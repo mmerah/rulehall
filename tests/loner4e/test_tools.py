@@ -11,6 +11,7 @@ from rulehall.core.facts import told_cards
 from rulehall.core.log import SpokenLine
 from rulehall.engines.loner4e.engine import BROKE_AWAY
 from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.scenes.world import STRANGER_VOICE
 from rulehall.engines.sheet import PLAYER_ID
 
 
@@ -89,7 +90,9 @@ def test_a_new_id_files_a_met_stranger_someone_elsewhere_enters_and_a_repeat_cha
     None
 ):
     _, state = initialized()
-    crane = Loner4eEntity(id="silas-crane", name="Silas Crane", brief="a clerk with a sword")
+    crane = Loner4eEntity(
+        id="silas-crane", name="Silas Crane", voice="masculine", brief="a clerk with a sword"
+    )
     draft = with_entity(state, crane).draft()
 
     _ = change(ENGINE, draft, "enter", target_id="dock-guard")
@@ -102,6 +105,7 @@ def test_a_new_id_files_a_met_stranger_someone_elsewhere_enters_and_a_repeat_cha
     world = draft.world
     assert world.scene.here_ids[-4:] == ["silas-crane", "dock-guard", "old-monk", TOMAS]
     assert loner_sheet(draft, "old-monk").name == "Old Monk"
+    assert loner_sheet(draft, "old-monk").voice == STRANGER_VOICE
     assert loner_sheet(draft, "old-monk").tagged("condition") == ["Wary"]
     _ = change(ENGINE, draft, "kill", target_id=TOMAS)
     assert change(ENGINE, draft, "leave", target_id=TOMAS) == []
@@ -109,7 +113,7 @@ def test_a_new_id_files_a_met_stranger_someone_elsewhere_enters_and_a_repeat_cha
 
 def test_a_withdraw_cost_passes_another_defeat() -> None:
     _, state = initialized()
-    mob = Loner4eEntity(id="mob", name="The Mob", brief="half the town", known=True)
+    mob = Loner4eEntity(id="mob", name="The Mob", voice="other", brief="half the town", known=True)
     draft = with_entity(state, mob).draft()
     draft.pack_id = "ap01-fantasy"
     hurt: dict[str, JsonValue] = {"actor_id": PLAYER_ID, "kind": "condition", "gained": "Bleeding"}
@@ -223,7 +227,7 @@ def test_a_note_the_tool_answer_shows_is_not_shown_again_next_turn() -> None:
 
 def test_in_a_conflict_every_ask_is_an_exchange_against_the_one_fought_last() -> None:
     _, state = initialized()
-    mob = Loner4eEntity(id="mob", name="The Mob", brief="half the town", known=True)
+    mob = Loner4eEntity(id="mob", name="The Mob", voice="other", brief="half the town", known=True)
     draft = with_entity(state, mob).draft()
     asked: dict[str, JsonValue] = {"question": "Do I break through?"}
 

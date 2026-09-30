@@ -94,7 +94,8 @@
       "mira": {
         "id": "mira",
         "name": "Professor Mira",
-        "brief": "The professor who gave the player a first Pokemon.",
+        "brief": "The professor who gave the player a first Pokemon; she studies Pokemon in her island lab.",
+        "voice": "feminine",
         "known": true,
         "place_id": "harbour-road",
         "avatar_id": "scientistf"
@@ -102,7 +103,8 @@
       "rook": {
         "id": "rook",
         "name": "Rook",
-        "brief": "A camper who battles every new trainer on this road.",
+        "brief": "A young camper; he battles every new trainer on this road.",
+        "voice": "masculine",
         "known": true,
         "place_id": "harbour-road",
         "roster": [
@@ -120,7 +122,8 @@
       "wren": {
         "id": "wren",
         "name": "Nurse Wren",
-        "brief": "The nurse of the Pokemon Center.",
+        "brief": "The nurse of the Pokemon Center; she heals every team that comes in.",
+        "voice": "feminine",
         "known": true,
         "place_id": "pokemon-center",
         "avatar_id": "nurse"
@@ -128,7 +131,8 @@
       "ines": {
         "id": "ines",
         "name": "Captain Ines",
-        "brief": "The gym leader of Tern Gym.",
+        "brief": "The gym leader of Tern Gym; she tests every challenger herself.",
+        "voice": "feminine",
         "known": false,
         "place_id": "tern-gym",
         "roster": [
@@ -151,7 +155,8 @@
       "tamsin": {
         "id": "tamsin",
         "name": "Tamsin",
-        "brief": "A trainer from Tern Harbour who got a first Pokemon on the same day as the player: the player's rival.",
+        "brief": "A trainer from Tern Harbour who got her first Pokemon on the same day as the player: the player's rival.",
+        "voice": "feminine",
         "known": true,
         "place_id": "harbour-road",
         "style": "attacks from the first turn and never switches out",
@@ -163,7 +168,8 @@
       "vesper": {
         "id": "vesper",
         "name": "Admin Vesper",
-        "brief": "An admin of Team Undertow, who leads the grunts at Gull Cove.",
+        "brief": "An admin of Team Undertow, who leads his grunts at Gull Cove.",
+        "voice": "masculine",
         "known": false,
         "place_id": "gull-cove",
         "roster": [

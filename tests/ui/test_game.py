@@ -1,5 +1,5 @@
 from asyncio import sleep
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import replace
 from pathlib import Path
 from random import Random
@@ -17,15 +17,37 @@ from rulehall.app.turn import Turn
 from rulehall.core.decisions import ActionOption, Decision, PlayerInput
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyGame
-from rulehall.core.log import SpokenLine
+from rulehall.core.log import LogEntry, SpokenLine
 from rulehall.core.views import SCENE_TAB, Panel, PanelRow, PlayerView, Subject
 from rulehall.ui.composer import Composer, composer_lock
 from rulehall.ui.drawer import DrawerTab, choosing
 from rulehall.ui.game import GamePage, game_page
 from rulehall.ui.transcript import Transcript
-from rulehall.ui.widgets import Sounds
+from rulehall.ui.voice import VoicePlayer
+from rulehall.ui.widgets import Sounds, Speech
 
-WREN = Subject(id="player", name="Wren", brief="A quiet scout")
+WREN = Subject(id="player", name="Wren", brief="A quiet scout", voice="feminine")
+
+
+class HeardSpeech(Speech):
+    def __init__(self) -> None:
+        super().__init__()
+        self.played: list[tuple[Path, int]] = []
+        self.replayed: list[tuple[Path, int]] = []
+        self.waited: list[int] = []
+        self.stopped = 0
+
+    def play(self, path: Path, bubble_id: int) -> None:
+        self.played.append((path, bubble_id))
+
+    def replay(self, path: Path, bubble_id: int) -> None:
+        self.replayed.append((path, bubble_id))
+
+    def wait(self, bubble_id: int) -> None:
+        self.waited.append(bubble_id)
+
+    def stop(self) -> None:
+        self.stopped += 1
 
 
 def _view(decision: Decision | None = None, ending: str | None = None) -> PlayerView:
@@ -116,7 +138,7 @@ async def test_the_live_turn_draws_each_fact_card_once_and_the_narration_heard_s
     held = ui.element("div")
     drawn = service.snapshot()
     with held:
-        live = Transcript(drawn, service.icon, Sounds())
+        live = Transcript(drawn, service.icon, Sounds(), None)
     cards = live.live_block.card_slot
 
     async def synced(drawn: SessionSnapshot) -> SessionSnapshot:
@@ -188,7 +210,7 @@ async def test_a_landed_exchange_keeps_the_live_bubbles_and_a_rewind_redraws(
     held = ui.element("div")
     first = service.snapshot()
     with held:
-        chat = Transcript(first, service.icon, Sounds())
+        chat = Transcript(first, service.icon, Sounds(), None)
     old = list(chat.column.default_slot.children)
     assert _texts(held, eased=True) == []
 
@@ -221,7 +243,7 @@ async def test_a_pause_line_is_hidden_on_load_while_its_decision_is_still_open(
     service = table.session
     _suspend(table, _pick(allows_text=True))
     page()
-    chat = Transcript(service.snapshot(), service.icon, Sounds())
+    chat = Transcript(service.snapshot(), service.icon, Sounds(), None)
     assert chat.pause_line is not None
     assert chat.pause_line.visible is False
 
@@ -238,7 +260,7 @@ async def test_the_composer_asks_on_the_tick_that_brings_a_decision_and_not_the_
         return True
 
     drawn = service.snapshot()
-    bar = Composer(service, drawn, choose)
+    bar = Composer(service, drawn, choose, None)
     assert "game-asking" not in bar.row.classes
 
     _suspend(table, _pick(allows_text=True))
@@ -265,7 +287,7 @@ async def test_the_composer_hides_the_words_box_when_a_decision_takes_no_words(
         return True
 
     idle = service.snapshot()
-    bar = Composer(service, idle, choose)
+    bar = Composer(service, idle, choose, None)
     assert (bar.prompt_row.visible, bar.input_row.visible) == (False, True)
     assert bar.words_input.props["placeholder"] == idle.view.hint
 
@@ -330,3 +352,79 @@ async def test_a_rows_own_options_close_while_the_game_is_busy(
 
     tab.sync(view, enabled=False)
     assert not button.enabled
+
+
+async def test_the_voice_plays_landed_clips_in_order_and_a_redraw_is_flagged(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, page: Callable[[], Client]
+) -> None:
+    lines = tuple(SpokenLine(text=text) for text in ("Rain.", "Thunder.", "Silence."))
+    ready = {lines[0].text, lines[2].text}
+    spoken: list[SpokenLine] = []
+
+    def speak_later(_session: GameSession, said: Sequence[SpokenLine]) -> None:
+        spoken.extend(said)
+
+    def find_clip(_session: GameSession, line: SpokenLine) -> Path | None:
+        return tmp_path / line.text if line.text in ready else None
+
+    monkeypatch.setattr(GameSession, "speak_later", speak_later)
+    monkeypatch.setattr(GameSession, "find_clip", find_clip)
+    service = open_game(tmp_path).session
+    page()
+    speech = HeardSpeech()
+    before = replace(service.snapshot(), log_entries=())
+    landed = replace(before, log_entries=(LogEntry(words="I listen.", lines=lines),))
+    chat = Transcript(before, service.icon, Sounds(), None)
+    player = VoicePlayer(service, speech)
+    player.switch(on=True)
+
+    chat.sync(landed, before)
+    bubbles = chat.landed_bubbles
+    player.hear(bubbles)
+    assert spoken == list(lines)
+    assert [path for path, _ in speech.played] == [tmp_path / "Rain."]
+
+    ready.add(lines[1].text)
+    chat.sync(landed, landed)
+    player.hear(chat.landed_bubbles)
+    assert speech.played == [(tmp_path / line.text, bubble_id) for line, bubble_id in bubbles]
+
+    player.queued.append((lines[0], 0))
+    chat.sync(before, landed)
+    assert chat.redrawn
+    player.stop()
+    assert not player.queued
+    assert speech.stopped == 1
+
+
+async def test_a_replay_waits_for_a_missing_clip_and_a_stop_clears_the_wait(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, page: Callable[[], Client]
+) -> None:
+    line, other = SpokenLine(text="Rain."), SpokenLine(text="Thunder.")
+    ready: set[str] = set()
+    spoken: list[SpokenLine] = []
+
+    def speak_later(_session: GameSession, said: Sequence[SpokenLine]) -> None:
+        spoken.extend(said)
+
+    def find_clip(_session: GameSession, line: SpokenLine) -> Path | None:
+        return tmp_path / line.text if line.text in ready else None
+
+    monkeypatch.setattr(GameSession, "speak_later", speak_later)
+    monkeypatch.setattr(GameSession, "find_clip", find_clip)
+    service = open_game(tmp_path).session
+    page()
+    speech = HeardSpeech()
+    player = VoicePlayer(service, speech)
+
+    player.read_aloud(line, 7)
+    assert (spoken, speech.waited, speech.replayed) == ([line], [7], [])
+
+    ready.add(line.text)
+    player.hear(())
+    assert speech.replayed == [(tmp_path / "Rain.", 7)]
+    assert not player.queued
+
+    player.read_aloud(other, 8)
+    player.stop()
+    assert not player.queued

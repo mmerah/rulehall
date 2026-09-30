@@ -39,6 +39,7 @@ def _placed(state: Loner4eGame, name: str, *, known: bool) -> Loner4eGame:
         Loner4eEntity(
             id=name.lower().replace(" ", "-"),
             name=name,
+            voice="masculine",
             brief=f"A {name.lower()}.",
             known=known,
             concept=name,

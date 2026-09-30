@@ -95,7 +95,8 @@
       "grix": {
         "id": "grix",
         "name": "Grix",
-        "brief": "A jumpy scavenger who got this far and no further.",
+        "brief": "A jumpy scavenger who got this far and no further, and he knows it.",
+        "voice": "masculine",
         "known": true,
         "place_id": "entrance",
         "hp": {
@@ -107,6 +108,7 @@
         "id": "crawler",
         "name": "Root Crawler",
         "brief": "A many-legged thing tangled in the corridor roots.",
+        "voice": "other",
         "known": true,
         "place_id": "corridor",
         "hp": {
@@ -118,6 +120,7 @@
         "id": "lurker",
         "name": "Cellar Lurker",
         "brief": "Something pale that surfaces only when the water stills.",
+        "voice": "other",
         "known": false,
         "place_id": "cellar",
         "hp": {

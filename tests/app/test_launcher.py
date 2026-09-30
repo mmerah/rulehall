@@ -218,6 +218,7 @@ _OPENING_ITEM: JsonValue = {
     "id": "bell-rope",
     "name": "the bell rope",
     "brief": "Frayed, and still wet.",
+    "voice": "other",
 }
 _OPENING: dict[str, JsonValue] = {
     "place_id": "sunken-bell",
@@ -235,6 +236,7 @@ _OPENING: dict[str, JsonValue] = {
             "id": "hana",
             "name": "Hana",
             "brief": "A ferrywoman who knows the flooded streets.",
+            "voice": "feminine",
             "concept": "A ferrywoman",
         },
         "bell-rope": _OPENING_ITEM,

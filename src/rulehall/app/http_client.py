@@ -27,14 +27,22 @@ async def close_client() -> None:
         _client = None
 
 
-async def post_chat_completion(
-    provider: ProviderConfig, body: Mapping[str, JsonValue], timeout: float | None = None
+async def post(
+    provider: ProviderConfig,
+    endpoint: str,
+    *,
+    timeout: float | None = None,
+    json: Mapping[str, JsonValue] | None = None,
+    files: Mapping[str, tuple[str, bytes, str]] | None = None,
+    data: Mapping[str, str] | None = None,
 ) -> bytes:
     try:
         reply = await client().post(
-            f"{provider.base_url}/chat/completions",
+            f"{provider.base_url}/{endpoint}",
             headers=_bearer(provider),
-            json=body,
+            json=json,
+            files=files,
+            data=data,
             timeout=timeout,
         )
         reply.raise_for_status()

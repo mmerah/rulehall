@@ -1,7 +1,7 @@
 from collections.abc import Callable, Iterable, Mapping, Sequence
 
 from rulehall.core.views import Panel, PanelRow, Rows, Subject
-from rulehall.engines.sheet import Entity
+from rulehall.engines.sheet import Person
 
 
 def character_panel(
@@ -17,7 +17,7 @@ def here_panel(others: Iterable[Subject]) -> Panel:
     return Panel(title="Also here", rows=tuple(other.row() for other in others))
 
 
-def party_panel[T: Entity](
+def party_panel[T: Person](
     members: Sequence[T],
     sheet_help: Mapping[str, str],
     more: Callable[[T], Iterable[PanelRow]] = lambda _member: (),

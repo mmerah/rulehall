@@ -5,12 +5,17 @@ from pydantic import Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 from rulehall.core.facts import DiceEvent, Fact
-from rulehall.core.prompt import ref_of
+from rulehall.core.log import Voice
+from rulehall.core.prompt import headline_of, ref_of
 from rulehall.core.validation import Mutable, Refusal, Slug, check_unique
 from rulehall.core.views import Rows, Subject
 
 PLAYER_ID: Slug = "player"
 NO_SHEET = "{name} carries no sheet"
+VOICE_HELP = (
+    "How this person sounds read aloud: feminine, masculine, or other for creatures, machines "
+    "and voices that are neither."
+)
 
 
 class Gauge(Mutable):
@@ -54,7 +59,7 @@ class Entity(Mutable):
 
     @property
     def headline(self) -> str:
-        return self.subject().headline
+        return headline_of(self.name, self.id, self.brief)
 
     @property
     def met_label(self) -> str:
@@ -94,15 +99,19 @@ class Entity(Mutable):
         self.known = True
         return [self.fact(f"learned of {self.mention}", card=card)]
 
-    def subject(self) -> Subject:
-        return Subject(id=self.id, name=self.name, brief=self.brief)
-
 
 class Person(Entity):
+    voice: Voice = Field(description=VOICE_HELP)
     alive: SkipJsonSchema[bool] = True
 
+    @property
+    def headline(self) -> str:
+        return headline_of(self.name, self.id, self.brief, alive=self.alive)
+
     def subject(self) -> Subject:
-        return Subject(id=self.id, name=self.name, brief=self.brief, alive=self.alive)
+        return Subject(
+            id=self.id, name=self.name, brief=self.brief, alive=self.alive, voice=self.voice
+        )
 
     @property
     def has_sheet(self) -> bool:

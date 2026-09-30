@@ -133,7 +133,7 @@ def test_creation_refuses_a_third_rank_in_one_skill() -> None:
     picks = TWO_NATURE_RANKS | {"rank-3": "nature"}
 
     with pytest.raises(Refusal, match="'rank-3' offers no 'nature'"):
-        _ = ENGINE.create_character("Kael", "A trainer.", "srd", picks)
+        _ = ENGINE.create_character("Kael", "A trainer.", "masculine", "srd", picks)
 
 
 def test_a_revive_needs_a_fainted_pokemon() -> None:

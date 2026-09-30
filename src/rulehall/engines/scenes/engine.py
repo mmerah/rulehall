@@ -88,7 +88,7 @@ class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](
     @tool
     def enter(self, draft: Game[W], args: Enter, _rng: Random) -> list[Fact]:
         """Bring a cast member into the scene."""
-        return draft.world.enter(args.target_id)
+        return draft.world.enter(args.target_id, args.voice)
 
     @tool
     def leave(self, draft: Game[W], args: Leave, _rng: Random) -> list[Fact]:

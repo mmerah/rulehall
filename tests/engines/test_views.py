@@ -14,6 +14,7 @@ from rulehall.engines.loner4e.sheet import Loner4eEntity
 OBJECT = Loner4eEntity(
     id="a-locked-chest",
     name="A Locked Chest",
+    voice="other",
     brief="Iron-bound, and shut fast.",
     known=True,
 )
@@ -49,7 +50,7 @@ def test_the_dead_stay_in_the_scene_but_do_not_speak(
 
 
 def test_a_narrator_view_naming_a_speaker_who_is_not_a_subject_is_refused() -> None:
-    subject = Subject(id="mara", name="Mara", brief="A ferrywoman.")
+    subject = Subject(id="mara", name="Mara", voice="feminine", brief="A ferrywoman.")
     with pytest.raises(ValidationError, match="not subjects"):
         _ = NarratorView(
             place_id="p",

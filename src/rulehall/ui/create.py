@@ -6,9 +6,11 @@ from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
 from tempfile import mkdtemp
+from typing import get_args
 
 from nicegui import ui
 from nicegui.events import UploadEventArguments, ValueChangeEventArguments
+from pydantic import TypeAdapter
 
 from rulehall.app.catalog import SavedGameKey
 from rulehall.app.runtime import Runtime
@@ -16,6 +18,7 @@ from rulehall.core.creation import CreationStep, drop_stale, find_option
 from rulehall.core.decisions import DecisionOption
 from rulehall.core.documents import SOURCE_SUFFIXES
 from rulehall.core.game import ScenarioDescription
+from rulehall.core.log import Voice
 from rulehall.core.validation import EngineId, Refusal, Slug, content_id
 from rulehall.ui.panel_parts import labeled_value
 from rulehall.ui.routes import NEW_PACK, assets_route, engine_path, game_path, hall_path
@@ -41,6 +44,8 @@ from rulehall.ui.widgets import (
 )
 
 LOGGER = logging.getLogger(__name__)
+VOICE_LABELS: dict[Voice, str] = {voice: voice.title() for voice in get_args(Voice.__value__)}
+CHOSEN_VOICE: TypeAdapter[Voice] = TypeAdapter(Voice)
 SCENARIO_FAILED = failure_notice("The scenario was not written.")
 PACK_FAILED = failure_notice("The pack was not written.")
 
@@ -76,6 +81,7 @@ class CharacterForm:
         self.engine = engine = runtime.require_engine(engine_id)
         self.pack_id = engine.packs.options()[0].id
         self.picks: dict[Slug, str] = {}
+        self.voice: Voice = next(iter(VOICE_LABELS))
         with _form_page(
             runtime,
             engine_id,
@@ -84,6 +90,9 @@ class CharacterForm:
         ):
             self.name = ui.input(label="Name")
             self.brief = ui.input(label="Brief", placeholder="Who are they, in one sentence?")
+            ui.select(
+                options=VOICE_LABELS, value=self.voice, label="Voice", on_change=self.choose_voice
+            )
             self.draw_steps()
             heading("Preview")
             previewed = ui.column().classes("w-full game-gap-2xl")
@@ -97,6 +106,10 @@ class CharacterForm:
 
     def type_answer(self, step_id: Slug, event: ValueChangeEventArguments[str | None]) -> None:
         self.picks[step_id] = (event.value or "").strip()
+
+    def choose_voice(self, event: ValueChangeEventArguments[str]) -> None:
+        self.voice = CHOSEN_VOICE.validate_python(event.value)
+        self.draw_preview.refresh()
 
     def choose_pack(self, event: ValueChangeEventArguments[str]) -> None:
         self.pack_id = content_id(event.value)
@@ -168,7 +181,7 @@ class CharacterForm:
             return
         try:
             made = self.engine.create_character(
-                title, entered_text(self.brief), self.pack_id, self.picks
+                title, entered_text(self.brief), self.voice, self.pack_id, self.picks
             )
             self.runtime.library.write_character(made)
         except Refusal as refused:
@@ -191,6 +204,7 @@ class CharacterForm:
                 engine.create_character(
                     entered_text(self.name) or "Unnamed",
                     entered_text(self.brief),
+                    self.voice,
                     self.pack_id,
                     self.picks,
                 )

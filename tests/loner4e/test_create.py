@@ -26,7 +26,7 @@ def test_a_created_character_plays_through_the_authored_load_path(tmp_path: Path
         "gear-2": "chalk-and-wire",
     }
     created = ENGINE.create_character(
-        "Fen", "A wandering scribe with too many questions.", SRD_PACK, picks
+        "Fen", "A wandering scribe with too many questions.", "masculine", SRD_PACK, picks
     )
     library = Library(tmp_path, tmp_path, NO_SHIPPED)
     library.write_character(created)
@@ -48,14 +48,18 @@ def test_a_created_character_plays_through_the_authored_load_path(tmp_path: Path
 def test_an_illegal_pick_set_is_refused_with_the_reason(tmp_path: Path) -> None:
     legal = _answered(SRD_PACK, {})
     with pytest.raises(Refusal, match="no creation step"):
-        ENGINE.create_character("Fen", "", SRD_PACK, {**legal, "class": "fighter"})
+        ENGINE.create_character("Fen", "", "masculine", SRD_PACK, {**legal, "class": "fighter"})
     with pytest.raises(Refusal, match="is unanswered"):
         ENGINE.create_character(
-            "Fen", "", SRD_PACK, {key: value for key, value in legal.items() if key != "gear-2"}
+            "Fen",
+            "",
+            "masculine",
+            SRD_PACK,
+            {key: value for key, value in legal.items() if key != "gear-2"},
         )
     with pytest.raises(Refusal, match="is unanswered"):
-        ENGINE.create_character("Fen", "", SRD_PACK, {**legal, "concept": "  "})
-    created = ENGINE.create_character("Fen", "", SRD_PACK, legal)
+        ENGINE.create_character("Fen", "", "masculine", SRD_PACK, {**legal, "concept": "  "})
+    created = ENGINE.create_character("Fen", "", "masculine", SRD_PACK, legal)
     library = Library(tmp_path, tmp_path, NO_SHIPPED)
     library.write_character(created)
     with pytest.raises(Refusal, match="already exists"):

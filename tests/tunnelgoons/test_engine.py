@@ -36,7 +36,7 @@ def test_the_shipped_game_begins_on_the_maps_start_with_the_starting_items() -> 
 
 
 def test_create_character_on_the_legal_path() -> None:
-    character = ENGINE.create_character("Kael", "A wiry scavenger", SRD_PACK, PICKS)
+    character = ENGINE.create_character("Kael", "A wiry scavenger", "masculine", SRD_PACK, PICKS)
     assert character.person.kit == ("Rope", "Torch", "Melee Weapon (dagger)")
     assert character.person.sheet.abilities == {"brute": 1, "skulker": 1, "erudite": 1}
 
@@ -45,12 +45,12 @@ def test_a_sum_not_equal_to_three_is_refused() -> None:
     """Each pick is legal on its own, so only the sheet's own rule can say no, and it must read."""
     with pytest.raises(Refusal, match="share exactly 3 points"):
         _ = ENGINE.create_character(
-            "Kael", "A wiry scavenger", SRD_PACK, dict(PICKS, brute="3", skulker="3")
+            "Kael", "A wiry scavenger", "masculine", SRD_PACK, dict(PICKS, brute="3", skulker="3")
         )
 
 
 def test_an_item_name_that_makes_no_id_is_refused() -> None:
     with pytest.raises(Refusal, match="makes no id"):
         _ = ENGINE.create_character(
-            "Kael", "A wiry scavenger", SRD_PACK, dict(PICKS, **{"item-1": "!!!"})
+            "Kael", "A wiry scavenger", "masculine", SRD_PACK, dict(PICKS, **{"item-1": "!!!"})
         )

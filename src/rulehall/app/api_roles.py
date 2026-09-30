@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, JsonValue
 
-from rulehall.app.http_client import post_chat_completion, stream_chat_completion
+from rulehall.app.http_client import post, stream_chat_completion
 from rulehall.app.turn import UNDIRECTED, Turn
 from rulehall.config import ProviderConfig, Role, RoleConfig
 from rulehall.core.prompt import Prompt
@@ -149,7 +149,7 @@ async def _complete(
     body = _request(config, messages)
     if tools:
         body["tools"] = tools
-    raw = await post_chat_completion(provider, body)
+    raw = await post(provider, "chat/completions", json=body)
     reply = parse_json(_Completion, raw)
     if reply.error is not None:
         raise Refusal(f"the provider answered an error: {reply.error.message}")

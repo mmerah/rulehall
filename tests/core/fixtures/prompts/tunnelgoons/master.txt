@@ -42,7 +42,7 @@ A collapsed archway lets grey light down into the tunnels below.
 - Torch[torch]
 
 # HERE WITH THE PLAYER
-- Grix[grix] — A jumpy scavenger who got this far and no further.
+- Grix[grix] — A jumpy scavenger who got this far and no further, and he knows it.
   health: 6/6 (its Difficulty Score)
 
 # HIDDEN HERE (the player has not found these)

@@ -29,7 +29,11 @@ def _built(proposal: TwentyFourXXSceneProposal) -> AnyScenario:
 def test_new_game_files_the_cast_by_name() -> None:
     proposal = _proposal(
         present_ids=("stranger",),
-        cast={"stranger": Crewmate(id="stranger", name="Bray Kell", brief="new to the world")},
+        cast={
+            "stranger": Crewmate(
+                id="stranger", name="Bray Kell", voice="masculine", brief="new to the world"
+            )
+        },
     )
     character = LIBRARY.read_character("kael", TWENTYFOURXX, ENGINE.character_model)
     world = ENGINE.new_game(_built(proposal), character)
@@ -48,7 +52,9 @@ def test_new_game_refuses_an_opening_job_that_names_the_unmet() -> None:
     lurker = "lurker"
     proposal = _proposal(
         hidden_ids=(lurker,),
-        cast={lurker: Crewmate(id=lurker, name="Sable", brief="a rival operator")},
+        cast={
+            lurker: Crewmate(id=lurker, name="Sable", voice="feminine", brief="a rival operator")
+        },
         job="Find Sable and take the last load back.",
     )
     character = LIBRARY.read_character("kael", TWENTYFOURXX, ENGINE.character_model)

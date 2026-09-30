@@ -36,7 +36,7 @@ def test_creation_steps_grow_with_picks(picks: dict[str, str], expected: list[st
 
 
 def test_create_character_builds_the_sheet() -> None:
-    character = ENGINE.create_character("Rook", "A quiet operator", SRD_PACK, SNEAK)
+    character = ENGINE.create_character("Rook", "A quiet operator", "masculine", SRD_PACK, SNEAK)
     sheet = character.person.require_sheet()
     assert sheet.skills == {"Stealth": 12, "Climbing": 8, "Piloting": 8}
     assert sheet.specialty == "Sneak"
@@ -47,7 +47,7 @@ def test_create_character_builds_the_sheet() -> None:
 def test_pick_past_d12_is_refused() -> None:
     with pytest.raises(Refusal):
         ENGINE.create_character(
-            "Rook", "A quiet operator", SRD_PACK, {**SNEAK, "increase-3": "stealth"}
+            "Rook", "A quiet operator", "masculine", SRD_PACK, {**SNEAK, "increase-3": "stealth"}
         )
 
 

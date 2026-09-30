@@ -91,5 +91,7 @@ def test_tags_net_to_one_die_at_most(helps: int, hinders: int, position: str) ->
 
 
 def test_a_comma_inside_a_tag_reads_as_and() -> None:
-    entity = Loner4eEntity(id="fen", name="Fen", brief="", tags={"frailty": ["Proud, Stubborn"]})
+    entity = Loner4eEntity(
+        id="fen", name="Fen", voice="masculine", brief="", tags={"frailty": ["Proud, Stubborn"]}
+    )
     assert entity.tags == {"frailty": ["Proud and Stubborn"]}

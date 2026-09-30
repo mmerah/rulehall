@@ -16,6 +16,7 @@ from pydantic import (
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from rulehall.core.log import Voice
 from rulehall.core.validation import Frozen, parse
 
 type ApiProvider = Literal["openrouter", "local"]
@@ -69,6 +70,31 @@ class MediaConfig(Configured):
     provider: ApiProvider = "openrouter"
     model: str = "google/gemini-3.1-flash-lite-image"
     timeout: float = Field(default=180.0, gt=0.0)
+
+
+class SpeechConfig(Configured):
+    enabled: bool = False
+    provider: ApiProvider = "openrouter"
+    speech_model: str = "hexgrad/kokoro-82m"
+    narrator_voice: str = "bm_george"
+    feminine_voices: tuple[str, ...] = Field(
+        default=("af_heart", "bf_emma", "af_bella"), min_length=1
+    )
+    masculine_voices: tuple[str, ...] = Field(
+        default=("am_michael", "bm_lewis", "am_adam"), min_length=1
+    )
+    other_voices: tuple[str, ...] = Field(default=("bm_fable", "af_nicole"), min_length=1)
+    transcription_model: str = "openai/whisper-large-v3-turbo"
+    timeout: float = Field(default=60.0, gt=0.0)
+
+    def pool(self, voice: Voice) -> tuple[str, ...]:
+        match voice:
+            case "feminine":
+                return self.feminine_voices
+            case "masculine":
+                return self.masculine_voices
+            case "other":
+                return self.other_voices
 
 
 class BattleConfig(Configured):
@@ -132,6 +158,7 @@ class Settings(BaseSettings):
     providers: Providers = Providers()
     roles: RoleSettings = RoleSettings()
     media: MediaConfig = MediaConfig()
+    speech: SpeechConfig = SpeechConfig()
     battle: BattleConfig = BattleConfig()
     server: ServerConfig = ServerConfig()
     saves_dir: Path = Path("saves")
@@ -141,9 +168,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _keys_present(self) -> Self:
-        posting: list[tuple[str, ApiProvider]] = (
-            [("media", self.media.provider)] if self.media.enabled else []
-        )
+        posting: list[tuple[str, ApiProvider]] = [
+            (name, config.provider)
+            for name, config in (("media", self.media), ("speech", self.speech))
+            if config.enabled
+        ]
         roles: tuple[Role, ...] = get_args(Role.__value__)
         for role in roles:
             config = self.roles.for_name(role)

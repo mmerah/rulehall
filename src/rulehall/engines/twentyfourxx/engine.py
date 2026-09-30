@@ -7,6 +7,7 @@ from rulehall.core.creation import CreationStep, Picks, find_option
 from rulehall.core.decisions import ActionOption, DecisionOption
 from rulehall.core.facts import Fact, roll
 from rulehall.core.game import AnyCharacter, AnyScenario, Character, RoleAnswer, WorldsmithRequest
+from rulehall.core.log import Voice
 from rulehall.core.prompt import Sections, lines_of, ref_of, section_if
 from rulehall.core.tools import action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
@@ -261,7 +262,7 @@ class TwentyFourXXEngine(
         return tuple(steps)
 
     def build_character(
-        self, name: str, brief: str, pack_id: Slug, picks: Picks
+        self, name: str, brief: str, voice: Voice, pack_id: Slug, picks: Picks
     ) -> Character[Crewmate]:
         proposal = SheetProposal(
             specialty=picks.get("specialty", ""),
@@ -276,6 +277,7 @@ class TwentyFourXXEngine(
             id=PLAYER_ID,
             name=name,
             brief=brief,
+            voice=voice,
             known=True,
             sheet=self.build_sheet(pack_id, proposal),
         )
@@ -546,6 +548,7 @@ class TwentyFourXXEngine(
             id=PLAYER_ID,
             name=answer.name,
             brief=answer.brief,
+            voice=answer.voice,
             known=True,
         )
         summary = self.sign_on(draft, newcomer, answer.sheet)

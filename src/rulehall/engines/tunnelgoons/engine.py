@@ -5,6 +5,7 @@ from rulehall.core.creation import CreationStep, Picks
 from rulehall.core.decisions import DecisionOption
 from rulehall.core.facts import Fact, roll
 from rulehall.core.game import AnyCharacter, Character
+from rulehall.core.log import Voice
 from rulehall.core.tools import NoArgs, action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug, parse
 from rulehall.core.views import Rows
@@ -88,7 +89,7 @@ class TunnelGoonsEngine(
         return (*ability_steps, *item_steps)
 
     def build_character(
-        self, name: str, brief: str, _pack_id: Slug, picks: Picks
+        self, name: str, brief: str, voice: Voice, _pack_id: Slug, picks: Picks
     ) -> Character[Goon]:
         abilities: dict[Ability, int] = {
             ability: int(picks.get(ability, "")) for ability in ABILITIES
@@ -101,6 +102,7 @@ class TunnelGoonsEngine(
                 "id": PLAYER_ID,
                 "name": name,
                 "brief": brief,
+                "voice": voice,
                 "known": True,
                 "place_id": PLAYER_ID,
                 "hp": Gauge(current=HP_START, maximum=HP_START),

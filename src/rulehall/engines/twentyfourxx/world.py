@@ -6,12 +6,13 @@ from pydantic import Field
 from rulehall.core.creation import ANSWER_MAX
 from rulehall.core.facts import Fact, roll
 from rulehall.core.game import Game
+from rulehall.core.log import Voice
 from rulehall.core.prompt import lines_of
 from rulehall.core.validation import Frozen, Refusal, Slug, slug
 from rulehall.core.views import Rows
 from rulehall.engines.name_leaks import unmet_people_named
 from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
-from rulehall.engines.sheet import PLAYER_ID
+from rulehall.engines.sheet import PLAYER_ID, VOICE_HELP
 from rulehall.engines.twentyfourxx.rules import (
     BRIEF,
     NO_WORK,
@@ -88,6 +89,7 @@ class SheetProposal(Frozen):
 class NewcomerProposal(Frozen):
     name: str = Field(min_length=1, description="The operator's name, as the player gave it.")
     brief: str = Field(min_length=1, description="Who they are, in one line.")
+    voice: Voice = Field(description=VOICE_HELP)
     sheet: SheetProposal
 
 
@@ -348,7 +350,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
                 person.known = True
 
     def enter_if_stranger(self, entity_id: Slug, /) -> list[Fact]:
-        return [] if self.find_entity(entity_id) is not None else self.enter(entity_id)
+        return [] if self.find_entity(entity_id) is not None else self.enter(entity_id, None)
 
     def require_no_job(self) -> None:
         if self.job:

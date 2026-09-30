@@ -42,6 +42,15 @@
             "brief": {
               "type": "string"
             },
+            "voice": {
+              "description": "How this person sounds read aloud: feminine, masculine, or other for creatures, machines and voices that are neither.",
+              "enum": [
+                "feminine",
+                "masculine",
+                "other"
+              ],
+              "type": "string"
+            },
             "concept": {
               "default": "",
               "type": "string"
@@ -81,7 +90,8 @@
           "required": [
             "id",
             "name",
-            "brief"
+            "brief",
+            "voice"
           ],
           "type": "object"
         }

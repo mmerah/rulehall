@@ -40,10 +40,10 @@ Tall grass grows beside a road that runs above the ferry dock.
 - (none)
 
 # HERE WITH THE PLAYER
-- Professor Mira[mira] — The professor who gave the player a first Pokemon.
-- Rook[rook] — A camper who battles every new trainer on this road.
+- Professor Mira[mira] — The professor who gave the player a first Pokemon; she studies Pokemon in her island lab.
+- Rook[rook] — A young camper; he battles every new trainer on this road.
   team: Pidgey L4, Rattata L3
-- Tamsin[tamsin] — A trainer from Tern Harbour who got a first Pokemon on the same day as the player: the player's rival.
+- Tamsin[tamsin] — A trainer from Tern Harbour who got her first Pokemon on the same day as the player: the player's rival.
   style: attacks from the first turn and never switches out
 
 # HIDDEN HERE (the player has not found these)

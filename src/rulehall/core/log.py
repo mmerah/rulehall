@@ -7,6 +7,7 @@ from rulehall.core.facts import Fact
 from rulehall.core.validation import Frozen, Mutable, Slug
 
 type Cause = Literal["opening", "story", "battle"]
+type Voice = Literal["feminine", "masculine", "other"]
 
 
 class Line(Frozen):
@@ -22,12 +23,15 @@ class Line(Frozen):
 class SpokenLine(Frozen):
     speaker_id: Slug | None = None
     speaker: str = ""
+    voice: Voice | None = None
     text: str = Field(min_length=1)
 
     @model_validator(mode="after")
     def _named_when_spoken(self) -> Self:
         if (self.speaker_id is None) != (not self.speaker):
             raise ValueError("a spoken line names its speaker; narration names nobody")
+        if (self.speaker_id is None) != (self.voice is None):
+            raise ValueError("a spoken line has its speaker's voice; narration has none")
         return self
 
     @property

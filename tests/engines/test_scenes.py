@@ -18,7 +18,7 @@ from rulehall.engines.scenes.world import NextProposal, Scene, SceneProposal, Sc
 from rulehall.engines.scenes.worldsmith import check_next, check_opening
 from rulehall.engines.sheet import PLAYER_ID, Person
 
-PLAYER = Person(id=PLAYER_ID, name="Player", brief="", known=True)
+PLAYER = Person(id=PLAYER_ID, name="Player", voice="masculine", brief="", known=True)
 MARA = "mara"
 SITUATION = "A long enough situation to satisfy the minimum length the model demands, twice over."
 RECAP = "A long enough recap to satisfy the minimum length the model demands for what happened."
@@ -41,7 +41,7 @@ def _scene(place: str, title: str, *, here: Sequence[Slug] = ()) -> Scene:
 
 def _travelling() -> SceneWorld[Person]:
     """The player, one companion in the cast, and a scene the pair stand in."""
-    mara = Person(id=MARA, name="Mara", brief="A guide", known=True)
+    mara = Person(id=MARA, name="Mara", voice="feminine", brief="A guide", known=True)
     return _world(_scene("a1", "A1", here=[MARA]), cast={MARA: mara}, party_ids=[MARA])
 
 
@@ -62,13 +62,13 @@ def test_killing_a_party_member_drops_them_from_the_party() -> None:
 
 
 def test_entering_someone_hidden_is_refused_and_entering_them_once_revealed_is_nothing() -> None:
-    mara = Person(id=MARA, name="Mara", brief="A guide", known=False)
+    mara = Person(id=MARA, name="Mara", voice="feminine", brief="A guide", known=False)
     world = _world(_scene("a1", "A1", here=[MARA]), cast={MARA: mara})
     with pytest.raises(Refusal, match="hidden here"):
-        _ = world.enter(MARA)
+        _ = world.enter(MARA, None)
     _ = world.reveal_hidden(MARA)
     assert MARA in world.present()
-    assert world.enter(MARA) == []
+    assert world.enter(MARA, None) == []
 
 
 def test_a_next_proposal_naming_no_one_but_the_player_passes_and_installs() -> None:
@@ -100,7 +100,7 @@ def test_a_scene_keeps_its_location_until_a_next_scene_names_a_new_one() -> None
 
 
 def test_an_opening_files_its_hidden_cast_unmet_and_leaves_the_proposal_as_written() -> None:
-    mara = Person(id=MARA, name="Mara", brief="A guide", known=True)
+    mara = Person(id=MARA, name="Mara", voice="feminine", brief="A guide", known=True)
     opening = SceneProposal[Person](
         place_id="a1",
         location="The abbey",
@@ -124,7 +124,7 @@ def test_an_opening_without_a_location_is_refused() -> None:
 
 
 def test_a_next_draft_whose_recap_names_a_hidden_entity_is_refused() -> None:
-    mara = Person(id=MARA, name="Mara", brief="A guide", known=False)
+    mara = Person(id=MARA, name="Mara", voice="feminine", brief="A guide", known=False)
     world = _world(_scene("a1", "A1", here=[MARA]), cast={MARA: mara})
     proposal = NextProposal[Person](
         place_id="a2",
