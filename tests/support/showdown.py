@@ -168,6 +168,8 @@ def _dumped_mon(slot: int, battler: Battler, hp: int, *, out: int) -> dict[str, 
         "pp": pp,
         "out": out,
         "held": True,
+        "active": bool(out),
+        "boosts": {},
     }
 
 

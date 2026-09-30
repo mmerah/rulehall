@@ -18,22 +18,42 @@ const SCRIPTS = [
   "js/battle.js",
 ];
 
+// The frame is 640x360 with a 100px bar each side; the page shows the bars' and the weather's facts itself.
+const FRAME_WIDTH = 640;
+const FRAME_HEIGHT = 360;
+const FIELD_WIDTH = 440;
 const STYLE = `
-.game-showdown { width: 100%; max-width: 36rem; margin-inline: auto }
-.game-showdown-stage { position: relative; overflow: hidden }
-.game-showdown .battle { top: 0 !important; left: 0 !important; transform-origin: top left }
-.game-showdown .battle-log { position: static !important; height: 4rem !important }
-.game-showdown-wild .trainer-far .trainersprite { visibility: hidden }
+.game-showdown { position: relative; overflow: hidden }
+.game-showdown .battle { top: 0 !important; left: 0 !important; border: 0; transform-origin: top left }
+.game-showdown .leftbar, .game-showdown .rightbar, .game-showdown .weather em { display: none }
+.game-showdown-journal .game-showdown-log.battle-log {
+  position: static; width: auto; height: auto; border: 0; background: transparent;
+  color: var(--game-muted); font: .8rem/1.4 var(--game-body);
+}
+.game-showdown-journal .inner { padding: .35rem 2rem .1rem .7rem }
+.game-showdown-journal .inner-preempt { padding: 0 2rem .35rem .7rem }
+.game-showdown-journal .battle-history { margin: 0; padding: .05rem 0 }
+.game-showdown-journal .inner > :last-child { color: var(--game-text) }
+.game-showdown-journal .game-showdown-log.battle-log h2 {
+  margin: .5rem 0 .15rem; padding: 0; border: 0; background: none; color: var(--game-accent);
+  font: 700 .62rem/1.4 var(--game-body); letter-spacing: .08em; text-transform: uppercase;
+}
+.game-showdown-journal .spacer { height: .3rem }
 `;
 
 export default {
   template: `
-    <div class="game-showdown" :class="{ 'game-showdown-wild': wild }">
-      <div ref="stage" class="game-showdown-stage"><div ref="frame"></div></div>
-      <div ref="log" class="battle-log"></div>
+    <div class="game-showdown">
+      <div ref="frame"></div>
+      <Teleport defer :to="dock">
+        <div class="dark game-showdown-journal" :class="{ 'game-showdown-journal-open': open }">
+          <div ref="log" class="battle-log game-showdown-log" @click="open = !open"></div>
+        </div>
+      </Teleport>
     </div>
   `,
-  props: { base: String, lines: Array, sprites: String, music: Boolean, wild: Boolean },
+  props: { base: String, lines: Array, sprites: String, music: Boolean, dock: String },
+  data: () => ({ open: false }),
   created() {
     this.queued = [];
   },
@@ -43,6 +63,8 @@ export default {
     const still = this.sprites === "2d";
     window.Storage = { prefs: (key) => ({ noanim: still, bwgfx: still })[key] };
     if (!window.Battle) await this.load();
+    // The log is teleported to its dock only once the rest of the page has mounted.
+    await this.$nextTick();
     if (this.$.isUnmounted) return;
     this.battle = new Battle({ $frame: $(this.$refs.frame), $logFrame: $(this.$refs.log) });
     this.battle.setMute(!this.music || localStorage.getItem(SOUND_KEY) === "off");
@@ -52,6 +74,7 @@ export default {
     this.battle.seekTurn(Infinity);
     this.resizer = new ResizeObserver(() => this.fit());
     this.resizer.observe(this.$el);
+    this.resizer.observe(this.$refs.log);
     for (const lines of this.queued.splice(0)) this.add(lines);
   },
   unmounted() {
@@ -79,10 +102,11 @@ export default {
       BattleSound.getSound = (path) => (BattleSound.soundCache[path] ??= new Audio(url(path)));
     },
     fit() {
-      const frame = this.$refs.frame;
-      const scale = this.$el.clientWidth / frame.offsetWidth;
-      frame.style.transform = `scale(${scale})`;
-      this.$refs.stage.style.height = `${frame.offsetHeight * scale}px`;
+      const { clientWidth: width, clientHeight: height } = this.$el;
+      const scale = Math.min(height / FRAME_HEIGHT, width / FIELD_WIDTH);
+      const left = (width - FRAME_WIDTH * scale) / 2;
+      const top = (height - FRAME_HEIGHT * scale) / 2;
+      this.$refs.frame.style.transform = `translate(${left}px, ${top}px) scale(${scale})`;
       // Mounted in a hidden column, the log could not scroll; it can once it has a size.
       this.battle.scene.log.updateScroll();
     },

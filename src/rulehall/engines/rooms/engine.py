@@ -44,7 +44,7 @@ MAP_UNWRITTEN = Fact(
 
 
 class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]](
-    Revealing, Engine[P, W, K, R]
+    Revealing[W], Engine[P, W, K, R]
 ):
     family_dir = Path(__file__).parent
     opening_sections = OPENING_SECTIONS
@@ -112,11 +112,11 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
     def moves(self, state: Game[W], /) -> tuple[ActionOption, ...]:
         return () if state.world.has_frontier() else (MORE_MAP,)
 
-    def scene_panels(self, state: Game[W], /) -> tuple[Panel, ...]:
+    def scene_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]:
         world = state.world
         return (
             character_panel(world.player.subject(), world.sheet_rows(), sheet_help=self.sheet_help),
-            *party_panel(world.party_members(), self.sheet_help),
+            party_panel(world.party_members(), self.sheet_help),
             here_panel(other.subject() for other in world.others()),
             carried_panel(world),
             ways_panel(world),

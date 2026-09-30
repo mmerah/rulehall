@@ -22,7 +22,6 @@ from rulehall.engines.twentyfourxx.rules import (
     outcome_band,
 )
 from rulehall.engines.twentyfourxx.sheet import MAIMED, SHIP_FUNCTIONS, SHIP_IDS, Crewmate, Gear
-from rulehall.engines.world import OpeningProposal
 
 ALREADY_MAIMED = "{who} is already maimed: the engine writes no second maim"
 UPGRADE_COST = 10
@@ -121,9 +120,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
     work_found_at: str = ""
     dead_lead: str = ""
 
-    def apply_proposal_extras(self, proposal: OpeningProposal) -> None:
-        if not isinstance(proposal, TwentyFourXXSceneProposal):
-            return
+    def apply_opening_extras(self, proposal: TwentyFourXXSceneProposal) -> None:
         self.job = proposal.job
         self.ship_at = proposal.ship_at or self.scene.location
         self.hear(self.job)
@@ -351,7 +348,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
                 person.known = True
 
     def enter_if_stranger(self, entity_id: Slug, /) -> list[Fact]:
-        return [] if self.find_entity_id(entity_id) is not None else self.enter(entity_id)
+        return [] if self.find_entity(entity_id) is not None else self.enter(entity_id)
 
     def require_no_job(self) -> None:
         if self.job:

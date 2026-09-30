@@ -38,7 +38,7 @@ NEAR_END = 48
 SOUND_ICONS = {True: "sym_r_volume_up", False: "sym_r_volume_off"}
 
 
-class SceneHeader:
+class SceneHeaderView:
     def __init__(self, session: GameSession, now: SessionSnapshot) -> None:
         self.session = session
         self.art = session.scene_art()
@@ -76,14 +76,15 @@ class GamePage:
     def __init__(self, session: GameSession) -> None:
         self.session = session
         self.drawn: SessionSnapshot
-        self.scene: SceneHeader
+        self.scene: SceneHeaderView
         self.composer: Composer
         self.drawer: Drawer
         self.battle_panel: BattlePanel | None = None
-        self.parts: tuple[SceneHeader | Transcript | Composer | Drawer | BattlePanel, ...]
+        self.parts: tuple[SceneHeaderView | Transcript | Composer | Drawer | BattlePanel, ...]
         self.sounds: Sounds
         self.sound: ui.button
         self.scroll: ui.scroll_area
+        self.transcript: Transcript
         self.new_activity: ui.button
         self.restart_item: ui.menu_item
         self.rewind_button: ui.button
@@ -120,10 +121,10 @@ class GamePage:
                 .style("min-width: 0")
             ):
                 with ui.element("div").style(PASS_THROUGH) as story:
-                    self.scene = SceneHeader(session, now)
+                    self.scene = SceneHeaderView(session, now)
                     # No padding class: NiceGUI pads the scroll content; twice would misalign.
                     with ui.scroll_area().classes("w-full flex-grow game-transcript") as scroll:
-                        transcript = Transcript(now, session.icon, self.sounds)
+                        self.transcript = Transcript(now, session.icon, self.sounds)
                     self.scroll = scroll
                     scroll.on_scroll(self.scrolled)
                     ui.timer(0.5, lambda: scroll.scroll_to(percent=1.0), once=True)
@@ -133,7 +134,7 @@ class GamePage:
         self.drawer.build(now)
         self.restart_dialog = Confirm(keep="Keep playing", confirm="Restart")
 
-        self.parts = (self.scene, transcript, self.composer, self.drawer)
+        self.parts = (self.scene, self.transcript, self.composer, self.drawer)
         if self.battle_panel is not None:
             self.parts += (self.battle_panel,)
         self.tick()
@@ -148,7 +149,7 @@ class GamePage:
             part.sync(now, drawn)
         self.sync_controls(now)
         if moved_since(now, drawn):
-            self._scroll(follow=self.at_end or self.own_move)
+            self.follow(now, drawn)
         self.drawn = now
 
     def sync_images(self) -> None:
@@ -294,6 +295,25 @@ class GamePage:
         """The class is set again, not kept: a CSS animation replays only when it is added."""
         self.new_activity.classes(add="game-enter" if visible else "", remove="game-enter")
         self.new_activity.set_visibility(visible)
+
+    def follow(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
+        if drawn.live:
+            return
+        reply_top_id = self.transcript.reply_top_id
+        landed = len(now.log_entries) > len(drawn.log_entries)
+        if reply_top_id is not None and (now.live or landed):
+            self._scroll_to_reply_top(reply_top_id)
+        else:
+            self._scroll(follow=self.at_end or self.own_move)
+
+    def _scroll_to_reply_top(self, element_id: int) -> None:
+        if not (self.at_end or self.own_move):
+            self.show_activity(visible=True)
+            return
+        self.own_move = False
+        self.show_activity(visible=False)
+        script = f"getHtmlElement({element_id})?.scrollIntoView({{block: 'start'}})"
+        get_running_loop().call_later(0.1, lambda: self.scroll.client.run_javascript(script))
 
     def _scroll(self, *, follow: bool) -> None:
         if not follow:

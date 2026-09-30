@@ -9,7 +9,7 @@ from rulehall.core.validation import Slug
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.loner4e.engine import Loner4eEngine
 from rulehall.engines.loner4e.sheet import Loner4eEntity
-from rulehall.engines.loner4e.world import Loner4eGame, Loner4eOpeningProposal
+from rulehall.engines.loner4e.world import Loner4eGame, Loner4eSceneProposal
 from support.table import (
     ENGINES_BUILT,
     LIBRARY,
@@ -54,9 +54,9 @@ def loner_sheet(state: Loner4eGame, entity_id: Slug) -> Loner4eEntity:
     return state.world.require_entity(entity_id)
 
 
-def scenario() -> Scenario[Loner4eOpeningProposal]:
+def scenario() -> Scenario[Loner4eSceneProposal]:
     scenario = LIBRARY.read_scenario("whispering-vault", SCENARIO_MODELS)
-    return narrowed(scenario, Scenario[Loner4eOpeningProposal])
+    return narrowed(scenario, Scenario[Loner4eSceneProposal])
 
 
 def character() -> Character[Loner4eEntity]:

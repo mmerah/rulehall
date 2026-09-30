@@ -144,14 +144,14 @@ def ship_panel(world: TwentyFourXXWorld) -> Panel:
     )
 
 
-def job_panel(world: TwentyFourXXWorld) -> tuple[Panel, ...]:
+def job_panel(world: TwentyFourXXWorld) -> Panel | None:
     if world.job:
         shown = world.job
     elif where := world.work_found_at:
         shown = f"{WORK_AT}{where}"
     else:
-        return ()
-    return (Panel(title="Job", rows=(PanelRow(name=shown, brief=""),), help=JOB_HELP),)
+        return None
+    return Panel(title="Job", rows=(PanelRow(name=shown, brief=""),), help=JOB_HELP)
 
 
 def look_again_move(world: TwentyFourXXWorld) -> tuple[ActionOption, ...]:

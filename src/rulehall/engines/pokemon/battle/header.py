@@ -1,19 +1,43 @@
 from collections.abc import Mapping, Sequence
 
-from rulehall.core.views import BattleHeader, BattleSide, Tag
+from rulehall.core.views import BattleHeader, BattleMon, BattleSide, Tag
 from rulehall.engines.pokemon.battle.models import (
     TERRAINS,
     WEATHERS,
+    Battler,
     BattleSetup,
     DumpMon,
     FieldCondition,
 )
 from rulehall.engines.pokemon.dex import dex
-from rulehall.engines.pokemon.panels import TYPE_COLOURS, mon_sprite, trainer_sprite
+from rulehall.engines.pokemon.panels import (
+    STATUS_COLOURS,
+    TYPE_COLOURS,
+    hp_meter,
+    mon_sprite,
+    status_tag,
+    trainer_sprite,
+)
+from rulehall.engines.pokemon.rules import max_hp
+
+BOOST_NAMES = {
+    "atk": "Atk",
+    "def": "Def",
+    "spa": "SpA",
+    "spd": "SpD",
+    "spe": "Spe",
+    "accuracy": "Acc",
+    "evasion": "Eva",
+}
+BOOST_UP, BOOST_DOWN = "#3f9f5a", "#c0504a"
 
 
 def battle_header(
-    setup: BattleSetup, p1: Sequence[DumpMon], p2: Sequence[DumpMon], log: Sequence[str]
+    setup: BattleSetup,
+    p1: Sequence[DumpMon],
+    p2: Sequence[DumpMon],
+    log: Sequence[str],
+    deciding_slot: int | None,
 ) -> BattleHeader:
     weather, terrain = setup.weather, setup.terrain
     # A line shows through the turn after the one it was said in, then expires.
@@ -62,6 +86,32 @@ def battle_header(
             *(() if weather is None else (_chip(weather, WEATHERS[weather]),)),
             *(() if terrain is None else (_chip(f"{terrain} terrain", TERRAINS[terrain]),)),
         ),
+        fielded=tuple(
+            _fielded(setup.player_side()[mon.slot], mon, deciding=position == deciding_slot)
+            for position, mon in enumerate(p1)
+            if mon.active and mon.hp
+        ),
+    )
+
+
+def _fielded(battler: Battler, dumped: DumpMon, *, deciding: bool) -> BattleMon:
+    return BattleMon(
+        name=battler.name,
+        sprite=mon_sprite(dex().species[battler.species_id]),
+        hp=hp_meter(dumped.hp, max_hp(battler)),
+        tags=(
+            Tag(name=f"Lv{battler.level}"),
+            *((status_tag(dumped.status),) if dumped.status in STATUS_COLOURS else ()),
+            *(
+                Tag(
+                    name=f"{BOOST_NAMES[stat]} {stage:+}",
+                    colour=BOOST_UP if stage > 0 else BOOST_DOWN,
+                )
+                for stat, stage in dumped.boosts.items()
+                if stage and stat in BOOST_NAMES
+            ),
+        ),
+        deciding=deciding,
     )
 
 

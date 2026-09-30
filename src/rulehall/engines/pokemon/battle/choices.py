@@ -9,9 +9,12 @@ from rulehall.core.views import BattleChoice, Tag
 from rulehall.engines.pokemon.battle.models import Battler
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.panels import (
+    category_tag,
     hp_meter,
     mon_sprite,
+    move_stats,
     move_summary,
+    pp_meter,
     status_tag,
     type_tag,
 )
@@ -159,8 +162,8 @@ class SeatRequest:
                 command=f"move {number}",
                 kind="move",
                 name=move.move,
-                brief="" if move.pp is None else f"{move.pp}/{move.maxpp} PP",
-                help="" if (known := dex().moves.get(move.id)) is None else move_summary(known),
+                brief="" if (known := dex().moves.get(move.id)) is None else move_stats(known),
+                help="" if known is None else move_summary(known),
                 group=user,
                 refusal="Disabled"
                 if move.disabled
@@ -168,7 +171,13 @@ class SeatRequest:
                 if request.needs_target(slot, f"move {number}")
                 and not self._targets(slot, move.target)
                 else "",
-                tags=self._move_tags(slot, move),
+                tags=(
+                    *self._move_tags(slot, move),
+                    *(() if known is None else (category_tag(known.category),)),
+                ),
+                meters=()
+                if move.pp is None or not move.maxpp
+                else (pp_meter(move.pp, move.maxpp),),
             )
             for number, move in enumerate(active.moves, 1)
         )

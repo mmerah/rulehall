@@ -31,7 +31,7 @@ from rulehall.engines.loner4e.world import (
     OFF_SCREEN,
     Loner4eGame,
     Loner4eNextProposal,
-    Loner4eOpeningProposal,
+    Loner4eSceneProposal,
 )
 from rulehall.engines.scenes.worldsmith import check_opening
 
@@ -48,9 +48,9 @@ CLOSED = tool_call("close_scene", reason="resolved")
 DIRECTED = tool_call("direct", text="he has what he came for")
 
 
-def _opening(**changes: object) -> Loner4eOpeningProposal:
+def _opening(**changes: object) -> Loner4eSceneProposal:
     opening = LIBRARY.read_scenario("whispering-vault", SCENARIO_MODELS).opening
-    return narrowed(opening, Loner4eOpeningProposal).model_copy(update=changes)
+    return narrowed(opening, Loner4eSceneProposal).model_copy(update=changes)
 
 
 def _checking(answer: Mapping[str, object]) -> RoleAnswer:

@@ -1,24 +1,127 @@
-You are Rook, a Pokemon trainer, in a battle against Kael. Pick your choice for this turn, one for each of your Pokemon in battle. The damage ranges are exact: the least and the most HP a move takes, with no critical hit. Aim to win the battle: knock out your foes' Pokemon, keep yours alive, and switch when your Pokemon can do little. Answer with JSON only.
+You are Rook, a Pokemon trainer, in a battle against Kael.
 
-# YOUR POKEMON
-- 1. Bulbasaur L12 Grass/Poison, 22/36 HP (active)
-  moves: Vine Whip (Grass, 39/40 PP) 3 to 5 HP to Charmander (8 to 14% of its full HP); Tackle (Normal, 56/56 PP) 5 to 7 HP to Charmander (14 to 20% of its full HP); Leech Seed (Grass, 16/16 PP) no damage; Growl (Normal, 64/64 PP) no damage
-  takes from Charmander: Ember 14 to 18 HP
-- 2. Rattata L8 Normal, 25/25 HP
-  moves: Tackle (Normal, 56/56 PP) 6 to 7 HP to Charmander (17 to 20% of its full HP); Quick Attack (Normal, 48/48 PP) 6 to 7 HP to Charmander (17 to 20% of its full HP)
-  takes from Charmander: Ember 12 to 15 HP
+# YOUR TASK
+Each turn you get the state of the battle and pick one command for each of your Pokemon listed in THE CHOICES. Aim to win the battle: knock out every foe Pokemon and keep yours alive. Before you answer, check who moves first, which move knocks out or hurts the most, what the foe will likely do, and whether a switch is safer. Answer with JSON only.
 
-# YOUR FOES' POKEMON
-- Charmander L12 Fire, 89% HP (active); moves seen: Ember (Fire)
-- Pikachu L7 Electric, not sent out yet
+# HOW A BATTLE WORKS
+- Each trainer has a team of up to 6 Pokemon. Only the Pokemon on the field fight; the others wait on the bench.
+- Each turn, every trainer picks one command for each of their Pokemon on the field: use one of its moves, or switch it with a Pokemon from the bench. Then the turn plays out.
+- Order in a turn: switches happen first. Then the moves go by priority: a move with a higher priority (Quick Attack is +1) always goes before one with a lower priority. Within the same priority, the Pokemon with the higher Speed moves first; a tie is random. Paralysis halves Speed, Tailwind doubles it, and under Trick Room the slowest moves first.
+- HP: a Pokemon at 0 HP faints (it is knocked out, a KO) and cannot fight again this battle. A trainer whose Pokemon have all fainted loses. When one of yours faints, you send in another from the bench before the next turn.
+- Damage: physical moves use the user's Attack against the target's Defense; special moves use Sp. Atk against Sp. Def. Status moves deal no damage: they change stats, cause a status or change the field. A move of one of the user's own types does 1.5x.
+- Types: a move does 2x on a target weak to its type (4x if both of the target's types are weak), 0.5x on a target that resists it (0.25x if both resist), and nothing on an immune type (no effect). See the TYPE CHART.
+- Each hit rolls between 85% and 100% of its full damage. A critical hit (rare) does 1.5x. A move with less than 100% accuracy can miss.
+- Stat stages: some moves raise or lower Attack, Defense, Sp. Atk, Sp. Def, Speed, accuracy or evasion by stages, from -6 to +6. +1 is 1.5x, +2 is 2x, -1 is 2/3x. Stages reset when the Pokemon leaves the field.
+- Status (one at a time, it stays after a switch): burned (loses 1/16 HP each turn, its physical moves do half damage), poisoned (loses 1/8 HP each turn), badly poisoned (loses more each turn), paralysed (Speed halved, 25% chance to lose its turn), asleep (cannot move for 1 to 3 turns), frozen (cannot move until it thaws, 20% chance each turn).
+- Short effects such as confusion, Leech Seed, Taunt or a Substitute end when the Pokemon leaves the field. Hazards such as Stealth Rock or Spikes stay on a side and hurt each of its Pokemon that comes in.
+- Each Pokemon has one ability and may hold one item; both can change damage, Speed or give effects. You know your own. A foe's ability and item show only once revealed in the battle.
+- Switching costs the turn of the Pokemon that switches. The Pokemon that comes in takes the moves aimed at the one that left.
+
+# COMMANDS
+Copy each command exactly as THE CHOICES write it. `move N` uses move N of that Pokemon; `move N T` uses move N at target T; `switch N` sends in your Pokemon number N from YOUR POKEMON. Give one command for each Pokemon in THE CHOICES, in their order. Two of your Pokemon cannot switch to the same Pokemon.
+
+# READING THE STATE
+- Damage is a percent of the target's current HP, from the lowest to the highest damage roll, with no critical hit, if the move hits. KO: even the lowest roll knocks it out. KO on a high roll: only some rolls do. Protect, a Substitute, or a foe's ability or item not revealed yet can change it.
+- THE CHOICES give the damage of each move of your Pokemon on the field. YOUR BENCH DAMAGE gives what your bench Pokemon would deal if they came in.
+- DAMAGE YOU TAKE gives what each foe move seen so far would do to your Pokemon. A foe may have moves not seen yet.
+- Foe stats are estimates from species and level; the real ones can differ a little.
+- SPEED ORDER lists the Pokemon on the field in the order they move this turn. Their Speed counts stat stages, paralysis, Tailwind and known items and abilities.
+- SUGGESTION is what a simple rule would pick: a sure KO first, else the most damage, else a switch to the bench Pokemon that hits hardest. It ignores Speed, status moves and what the foe will do. Take it as a hint only.
+
+# TACTICS
+- First look for a knock-out: a move marked KO does at least the target's remaining HP. A sure KO is better than a stronger move that needs a high roll.
+- Check the SPEED ORDER: a faster foe that can knock your Pokemon out stops your move. Then switch to a Pokemon that takes little from it, or use a priority move.
+- Use moves that are super effective; avoid moves the target resists or is immune to.
+- Switch out a Pokemon that takes heavy damage and deals little. DAMAGE YOU TAKE shows how your bench Pokemon would fare. Do not switch without a reason: it costs the turn.
+- Status and stat-raising moves pay off early, while your Pokemon is healthy and safe. When it is in danger, attack.
+- A foe likely has moves of its own types, even if you have not seen them yet.
+
+# TYPE CHART
+How much each attacking type does to each defending type. Any pair not listed does 1x. For a Pokemon with two types, multiply both values.
+- Bug: 2x on Dark, Grass, Psychic; 0.5x on Fairy, Fighting, Fire, Flying, Ghost, Poison, Steel
+- Dark: 2x on Ghost, Psychic; 0.5x on Dark, Fairy, Fighting
+- Dragon: 2x on Dragon; 0.5x on Steel; 0x on Fairy
+- Electric: 2x on Flying, Water; 0.5x on Dragon, Electric, Grass; 0x on Ground
+- Fairy: 2x on Dark, Dragon, Fighting; 0.5x on Fire, Poison, Steel
+- Fighting: 2x on Dark, Ice, Normal, Rock, Steel; 0.5x on Bug, Fairy, Flying, Poison, Psychic; 0x on Ghost
+- Fire: 2x on Bug, Grass, Ice, Steel; 0.5x on Dragon, Fire, Rock, Water
+- Flying: 2x on Bug, Fighting, Grass; 0.5x on Electric, Rock, Steel
+- Ghost: 2x on Ghost, Psychic; 0.5x on Dark; 0x on Normal
+- Grass: 2x on Ground, Rock, Water; 0.5x on Bug, Dragon, Fire, Flying, Grass, Poison, Steel
+- Ground: 2x on Electric, Fire, Poison, Rock, Steel; 0.5x on Bug, Grass; 0x on Flying
+- Ice: 2x on Dragon, Flying, Grass, Ground; 0.5x on Fire, Ice, Steel, Water
+- Normal: 0.5x on Rock, Steel; 0x on Ghost
+- Poison: 2x on Fairy, Grass; 0.5x on Ghost, Ground, Poison, Rock; 0x on Steel
+- Psychic: 2x on Fighting, Poison; 0.5x on Psychic, Steel; 0x on Dark
+- Rock: 2x on Bug, Fire, Flying, Ice; 0.5x on Fighting, Ground, Steel
+- Steel: 2x on Fairy, Ice, Rock; 0.5x on Electric, Fire, Steel, Water
+- Water: 2x on Fire, Ground, Rock; 0.5x on Dragon, Grass, Water
+
+# YOUR MOVES, ABILITIES AND ITEMS
+- Vine Whip (move): Grass, physical, power 45, 100% accuracy. No additional effect.
+- Tackle (move): Normal, physical, power 40, 100% accuracy. No additional effect.
+- Leech Seed (move): Grass, status, 90% accuracy. 1/8 of target's HP is restored to user every turn.
+- Growl (move): Normal, status, 100% accuracy. Lowers the foe(s) Attack by 1.
+- Quick Attack (move): Normal, physical, power 40, 100% accuracy. Usually goes first.
+- Overgrow (ability): Powers up Grass-type moves when the Pokémon's HP is low.
+- Guts (ability): It's so gutsy that having a status condition boosts the Pokémon's Attack stat.
+
+# TURN 2
+Field: nothing special.
+Your side: nothing.
+Foe side: nothing.
+
+# YOUR POKEMON (2 of 2 can fight)
+- 1. Bulbasaur, level 12, Grass/Poison: on the field
+  HP 26/36 (73%)
+  Ability: Overgrow. Item: none.
+  Stats: Attack 20, Defense 20, Sp. Atk 24, Sp. Def 24, Speed 19. Speed now: 19.
+  Moves: Vine Whip, Tackle, Leech Seed, Growl
+- 2. Rattata, level 8, Normal: on the bench
+  HP 25/25 (100%)
+  Ability: Guts. Item: none.
+  Stats: Attack 16, Defense 13, Sp. Atk 11, Sp. Def 13, Speed 19. Speed now: 19.
+  Moves: Tackle, Quick Attack
+
+# FOE POKEMON (1 seen, 1 more not seen yet)
+- Charmander, level 12, Fire: on the field
+  HP 89%; seeded: loses 1/8 of its HP each turn to the other side
+  Ability: not revealed yet (it can be Blaze or Solar Power). Item: not revealed yet.
+  Estimated stats: Attack 19, Defense 17, Sp. Atk 21, Sp. Def 18, Speed 22. Speed now: about 22.
+  Moves seen:
+    - Ember: Fire, special, power 40, 100% accuracy. 10% chance to burn the target.
+
+# RECENT TURNS
+Start: The foe's Charmander came in. Your Bulbasaur came in.
+Turn 1: The foe's Charmander used Ember on your Bulbasaur. It was super effective on your Bulbasaur. Your Bulbasaur fell to 73% HP. Your Bulbasaur used Leech Seed on the foe's Charmander. The foe's Charmander is under Leech Seed. The foe's Charmander fell to 89% HP (Leech Seed).
+
+# YOUR BENCH DAMAGE
+Rattata (if it came in):
+- Tackle on Charmander: 20-24%
+- Quick Attack on Charmander: 20-24%
+
+# DAMAGE YOU TAKE
+Bulbasaur (on the field):
+- the foe's Charmander's Ember: 53-69%, 2x super effective
+
+Rattata (if it came in):
+- the foe's Charmander's Ember: 40-52%
+
+# SPEED ORDER
+Fastest first.
+1. the foe's Charmander: Speed about 22
+2. your Bulbasaur: Speed 19
+
+# SUGGESTION
+- For Bulbasaur: move 2 (Tackle)
 
 # THE CHOICES
 For Bulbasaur:
-- move 1: Vine Whip
-- move 2: Tackle
-- move 3: Leech Seed
-- move 4: Growl
-- switch 2: Rattata
+- move 1: Vine Whip (Grass, physical, 40/40 PP): Charmander 13-20%, 0.5x not very effective
+- move 2: Tackle (Normal, physical, 56/56 PP): Charmander 17-24%
+- move 3: Leech Seed (Grass, status, 15/16 PP)
+- move 4: Growl (Normal, status, 64/64 PP)
+- switch 2: Rattata (25/25 HP)
 
 # ANSWER WITH
 <<schema>>

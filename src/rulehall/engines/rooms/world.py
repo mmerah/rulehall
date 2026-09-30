@@ -156,7 +156,7 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
     def opening(
         cls, proposal: MapProposal[P], player: P, items: Iterable[Item], **extra_fields: object
     ) -> Self:
-        world = parse(
+        return parse(
             cls,
             {
                 "places": proposal.places,
@@ -168,8 +168,6 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
                 **extra_fields,
             },
         )
-        world.apply_proposal_extras(proposal)
-        return world
 
     @property
     def current(self) -> Place:
@@ -415,7 +413,6 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
         self.arc = "\n".join(part for part in (self.arc, region.arc) if part)
         self.add_way(anchor_id, region.start_id)
         self.add_way(region.start_id, anchor_id)
-        self.apply_proposal_extras(region)
 
     def line(self, entity: P | Item) -> str:
         return entity.line(rows=self.sheet_rows()) if entity.id == self.player.id else entity.line()

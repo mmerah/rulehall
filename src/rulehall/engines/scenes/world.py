@@ -23,6 +23,10 @@ ARC_DESCRIPTION = (
     "restate or change what happened, and never what is true in this scene now. The player "
     "never reads it."
 )
+NEXT_ARC_DESCRIPTION = (
+    f"{ARC_DESCRIPTION} Revise it only where what happened makes a change necessary, else leave "
+    "it empty."
+)
 FILED = (
     "{name}[{entity_id}] is new to the cast, which also holds: {others}. Use one of those ids "
     "when you mean them"
@@ -110,11 +114,7 @@ class NextProposal[P: Person](SceneProposal[P]):
         description="One paragraph on the scene the player leaves: what the player did, paid "
         "and learned. The narrator reads it. Name nothing hidden.",
     )
-    arc: str = Field(
-        default="",
-        description=f"{ARC_DESCRIPTION} Revise it only where what happened makes a change "
-        "necessary, else leave it empty.",
-    )
+    arc: str = Field(default="", description=NEXT_ARC_DESCRIPTION)
 
 
 class SceneWorld[P: Person](World[P]):
@@ -140,9 +140,7 @@ class SceneWorld[P: Person](World[P]):
         cast, scene = built_scene(
             proposal, player, proposal.cast_with_hidden_unmet(), (), proposal.location
         )
-        world = parse(cls, {"player": player, "cast": cast, "scenes": [scene], "arc": proposal.arc})
-        world.apply_proposal_extras(proposal)
-        return world
+        return parse(cls, {"player": player, "cast": cast, "scenes": [scene], "arc": proposal.arc})
 
     @property
     def scene(self) -> Scene:
@@ -164,14 +162,16 @@ class SceneWorld[P: Person](World[P]):
     def roster(self) -> Mapping[Slug, P]:
         return self.cast
 
-    def find_entity_id(self, wanted: str) -> Slug | None:
-        return find_cast_id(wanted, {self.player.id: self.player, **self.cast})
+    def find_entity(self, wanted: str) -> P | None:
+        everyone = {self.player.id: self.player, **self.cast}
+        found_id = find_cast_id(wanted, everyone)
+        return None if found_id is None else everyone[found_id]
 
     def require_entity(self, entity_id: Slug) -> P:
-        found_id = self.find_entity_id(entity_id)
-        if found_id is None:
+        entity = self.find_entity(entity_id)
+        if entity is None:
             raise Refusal(UNKNOWN_ID.format(entity_id=entity_id))
-        return self.player if found_id == self.player.id else self.cast[found_id]
+        return entity
 
     def require_here(self, entity_id: Slug) -> P:
         entity = self.require_entity(entity_id)
@@ -317,7 +317,6 @@ class SceneWorld[P: Person](World[P]):
         )
         self.arc = proposal.arc or self.arc
         self.scenes.append(scene)
-        self.apply_proposal_extras(proposal)
 
 
 def built_scene[P: Person](

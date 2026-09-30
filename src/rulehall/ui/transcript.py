@@ -106,11 +106,17 @@ class Transcript:
         self.pause_line: ui.label | None = None
         self.column = ui.element("div").style(PASS_THROUGH)
         self.live_block: TurnBlock
+        self.landed_block: TurnBlock | None = None
         self.redraw(now)
         self.show_pause(now.view)
         self.step_started = monotonic()
         self.ticker: ui.label | None = None
         self.draw_working_status(now.working_role)
+
+    @property
+    def reply_top_id(self) -> int | None:
+        block = self.live_block if self.live_block.bubbles else self.landed_block
+        return block.bubbles[0][0].id if block is not None and block.bubbles else None
 
     def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
         appended = appended_since(now.log_entries, drawn.log_entries)
@@ -128,6 +134,7 @@ class Transcript:
     def redraw(self, now: SessionSnapshot) -> None:
         self.column.clear()
         self.premise = self.pause_line = None
+        self.landed_block = None
         with self.column:
             if not now.log_entries:
                 self.premise = ui.label(now.view.premise).classes("game-lead text-sm italic")
@@ -147,6 +154,7 @@ class Transcript:
             fresh = self.live_block.show_entry(entry, entering=entering)
             if entering and entry.cause != "battle":
                 self.sounds.roll_dice(told_cards(fresh))
+            self.landed_block = self.live_block
             with self.column:
                 self.pause_line = (
                     ui.label(f"Paused: {entry.decision}").classes("game-paused")

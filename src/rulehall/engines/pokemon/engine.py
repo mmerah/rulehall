@@ -34,11 +34,13 @@ from rulehall.engines.pokemon.dex import ITEMS, avatars, dex
 from rulehall.engines.pokemon.pack import PokemonHead, PokemonPack
 from rulehall.engines.pokemon.panels import (
     SHEET_HELP,
+    bag_panel,
+    box_panel,
     item_sprite,
     mon_sprite,
     pending_decision,
-    scheme_panels,
-    team_panels,
+    scheme_panel,
+    team_panel,
     trainer_sprite,
 )
 from rulehall.engines.pokemon.rules import (
@@ -102,7 +104,9 @@ EDGE_LINE = "{edge}: the next battle here starts with it. It is lost when the pl
 
 
 class PokemonEngine(
-    Battling, Joining, RoomEngine[Trainer, PokemonWorld, PokemonPack, PokemonRegionProposal]
+    Battling,
+    Joining[PokemonWorld],
+    RoomEngine[Trainer, PokemonWorld, PokemonPack, PokemonRegionProposal],
 ):
     id = EngineId("pokemon")
     title = "POKEMON"
@@ -199,6 +203,7 @@ class PokemonEngine(
         world = self.world_model.opening(
             opening, self.player_of(character), (), species_ids=pack.species_ids
         )
+        world.apply_opening_extras(opening)
         starter_id = world.player_sheet.caught_species_ids[0]
         others = [species_id for species_id in pack.starters if species_id != starter_id]
         world.rival_record.starter_id = counter_pick(
@@ -208,6 +213,10 @@ class PokemonEngine(
 
     def check_next(self, draft: PokemonGame, proposal: PokemonRegionProposal, /) -> None:
         check_next(proposal, draft.world)
+
+    def install_next(self, draft: PokemonGame, proposal: PokemonRegionProposal, /) -> list[Fact]:
+        draft.world.apply_region_extras(proposal)
+        return super().install_next(draft, proposal)
 
     def worldsmith_sections(self, draft: PokemonGame, /) -> Sections:
         world = draft.world
@@ -259,9 +268,15 @@ class PokemonEngine(
             *section_if("WILD HERE", wild),
         )
 
-    def scene_panels(self, state: PokemonGame, /) -> tuple[Panel, ...]:
+    def scene_panels(self, state: PokemonGame, /) -> tuple[Panel | None, ...]:
         world = state.world
-        return (*super().scene_panels(state), *scheme_panels(world), *team_panels(world))
+        return (
+            *super().scene_panels(state),
+            scheme_panel(world),
+            team_panel(world),
+            box_panel(world),
+            bag_panel(world),
+        )
 
     def ending(self, state: PokemonGame) -> str | None:
         if state.world.evil_team.boss_beaten:

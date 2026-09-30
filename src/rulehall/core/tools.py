@@ -2,7 +2,7 @@ import json
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
-from functools import cached_property
+from functools import cache
 from inspect import cleandoc, signature
 from types import FunctionType, UnionType
 from typing import Annotated, Literal, Union, cast, get_args, get_origin
@@ -27,15 +27,15 @@ class NoArgs(Frozen):
     pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class MasterTool:
     name: str
     description: str
     args: type[BaseModel]
 
-    @cached_property
+    @property
     def schema(self) -> dict[str, JsonValue]:
-        return tool_schema(self.args)
+        return deepcopy(tool_schema(self.args))
 
 
 def tool[F: Callable[..., Sequence[Fact]]](method: F) -> F:
@@ -71,6 +71,7 @@ def player_facing_texts(parsed: BaseModel) -> Iterator[str]:
     return _player_facing_texts(parsed, type(parsed))
 
 
+@cache
 def tool_schema(model: type[BaseModel]) -> dict[str, JsonValue]:
     schema = model.model_json_schema()
     defs = schema.pop("$defs", {})

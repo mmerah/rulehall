@@ -1,8 +1,7 @@
-from abc import ABC, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from pathlib import Path
 from random import Random
-from typing import Protocol, TypeGuard
+from typing import Protocol, TypeGuard, runtime_checkable
 
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyGame, RoleAnswer
@@ -21,7 +20,6 @@ class BattleRun[G](Protocol):
     def log(self) -> Sequence[str]: ...
     @property
     def facts(self) -> Sequence[Fact]: ...
-    def props(self) -> Mapping[str, str | bool]: ...
     def header(self) -> BattleHeader: ...
     @property
     def resolution(self) -> Resolution | None: ...
@@ -30,14 +28,12 @@ class BattleRun[G](Protocol):
     async def close(self) -> None: ...
 
 
-class Battling(ABC):
+@runtime_checkable
+class Battling(Protocol):
     battle_script: Path
 
-    @abstractmethod
     def in_battle(self, state: AnyGame, /) -> bool: ...
-    @abstractmethod
     def simulator_argv(self) -> tuple[str, ...]: ...
-    @abstractmethod
     async def open_battle(
         self, draft: AnyGame, transport: Transport, opponent: RoleAnswer | None
     ) -> BattleRun[AnyGame]: ...

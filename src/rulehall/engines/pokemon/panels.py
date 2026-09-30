@@ -53,6 +53,10 @@ STATUS_COLOURS = {
     "frz": "#98d8d8",
     "fnt": "#c03028",
 }
+CATEGORY_COLOURS = {"Physical": "#c92112", "Special": "#4f5870", "Status": "#8c888c"}
+LOW_COLOUR, OUT_COLOUR = "#f8d030", "#f05030"
+PP_COLOUR = "#6890f0"
+PP_LOW_SHARE = 0.25
 GENDER_SIGNS = {"M": "♂", "F": "♀", "N": ""}
 RAISED, LOWERED = " ▲", " ▼"
 ITEMS_GROUP, LEARN_GROUP, TEAM_GROUP = "Items", "Learn", "Team"
@@ -125,52 +129,69 @@ def status_tag(status: str) -> Tag:
     return Tag(name=status.upper(), colour=STATUS_COLOURS[status])
 
 
+def category_tag(category: str) -> Tag:
+    return Tag(name=category, colour=CATEGORY_COLOURS[category])
+
+
 def hp_meter(current: int, maximum: int) -> Meter:
     share = current / maximum
-    colour = "#48d040" if share > 0.5 else "#f8d030" if share > 0.2 else "#f05030"
+    colour = "#48d040" if share > 0.5 else LOW_COLOUR if share > 0.2 else OUT_COLOUR
     return Meter(name="HP", current=current, maximum=maximum, colour=colour)
 
 
-def team_panels(world: PokemonWorld) -> tuple[Panel, ...]:
+def pp_meter(current: int, maximum: int) -> Meter:
+    colour = (
+        PP_COLOUR if current > maximum * PP_LOW_SHARE else LOW_COLOUR if current else OUT_COLOUR
+    )
+    return Meter(name="PP", current=current, maximum=maximum, colour=colour)
+
+
+def team_panel(world: PokemonWorld) -> Panel:
     sheet = world.player_sheet
-    bag = sorted(sheet.bag, key=_pocket_key)
-    usable = [item_id for item_id in bag if item_of(item_id).kind != "ball"]
-    cap = sheet.level_cap()
-    return (
-        Panel(
-            title="Team",
-            rows=tuple(mon_row(mon, cap, mon_options(mon, world, usable)) for mon in sheet.team),
-            help=SHEET_HELP["Team"],
-            tab="Team",
+    usable = [item_id for item_id in _bag_ids(world) if item_of(item_id).kind != "ball"]
+    return Panel(
+        title="Team",
+        rows=tuple(
+            mon_row(mon, sheet.level_cap(), mon_options(mon, world, usable)) for mon in sheet.team
         ),
-        Panel(
-            title="Box",
-            rows=tuple(mon_row(mon, cap, box_options(mon, sheet)) for mon in sheet.box),
-            help="Pokemon kept in storage, off the team; swap them in from here.",
-            tab="Team",
-        ),
-        Panel(
-            title="Bag",
-            rows=(
-                *(bag_row(item_id, world) for item_id in bag),
-                PanelRow(name="Money", brief=f"₽{sheet.money}", help=SHEET_HELP["Money"]),
-                PanelRow(
-                    name="Badges",
-                    brief=", ".join(sheet.badges) or "none",
-                    help=SHEET_HELP["Badges"],
-                ),
-            ),
-            help="Your items: use one on a Pokemon from its row; balls are thrown in battle.",
-            tab="Team",
-        ),
+        help=SHEET_HELP["Team"],
+        tab="Team",
     )
 
 
-def scheme_panels(world: PokemonWorld) -> tuple[Panel, ...]:
+def box_panel(world: PokemonWorld) -> Panel:
+    sheet = world.player_sheet
+    return Panel(
+        title="Box",
+        rows=tuple(mon_row(mon, sheet.level_cap(), box_options(mon, sheet)) for mon in sheet.box),
+        help="Pokemon kept in storage, off the team; swap them in from here.",
+        tab="Team",
+    )
+
+
+def bag_panel(world: PokemonWorld) -> Panel:
+    sheet = world.player_sheet
+    return Panel(
+        title="Bag",
+        rows=(
+            *(bag_row(item_id, world) for item_id in _bag_ids(world)),
+            PanelRow(name="Money", brief=f"₽{sheet.money}", help=SHEET_HELP["Money"]),
+            PanelRow(
+                name="Badges",
+                brief=", ".join(sheet.badges) or "none",
+                help=SHEET_HELP["Badges"],
+            ),
+        ),
+        help="Your items: use one on a Pokemon from its row; balls are thrown in battle.",
+        tab="Team",
+    )
+
+
+def scheme_panel(world: PokemonWorld) -> Panel | None:
     evil_team = world.evil_team
     scheme = evil_team.scheme
     if scheme is None or not any(world.npcs[leader_id].known for leader_id in evil_team.leader_ids):
-        return ()
+        return None
     operation = evil_team.operation
     shown = (
         ("Stage", f"{evil_team.stage()}/{SCHEME_STAGES}"),
@@ -180,7 +201,7 @@ def scheme_panels(world: PokemonWorld) -> tuple[Panel, ...]:
     )
     rows = tuple(PanelRow(name=name, brief=brief, help=SCHEME_HELP[name]) for name, brief in shown)
     help_text = "The evil team's scheme: stop each operation by beating its leader."
-    return (Panel(title=scheme.name, rows=rows, help=help_text),)
+    return Panel(title=scheme.name, rows=rows, help=help_text)
 
 
 def pending_decision(sheet: TrainerSheet) -> Decision | None:
@@ -225,14 +246,18 @@ def move_row(slot: MoveSlot) -> PanelRow:
     return PanelRow(
         name=move.name,
         brief=move_summary(move),
-        tags=(type_tag(move.type), Tag(name=move.category)),
-        meters=(Meter(name="PP", current=slot.pp, maximum=move.pp),),
+        tags=(type_tag(move.type), category_tag(move.category)),
+        meters=(pp_meter(slot.pp, move.pp),),
     )
 
 
+def move_stats(move: Move) -> str:
+    accuracy = "sure hit" if move.accuracy is None else f"{move.accuracy}%"
+    return " · ".join((*((f"{move.power} BP",) if move.power else ()), accuracy))
+
+
 def move_summary(move: Move) -> str:
-    accuracy = "never misses" if move.accuracy is None else f"{move.accuracy}% accuracy"
-    return " · ".join((*((f"Power {move.power}",) if move.power else ()), accuracy, move.text))
+    return f"{move_stats(move)} · {move.text}" if move.text else move_stats(move)
 
 
 def bag_row(item_id: BagId, world: PokemonWorld) -> PanelRow:
@@ -534,3 +559,7 @@ def _mon_detail(mon: Mon, stat_lines: tuple[StatLine, ...]) -> tuple[Panel, ...]
 def _pocket_key(item_id: BagId) -> tuple[int, str]:
     item = item_of(item_id)
     return POCKET_ORDER.index(POCKETS[item.kind]), item.name
+
+
+def _bag_ids(world: PokemonWorld) -> list[BagId]:
+    return sorted(world.player_sheet.bag, key=_pocket_key)

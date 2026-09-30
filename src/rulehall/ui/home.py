@@ -6,6 +6,7 @@ from nicegui import ui
 
 from rulehall.app.catalog import LauncherCatalog, SaveOption
 from rulehall.app.runtime import Runtime
+from rulehall.app.version import app_version
 from rulehall.core.validation import EngineId
 from rulehall.core.views import Look
 from rulehall.ui.hall import delete_button, open_game, save_line
@@ -58,6 +59,7 @@ def _welcome() -> None:
         ui.label("Rulehall").classes("game-title game-hero-title").props(
             'role="heading" aria-level="1"'
         )
+        ui.label(app_version()).classes("game-version")
         ui.label(WELCOME).classes("game-lead")
 
 

@@ -42,7 +42,6 @@ from rulehall.engines.pokemon.rules import (
 from rulehall.engines.pokemon.scheme import SCHEME_STAGES, EvilTeam, Operation, Scheme
 from rulehall.engines.pokemon.sheet import Mon, Trainer, TrainerSheet, built_team
 from rulehall.engines.rooms.world import MapProposal, RegionProposal, RoomWorld
-from rulehall.engines.world import OpeningProposal
 
 WILD = "The wild table of each new place, keyed by place id. A town or a building has no table."
 RIVAL_WAITS = (
@@ -83,17 +82,17 @@ class WildSlot(Frozen):
         return self
 
 
-class PokemonMap(MapProposal[Trainer]):
+class PokemonMapProposal(MapProposal[Trainer]):
     wild: dict[Slug, tuple[WildSlot, ...]] = Field(default_factory=dict, description=WILD)
     center_place_ids: tuple[Slug, ...] = Field(default=(), description=CENTER_PLACE_IDS)
 
 
-class PokemonOpeningProposal(PokemonMap):
+class PokemonOpeningProposal(PokemonMapProposal):
     scheme: Scheme = Field(description="The evil team's scheme, written once for the journey.")
     operation: Operation = Field(description="The evil team's first operation, in this map.")
 
 
-class PokemonRegionProposal(PokemonMap, RegionProposal[Trainer]):
+class PokemonRegionProposal(PokemonMapProposal, RegionProposal[Trainer]):
     operation: Operation | None = Field(default=None, description=OPERATION)
     boss_id: Slug | None = Field(default=None, description=BOSS_ID)
 
@@ -238,16 +237,21 @@ class PokemonWorld(RoomWorld[Trainer]):
         ledger = self.rival_record.ledger
         return (*rows, ("Rival", "; ".join(ledger))) if ledger else rows
 
-    def apply_proposal_extras(self, proposal: OpeningProposal) -> None:
-        assert isinstance(proposal, PokemonOpeningProposal | PokemonRegionProposal)
+    def apply_opening_extras(self, opening: PokemonOpeningProposal) -> None:
+        self._add_wild_and_centers(opening)
+        self.evil_team.scheme = opening.scheme
+        self.open_operation(opening.operation)
+
+    def apply_region_extras(self, region: PokemonRegionProposal) -> None:
+        self._add_wild_and_centers(region)
+        if region.boss_id is not None:
+            self.evil_team.boss_id = region.boss_id
+        if region.operation is not None:
+            self.open_operation(region.operation)
+
+    def _add_wild_and_centers(self, proposal: PokemonMapProposal) -> None:
         self.wild.update(proposal.wild)
         self.center_place_ids.extend(proposal.center_place_ids)
-        if isinstance(proposal, PokemonOpeningProposal):
-            self.evil_team.scheme = proposal.scheme
-        elif proposal.boss_id is not None:
-            self.evil_team.boss_id = proposal.boss_id
-        if proposal.operation is not None:
-            self.open_operation(proposal.operation)
 
     def earn_edge(self, edge: Edge) -> None:
         self.pending_edge = edge

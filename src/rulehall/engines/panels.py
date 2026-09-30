@@ -21,15 +21,15 @@ def party_panel[T: Entity](
     members: Sequence[T],
     sheet_help: Mapping[str, str],
     more: Callable[[T], Iterable[PanelRow]] = lambda _member: (),
-) -> tuple[Panel, ...]:
+) -> Panel | None:
     if not members:
-        return ()
+        return None
     rows = tuple(
         row
         for member in members
         for row in (member.subject().row(), *helped_rows(member.rows(), sheet_help), *more(member))
     )
-    return (Panel(title="Party", rows=rows),)
+    return Panel(title="Party", rows=rows)
 
 
 def helped_rows(rows: Rows, sheet_help: Mapping[str, str]) -> tuple[PanelRow, ...]:

@@ -12,6 +12,7 @@ from rulehall.core.decisions import ActionOption, DecisionOption
 from rulehall.core.facts import Fact
 from rulehall.core.game import (
     AnyCharacter,
+    AnyScenario,
     Character,
     RoleAnswer,
     WorldsmithRequest,
@@ -61,7 +62,7 @@ from rulehall.engines.loner4e.world import (
     Loner4eGame,
     Loner4eMeanwhileProposal,
     Loner4eNextProposal,
-    Loner4eOpeningProposal,
+    Loner4eSceneProposal,
     Loner4eWorld,
     OracleRoll,
 )
@@ -81,9 +82,8 @@ from rulehall.engines.loner4e.worldsmith import (
     check_meanwhile,
 )
 from rulehall.engines.packs import unique_options
-from rulehall.engines.panels import here_panel, party_panel
+from rulehall.engines.panels import party_panel
 from rulehall.engines.scenes.engine import SceneEngine
-from rulehall.engines.scenes.panels import trail_panel
 from rulehall.engines.scenes.worldsmith import OPENING
 from rulehall.engines.sheet import PLAYER_ID
 
@@ -175,7 +175,8 @@ ARRIVING_QUIET = (
 
 
 class Loner4eEngine(
-    Joining, SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePack, Loner4eNextProposal]
+    Joining[Loner4eWorld],
+    SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePack, Loner4eNextProposal],
 ):
     id = EngineId("loner4e")
     title = "LONER 4E"
@@ -187,7 +188,7 @@ class Loner4eEngine(
     pack_body_model = Loner4eBody
     world_model = Loner4eWorld
     person_model = Loner4eEntity
-    opening_model = Loner4eOpeningProposal
+    opening_model = Loner4eSceneProposal
     next_proposal_model = Loner4eNextProposal
     opening_intent = f"{OPENING} {OPENING_FRAME}"
     play_hint = "What does {name} do? Or ask the oracle."
@@ -233,16 +234,23 @@ class Loner4eEngine(
         )
         return view.model_copy(update={"situation": situation})
 
-    def scene_panels(self, state: Loner4eGame, /) -> tuple[Panel, ...]:
+    def lead_panels(self, state: Loner4eGame, /) -> tuple[Panel | None, ...]:
         world = state.world
         return (
             sheet_panel(world, self.sheet_help),
             scene_panel(world),
             # The sheet help speaks of the player: a companion's luck and goal work otherwise.
-            *party_panel(world.party_members(), {}),
-            here_panel(other.subject() for other in world.others()),
-            trail_panel(scene.title for scene in world.scenes),
+            party_panel(world.party_members(), {}),
         )
+
+    def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> Loner4eWorld:
+        world = super().new_game(scenario, character)
+        world.apply_scene_extras(scenario.opening)
+        return world
+
+    def install_next(self, draft: Loner4eGame, proposal: Loner4eNextProposal, /) -> list[Fact]:
+        draft.world.apply_scene_extras(proposal)
+        return super().install_next(draft, proposal)
 
     def end_turn(self, draft: Loner4eGame, /, *, acted: bool) -> None:  # noqa: ARG002
         draft.world.player_question = ""

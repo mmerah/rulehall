@@ -57,9 +57,6 @@ class World[P: Person](Mutable):
     @abstractmethod
     def kill(self, entity_id: Slug) -> list[Fact]: ...
 
-    def apply_proposal_extras(self, proposal: OpeningProposal) -> None:
-        pass
-
     def party_members(self) -> list[P]:
         return [self.roster[member_id] for member_id in self.party_ids]
 

@@ -5,7 +5,7 @@ import pytest
 from pydantic import ValidationError
 from support.pokemon import ENGINE, started
 
-from rulehall.core.views import Meter, Sprite
+from rulehall.core.views import Sprite
 from rulehall.engines.pokemon.battle.models import LEVEL_MAX
 from rulehall.engines.pokemon.dex import (
     ITEMS,
@@ -129,7 +129,8 @@ def test_the_summary_shows_the_held_item_the_nature_arrows_and_the_moves() -> No
     ember = moves.rows[2]
     assert [tag.name for tag in ember.tags] == ["Fire", "Special"]
     assert dex().moves["ember"].text in ember.brief
-    assert ember.meters == (Meter(name="PP", current=40, maximum=40),)
+    [pp] = ember.meters
+    assert (pp.name, pp.current, pp.maximum) == ("PP", 40, 40)
 
 
 def test_bag_rows_sort_by_pocket_and_carry_their_text() -> None:

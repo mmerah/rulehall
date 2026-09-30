@@ -153,9 +153,7 @@ def choice_button(
     meters: Sequence[Meter] = (),
     icon: Sprite | Path | None = None,
 ) -> ui.button:
-    button = ui.button(on_click=on_click).props("outline").classes("game-choice")
-    if tint := next((tag.colour for tag in tags if tag.colour), ""):
-        button.style(f"--game-tag: {tint}").classes("game-choice-tinted")
+    button = tint(ui.button(on_click=on_click).props("outline").classes("game-choice"), tags)
     with button.set_enabled(enabled), ui.column().classes("w-full game-gap-0"):
         with ui.row().classes("items-center w-full game-gap-sm game-choice-head"):
             if icon is not None:
@@ -169,6 +167,12 @@ def choice_button(
         if brief:
             ui.label(brief).classes("text-xs opacity-70")
     return button
+
+
+def tint[E: ui.element](element: E, tags: Sequence[Tag]) -> E:
+    if colour := next((tag.colour for tag in tags if tag.colour), ""):
+        element.style(f"--game-tag: {colour}").classes("game-choice-tinted")
+    return element
 
 
 def panel_row(

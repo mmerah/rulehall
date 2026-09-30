@@ -12,7 +12,7 @@ update
 ||>>> const states = [[[24, "", [48, 64]]], [[15, "", [56]]]]; [battle.p1, battle.p2].forEach((side, number) => states[number].forEach(([hp, status, pp], index) => { const mon = side.pokemon[index]; mon.sethp(hp); if (status) mon.setStatus(status, null, null, true); mon.baseMoveSlots.forEach((slot, move) => { slot.pp = pp[move]; }); }))
 ||<<< undefined
 ||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))
-||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":0,"held":true}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":0,"held":true}]}"
+||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":0,"held":true,"active":false,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":0,"held":true,"active":false,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}]}"
 
 sideupdate
 p1
@@ -36,7 +36,7 @@ update
 |switch|p2a: Rattata|Rattata, L3, F|15/15
 |turn|1
 ||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))
-||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":1,"held":true}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":1,"held":true}]}"
+||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}]}"
 
 sideupdate
 p1
@@ -61,7 +61,7 @@ update
 |upkeep
 |turn|2
 ||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))
-||<<< "{"p1":[{"slot":0,"hp":21,"status":"","pp":[47,64],"out":1,"held":true}],"p2":[{"slot":0,"hp":6,"status":"","pp":[55],"out":1,"held":true}]}"
+||<<< "{"p1":[{"slot":0,"hp":21,"status":"","pp":[47,64],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":6,"status":"","pp":[55],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}]}"
 
 sideupdate
 p1
@@ -82,7 +82,7 @@ update
 |
 |win|Kael
 ||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))
-||<<< "{"p1":[{"slot":0,"hp":21,"status":"","pp":[46,64],"out":1,"held":true}],"p2":[{"slot":0,"hp":0,"status":"","pp":[55],"out":1,"held":true}]}"
+||<<< "{"p1":[{"slot":0,"hp":21,"status":"","pp":[46,64],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":0,"status":"","pp":[55],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}]}"
 
 end
 {"winner":"Kael","seed":"1,2,3,4","turns":2,"p1":"Kael","p2":"Wild Rattata","p1team":[{"name":"Pikachu","species":"Pikachu","item":"","ability":"Static","moves":["Thunder Shock","Growl"],"nature":"Hardy","gender":"M","level":7,"evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31}}],"p2team":[{"name":"Rattata","species":"Rattata","item":"","ability":"Guts","moves":["Tackle"],"nature":"Hardy","gender":"F","level":3,"evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31}}],"score":[1,0],"inputLog":[">start {\"formatid\":\"gen9customgame\",\"seed\":\"1,2,3,4\"}",">player p1 {\"name\":\"Kael\",\"team\":\"Pikachu|pikachu||Static|thundershock,growl|Hardy||M|||7|\"}",">player p2 {\"name\":\"Wild Rattata\",\"team\":\"Rattata|rattata||Guts|tackle|Hardy||F|||3|\"}",">eval const states = [[[24, \"\", [48, 64]]], [[15, \"\", [56]]]]; [battle.p1, battle.p2].forEach((side, number) => states[number].forEach(([hp, status, pp], index) => { const mon = side.pokemon[index]; mon.sethp(hp); if (status) mon.setStatus(status, null, null, true); mon.baseMoveSlots.forEach((slot, move) => { slot.pp = pp[move]; }); }))",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))",">p1 team 1",">p2 team 1",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))",">p1 move thundershock",">p2 move tackle",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))",">p1 move thundershock",">p2 move tackle",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))"]}

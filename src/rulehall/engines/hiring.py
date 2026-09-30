@@ -68,7 +68,7 @@ class Hiring[P: Person, W: World[Any], K: Pack, R: BaseModel, A: BaseModel](Engi
             worldsmith,
             self.hire_intent.format(name=person.name, brief=person.brief, terms=request.detail),
             self.hire_model,
-            lambda answer: self.check_hire(draft, answer),
+            lambda answer: self.sign_on(draft, person.model_copy(deep=True), answer),
             guidance=self.hire_guidance(draft),
         )
         summary = self.sign_on(draft, person, answer)
@@ -76,13 +76,11 @@ class Hiring[P: Person, W: World[Any], K: Pack, R: BaseModel, A: BaseModel](Engi
         facts.append(signed_on(person, summary))
         return Resolution(tuple(facts), SIGNED_ON.format(name=person.name))
 
-    def check_hire(self, _draft: Game[W], _answer: A, /) -> None:
-        pass
-
     @abstractmethod
     def hire_guidance(self, draft: Game[W], /) -> str: ...
     @abstractmethod
-    def sign_on(self, draft: Game[W], person: P, answer: A, /) -> str: ...
+    def sign_on(self, draft: Game[W], person: P, answer: A, /) -> str:
+        """Change only the person, so signing on a copy tries the answer."""
 
 
 def signed_on(person: Person, summary: str) -> Fact:

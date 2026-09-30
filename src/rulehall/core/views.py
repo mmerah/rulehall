@@ -70,11 +70,20 @@ class BattleSide(Frozen):
     said: str = ""
 
 
+class BattleMon(Frozen):
+    name: str
+    sprite: Sprite
+    hp: Meter
+    tags: tuple[Tag, ...] = ()
+    deciding: bool = False
+
+
 class BattleHeader(Frozen):
     player: BattleSide
     ally: BattleSide | None
     foe: BattleSide
     conditions: tuple[Tag, ...]
+    fielded: tuple[BattleMon, ...]
 
 
 class Subject(Frozen):

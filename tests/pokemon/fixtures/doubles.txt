@@ -1,5 +1,5 @@
 update
-|t:|1790692987
+|t:|1790757921
 |gametype|doubles
 |player|p1|Kael|ethan|
 |player|p2|Rook|camper|
@@ -15,8 +15,8 @@ update
 |teampreview
 ||>>> const states = [[[24, "", [48, 64]], [26, "", [56, 40]]], [[15, "", [56]], [18, "", [56]]]]; [battle.p1, battle.p2].forEach((side, number) => states[number].forEach(([hp, status, pp], index) => { const mon = side.pokemon[index]; mon.sethp(hp); if (status) mon.setStatus(status, null, null, true); mon.baseMoveSlots.forEach((slot, move) => { slot.pp = pp[move]; }); }))
 ||<<< undefined
-||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))
-||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":0,"held":true},{"slot":1,"hp":26,"status":"","pp":[56,40],"out":0,"held":true}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":0,"held":true},{"slot":1,"hp":18,"status":"","pp":[56],"out":0,"held":true}]}"
+||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))
+||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":0,"held":true,"active":false,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}},{"slot":1,"hp":26,"status":"","pp":[56,40],"out":0,"held":true,"active":false,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":0,"held":true,"active":false,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}},{"slot":1,"hp":18,"status":"","pp":[56],"out":0,"held":true,"active":false,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}]}"
 
 sideupdate
 p1
@@ -28,7 +28,7 @@ p2
 
 update
 |
-|t:|1790692988
+|t:|1790757922
 |teamsize|p1|2
 |teamsize|p2|2
 |start
@@ -45,8 +45,8 @@ update
 |switch|p2b: Pidgey|Pidgey, L4, F|18/18
 |switch|p2b: Pidgey|Pidgey, L4, F|18/18
 |turn|1
-||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))
-||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":1,"held":true},{"slot":1,"hp":26,"status":"","pp":[56,40],"out":1,"held":true}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":1,"held":true},{"slot":1,"hp":18,"status":"","pp":[56],"out":1,"held":true}]}"
+||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))
+||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}},{"slot":1,"hp":26,"status":"","pp":[56,40],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}},{"slot":1,"hp":18,"status":"","pp":[56],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}]}"
 
 sideupdate
 p1
@@ -57,69 +57,220 @@ p2
 |request|{"active":[{"moves":[{"move":"Tackle","id":"tackle","pp":56,"maxpp":56,"target":"normal","disabled":false}]},{"moves":[{"move":"Tackle","id":"tackle","pp":56,"maxpp":56,"target":"normal","disabled":false}]}],"side":{"name":"Rook","id":"p2","pokemon":[{"ident":"p2: Rattata","details":"Rattata, L3, F","condition":"15/15","active":true,"stats":{"atk":9,"def":8,"spa":7,"spd":8,"spe":10},"moves":["tackle"],"baseAbility":"guts","item":"","pokeball":"pokeball","ability":"guts","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""},{"ident":"p2: Pidgey","details":"Pidgey, L4, F","condition":"18/18","active":true,"stats":{"atk":9,"def":9,"spa":9,"spd":9,"spe":10},"moves":["tackle"],"baseAbility":"keeneye","item":"","pokeball":"pokeball","ability":"keeneye","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""}]}}
 
 update
-||>>> JSON.stringify({...Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])), assessment: (() => {
-||  const me = battle.p2;
-||  const foe = battle.p1;
-||  const targets = foe.active.flatMap((mon, index) => (mon && !mon.fainted ? [{ mon, target: index + 1 }] : []));
+||>>> JSON.stringify({...Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])), assessment: ((me, foe) => {
 ||  const saved = battle.prng.clone();
 ||  const randomizer = battle.randomizer;
-||  const damage = (source, victim, moveId) => {
-||    if (!source || !victim || source.fainted || victim.fainted) return null;
+||  const AVERAGE_IV = 16;
+||  const ABSORBS = { waterabsorb: "Water", stormdrain: "Water", dryskin: "Water", voltabsorb: "Electric", lightningrod: "Electric", motordrive: "Electric", flashfire: "Fire", wellbakedbody: "Fire", sapsipper: "Grass", eartheater: "Ground" };
+||  const SHIELDS = { bulletproof: "bullet", soundproof: "sound", windrider: "wind" };
+||  const PRIORITY_SHIELDS = ["dazzling", "queenlymajesty", "armortail"];
+||  const RULE_BREAKERS = ["moldbreaker", "teravolt", "turboblaze"];
+||  const lines = battle.log.filter((line) => !line.startsWith("||"));
+||  const holderOf = (ident) => ident.replace(/^(p\d)[a-z]?: /, "$1: ");
+||  const shownAbilities = new Map();
+||  const shownItems = new Map();
+||  const note = (shown, ident, name) => shown.set(holderOf(ident), [...(shown.get(holderOf(ident)) ?? []), name]);
+||  for (const line of lines) {
+||    const [, kind, ...fields] = line.split("|");
+||    const [lead = "", named = ""] = fields;
+||    const of = fields.find((field) => field.startsWith("[of] "));
+||    if (kind === "-ability") note(shownAbilities, lead, named);
+||    if (kind === "-item" || kind === "-enditem") note(shownItems, lead, named);
+||    for (const field of fields) {
+||      const from = field.startsWith("[from] ");
+||      const effect = field.replace(/^\[from\] /, "");
+||      const holder = from && of ? of.slice("[of] ".length) : lead;
+||      if (effect.startsWith("ability: ")) note(shownAbilities, holder, effect.slice("ability: ".length));
+||      if (effect.startsWith("item: ")) note(shownItems, holder, effect.slice("item: ".length));
+||    }
+||  }
+||  const faceOf = (mon) => (mon.side === foe ? mon.illusion ?? mon : mon);
+||  const shownFor = (shown, mon) => shown.get(`${mon.side.id}: ${faceOf(mon).name}`) ?? [];
+||  const revealed = (mon) => {
+||    const items = shownFor(shownItems, mon);
+||    const item = mon.item ? (items.includes(mon.getItem().name) ? mon.getItem().name : null) : items.length ? "" : null;
+||    return { ability: shownFor(shownAbilities, mon).includes(mon.getAbility().name), item };
+||  };
+||  const estimated = (mon) => {
+||    const spread = { level: mon.level, nature: "Hardy", evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, ivs: { hp: AVERAGE_IV, atk: AVERAGE_IV, def: AVERAGE_IV, spa: AVERAGE_IV, spd: AVERAGE_IV, spe: AVERAGE_IV } };
+||    return battle.spreadModify(mon.species.baseStats, spread);
+||  };
+||  const disguise = (mon) => {
+||    if (mon.side !== foe) return () => {};
+||    const kept = { storedStats: mon.storedStats, ability: mon.ability, item: mon.item, hp: mon.hp, maxhp: mon.maxhp };
+||    const { hp, ...stats } = estimated(mon);
+||    mon.storedStats = stats;
+||    mon.maxhp = hp;
+||    mon.hp = kept.hp && Math.max(1, Math.round((hp * kept.hp) / kept.maxhp));
+||    const { ability, item } = revealed(mon);
+||    if (!ability) mon.ability = "noability";
+||    if (item === null) mon.item = "";
+||    return () => Object.assign(mon, kept);
+||  };
+||  const breaksRules = (mon) => RULE_BREAKERS.includes(mon.getAbility().id);
+||  const shieldOf = (source, victim, move) => {
+||    const ability = victim.getAbility();
+||    if (breaksRules(source)) return "";
+||    const flag = SHIELDS[ability.id];
+||    const shielded = ABSORBS[ability.id] === move.type || (flag && move.flags[flag]) || (ability.id === "wonderguard" && victim.runEffectiveness(move) <= 0) || (PRIORITY_SHIELDS.includes(ability.id) && move.priority > 0);
+||    return shielded ? ability.name : "";
+||  };
+||  const hitsOf = (source, move) => {
+||    if (!Array.isArray(move.multihit)) return [move.multihit || 1, move.multihit || 1];
+||    const [fewest, most] = move.multihit;
+||    if (source.hasAbility("skilllink")) return [most, most];
+||    return source.hasItem("loadeddice") && most === 5 ? [4, 5] : [fewest, most];
+||  };
+||  const enduredBy = (source, victim) => {
+||    if (victim.hp !== victim.maxhp) return "";
+||    if (victim.hasItem("focussash")) return "Focus Sash";
+||    return victim.hasAbility("sturdy") && !breaksRules(source) ? "Sturdy" : "";
+||  };
+||  const hit = (source, victim, moveId, spread) => {
 ||    const move = battle.dex.getActiveMove(moveId);
+||    if (move.category === "Status") return null;
 ||    move.willCrit = false;
-||    const at = (roll) => {
-||      battle.randomizer = (base) => battle.trunc(battle.trunc(base * roll) / 100);
-||      const dealt = battle.actions.getDamage(source, victim, move, true);
-||      return typeof dealt === "number" ? dealt : dealt === false ? 0 : null;
-||    };
-||    const low = at(85);
-||    return low === null ? null : [low, at(100)];
+||    move.spreadHit = spread;
+||    const undo = [disguise(source), disguise(victim)];
+||    try {
+||      const at = (roll) => {
+||        battle.randomizer = (base) => battle.trunc(battle.trunc(base * roll) / 100);
+||        return battle.actions.getDamage(source, victim, move, true);
+||      };
+||      const shield = shieldOf(source, victim, move);
+||      const low = at(85);
+||      const immune = low === false || shield !== "";
+||      const [fewest, most] = hitsOf(source, move);
+||      const damage = immune || !low ? null : [low * fewest, at(100) * most];
+||      const endured = damage !== null && most === 1 && !move.ohko && damage[1] >= victim.hp ? enduredBy(source, victim) : "";
+||      return {
+||        hp: victim.hp,
+||        maxhp: victim.maxhp,
+||        damage,
+||        hits: [fewest, most],
+||        multiplier: immune ? 0 : 2 ** victim.runEffectiveness(move),
+||        shield,
+||        endured,
+||        one_hit_ko: Boolean(move.ohko),
+||      };
+||    } finally {
+||      undo.reverse().forEach((restore) => restore());
+||    }
+||  };
+||  const speedOf = (mon) => {
+||    const undo = disguise(mon);
+||    try {
+||      return mon.getStat("spe");
+||    } finally {
+||      undo();
+||    }
+||  };
+||  const standing = (side) => side.active.flatMap((mon, index) => (mon && !mon.fainted ? [{ mon, position: index + 1 }] : []));
+||  const reach = (user, move) => {
+||    const foes = standing(foe).map(({ mon, position }) => ({ mon, target: position }));
+||    const partners = standing(me).filter(({ mon }) => mon !== user).map(({ mon, position }) => ({ mon, target: -position }));
+||    const aimed = move.target === "allAdjacent" ? [...foes, ...partners] : foes;
+||    const spread = ["allAdjacent", "allAdjacentFoes"].includes(move.target) && aimed.length > 1;
+||    return { aimed, spread };
 ||  };
 ||  const raised = (mon) => Object.fromEntries(Object.entries(mon.boosts).filter(([, stages]) => stages !== 0));
+||  const statLine = ({ atk, def, spa, spd, spe }) => [atk, def, spa, spd, spe];
+||  const lockOf = (mon, slot, move) => {
+||    if (slot.pp <= 0) return "no PP left";
+||    if (!slot.disabled) return "";
+||    const effects = mon.volatiles;
+||    if (effects.disable && effects.disable.move === slot.id) return "Disable blocks it";
+||    if (effects.encore && effects.encore.move !== slot.id) return "Encore forces its last move";
+||    if (effects.choicelock && effects.choicelock.move !== slot.id) return "its choice item locks it into another move";
+||    if (effects.taunt && move.category === "Status") return "Taunt allows only attacks";
+||    if (effects.torment && mon.lastMove && mon.lastMove.id === slot.id) return "Torment forbids the same move twice in a row";
+||    if (effects.healblock && move.flags.heal) return "Heal Block stops healing moves";
+||    if (effects.throatchop && move.flags.sound) return "Throat Chop stops sound moves";
+||    if (mon.hasItem("assaultvest") && move.category === "Status") return "Assault Vest allows only attacks";
+||    if (move.flags.gravity && battle.field.getPseudoWeather("gravity")) return "Gravity stops it";
+||    if (move.flags.cantusetwice && mon.lastMove && mon.lastMove.id === slot.id) return "it cannot be used twice in a row";
+||    return "it cannot be used this turn";
+||  };
+||  const effect = (id, state) => ({ id, name: battle.dex.conditions.get(id).name || id, turns: state.duration || 0, layers: state.layers || 0 });
+||  const conditions = (side) => Object.entries(side.sideConditions).map(([id, state]) => effect(id, state));
+||  const volatiles = (mon) => Object.keys(mon.volatiles);
+||  const seenMoves = (mon) => mon.moveSlots.filter((slot) => slot.used).map((slot) => battle.dex.moves.get(slot.id));
+||  const place = (mon) => (mon.isActive ? mon.position + 1 : 0);
 ||  const team = me.pokemon.map((mon, index) => ({
 ||    slot: index + 1,
 ||    name: mon.name,
+||    species: mon.species.name,
 ||    level: mon.level,
 ||    types: mon.getTypes(),
 ||    hp: mon.hp,
 ||    maxhp: mon.maxhp,
 ||    status: mon.status,
-||    active: mon.isActive,
+||    position: place(mon),
 ||    boosts: raised(mon),
-||    moves: mon.baseMoveSlots.map((slot) => {
+||    volatiles: volatiles(mon),
+||    ability: mon.getAbility().name,
+||    item: mon.item ? mon.getItem().name : "",
+||    stats: statLine(mon.storedStats),
+||    speed: mon.fainted ? 0 : speedOf(mon),
+||    moves: mon.moveSlots.map((slot) => {
 ||      const move = battle.dex.moves.get(slot.id);
-||      const hits = targets.map(({ mon: victim, target }) => {
-||        const dealt = damage(mon, victim, slot.id);
-||        const percent = dealt ? dealt.map((hp) => Math.floor((100 * hp) / victim.maxhp)) : null;
-||        return { target, name: victim.name, damage: dealt, percent };
+||      const { aimed, spread } = reach(mon, move);
+||      const hits = mon.fainted ? [] : aimed.flatMap(({ mon: victim, target }) => {
+||        const dealt = hit(mon, victim, slot.id, spread);
+||        return dealt ? [{ target, name: faceOf(victim).name, ...dealt }] : [];
 ||      });
-||      return { name: move.name, type: move.type, pp: slot.pp, maxpp: slot.maxpp, disabled: !!slot.disabled, multihit: move.multihit || null, hits };
+||      return { name: move.name, type: move.type, category: move.category, priority: move.priority, pp: slot.pp, maxpp: slot.maxpp, lock: lockOf(mon, slot, move), target: move.target, hits };
 ||    }),
-||    threats: targets.flatMap(({ mon: attacker }) => attacker.baseMoveSlots.filter((slot) => slot.used).map((slot) => {
-||      const move = battle.dex.moves.get(slot.id);
-||      return { user: attacker.name, name: move.name, type: move.type, damage: damage(attacker, mon, slot.id) };
+||    threats: mon.fainted ? [] : standing(foe).flatMap(({ mon: attacker }) => seenMoves(attacker).flatMap((move) => {
+||      const dealt = hit(attacker, mon, move.id, false);
+||      return dealt ? [{ user: faceOf(attacker).name, name: move.name, type: move.type, ...dealt }] : [];
 ||    })),
 ||  }));
-||  const foes = foe.pokemon.map((mon) => ({
-||    name: mon.name,
-||    level: mon.level,
-||    types: mon.getTypes(),
-||    percent: Math.ceil((100 * mon.hp) / mon.maxhp),
-||    status: mon.status,
-||    active: mon.isActive,
-||    out: mon.previouslySwitchedIn > 0,
-||    boosts: raised(mon),
-||    moves: mon.baseMoveSlots.filter((slot) => slot.used).map((slot) => { const move = battle.dex.moves.get(slot.id); return { name: move.name, type: move.type }; }),
-||  }));
+||  const shown = foe.pokemon.filter((mon) => mon.previouslySwitchedIn > 0);
+||  const foes = shown.map((mon) => {
+||    const { ability: shownAbility, item } = revealed(mon);
+||    const ability = shownAbility ? mon.getAbility().name : null;
+||    const face = faceOf(mon);
+||    return {
+||      name: face.name,
+||      species: face.species.name,
+||      level: mon.level,
+||      types: face === mon ? mon.getTypes() : face.species.types,
+||      hp: mon.hp,
+||      maxhp: mon.maxhp,
+||      status: mon.status,
+||      position: place(mon),
+||      boosts: raised(mon),
+||      volatiles: volatiles(mon),
+||      ability,
+||      abilities: ability === null ? [...new Set(Object.values(face.species.abilities))] : [],
+||      item,
+||      stats: statLine(estimated(mon)),
+||      speed: mon.fainted ? 0 : speedOf(mon),
+||      moves: seenMoves(mon).map((move) => ({ move_id: move.id, priority: move.priority })),
+||    };
+||  });
+||  const weather = battle.field.weather;
+||  const terrain = battle.field.terrain;
 ||  battle.randomizer = randomizer;
 ||  battle.prng = saved;
-||  return { team, foes };
-||})()})
-||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":1,"held":true},{"slot":1,"hp":26,"status":"","pp":[56,40],"out":1,"held":true}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":1,"held":true},{"slot":1,"hp":18,"status":"","pp":[56],"out":1,"held":true}],"assessment":{"team":[{"slot":1,"name":"Rattata","level":3,"types":["Normal"],"hp":15,"maxhp":15,"status":"","active":true,"boosts":{},"moves":[{"name":"Tackle","type":"Normal","pp":56,"maxpp":56,"disabled":false,"multihit":null,"target":"normal","hits":[{"target":1,"name":"Pikachu","damage":[3,4],"percent":[12,16]},{"target":2,"name":"Charmander","damage":[3,4],"percent":[11,15]}]}],"threats":[]},{"slot":2,"name":"Pidgey","level":4,"types":["Normal","Flying"],"hp":18,"maxhp":18,"status":"","active":true,"boosts":{},"moves":[{"name":"Tackle","type":"Normal","pp":56,"maxpp":56,"disabled":false,"multihit":null,"target":"normal","hits":[{"target":1,"name":"Pikachu","damage":[3,4],"percent":[12,16]},{"target":2,"name":"Charmander","damage":[3,4],"percent":[11,15]}]}],"threats":[]}],"foes":[{"name":"Pikachu","level":7,"types":["Electric"],"percent":100,"status":"","active":true,"out":true,"boosts":{},"moves":[]},{"name":"Charmander","level":8,"types":["Fire"],"percent":100,"status":"","active":true,"out":true,"boosts":{},"moves":[]}]}}"
+||  return {
+||    turn: battle.turn,
+||    weather: weather ? effect(weather, battle.field.weatherState) : null,
+||    terrain: terrain ? effect(terrain, battle.field.terrainState) : null,
+||    rooms: Object.entries(battle.field.pseudoWeather).map(([id, state]) => effect(id, state)),
+||    own_side: conditions(me),
+||    foe_side: conditions(foe),
+||    team,
+||    foes,
+||    unseen: foe.pokemon.length - shown.length,
+||  };
+||})(battle.p2, battle.p1)})
+||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}},{"slot":1,"hp":26,"status":"","pp":[56,40],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}},{"slot":1,"hp":18,"status":"","pp":[56],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"assessment":{"turn":1,"weather":null,"terrain":null,"rooms":[],"own_side":[],"foe_side":[],"team":[{"slot":1,"name":"Rattata","species":"Rattata","level":3,"types":["Normal"],"hp":15,"maxhp":15,"status":"","position":1,"boosts":{},"volatiles":[],"ability":"Guts","item":"","stats":[9,8,7,8,10],"speed":10,"moves":[{"name":"Tackle","type":"Normal","category":"Physical","priority":0,"pp":56,"maxpp":56,"lock":"","target":"normal","hits":[{"target":1,"name":"Pikachu","hp":23,"maxhp":23,"damage":[3,4],"hits":[1,1],"multiplier":1,"shield":"","endured":"","one_hit_ko":false},{"target":2,"name":"Charmander","hp":25,"maxhp":25,"damage":[3,4],"hits":[1,1],"multiplier":1,"shield":"","endured":"","one_hit_ko":false}]}],"threats":[]},{"slot":2,"name":"Pidgey","species":"Pidgey","level":4,"types":["Normal","Flying"],"hp":18,"maxhp":18,"status":"","position":2,"boosts":{},"volatiles":[],"ability":"Keen Eye","item":"","stats":[9,9,9,9,10],"speed":10,"moves":[{"name":"Tackle","type":"Normal","category":"Physical","priority":0,"pp":56,"maxpp":56,"lock":"","target":"normal","hits":[{"target":1,"name":"Pikachu","hp":23,"maxhp":23,"damage":[3,4],"hits":[1,1],"multiplier":1,"shield":"","endured":"","one_hit_ko":false},{"target":2,"name":"Charmander","hp":25,"maxhp":25,"damage":[3,4],"hits":[1,1],"multiplier":1,"shield":"","endured":"","one_hit_ko":false}]}],"threats":[]}],"foes":[{"name":"Pikachu","species":"Pikachu","level":7,"types":["Electric"],"hp":24,"maxhp":24,"status":"","position":1,"boosts":{},"volatiles":[],"ability":null,"abilities":["Static","Lightning Rod"],"item":null,"stats":[13,11,13,13,18],"speed":18,"moves":[]},{"name":"Charmander","species":"Charmander","level":8,"types":["Fire"],"hp":26,"maxhp":26,"status":"","position":2,"boosts":{},"volatiles":[],"ability":null,"abilities":["Blaze","Solar Power"],"item":null,"stats":[14,13,15,14,16],"speed":16,"moves":[]}],"unseen":0}}"
 
 update
 |
-|t:|1790692988
+|t:|1790757922
 |move|p1a: Pikachu|Thunder Shock|p2b: Pidgey
 |-supereffective|p2b: Pidgey
 |split|p2
@@ -140,8 +291,8 @@ update
 |
 |upkeep
 |turn|2
-||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))
-||<<< "{"p1":[{"slot":0,"hp":18,"status":"","pp":[47,64],"out":1,"held":true},{"slot":1,"hp":26,"status":"","pp":[55,40],"out":1,"held":true}],"p2":[{"slot":0,"hp":8,"status":"","pp":[55],"out":1,"held":true},{"slot":1,"hp":4,"status":"","pp":[55],"out":1,"held":true}]}"
+||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))
+||<<< "{"p1":[{"slot":0,"hp":18,"status":"","pp":[47,64],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}},{"slot":1,"hp":26,"status":"","pp":[55,40],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":8,"status":"","pp":[55],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}},{"slot":1,"hp":4,"status":"","pp":[55],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}]}"
 
 sideupdate
 p1
@@ -152,69 +303,220 @@ p2
 |request|{"active":[{"moves":[{"move":"Tackle","id":"tackle","pp":55,"maxpp":56,"target":"normal","disabled":false}]},{"moves":[{"move":"Tackle","id":"tackle","pp":55,"maxpp":56,"target":"normal","disabled":false}]}],"side":{"name":"Rook","id":"p2","pokemon":[{"ident":"p2: Rattata","details":"Rattata, L3, F","condition":"8/15","active":true,"stats":{"atk":9,"def":8,"spa":7,"spd":8,"spe":10},"moves":["tackle"],"baseAbility":"guts","item":"","pokeball":"pokeball","ability":"guts","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""},{"ident":"p2: Pidgey","details":"Pidgey, L4, F","condition":"4/18","active":true,"stats":{"atk":9,"def":9,"spa":9,"spd":9,"spe":10},"moves":["tackle"],"baseAbility":"keeneye","item":"","pokeball":"pokeball","ability":"keeneye","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""}]}}
 
 update
-||>>> JSON.stringify({...Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])), assessment: (() => {
-||  const me = battle.p2;
-||  const foe = battle.p1;
-||  const targets = foe.active.flatMap((mon, index) => (mon && !mon.fainted ? [{ mon, target: index + 1 }] : []));
+||>>> JSON.stringify({...Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])), assessment: ((me, foe) => {
 ||  const saved = battle.prng.clone();
 ||  const randomizer = battle.randomizer;
-||  const damage = (source, victim, moveId) => {
-||    if (!source || !victim || source.fainted || victim.fainted) return null;
+||  const AVERAGE_IV = 16;
+||  const ABSORBS = { waterabsorb: "Water", stormdrain: "Water", dryskin: "Water", voltabsorb: "Electric", lightningrod: "Electric", motordrive: "Electric", flashfire: "Fire", wellbakedbody: "Fire", sapsipper: "Grass", eartheater: "Ground" };
+||  const SHIELDS = { bulletproof: "bullet", soundproof: "sound", windrider: "wind" };
+||  const PRIORITY_SHIELDS = ["dazzling", "queenlymajesty", "armortail"];
+||  const RULE_BREAKERS = ["moldbreaker", "teravolt", "turboblaze"];
+||  const lines = battle.log.filter((line) => !line.startsWith("||"));
+||  const holderOf = (ident) => ident.replace(/^(p\d)[a-z]?: /, "$1: ");
+||  const shownAbilities = new Map();
+||  const shownItems = new Map();
+||  const note = (shown, ident, name) => shown.set(holderOf(ident), [...(shown.get(holderOf(ident)) ?? []), name]);
+||  for (const line of lines) {
+||    const [, kind, ...fields] = line.split("|");
+||    const [lead = "", named = ""] = fields;
+||    const of = fields.find((field) => field.startsWith("[of] "));
+||    if (kind === "-ability") note(shownAbilities, lead, named);
+||    if (kind === "-item" || kind === "-enditem") note(shownItems, lead, named);
+||    for (const field of fields) {
+||      const from = field.startsWith("[from] ");
+||      const effect = field.replace(/^\[from\] /, "");
+||      const holder = from && of ? of.slice("[of] ".length) : lead;
+||      if (effect.startsWith("ability: ")) note(shownAbilities, holder, effect.slice("ability: ".length));
+||      if (effect.startsWith("item: ")) note(shownItems, holder, effect.slice("item: ".length));
+||    }
+||  }
+||  const faceOf = (mon) => (mon.side === foe ? mon.illusion ?? mon : mon);
+||  const shownFor = (shown, mon) => shown.get(`${mon.side.id}: ${faceOf(mon).name}`) ?? [];
+||  const revealed = (mon) => {
+||    const items = shownFor(shownItems, mon);
+||    const item = mon.item ? (items.includes(mon.getItem().name) ? mon.getItem().name : null) : items.length ? "" : null;
+||    return { ability: shownFor(shownAbilities, mon).includes(mon.getAbility().name), item };
+||  };
+||  const estimated = (mon) => {
+||    const spread = { level: mon.level, nature: "Hardy", evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, ivs: { hp: AVERAGE_IV, atk: AVERAGE_IV, def: AVERAGE_IV, spa: AVERAGE_IV, spd: AVERAGE_IV, spe: AVERAGE_IV } };
+||    return battle.spreadModify(mon.species.baseStats, spread);
+||  };
+||  const disguise = (mon) => {
+||    if (mon.side !== foe) return () => {};
+||    const kept = { storedStats: mon.storedStats, ability: mon.ability, item: mon.item, hp: mon.hp, maxhp: mon.maxhp };
+||    const { hp, ...stats } = estimated(mon);
+||    mon.storedStats = stats;
+||    mon.maxhp = hp;
+||    mon.hp = kept.hp && Math.max(1, Math.round((hp * kept.hp) / kept.maxhp));
+||    const { ability, item } = revealed(mon);
+||    if (!ability) mon.ability = "noability";
+||    if (item === null) mon.item = "";
+||    return () => Object.assign(mon, kept);
+||  };
+||  const breaksRules = (mon) => RULE_BREAKERS.includes(mon.getAbility().id);
+||  const shieldOf = (source, victim, move) => {
+||    const ability = victim.getAbility();
+||    if (breaksRules(source)) return "";
+||    const flag = SHIELDS[ability.id];
+||    const shielded = ABSORBS[ability.id] === move.type || (flag && move.flags[flag]) || (ability.id === "wonderguard" && victim.runEffectiveness(move) <= 0) || (PRIORITY_SHIELDS.includes(ability.id) && move.priority > 0);
+||    return shielded ? ability.name : "";
+||  };
+||  const hitsOf = (source, move) => {
+||    if (!Array.isArray(move.multihit)) return [move.multihit || 1, move.multihit || 1];
+||    const [fewest, most] = move.multihit;
+||    if (source.hasAbility("skilllink")) return [most, most];
+||    return source.hasItem("loadeddice") && most === 5 ? [4, 5] : [fewest, most];
+||  };
+||  const enduredBy = (source, victim) => {
+||    if (victim.hp !== victim.maxhp) return "";
+||    if (victim.hasItem("focussash")) return "Focus Sash";
+||    return victim.hasAbility("sturdy") && !breaksRules(source) ? "Sturdy" : "";
+||  };
+||  const hit = (source, victim, moveId, spread) => {
 ||    const move = battle.dex.getActiveMove(moveId);
+||    if (move.category === "Status") return null;
 ||    move.willCrit = false;
-||    const at = (roll) => {
-||      battle.randomizer = (base) => battle.trunc(battle.trunc(base * roll) / 100);
-||      const dealt = battle.actions.getDamage(source, victim, move, true);
-||      return typeof dealt === "number" ? dealt : dealt === false ? 0 : null;
-||    };
-||    const low = at(85);
-||    return low === null ? null : [low, at(100)];
+||    move.spreadHit = spread;
+||    const undo = [disguise(source), disguise(victim)];
+||    try {
+||      const at = (roll) => {
+||        battle.randomizer = (base) => battle.trunc(battle.trunc(base * roll) / 100);
+||        return battle.actions.getDamage(source, victim, move, true);
+||      };
+||      const shield = shieldOf(source, victim, move);
+||      const low = at(85);
+||      const immune = low === false || shield !== "";
+||      const [fewest, most] = hitsOf(source, move);
+||      const damage = immune || !low ? null : [low * fewest, at(100) * most];
+||      const endured = damage !== null && most === 1 && !move.ohko && damage[1] >= victim.hp ? enduredBy(source, victim) : "";
+||      return {
+||        hp: victim.hp,
+||        maxhp: victim.maxhp,
+||        damage,
+||        hits: [fewest, most],
+||        multiplier: immune ? 0 : 2 ** victim.runEffectiveness(move),
+||        shield,
+||        endured,
+||        one_hit_ko: Boolean(move.ohko),
+||      };
+||    } finally {
+||      undo.reverse().forEach((restore) => restore());
+||    }
+||  };
+||  const speedOf = (mon) => {
+||    const undo = disguise(mon);
+||    try {
+||      return mon.getStat("spe");
+||    } finally {
+||      undo();
+||    }
+||  };
+||  const standing = (side) => side.active.flatMap((mon, index) => (mon && !mon.fainted ? [{ mon, position: index + 1 }] : []));
+||  const reach = (user, move) => {
+||    const foes = standing(foe).map(({ mon, position }) => ({ mon, target: position }));
+||    const partners = standing(me).filter(({ mon }) => mon !== user).map(({ mon, position }) => ({ mon, target: -position }));
+||    const aimed = move.target === "allAdjacent" ? [...foes, ...partners] : foes;
+||    const spread = ["allAdjacent", "allAdjacentFoes"].includes(move.target) && aimed.length > 1;
+||    return { aimed, spread };
 ||  };
 ||  const raised = (mon) => Object.fromEntries(Object.entries(mon.boosts).filter(([, stages]) => stages !== 0));
+||  const statLine = ({ atk, def, spa, spd, spe }) => [atk, def, spa, spd, spe];
+||  const lockOf = (mon, slot, move) => {
+||    if (slot.pp <= 0) return "no PP left";
+||    if (!slot.disabled) return "";
+||    const effects = mon.volatiles;
+||    if (effects.disable && effects.disable.move === slot.id) return "Disable blocks it";
+||    if (effects.encore && effects.encore.move !== slot.id) return "Encore forces its last move";
+||    if (effects.choicelock && effects.choicelock.move !== slot.id) return "its choice item locks it into another move";
+||    if (effects.taunt && move.category === "Status") return "Taunt allows only attacks";
+||    if (effects.torment && mon.lastMove && mon.lastMove.id === slot.id) return "Torment forbids the same move twice in a row";
+||    if (effects.healblock && move.flags.heal) return "Heal Block stops healing moves";
+||    if (effects.throatchop && move.flags.sound) return "Throat Chop stops sound moves";
+||    if (mon.hasItem("assaultvest") && move.category === "Status") return "Assault Vest allows only attacks";
+||    if (move.flags.gravity && battle.field.getPseudoWeather("gravity")) return "Gravity stops it";
+||    if (move.flags.cantusetwice && mon.lastMove && mon.lastMove.id === slot.id) return "it cannot be used twice in a row";
+||    return "it cannot be used this turn";
+||  };
+||  const effect = (id, state) => ({ id, name: battle.dex.conditions.get(id).name || id, turns: state.duration || 0, layers: state.layers || 0 });
+||  const conditions = (side) => Object.entries(side.sideConditions).map(([id, state]) => effect(id, state));
+||  const volatiles = (mon) => Object.keys(mon.volatiles);
+||  const seenMoves = (mon) => mon.moveSlots.filter((slot) => slot.used).map((slot) => battle.dex.moves.get(slot.id));
+||  const place = (mon) => (mon.isActive ? mon.position + 1 : 0);
 ||  const team = me.pokemon.map((mon, index) => ({
 ||    slot: index + 1,
 ||    name: mon.name,
+||    species: mon.species.name,
 ||    level: mon.level,
 ||    types: mon.getTypes(),
 ||    hp: mon.hp,
 ||    maxhp: mon.maxhp,
 ||    status: mon.status,
-||    active: mon.isActive,
+||    position: place(mon),
 ||    boosts: raised(mon),
-||    moves: mon.baseMoveSlots.map((slot) => {
+||    volatiles: volatiles(mon),
+||    ability: mon.getAbility().name,
+||    item: mon.item ? mon.getItem().name : "",
+||    stats: statLine(mon.storedStats),
+||    speed: mon.fainted ? 0 : speedOf(mon),
+||    moves: mon.moveSlots.map((slot) => {
 ||      const move = battle.dex.moves.get(slot.id);
-||      const hits = targets.map(({ mon: victim, target }) => {
-||        const dealt = damage(mon, victim, slot.id);
-||        const percent = dealt ? dealt.map((hp) => Math.floor((100 * hp) / victim.maxhp)) : null;
-||        return { target, name: victim.name, damage: dealt, percent };
+||      const { aimed, spread } = reach(mon, move);
+||      const hits = mon.fainted ? [] : aimed.flatMap(({ mon: victim, target }) => {
+||        const dealt = hit(mon, victim, slot.id, spread);
+||        return dealt ? [{ target, name: faceOf(victim).name, ...dealt }] : [];
 ||      });
-||      return { name: move.name, type: move.type, pp: slot.pp, maxpp: slot.maxpp, disabled: !!slot.disabled, multihit: move.multihit || null, hits };
+||      return { name: move.name, type: move.type, category: move.category, priority: move.priority, pp: slot.pp, maxpp: slot.maxpp, lock: lockOf(mon, slot, move), target: move.target, hits };
 ||    }),
-||    threats: targets.flatMap(({ mon: attacker }) => attacker.baseMoveSlots.filter((slot) => slot.used).map((slot) => {
-||      const move = battle.dex.moves.get(slot.id);
-||      return { user: attacker.name, name: move.name, type: move.type, damage: damage(attacker, mon, slot.id) };
+||    threats: mon.fainted ? [] : standing(foe).flatMap(({ mon: attacker }) => seenMoves(attacker).flatMap((move) => {
+||      const dealt = hit(attacker, mon, move.id, false);
+||      return dealt ? [{ user: faceOf(attacker).name, name: move.name, type: move.type, ...dealt }] : [];
 ||    })),
 ||  }));
-||  const foes = foe.pokemon.map((mon) => ({
-||    name: mon.name,
-||    level: mon.level,
-||    types: mon.getTypes(),
-||    percent: Math.ceil((100 * mon.hp) / mon.maxhp),
-||    status: mon.status,
-||    active: mon.isActive,
-||    out: mon.previouslySwitchedIn > 0,
-||    boosts: raised(mon),
-||    moves: mon.baseMoveSlots.filter((slot) => slot.used).map((slot) => { const move = battle.dex.moves.get(slot.id); return { name: move.name, type: move.type }; }),
-||  }));
+||  const shown = foe.pokemon.filter((mon) => mon.previouslySwitchedIn > 0);
+||  const foes = shown.map((mon) => {
+||    const { ability: shownAbility, item } = revealed(mon);
+||    const ability = shownAbility ? mon.getAbility().name : null;
+||    const face = faceOf(mon);
+||    return {
+||      name: face.name,
+||      species: face.species.name,
+||      level: mon.level,
+||      types: face === mon ? mon.getTypes() : face.species.types,
+||      hp: mon.hp,
+||      maxhp: mon.maxhp,
+||      status: mon.status,
+||      position: place(mon),
+||      boosts: raised(mon),
+||      volatiles: volatiles(mon),
+||      ability,
+||      abilities: ability === null ? [...new Set(Object.values(face.species.abilities))] : [],
+||      item,
+||      stats: statLine(estimated(mon)),
+||      speed: mon.fainted ? 0 : speedOf(mon),
+||      moves: seenMoves(mon).map((move) => ({ move_id: move.id, priority: move.priority })),
+||    };
+||  });
+||  const weather = battle.field.weather;
+||  const terrain = battle.field.terrain;
 ||  battle.randomizer = randomizer;
 ||  battle.prng = saved;
-||  return { team, foes };
-||})()})
-||<<< "{"p1":[{"slot":0,"hp":18,"status":"","pp":[47,64],"out":1,"held":true},{"slot":1,"hp":26,"status":"","pp":[55,40],"out":1,"held":true}],"p2":[{"slot":0,"hp":8,"status":"","pp":[55],"out":1,"held":true},{"slot":1,"hp":4,"status":"","pp":[55],"out":1,"held":true}],"assessment":{"team":[{"slot":1,"name":"Rattata","level":3,"types":["Normal"],"hp":8,"maxhp":15,"status":"","active":true,"boosts":{},"moves":[{"name":"Tackle","type":"Normal","pp":55,"maxpp":56,"disabled":false,"multihit":null,"target":"normal","hits":[{"target":1,"name":"Pikachu","damage":[3,4],"percent":[12,16]},{"target":2,"name":"Charmander","damage":[3,4],"percent":[11,15]}]}],"threats":[{"user":"Pikachu","name":"Thunder Shock","type":"Electric","damage":[7,10]},{"user":"Charmander","name":"Scratch","type":"Normal","damage":[7,9]}]},{"slot":2,"name":"Pidgey","level":4,"types":["Normal","Flying"],"hp":4,"maxhp":18,"status":"","active":true,"boosts":{},"moves":[{"name":"Tackle","type":"Normal","pp":55,"maxpp":56,"disabled":false,"multihit":null,"target":"normal","hits":[{"target":1,"name":"Pikachu","damage":[3,4],"percent":[12,16]},{"target":2,"name":"Charmander","damage":[3,4],"percent":[11,15]}]}],"threats":[{"user":"Pikachu","name":"Thunder Shock","type":"Electric","damage":[14,18]},{"user":"Charmander","name":"Scratch","type":"Normal","damage":[6,8]}]}],"foes":[{"name":"Pikachu","level":7,"types":["Electric"],"percent":75,"status":"","active":true,"out":true,"boosts":{},"moves":[{"name":"Thunder Shock","type":"Electric"}]},{"name":"Charmander","level":8,"types":["Fire"],"percent":100,"status":"","active":true,"out":true,"boosts":{},"moves":[{"name":"Scratch","type":"Normal"}]}]}}"
+||  return {
+||    turn: battle.turn,
+||    weather: weather ? effect(weather, battle.field.weatherState) : null,
+||    terrain: terrain ? effect(terrain, battle.field.terrainState) : null,
+||    rooms: Object.entries(battle.field.pseudoWeather).map(([id, state]) => effect(id, state)),
+||    own_side: conditions(me),
+||    foe_side: conditions(foe),
+||    team,
+||    foes,
+||    unseen: foe.pokemon.length - shown.length,
+||  };
+||})(battle.p2, battle.p1)})
+||<<< "{"p1":[{"slot":0,"hp":18,"status":"","pp":[47,64],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}},{"slot":1,"hp":26,"status":"","pp":[55,40],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":8,"status":"","pp":[55],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}},{"slot":1,"hp":4,"status":"","pp":[55],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"assessment":{"turn":2,"weather":null,"terrain":null,"rooms":[],"own_side":[],"foe_side":[],"team":[{"slot":1,"name":"Rattata","species":"Rattata","level":3,"types":["Normal"],"hp":8,"maxhp":15,"status":"","position":1,"boosts":{},"volatiles":[],"ability":"Guts","item":"","stats":[9,8,7,8,10],"speed":10,"moves":[{"name":"Tackle","type":"Normal","category":"Physical","priority":0,"pp":55,"maxpp":56,"lock":"","target":"normal","hits":[{"target":1,"name":"Pikachu","hp":17,"maxhp":23,"damage":[3,4],"hits":[1,1],"multiplier":1,"shield":"","endured":"","one_hit_ko":false},{"target":2,"name":"Charmander","hp":25,"maxhp":25,"damage":[3,4],"hits":[1,1],"multiplier":1,"shield":"","endured":"","one_hit_ko":false}]}],"threats":[{"user":"Pikachu","name":"Thunder Shock","type":"Electric","hp":8,"maxhp":15,"damage":[7,10],"hits":[1,1],"multiplier":1,"shield":"","endured":"","one_hit_ko":false},{"user":"Charmander","name":"Scratch","type":"Normal","hp":8,"maxhp":15,"damage":[7,9],"hits":[1,1],"multiplier":1,"shield":"","endured":"","one_hit_ko":false}]},{"slot":2,"name":"Pidgey","species":"Pidgey","level":4,"types":["Normal","Flying"],"hp":4,"maxhp":18,"status":"","position":2,"boosts":{},"volatiles":[],"ability":"Keen Eye","item":"","stats":[9,9,9,9,10],"speed":10,"moves":[{"name":"Tackle","type":"Normal","category":"Physical","priority":0,"pp":55,"maxpp":56,"lock":"","target":"normal","hits":[{"target":1,"name":"Pikachu","hp":17,"maxhp":23,"damage":[3,4],"hits":[1,1],"multiplier":1,"shield":"","endured":"","one_hit_ko":false},{"target":2,"name":"Charmander","hp":25,"maxhp":25,"damage":[3,4],"hits":[1,1],"multiplier":1,"shield":"","endured":"","one_hit_ko":false}]}],"threats":[{"user":"Pikachu","name":"Thunder Shock","type":"Electric","hp":4,"maxhp":18,"damage":[14,18],"hits":[1,1],"multiplier":2,"shield":"","endured":"","one_hit_ko":false},{"user":"Charmander","name":"Scratch","type":"Normal","hp":4,"maxhp":18,"damage":[6,8],"hits":[1,1],"multiplier":1,"shield":"","endured":"","one_hit_ko":false}]}],"foes":[{"name":"Pikachu","species":"Pikachu","level":7,"types":["Electric"],"hp":18,"maxhp":24,"status":"","position":1,"boosts":{},"volatiles":[],"ability":null,"abilities":["Static","Lightning Rod"],"item":null,"stats":[13,11,13,13,18],"speed":18,"moves":[{"move_id":"thundershock","priority":0}]},{"name":"Charmander","species":"Charmander","level":8,"types":["Fire"],"hp":26,"maxhp":26,"status":"","position":2,"boosts":{},"volatiles":[],"ability":null,"abilities":["Blaze","Solar Power"],"item":null,"stats":[14,13,15,14,16],"speed":16,"moves":[{"move_id":"scratch","priority":0}]}],"unseen":0}}"
 
 update
 |
-|t:|1790692988
+|t:|1790757922
 |move|p1a: Pikachu|Thunder Shock|p2a: Rattata
 |split|p2
 |-damage|p2a: Rattata|0 fnt
@@ -227,8 +529,8 @@ update
 |faint|p2b: Pidgey
 |
 |win|Kael
-||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))
-||<<< "{"p1":[{"slot":0,"hp":18,"status":"","pp":[46,64],"out":1,"held":true},{"slot":1,"hp":26,"status":"","pp":[54,40],"out":1,"held":true}],"p2":[{"slot":0,"hp":0,"status":"","pp":[55],"out":1,"held":true},{"slot":1,"hp":0,"status":"","pp":[55],"out":1,"held":true}]}"
+||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))
+||<<< "{"p1":[{"slot":0,"hp":18,"status":"","pp":[46,64],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}},{"slot":1,"hp":26,"status":"","pp":[54,40],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":0,"status":"","pp":[55],"out":1,"held":true,"active":false,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}},{"slot":1,"hp":0,"status":"","pp":[55],"out":1,"held":true,"active":false,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}]}"
 
 end
-{"winner":"Kael","seed":"1,2,3,4","turns":2,"p1":"Kael","p2":"Rook","p1team":[{"name":"Pikachu","species":"Pikachu","item":"","ability":"Static","moves":["Thunder Shock","Growl"],"nature":"Hardy","evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"gender":"M","ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"level":7,"happiness":70,"hpType":"","pokeball":"","gigantamax":false,"dynamaxLevel":10},{"name":"Charmander","species":"Charmander","item":"","ability":"Blaze","moves":["Scratch","Ember"],"nature":"Hardy","evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"gender":"M","ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"level":8,"happiness":70,"hpType":"","pokeball":"","gigantamax":false,"dynamaxLevel":10}],"p2team":[{"name":"Rattata","species":"Rattata","item":"","ability":"Guts","moves":["Tackle"],"nature":"Hardy","evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"gender":"F","ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"level":3,"happiness":70,"hpType":"","pokeball":"","gigantamax":false,"dynamaxLevel":10},{"name":"Pidgey","species":"Pidgey","item":"","ability":"Keen Eye","moves":["Tackle"],"nature":"Hardy","evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"gender":"F","ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"level":4,"happiness":70,"hpType":"","pokeball":"","gigantamax":false,"dynamaxLevel":10}],"score":[2,0],"inputLog":[">start {\"formatid\":\"gen9doublescustomgame@@@Terastal Clause\",\"seed\":\"1,2,3,4\"}",">player p1 {\"name\":\"Kael\",\"avatar\":\"ethan\",\"team\":\"Pikachu|pikachu||Static|thundershock,growl|Hardy|0,0,0,0,0,0|M|31,31,31,31,31,31||7|70]Charmander|charmander||Blaze|scratch,ember|Hardy|0,0,0,0,0,0|M|31,31,31,31,31,31||8|70\"}",">player p2 {\"name\":\"Rook\",\"avatar\":\"camper\",\"team\":\"Rattata|rattata||Guts|tackle|Hardy|0,0,0,0,0,0|F|31,31,31,31,31,31||3|70]Pidgey|pidgey||Keen Eye|tackle|Hardy|0,0,0,0,0,0|F|31,31,31,31,31,31||4|70\"}",">eval const states = [[[24, \"\", [48, 64]], [26, \"\", [56, 40]]], [[15, \"\", [56]], [18, \"\", [56]]]]; [battle.p1, battle.p2].forEach((side, number) => states[number].forEach(([hp, status, pp], index) => { const mon = side.pokemon[index]; mon.sethp(hp); if (status) mon.setStatus(status, null, null, true); mon.baseMoveSlots.forEach((slot, move) => { slot.pp = pp[move]; }); }))",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))",">p1 team 1, 2",">p2 team 1, 2",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))",">eval JSON.stringify({...Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])), assessment: (() => {\f  const me = battle.p2;\f  const foe = battle.p1;\f  const targets = foe.active.flatMap((mon, index) => (mon && !mon.fainted ? [{ mon, target: index + 1 }] : []));\f  const saved = battle.prng.clone();\f  const randomizer = battle.randomizer;\f  const damage = (source, victim, moveId) => {\f    if (!source || !victim || source.fainted || victim.fainted) return null;\f    const move = battle.dex.getActiveMove(moveId);\f    move.willCrit = false;\f    const at = (roll) => {\f      battle.randomizer = (base) => battle.trunc(battle.trunc(base * roll) / 100);\f      const dealt = battle.actions.getDamage(source, victim, move, true);\f      return typeof dealt === \"number\" ? dealt : dealt === false ? 0 : null;\f    };\f    const low = at(85);\f    return low === null ? null : [low, at(100)];\f  };\f  const raised = (mon) => Object.fromEntries(Object.entries(mon.boosts).filter(([, stages]) => stages !== 0));\f  const team = me.pokemon.map((mon, index) => ({\f    slot: index + 1,\f    name: mon.name,\f    level: mon.level,\f    types: mon.getTypes(),\f    hp: mon.hp,\f    maxhp: mon.maxhp,\f    status: mon.status,\f    active: mon.isActive,\f    boosts: raised(mon),\f    moves: mon.baseMoveSlots.map((slot) => {\f      const move = battle.dex.moves.get(slot.id);\f      const hits = targets.map(({ mon: victim, target }) => {\f        const dealt = damage(mon, victim, slot.id);\f        const percent = dealt ? dealt.map((hp) => Math.floor((100 * hp) / victim.maxhp)) : null;\f        return { target, name: victim.name, damage: dealt, percent };\f      });\f      return { name: move.name, type: move.type, pp: slot.pp, maxpp: slot.maxpp, disabled: !!slot.disabled, multihit: move.multihit || null, hits };\f    }),\f    threats: targets.flatMap(({ mon: attacker }) => attacker.baseMoveSlots.filter((slot) => slot.used).map((slot) => {\f      const move = battle.dex.moves.get(slot.id);\f      return { user: attacker.name, name: move.name, type: move.type, damage: damage(attacker, mon, slot.id) };\f    })),\f  }));\f  const foes = foe.pokemon.map((mon) => ({\f    name: mon.name,\f    level: mon.level,\f    types: mon.getTypes(),\f    percent: Math.ceil((100 * mon.hp) / mon.maxhp),\f    status: mon.status,\f    active: mon.isActive,\f    out: mon.previouslySwitchedIn > 0,\f    boosts: raised(mon),\f    moves: mon.baseMoveSlots.filter((slot) => slot.used).map((slot) => { const move = battle.dex.moves.get(slot.id); return { name: move.name, type: move.type }; }),\f  }));\f  battle.randomizer = randomizer;\f  battle.prng = saved;\f  return { team, foes };\f})()})",">p1 move thundershock +2, move scratch +1",">p2 move tackle +1, move tackle +1",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))",">eval JSON.stringify({...Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])), assessment: (() => {\f  const me = battle.p2;\f  const foe = battle.p1;\f  const targets = foe.active.flatMap((mon, index) => (mon && !mon.fainted ? [{ mon, target: index + 1 }] : []));\f  const saved = battle.prng.clone();\f  const randomizer = battle.randomizer;\f  const damage = (source, victim, moveId) => {\f    if (!source || !victim || source.fainted || victim.fainted) return null;\f    const move = battle.dex.getActiveMove(moveId);\f    move.willCrit = false;\f    const at = (roll) => {\f      battle.randomizer = (base) => battle.trunc(battle.trunc(base * roll) / 100);\f      const dealt = battle.actions.getDamage(source, victim, move, true);\f      return typeof dealt === \"number\" ? dealt : dealt === false ? 0 : null;\f    };\f    const low = at(85);\f    return low === null ? null : [low, at(100)];\f  };\f  const raised = (mon) => Object.fromEntries(Object.entries(mon.boosts).filter(([, stages]) => stages !== 0));\f  const team = me.pokemon.map((mon, index) => ({\f    slot: index + 1,\f    name: mon.name,\f    level: mon.level,\f    types: mon.getTypes(),\f    hp: mon.hp,\f    maxhp: mon.maxhp,\f    status: mon.status,\f    active: mon.isActive,\f    boosts: raised(mon),\f    moves: mon.baseMoveSlots.map((slot) => {\f      const move = battle.dex.moves.get(slot.id);\f      const hits = targets.map(({ mon: victim, target }) => {\f        const dealt = damage(mon, victim, slot.id);\f        const percent = dealt ? dealt.map((hp) => Math.floor((100 * hp) / victim.maxhp)) : null;\f        return { target, name: victim.name, damage: dealt, percent };\f      });\f      return { name: move.name, type: move.type, pp: slot.pp, maxpp: slot.maxpp, disabled: !!slot.disabled, multihit: move.multihit || null, hits };\f    }),\f    threats: targets.flatMap(({ mon: attacker }) => attacker.baseMoveSlots.filter((slot) => slot.used).map((slot) => {\f      const move = battle.dex.moves.get(slot.id);\f      return { user: attacker.name, name: move.name, type: move.type, damage: damage(attacker, mon, slot.id) };\f    })),\f  }));\f  const foes = foe.pokemon.map((mon) => ({\f    name: mon.name,\f    level: mon.level,\f    types: mon.getTypes(),\f    percent: Math.ceil((100 * mon.hp) / mon.maxhp),\f    status: mon.status,\f    active: mon.isActive,\f    out: mon.previouslySwitchedIn > 0,\f    boosts: raised(mon),\f    moves: mon.baseMoveSlots.filter((slot) => slot.used).map((slot) => { const move = battle.dex.moves.get(slot.id); return { name: move.name, type: move.type }; }),\f  }));\f  battle.randomizer = randomizer;\f  battle.prng = saved;\f  return { team, foes };\f})()})",">p1 move thundershock +1, move scratch +1",">p2 move tackle +1, move tackle +1",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem}))])))"]}
+{"winner":"Kael","seed":"1,2,3,4","turns":2,"p1":"Kael","p2":"Rook","p1team":[{"name":"Pikachu","species":"Pikachu","item":"","ability":"Static","moves":["Thunder Shock","Growl"],"nature":"Hardy","evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"gender":"M","ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"level":7,"happiness":70,"hpType":"","pokeball":"","gigantamax":false,"dynamaxLevel":10},{"name":"Charmander","species":"Charmander","item":"","ability":"Blaze","moves":["Scratch","Ember"],"nature":"Hardy","evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"gender":"M","ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"level":8,"happiness":70,"hpType":"","pokeball":"","gigantamax":false,"dynamaxLevel":10}],"p2team":[{"name":"Rattata","species":"Rattata","item":"","ability":"Guts","moves":["Tackle"],"nature":"Hardy","evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"gender":"F","ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"level":3,"happiness":70,"hpType":"","pokeball":"","gigantamax":false,"dynamaxLevel":10},{"name":"Pidgey","species":"Pidgey","item":"","ability":"Keen Eye","moves":["Tackle"],"nature":"Hardy","evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"gender":"F","ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"level":4,"happiness":70,"hpType":"","pokeball":"","gigantamax":false,"dynamaxLevel":10}],"score":[2,0],"inputLog":[">start {\"formatid\":\"gen9doublescustomgame@@@Terastal Clause\",\"seed\":\"1,2,3,4\"}",">player p1 {\"name\":\"Kael\",\"avatar\":\"ethan\",\"team\":\"Pikachu|pikachu||Static|thundershock,growl|Hardy|0,0,0,0,0,0|M|31,31,31,31,31,31||7|70]Charmander|charmander||Blaze|scratch,ember|Hardy|0,0,0,0,0,0|M|31,31,31,31,31,31||8|70\"}",">player p2 {\"name\":\"Rook\",\"avatar\":\"camper\",\"team\":\"Rattata|rattata||Guts|tackle|Hardy|0,0,0,0,0,0|F|31,31,31,31,31,31||3|70]Pidgey|pidgey||Keen Eye|tackle|Hardy|0,0,0,0,0,0|F|31,31,31,31,31,31||4|70\"}",">eval const states = [[[24, \"\", [48, 64]], [26, \"\", [56, 40]]], [[15, \"\", [56]], [18, \"\", [56]]]]; [battle.p1, battle.p2].forEach((side, number) => states[number].forEach(([hp, status, pp], index) => { const mon = side.pokemon[index]; mon.sethp(hp); if (status) mon.setStatus(status, null, null, true); mon.baseMoveSlots.forEach((slot, move) => { slot.pp = pp[move]; }); }))",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))",">p1 team 1, 2",">p2 team 1, 2",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))",">eval JSON.stringify({...Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])), assessment: ((me, foe) => {\f  const saved = battle.prng.clone();\f  const randomizer = battle.randomizer;\f  const AVERAGE_IV = 16;\f  const ABSORBS = { waterabsorb: \"Water\", stormdrain: \"Water\", dryskin: \"Water\", voltabsorb: \"Electric\", lightningrod: \"Electric\", motordrive: \"Electric\", flashfire: \"Fire\", wellbakedbody: \"Fire\", sapsipper: \"Grass\", eartheater: \"Ground\" };\f  const SHIELDS = { bulletproof: \"bullet\", soundproof: \"sound\", windrider: \"wind\" };\f  const PRIORITY_SHIELDS = [\"dazzling\", \"queenlymajesty\", \"armortail\"];\f  const RULE_BREAKERS = [\"moldbreaker\", \"teravolt\", \"turboblaze\"];\f  const lines = battle.log.filter((line) => !line.startsWith(\"||\"));\f  const holderOf = (ident) => ident.replace(/^(p\\d)[a-z]?: /, \"$1: \");\f  const shownAbilities = new Map();\f  const shownItems = new Map();\f  const note = (shown, ident, name) => shown.set(holderOf(ident), [...(shown.get(holderOf(ident)) ?? []), name]);\f  for (const line of lines) {\f    const [, kind, ...fields] = line.split(\"|\");\f    const [lead = \"\", named = \"\"] = fields;\f    const of = fields.find((field) => field.startsWith(\"[of] \"));\f    if (kind === \"-ability\") note(shownAbilities, lead, named);\f    if (kind === \"-item\" || kind === \"-enditem\") note(shownItems, lead, named);\f    for (const field of fields) {\f      const from = field.startsWith(\"[from] \");\f      const effect = field.replace(/^\\[from\\] /, \"\");\f      const holder = from && of ? of.slice(\"[of] \".length) : lead;\f      if (effect.startsWith(\"ability: \")) note(shownAbilities, holder, effect.slice(\"ability: \".length));\f      if (effect.startsWith(\"item: \")) note(shownItems, holder, effect.slice(\"item: \".length));\f    }\f  }\f  const faceOf = (mon) => (mon.side === foe ? mon.illusion ?? mon : mon);\f  const shownFor = (shown, mon) => shown.get(`${mon.side.id}: ${faceOf(mon).name}`) ?? [];\f  const revealed = (mon) => {\f    const items = shownFor(shownItems, mon);\f    const item = mon.item ? (items.includes(mon.getItem().name) ? mon.getItem().name : null) : items.length ? \"\" : null;\f    return { ability: shownFor(shownAbilities, mon).includes(mon.getAbility().name), item };\f  };\f  const estimated = (mon) => {\f    const spread = { level: mon.level, nature: \"Hardy\", evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, ivs: { hp: AVERAGE_IV, atk: AVERAGE_IV, def: AVERAGE_IV, spa: AVERAGE_IV, spd: AVERAGE_IV, spe: AVERAGE_IV } };\f    return battle.spreadModify(mon.species.baseStats, spread);\f  };\f  const disguise = (mon) => {\f    if (mon.side !== foe) return () => {};\f    const kept = { storedStats: mon.storedStats, ability: mon.ability, item: mon.item, hp: mon.hp, maxhp: mon.maxhp };\f    const { hp, ...stats } = estimated(mon);\f    mon.storedStats = stats;\f    mon.maxhp = hp;\f    mon.hp = kept.hp && Math.max(1, Math.round((hp * kept.hp) / kept.maxhp));\f    const { ability, item } = revealed(mon);\f    if (!ability) mon.ability = \"noability\";\f    if (item === null) mon.item = \"\";\f    return () => Object.assign(mon, kept);\f  };\f  const breaksRules = (mon) => RULE_BREAKERS.includes(mon.getAbility().id);\f  const shieldOf = (source, victim, move) => {\f    const ability = victim.getAbility();\f    if (breaksRules(source)) return \"\";\f    const flag = SHIELDS[ability.id];\f    const shielded = ABSORBS[ability.id] === move.type || (flag && move.flags[flag]) || (ability.id === \"wonderguard\" && victim.runEffectiveness(move) <= 0) || (PRIORITY_SHIELDS.includes(ability.id) && move.priority > 0);\f    return shielded ? ability.name : \"\";\f  };\f  const hitsOf = (source, move) => {\f    if (!Array.isArray(move.multihit)) return [move.multihit || 1, move.multihit || 1];\f    const [fewest, most] = move.multihit;\f    if (source.hasAbility(\"skilllink\")) return [most, most];\f    return source.hasItem(\"loadeddice\") && most === 5 ? [4, 5] : [fewest, most];\f  };\f  const enduredBy = (source, victim) => {\f    if (victim.hp !== victim.maxhp) return \"\";\f    if (victim.hasItem(\"focussash\")) return \"Focus Sash\";\f    return victim.hasAbility(\"sturdy\") && !breaksRules(source) ? \"Sturdy\" : \"\";\f  };\f  const hit = (source, victim, moveId, spread) => {\f    const move = battle.dex.getActiveMove(moveId);\f    if (move.category === \"Status\") return null;\f    move.willCrit = false;\f    move.spreadHit = spread;\f    const undo = [disguise(source), disguise(victim)];\f    try {\f      const at = (roll) => {\f        battle.randomizer = (base) => battle.trunc(battle.trunc(base * roll) / 100);\f        return battle.actions.getDamage(source, victim, move, true);\f      };\f      const shield = shieldOf(source, victim, move);\f      const low = at(85);\f      const immune = low === false || shield !== \"\";\f      const [fewest, most] = hitsOf(source, move);\f      const damage = immune || !low ? null : [low * fewest, at(100) * most];\f      const endured = damage !== null && most === 1 && !move.ohko && damage[1] >= victim.hp ? enduredBy(source, victim) : \"\";\f      return {\f        hp: victim.hp,\f        maxhp: victim.maxhp,\f        damage,\f        hits: [fewest, most],\f        multiplier: immune ? 0 : 2 ** victim.runEffectiveness(move),\f        shield,\f        endured,\f        one_hit_ko: Boolean(move.ohko),\f      };\f    } finally {\f      undo.reverse().forEach((restore) => restore());\f    }\f  };\f  const speedOf = (mon) => {\f    const undo = disguise(mon);\f    try {\f      return mon.getStat(\"spe\");\f    } finally {\f      undo();\f    }\f  };\f  const standing = (side) => side.active.flatMap((mon, index) => (mon && !mon.fainted ? [{ mon, position: index + 1 }] : []));\f  const reach = (user, move) => {\f    const foes = standing(foe).map(({ mon, position }) => ({ mon, target: position }));\f    const partners = standing(me).filter(({ mon }) => mon !== user).map(({ mon, position }) => ({ mon, target: -position }));\f    const aimed = move.target === \"allAdjacent\" ? [...foes, ...partners] : foes;\f    const spread = [\"allAdjacent\", \"allAdjacentFoes\"].includes(move.target) && aimed.length > 1;\f    return { aimed, spread };\f  };\f  const raised = (mon) => Object.fromEntries(Object.entries(mon.boosts).filter(([, stages]) => stages !== 0));\f  const statLine = ({ atk, def, spa, spd, spe }) => [atk, def, spa, spd, spe];\f  const lockOf = (mon, slot, move) => {\f    if (slot.pp <= 0) return \"no PP left\";\f    if (!slot.disabled) return \"\";\f    const effects = mon.volatiles;\f    if (effects.disable && effects.disable.move === slot.id) return \"Disable blocks it\";\f    if (effects.encore && effects.encore.move !== slot.id) return \"Encore forces its last move\";\f    if (effects.choicelock && effects.choicelock.move !== slot.id) return \"its choice item locks it into another move\";\f    if (effects.taunt && move.category === \"Status\") return \"Taunt allows only attacks\";\f    if (effects.torment && mon.lastMove && mon.lastMove.id === slot.id) return \"Torment forbids the same move twice in a row\";\f    if (effects.healblock && move.flags.heal) return \"Heal Block stops healing moves\";\f    if (effects.throatchop && move.flags.sound) return \"Throat Chop stops sound moves\";\f    if (mon.hasItem(\"assaultvest\") && move.category === \"Status\") return \"Assault Vest allows only attacks\";\f    if (move.flags.gravity && battle.field.getPseudoWeather(\"gravity\")) return \"Gravity stops it\";\f    if (move.flags.cantusetwice && mon.lastMove && mon.lastMove.id === slot.id) return \"it cannot be used twice in a row\";\f    return \"it cannot be used this turn\";\f  };\f  const effect = (id, state) => ({ id, name: battle.dex.conditions.get(id).name || id, turns: state.duration || 0, layers: state.layers || 0 });\f  const conditions = (side) => Object.entries(side.sideConditions).map(([id, state]) => effect(id, state));\f  const volatiles = (mon) => Object.keys(mon.volatiles);\f  const seenMoves = (mon) => mon.moveSlots.filter((slot) => slot.used).map((slot) => battle.dex.moves.get(slot.id));\f  const place = (mon) => (mon.isActive ? mon.position + 1 : 0);\f  const team = me.pokemon.map((mon, index) => ({\f    slot: index + 1,\f    name: mon.name,\f    species: mon.species.name,\f    level: mon.level,\f    types: mon.getTypes(),\f    hp: mon.hp,\f    maxhp: mon.maxhp,\f    status: mon.status,\f    position: place(mon),\f    boosts: raised(mon),\f    volatiles: volatiles(mon),\f    ability: mon.getAbility().name,\f    item: mon.item ? mon.getItem().name : \"\",\f    stats: statLine(mon.storedStats),\f    speed: mon.fainted ? 0 : speedOf(mon),\f    moves: mon.moveSlots.map((slot) => {\f      const move = battle.dex.moves.get(slot.id);\f      const { aimed, spread } = reach(mon, move);\f      const hits = mon.fainted ? [] : aimed.flatMap(({ mon: victim, target }) => {\f        const dealt = hit(mon, victim, slot.id, spread);\f        return dealt ? [{ target, name: faceOf(victim).name, ...dealt }] : [];\f      });\f      return { name: move.name, type: move.type, category: move.category, priority: move.priority, pp: slot.pp, maxpp: slot.maxpp, lock: lockOf(mon, slot, move), target: move.target, hits };\f    }),\f    threats: mon.fainted ? [] : standing(foe).flatMap(({ mon: attacker }) => seenMoves(attacker).flatMap((move) => {\f      const dealt = hit(attacker, mon, move.id, false);\f      return dealt ? [{ user: faceOf(attacker).name, name: move.name, type: move.type, ...dealt }] : [];\f    })),\f  }));\f  const shown = foe.pokemon.filter((mon) => mon.previouslySwitchedIn > 0);\f  const foes = shown.map((mon) => {\f    const { ability: shownAbility, item } = revealed(mon);\f    const ability = shownAbility ? mon.getAbility().name : null;\f    const face = faceOf(mon);\f    return {\f      name: face.name,\f      species: face.species.name,\f      level: mon.level,\f      types: face === mon ? mon.getTypes() : face.species.types,\f      hp: mon.hp,\f      maxhp: mon.maxhp,\f      status: mon.status,\f      position: place(mon),\f      boosts: raised(mon),\f      volatiles: volatiles(mon),\f      ability,\f      abilities: ability === null ? [...new Set(Object.values(face.species.abilities))] : [],\f      item,\f      stats: statLine(estimated(mon)),\f      speed: mon.fainted ? 0 : speedOf(mon),\f      moves: seenMoves(mon).map((move) => ({ move_id: move.id, priority: move.priority })),\f    };\f  });\f  const weather = battle.field.weather;\f  const terrain = battle.field.terrain;\f  battle.randomizer = randomizer;\f  battle.prng = saved;\f  return {\f    turn: battle.turn,\f    weather: weather ? effect(weather, battle.field.weatherState) : null,\f    terrain: terrain ? effect(terrain, battle.field.terrainState) : null,\f    rooms: Object.entries(battle.field.pseudoWeather).map(([id, state]) => effect(id, state)),\f    own_side: conditions(me),\f    foe_side: conditions(foe),\f    team,\f    foes,\f    unseen: foe.pokemon.length - shown.length,\f  };\f})(battle.p2, battle.p1)})",">p1 move thundershock +2, move scratch +1",">p2 move tackle +1, move tackle +1",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))",">eval JSON.stringify({...Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])), assessment: ((me, foe) => {\f  const saved = battle.prng.clone();\f  const randomizer = battle.randomizer;\f  const AVERAGE_IV = 16;\f  const ABSORBS = { waterabsorb: \"Water\", stormdrain: \"Water\", dryskin: \"Water\", voltabsorb: \"Electric\", lightningrod: \"Electric\", motordrive: \"Electric\", flashfire: \"Fire\", wellbakedbody: \"Fire\", sapsipper: \"Grass\", eartheater: \"Ground\" };\f  const SHIELDS = { bulletproof: \"bullet\", soundproof: \"sound\", windrider: \"wind\" };\f  const PRIORITY_SHIELDS = [\"dazzling\", \"queenlymajesty\", \"armortail\"];\f  const RULE_BREAKERS = [\"moldbreaker\", \"teravolt\", \"turboblaze\"];\f  const lines = battle.log.filter((line) => !line.startsWith(\"||\"));\f  const holderOf = (ident) => ident.replace(/^(p\\d)[a-z]?: /, \"$1: \");\f  const shownAbilities = new Map();\f  const shownItems = new Map();\f  const note = (shown, ident, name) => shown.set(holderOf(ident), [...(shown.get(holderOf(ident)) ?? []), name]);\f  for (const line of lines) {\f    const [, kind, ...fields] = line.split(\"|\");\f    const [lead = \"\", named = \"\"] = fields;\f    const of = fields.find((field) => field.startsWith(\"[of] \"));\f    if (kind === \"-ability\") note(shownAbilities, lead, named);\f    if (kind === \"-item\" || kind === \"-enditem\") note(shownItems, lead, named);\f    for (const field of fields) {\f      const from = field.startsWith(\"[from] \");\f      const effect = field.replace(/^\\[from\\] /, \"\");\f      const holder = from && of ? of.slice(\"[of] \".length) : lead;\f      if (effect.startsWith(\"ability: \")) note(shownAbilities, holder, effect.slice(\"ability: \".length));\f      if (effect.startsWith(\"item: \")) note(shownItems, holder, effect.slice(\"item: \".length));\f    }\f  }\f  const faceOf = (mon) => (mon.side === foe ? mon.illusion ?? mon : mon);\f  const shownFor = (shown, mon) => shown.get(`${mon.side.id}: ${faceOf(mon).name}`) ?? [];\f  const revealed = (mon) => {\f    const items = shownFor(shownItems, mon);\f    const item = mon.item ? (items.includes(mon.getItem().name) ? mon.getItem().name : null) : items.length ? \"\" : null;\f    return { ability: shownFor(shownAbilities, mon).includes(mon.getAbility().name), item };\f  };\f  const estimated = (mon) => {\f    const spread = { level: mon.level, nature: \"Hardy\", evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, ivs: { hp: AVERAGE_IV, atk: AVERAGE_IV, def: AVERAGE_IV, spa: AVERAGE_IV, spd: AVERAGE_IV, spe: AVERAGE_IV } };\f    return battle.spreadModify(mon.species.baseStats, spread);\f  };\f  const disguise = (mon) => {\f    if (mon.side !== foe) return () => {};\f    const kept = { storedStats: mon.storedStats, ability: mon.ability, item: mon.item, hp: mon.hp, maxhp: mon.maxhp };\f    const { hp, ...stats } = estimated(mon);\f    mon.storedStats = stats;\f    mon.maxhp = hp;\f    mon.hp = kept.hp && Math.max(1, Math.round((hp * kept.hp) / kept.maxhp));\f    const { ability, item } = revealed(mon);\f    if (!ability) mon.ability = \"noability\";\f    if (item === null) mon.item = \"\";\f    return () => Object.assign(mon, kept);\f  };\f  const breaksRules = (mon) => RULE_BREAKERS.includes(mon.getAbility().id);\f  const shieldOf = (source, victim, move) => {\f    const ability = victim.getAbility();\f    if (breaksRules(source)) return \"\";\f    const flag = SHIELDS[ability.id];\f    const shielded = ABSORBS[ability.id] === move.type || (flag && move.flags[flag]) || (ability.id === \"wonderguard\" && victim.runEffectiveness(move) <= 0) || (PRIORITY_SHIELDS.includes(ability.id) && move.priority > 0);\f    return shielded ? ability.name : \"\";\f  };\f  const hitsOf = (source, move) => {\f    if (!Array.isArray(move.multihit)) return [move.multihit || 1, move.multihit || 1];\f    const [fewest, most] = move.multihit;\f    if (source.hasAbility(\"skilllink\")) return [most, most];\f    return source.hasItem(\"loadeddice\") && most === 5 ? [4, 5] : [fewest, most];\f  };\f  const enduredBy = (source, victim) => {\f    if (victim.hp !== victim.maxhp) return \"\";\f    if (victim.hasItem(\"focussash\")) return \"Focus Sash\";\f    return victim.hasAbility(\"sturdy\") && !breaksRules(source) ? \"Sturdy\" : \"\";\f  };\f  const hit = (source, victim, moveId, spread) => {\f    const move = battle.dex.getActiveMove(moveId);\f    if (move.category === \"Status\") return null;\f    move.willCrit = false;\f    move.spreadHit = spread;\f    const undo = [disguise(source), disguise(victim)];\f    try {\f      const at = (roll) => {\f        battle.randomizer = (base) => battle.trunc(battle.trunc(base * roll) / 100);\f        return battle.actions.getDamage(source, victim, move, true);\f      };\f      const shield = shieldOf(source, victim, move);\f      const low = at(85);\f      const immune = low === false || shield !== \"\";\f      const [fewest, most] = hitsOf(source, move);\f      const damage = immune || !low ? null : [low * fewest, at(100) * most];\f      const endured = damage !== null && most === 1 && !move.ohko && damage[1] >= victim.hp ? enduredBy(source, victim) : \"\";\f      return {\f        hp: victim.hp,\f        maxhp: victim.maxhp,\f        damage,\f        hits: [fewest, most],\f        multiplier: immune ? 0 : 2 ** victim.runEffectiveness(move),\f        shield,\f        endured,\f        one_hit_ko: Boolean(move.ohko),\f      };\f    } finally {\f      undo.reverse().forEach((restore) => restore());\f    }\f  };\f  const speedOf = (mon) => {\f    const undo = disguise(mon);\f    try {\f      return mon.getStat(\"spe\");\f    } finally {\f      undo();\f    }\f  };\f  const standing = (side) => side.active.flatMap((mon, index) => (mon && !mon.fainted ? [{ mon, position: index + 1 }] : []));\f  const reach = (user, move) => {\f    const foes = standing(foe).map(({ mon, position }) => ({ mon, target: position }));\f    const partners = standing(me).filter(({ mon }) => mon !== user).map(({ mon, position }) => ({ mon, target: -position }));\f    const aimed = move.target === \"allAdjacent\" ? [...foes, ...partners] : foes;\f    const spread = [\"allAdjacent\", \"allAdjacentFoes\"].includes(move.target) && aimed.length > 1;\f    return { aimed, spread };\f  };\f  const raised = (mon) => Object.fromEntries(Object.entries(mon.boosts).filter(([, stages]) => stages !== 0));\f  const statLine = ({ atk, def, spa, spd, spe }) => [atk, def, spa, spd, spe];\f  const lockOf = (mon, slot, move) => {\f    if (slot.pp <= 0) return \"no PP left\";\f    if (!slot.disabled) return \"\";\f    const effects = mon.volatiles;\f    if (effects.disable && effects.disable.move === slot.id) return \"Disable blocks it\";\f    if (effects.encore && effects.encore.move !== slot.id) return \"Encore forces its last move\";\f    if (effects.choicelock && effects.choicelock.move !== slot.id) return \"its choice item locks it into another move\";\f    if (effects.taunt && move.category === \"Status\") return \"Taunt allows only attacks\";\f    if (effects.torment && mon.lastMove && mon.lastMove.id === slot.id) return \"Torment forbids the same move twice in a row\";\f    if (effects.healblock && move.flags.heal) return \"Heal Block stops healing moves\";\f    if (effects.throatchop && move.flags.sound) return \"Throat Chop stops sound moves\";\f    if (mon.hasItem(\"assaultvest\") && move.category === \"Status\") return \"Assault Vest allows only attacks\";\f    if (move.flags.gravity && battle.field.getPseudoWeather(\"gravity\")) return \"Gravity stops it\";\f    if (move.flags.cantusetwice && mon.lastMove && mon.lastMove.id === slot.id) return \"it cannot be used twice in a row\";\f    return \"it cannot be used this turn\";\f  };\f  const effect = (id, state) => ({ id, name: battle.dex.conditions.get(id).name || id, turns: state.duration || 0, layers: state.layers || 0 });\f  const conditions = (side) => Object.entries(side.sideConditions).map(([id, state]) => effect(id, state));\f  const volatiles = (mon) => Object.keys(mon.volatiles);\f  const seenMoves = (mon) => mon.moveSlots.filter((slot) => slot.used).map((slot) => battle.dex.moves.get(slot.id));\f  const place = (mon) => (mon.isActive ? mon.position + 1 : 0);\f  const team = me.pokemon.map((mon, index) => ({\f    slot: index + 1,\f    name: mon.name,\f    species: mon.species.name,\f    level: mon.level,\f    types: mon.getTypes(),\f    hp: mon.hp,\f    maxhp: mon.maxhp,\f    status: mon.status,\f    position: place(mon),\f    boosts: raised(mon),\f    volatiles: volatiles(mon),\f    ability: mon.getAbility().name,\f    item: mon.item ? mon.getItem().name : \"\",\f    stats: statLine(mon.storedStats),\f    speed: mon.fainted ? 0 : speedOf(mon),\f    moves: mon.moveSlots.map((slot) => {\f      const move = battle.dex.moves.get(slot.id);\f      const { aimed, spread } = reach(mon, move);\f      const hits = mon.fainted ? [] : aimed.flatMap(({ mon: victim, target }) => {\f        const dealt = hit(mon, victim, slot.id, spread);\f        return dealt ? [{ target, name: faceOf(victim).name, ...dealt }] : [];\f      });\f      return { name: move.name, type: move.type, category: move.category, priority: move.priority, pp: slot.pp, maxpp: slot.maxpp, lock: lockOf(mon, slot, move), target: move.target, hits };\f    }),\f    threats: mon.fainted ? [] : standing(foe).flatMap(({ mon: attacker }) => seenMoves(attacker).flatMap((move) => {\f      const dealt = hit(attacker, mon, move.id, false);\f      return dealt ? [{ user: faceOf(attacker).name, name: move.name, type: move.type, ...dealt }] : [];\f    })),\f  }));\f  const shown = foe.pokemon.filter((mon) => mon.previouslySwitchedIn > 0);\f  const foes = shown.map((mon) => {\f    const { ability: shownAbility, item } = revealed(mon);\f    const ability = shownAbility ? mon.getAbility().name : null;\f    const face = faceOf(mon);\f    return {\f      name: face.name,\f      species: face.species.name,\f      level: mon.level,\f      types: face === mon ? mon.getTypes() : face.species.types,\f      hp: mon.hp,\f      maxhp: mon.maxhp,\f      status: mon.status,\f      position: place(mon),\f      boosts: raised(mon),\f      volatiles: volatiles(mon),\f      ability,\f      abilities: ability === null ? [...new Set(Object.values(face.species.abilities))] : [],\f      item,\f      stats: statLine(estimated(mon)),\f      speed: mon.fainted ? 0 : speedOf(mon),\f      moves: seenMoves(mon).map((move) => ({ move_id: move.id, priority: move.priority })),\f    };\f  });\f  const weather = battle.field.weather;\f  const terrain = battle.field.terrain;\f  battle.randomizer = randomizer;\f  battle.prng = saved;\f  return {\f    turn: battle.turn,\f    weather: weather ? effect(weather, battle.field.weatherState) : null,\f    terrain: terrain ? effect(terrain, battle.field.terrainState) : null,\f    rooms: Object.entries(battle.field.pseudoWeather).map(([id, state]) => effect(id, state)),\f    own_side: conditions(me),\f    foe_side: conditions(foe),\f    team,\f    foes,\f    unseen: foe.pokemon.length - shown.length,\f  };\f})(battle.p2, battle.p1)})",">p1 move thundershock +1, move scratch +1",">p2 move tackle +1, move tackle +1",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))"]}

@@ -414,6 +414,7 @@ body, body.body--dark {
 .game-hero > .game-glyph { position: absolute; top: 2.5rem; right: 3rem; transform: rotate(-8deg) scale(1.9) }
 .game-hero-meta { color: var(--game-muted); font-size: .95rem }
 .game-hero-play { align-self: flex-start; margin-top: .5rem }
+.game-version { color: var(--game-muted); font-size: .75rem; margin-top: -.5rem }
 .game-recent { display: flex; flex-direction: column; gap: 1rem; min-width: 0 }
 .game-save, .game-door, .game-adventure {
   color: var(--game-text); text-decoration: none;
@@ -840,78 +841,221 @@ body, body.body--dark {
 .game-row-dialog .game-choice .q-btn__content { text-align: left }
 .game-entity + .game-entity:has(.game-meters) { border-top: 1px solid var(--game-border-soft) }
 
-/* The battle: a framed arena. The trainers on top, the view and the lines, then the choices. */
-.game-battle { padding: 1rem 1.5rem 1.5rem; align-items: center }
-/* The cards' wrapper is `display: contents`: its children are the battle's items. */
-.game-battle-cards { display: contents }
-.game-battle > *, .game-battle-cards > * { flex: none; width: 100%; max-width: 50rem }
-.game-battle .game-eyebrow { font-size: .62rem; margin-top: .25rem }
-.game-battle-head {
-  display: flex; align-items: center; gap: .75rem;
-  padding: .6rem .8rem;
-  background: linear-gradient(100deg, var(--game-accent-soft), transparent 40%, transparent 60%, var(--game-wash)), var(--game-surface-raised);
-  border: 1px solid var(--game-border-soft);
-  border-radius: calc(var(--game-radius) * .85);
-  box-shadow: var(--game-shadow-sm), var(--game-highlight);
+/* The battle fits one screen and never scrolls: the scene shrinks so the choices stay whole.
+   A tall column stacks scene, log, fielded Pokemon and choices; a wide one adds a rail. */
+.game-battle { container: battle / size; overflow-y: auto; padding: .6rem .6rem calc(.6rem + env(safe-area-inset-bottom)) }
+.game-battle .game-eyebrow { font-size: .62rem }
+.game-battle-grid {
+  flex: 1 1 0; width: 100%; min-height: 30rem;
+  display: grid; gap: .5rem;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, auto) auto auto 1fr auto auto auto auto;
+  grid-template-areas: "scene" "talk" "cards" "journal" "fielded" "tabs" "moves" "foot";
 }
-.game-battle-sides { display: flex; align-items: center; gap: 1rem; flex: 1 1 0; min-width: 0 }
+.game-battle-main, .game-battle-rail { display: contents }
+.game-battle-scene {
+  --game-strip-height: 2.6rem;
+  grid-area: scene; position: relative; min-height: 0;
+  display: flex; flex-direction: column;
+  overflow: hidden; background: #0b0d13;
+  border: 1px solid var(--game-border-soft);
+  border-radius: calc(var(--game-radius) * .8);
+  box-shadow: var(--game-shadow-md);
+}
+.game-showdown { flex: 1 1 auto; min-height: 0; aspect-ratio: 440 / 360; background: radial-gradient(ellipse at center, #1c2130, #0b0d13) }
+.game-battle-strip {
+  flex: none; height: var(--game-strip-height); padding: 0 .6rem;
+  display: flex; align-items: center; gap: .5rem;
+  background: linear-gradient(100deg, var(--game-accent-soft), transparent 45%, transparent 55%, var(--game-wash)), var(--game-surface-raised);
+  border-bottom: 1px solid var(--game-border-soft);
+}
+.game-battle-sides { display: flex; align-items: center; gap: .6rem; flex: 1 1 0; min-width: 0 }
 .game-battle-foe { justify-content: flex-end }
-.game-battle-side { display: flex; align-items: center; gap: .55rem; min-width: 0 }
+.game-battle-side { display: flex; align-items: center; gap: .4rem; min-width: 0 }
 .game-battle-foe .game-battle-side { flex-direction: row-reverse }
 .game-battle-foe .game-battle-trainer { align-items: flex-end }
 .game-battle-trainer { min-width: 0 }
-.game-battle-side .game-sprite-frame { zoom: 1.4; align-self: center }
+.game-battle-side .q-avatar { font-size: 1.9rem !important }
 .game-battle-name {
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-weight: 700; font-size: .95rem; line-height: 1.2;
+  font-weight: 700; font-size: .82rem; line-height: 1.15;
 }
 .game-battle-vs {
   flex: none; color: var(--game-accent);
-  font-family: var(--game-heading); font-style: italic; font-weight: 700; font-size: 1.15rem;
+  font-family: var(--game-heading); font-style: italic; font-weight: 700; font-size: .9rem;
 }
-.game-battle-pips { display: flex; gap: .22rem }
-.game-pip { width: .6rem; height: .6rem; border-radius: 50%; box-sizing: border-box }
+.game-battle-pips { display: flex; gap: .2rem }
+.game-pip { width: .48rem; height: .48rem; border-radius: 50%; box-sizing: border-box }
 .game-pip-able { background: var(--game-success); box-shadow: 0 0 6px -1px var(--game-success) }
 .game-pip-fainted { background: var(--game-danger); opacity: .45 }
 .game-pip-reserve { border: 1.5px solid var(--game-muted); opacity: .8 }
-.game-battle > .game-tags { justify-content: center; margin: 0 }
-.game-battle-arena { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; align-items: start }
-.game-battle-voices { display: flex; flex-direction: column; gap: .5rem }
+.game-battle-conditions { position: absolute; z-index: 1; top: calc(var(--game-strip-height) + .4rem); right: .45rem }
+.game-battle-conditions .game-tags { margin: 0; flex-direction: column; align-items: flex-end }
+.game-battle-conditions .game-tag { box-shadow: 0 2px 8px rgb(0 0 0 / .45) }
+
+/* What the trainers say: a row under the scene on a phone, the top of the rail when wide. */
+.game-battle-voices { grid-area: talk; display: flex; flex-wrap: wrap; gap: .4rem }
 .game-battle-speech {
-  position: relative; padding: .55rem .8rem;
+  position: relative; flex: 1 1 12rem; padding: .4rem .7rem;
   background: var(--game-surface-raised);
-  border: 1px solid var(--game-border-soft);
-  border-radius: calc(var(--game-radius) * .8);
+  border: 1px solid color-mix(in srgb, var(--game-accent) 35%, var(--game-border-soft));
+  border-radius: calc(var(--game-radius) * .7);
   box-shadow: var(--game-shadow-sm), var(--game-highlight);
-  font-size: .9rem; font-style: italic; line-height: 1.4;
+  font-size: .85rem; font-style: italic; line-height: 1.35;
 }
 .game-battle-speech:before {
-  content: ''; position: absolute; left: 1.25rem; top: -.4rem;
+  content: ''; position: absolute; right: 1.5rem; top: -.4rem;
   width: .7rem; height: .7rem; transform: rotate(45deg);
   background: inherit; border: inherit; border-right: 0; border-bottom: 0;
 }
-.game-battle-speaker { color: var(--game-accent); font-size: .66rem; font-style: normal; font-weight: 700; letter-spacing: .06em; text-transform: uppercase }
-@media (min-width: 900px) {
-  .game-battle-arena:has(.game-battle-voices) { grid-template-columns: minmax(0, 1fr) 13rem; align-items: center }
-  .game-battle-speech:before { left: -.4rem; top: 1rem; transform: rotate(-45deg) }
+.game-battle-speaker { color: var(--game-accent); font-size: .6rem; font-style: normal; font-weight: 700; letter-spacing: .06em; text-transform: uppercase }
+
+/* The log: its last lines under the scene, a tap opens it and the scene gives way. */
+.game-battle-journal {
+  grid-area: journal; min-height: 2.25rem; overflow: hidden;
+  display: flex; flex-direction: column;
+  background: var(--game-surface-raised);
+  border: 1px solid var(--game-border-soft);
+  border-radius: calc(var(--game-radius) * .7);
 }
-.game-battle .game-choice { min-height: 2.75rem; padding: .45rem .8rem }
-.game-battle-moves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem }
-.game-battle .game-choice-move { min-height: 3.5rem }
-.game-choice-move .game-choice-name { font-weight: 600 }
-.q-btn--outline.game-choice-move.game-choice-tinted { background: linear-gradient(100deg, color-mix(in srgb, var(--game-tag) 26%, transparent), var(--game-wash) 70%) !important }
-.game-choice-move.game-choice-tinted { box-shadow: inset 4px 0 0 var(--game-tag) }
-.game-battle-team {
-  display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .2rem;
-  scroll-snap-type: x proximity; overscroll-behavior-x: contain;
+.game-battle-log, .game-showdown-journal { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column }
+.game-showdown-log {
+  flex: 1 1 0; min-height: 0; overflow-y: auto; cursor: pointer;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 1.1rem);
+  mask-image: linear-gradient(to bottom, transparent, #000 1.1rem);
 }
-.game-battle-team > .game-choice { flex: 1 0 10.5rem; scroll-snap-align: start }
+.game-battle-log { position: relative }
+.game-battle-log:after {
+  content: '▾'; position: absolute; right: .6rem; bottom: .35rem;
+  color: var(--game-muted); font-size: .8rem; pointer-events: none; transition: transform var(--game-fast) var(--game-ease);
+}
+.game-battle-log:has(.game-showdown-journal-open):after { transform: rotate(180deg) }
+/* The rolls of the battle, such as a thrown ball: a phone shows the latest. */
+.game-battle-cards { grid-area: cards; display: flex; flex-direction: column; gap: .5rem; min-height: 0; overflow-y: auto }
+.game-battle-cards:empty { display: none }
+
+/* The fielded Pokemon: name, HP, status and stat changes, over the moves. */
+.game-battle-fielded { grid-area: fielded; display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .4rem }
+.game-battle-mon {
+  display: flex; align-items: center; gap: .55rem; min-width: 0;
+  padding: .3rem .65rem .35rem .45rem;
+  background: var(--game-surface-raised);
+  border: 1px solid var(--game-border-soft);
+  border-radius: calc(var(--game-radius) * .7);
+}
+.game-battle-mon-deciding { border-color: color-mix(in srgb, var(--game-accent) 70%, transparent); box-shadow: inset 0 0 0 1px var(--game-accent-soft) }
+.game-battle-mon .game-sprite-frame { align-self: center; zoom: 1.3 }
+.game-battle-mon-body { flex: 1 1 auto; min-width: 0 }
+.game-battle-mon-head { display: flex; align-items: center; gap: .4rem; min-width: 0 }
+.game-battle-mon-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: .92rem }
+.game-battle-mon-head .game-tags { margin: 0; flex-wrap: nowrap; gap: .2rem; min-width: 0; overflow: hidden }
+.game-battle-mon .game-tag, .game-battle-move .game-tag, .game-battle-team .game-tag { font-size: .56rem; padding: 0 .45em; flex: none }
+.game-battle-mon .game-meters { margin: .2rem 0 0 }
+.game-battle-mon .game-meter { grid-template-columns: 1.3rem 1fr auto; font-size: .72rem; margin: 0 }
+
+/* The choices: tabs on a phone, the moves as a 2x2 grid, the team, then the way out. */
+.game-battle-tabs {
+  grid-area: tabs; display: grid; grid-template-columns: 1fr 1fr; gap: .2rem; padding: .2rem;
+  background: var(--game-wash); border: 1px solid var(--game-border-soft); border-radius: 999px;
+}
+.q-btn.game-battle-tab { min-height: 2.2rem; border-radius: 999px; color: var(--game-muted); font-size: .82rem; font-weight: 700 }
+.game-battle-tab .q-icon { font-size: 1.1rem }
+.game-battle-grid:not(.game-battle-team-open) .game-battle-tab-fight, .game-battle-team-open .game-battle-tab-team {
+  color: var(--game-accent); background: var(--game-accent-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--game-accent) 35%, transparent);
+}
+.game-battle-moves, .game-battle-team {
+  grid-area: moves; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; align-content: start;
+}
+.game-battle-moves > .game-section-head, .game-battle-team > .game-section-head { grid-column: 1 / -1 }
+.game-battle .game-choice { min-height: 2.75rem; padding: .4rem .7rem }
+.q-btn.game-battle-move { min-height: 4rem; padding: .5rem .7rem; border-radius: calc(var(--game-radius) * .7) }
+.game-battle-move .q-btn__content { width: 100% }
+.q-btn--outline.game-battle-move.game-choice-tinted {
+  background: linear-gradient(140deg, color-mix(in srgb, var(--game-tag) 30%, var(--game-surface-raised)), var(--game-surface-raised) 72%) !important;
+  box-shadow: inset 3px 0 0 var(--game-tag);
+}
+.game-battle-move.game-choice-tinted:before { border-color: color-mix(in srgb, var(--game-tag) 45%, var(--game-border)) }
+.game-move-body { display: flex; flex-direction: column; gap: .35rem; width: 100%; text-align: left }
+.game-move-head { display: flex; align-items: center; gap: .4rem; min-width: 0 }
+.game-move-name {
+  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--game-text); font-size: 1.02rem; font-weight: 700; line-height: 1.2; letter-spacing: .01em;
+}
+.game-move-pp {
+  flex: none; padding: 0 .45em; border-radius: 999px; color: #1b1b1f; background: var(--game-pp);
+  font-size: .68rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.5;
+}
+.game-move-info { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .35rem; min-width: 0; color: var(--game-muted); font-size: .72rem }
+.game-battle-move .game-move-info .game-tags { margin: 0; flex-wrap: nowrap; gap: .2rem; flex: none }
+.game-move-stats { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums }
+.q-btn.game-battle-move.disabled {
+  opacity: 1 !important; box-shadow: none; filter: grayscale(.9);
+  background: repeating-linear-gradient(135deg, transparent 0 7px, var(--game-wash) 7px 14px) !important;
+}
+.game-battle-move.disabled:before { border: 1.5px dashed var(--game-border) }
+.game-battle-move.disabled .game-move-name { color: var(--game-muted) }
+.game-battle-move.disabled .game-move-stats { color: var(--game-danger); font-weight: 700; text-transform: uppercase; letter-spacing: .04em }
+.game-battle-team .q-btn.game-choice { min-height: 3.6rem; padding: .35rem .6rem }
+.game-battle-team .game-choice-head { flex-wrap: nowrap }
+.game-battle-team .game-choice-name { color: var(--game-text); font-weight: 700 }
 .game-choice .game-sprite-frame { zoom: 1; align-self: center; margin: -.2rem 0 }
 .game-choice .game-avatar { font-size: 1.75rem !important; background: none; border: 0; box-shadow: none }
 .game-choice .game-meters { margin: .3rem 0 0 }
-.game-battle-foot { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem }
-.game-battle-foot > .game-choice-leave { margin-left: auto }
+.game-battle-foot { grid-area: foot; display: flex; flex-wrap: wrap; align-items: stretch; gap: .45rem }
 .game-battle-foot > .game-choice { flex: 0 1 auto }
+.game-battle-foot > .game-choice-leave, .game-battle-foot > .game-choice-next { margin-left: auto; min-width: 6rem }
+.game-battle-foot > .game-choice-leave .q-btn__content, .game-battle-foot > .game-choice-next .q-btn__content { justify-content: center }
+/* While a pick resolves, it stays lit and the rest step back. */
+.game-battle-resolving .game-choice { pointer-events: none }
+.game-battle-resolving .game-choice:not(.game-choice-picked) { opacity: .35 !important; filter: saturate(.3) }
+.q-btn.game-choice-picked { box-shadow: 0 0 0 2px var(--game-accent), 0 0 22px -4px var(--game-accent-glow) !important; animation: game-picked 1.2s var(--game-ease) infinite alternate }
+@keyframes game-picked { to { box-shadow: 0 0 0 2px var(--game-accent), 0 0 8px -4px var(--game-accent-glow) } }
+
+@container battle not ((min-width: 700px) and (min-aspect-ratio: 4 / 5)) {
+  .game-battle-team-open .game-battle-moves, .game-battle-grid:not(.game-battle-team-open):has(.game-battle-moves) .game-battle-team { display: none }
+  .game-battle-grid:has(.game-battle-tabs) .game-battle-team > .game-section-head { display: none }
+  .game-battle-cards > :not(:last-child) { display: none }
+  .game-battle-cards .game-fact { flex-direction: row; align-items: center; padding: .4rem .7rem; gap: .7rem !important }
+  .game-battle-cards .game-fact > .items-start { order: -1 }
+  .game-battle-cards .game-fact .text-xs, .game-battle-cards .game-fact-icon { display: none }
+  .game-battle-cards .game-fact-head { font-size: .85rem; line-height: 1.3 }
+  .game-battle-cards .game-die { zoom: .7 }
+  /* Open, the log is a sheet over the scene; the choices stay where they are. */
+  .game-battle-journal:has(.game-showdown-journal-open) { grid-row: scene-start / journal-end; z-index: 3; box-shadow: var(--game-shadow-lg) }
+  .game-battle-team .game-choice-head { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: .45rem; row-gap: .15rem }
+  .game-battle-team .game-choice-head .game-sprite-frame { grid-row: span 2 }
+  .game-battle-team .game-choice-head > * { justify-self: start; text-align: left }
+  .game-battle-team .game-choice-head .game-tags { margin: 0 }
+}
+@container battle (max-height: 620px) {
+  .game-battle-grid { gap: .4rem }
+  .q-btn.game-battle-move { min-height: 3.3rem; padding: .35rem .6rem }
+  .game-move-body { gap: .2rem }
+  .game-battle-mon { padding-block: .15rem }
+}
+@container battle (min-width: 700px) and (min-aspect-ratio: 4 / 5) {
+  .game-battle-grid { gap: .9rem; grid-template-columns: minmax(0, 1fr) clamp(14rem, 30%, 19rem); grid-template-rows: minmax(0, 1fr); grid-template-areas: "main rail" }
+  .game-battle-main, .game-battle-rail { display: flex; flex-direction: column; gap: .6rem; min-height: 0 }
+  .game-battle-main { grid-area: main }
+  .game-battle-rail { grid-area: rail }
+  .game-battle-scene { flex: 1 1 auto; --game-strip-height: 3rem }
+  .game-battle-strip { padding: 0 .9rem }
+  .game-battle-side .q-avatar { font-size: 2.3rem !important }
+  .game-battle-name { font-size: .95rem }
+  .game-battle-vs { font-size: 1.1rem }
+  .game-battle-conditions { top: calc(var(--game-strip-height) + .5rem); right: .6rem }
+  .game-battle-tabs { display: none }
+  .game-battle-voices { flex-direction: column }
+  .game-battle-speech { flex: none; font-size: .88rem; padding: .5rem .75rem }
+  .game-battle-speech:before { right: auto; left: -.4rem; top: 1rem; transform: rotate(-45deg) }
+  .game-battle-team { display: flex; flex-direction: column; gap: .4rem }
+  .game-battle-grid:not(:has(.game-battle-moves)) .game-battle-team .game-section-head .game-eyebrow { color: var(--game-accent) }
+  .game-battle-journal { flex: 1 1 0; min-height: 0 }
+  .game-showdown-log { cursor: auto }
+  .game-battle-log:after { display: none }
+  .game-battle-cards { flex: 0 1 auto; max-height: 40% }
+  .q-btn.game-battle-move { min-height: 4.4rem }
+}
 .game-choice-name { min-width: 0; overflow: hidden; text-overflow: ellipsis }
 .q-btn--outline.game-choice-tinted { background: color-mix(in srgb, var(--game-tag) 16%, var(--game-wash)) !important }
 .game-choice-tinted:before { border-color: color-mix(in srgb, var(--game-tag) 55%, var(--game-border)) }
@@ -1043,17 +1187,6 @@ body, body.body--dark {
   .q-btn.game-send.game-send-named { width: 2.75rem; padding: 0; border-radius: 50% }
   .game-send-named .q-btn__content { font-size: 0 }
   .game-send-named .q-icon { font-size: 1.5rem; margin: 0 }
-  .game-battle { padding: .6rem .6rem 1rem }
-  .game-battle-head { padding: .45rem .55rem; gap: .4rem }
-  .game-battle-sides { flex-direction: column; align-items: flex-start; gap: .35rem }
-  .game-battle-foe { align-items: flex-end }
-  .game-battle-side { gap: .4rem }
-  .game-battle-side .q-avatar { font-size: 34px !important }
-  .game-battle-side .game-sprite-frame { zoom: 1 }
-  .game-battle-name { font-size: .82rem }
-  .game-battle-vs { font-size: .95rem }
-  .game-pip { width: .5rem; height: .5rem }
-  .game-battle-team > .game-choice { flex: 0 0 9.5rem }
   .q-btn.game-sheet-button { width: 2.75rem; min-width: 2.75rem; height: 2.75rem; padding: 0 }
   .game-sheet-button .block { display: none !important }  /* beats Quasar's `.block` */
   .game-sheet-button .on-left { margin: 0 }

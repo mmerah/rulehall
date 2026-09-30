@@ -26,6 +26,9 @@ COPY characters characters
 COPY src src
 RUN uv sync --locked --no-default-groups
 
+ARG RULEHALL_VERSION=dev
+ENV RULEHALL_VERSION=$RULEHALL_VERSION
+
 RUN mkdir -m 1777 /home/rulehall /data && ln -s /data/vendor /app/vendor
 ENV SERVER__HOST=0.0.0.0 \
     PYTHONUNBUFFERED=1 \

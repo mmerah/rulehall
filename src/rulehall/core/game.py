@@ -22,7 +22,7 @@ from rulehall.core.validation import (
 type AnyScenario = Scenario[Any]
 type AnyCharacter = Character[Any]
 type AnyGame = Game[Any]
-type Check[T] = Callable[[T], None]
+type Check[T] = Callable[[T], object]
 
 
 class ScenarioDescription(Frozen):

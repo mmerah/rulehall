@@ -1,11 +1,12 @@
 from collections.abc import Mapping, Sequence
+from functools import partial
 from pathlib import Path
 from random import Random
 
 from rulehall.core.creation import CreationStep, Picks, find_option
 from rulehall.core.decisions import ActionOption, DecisionOption
 from rulehall.core.facts import Fact, roll
-from rulehall.core.game import AnyCharacter, Character, RoleAnswer, WorldsmithRequest
+from rulehall.core.game import AnyCharacter, AnyScenario, Character, RoleAnswer, WorldsmithRequest
 from rulehall.core.prompt import Sections, lines_of, ref_of, section_if
 from rulehall.core.tools import action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
@@ -14,9 +15,8 @@ from rulehall.engines.args import Words
 from rulehall.engines.engine import RequestHandler, Resolution, Revealing
 from rulehall.engines.hiring import HIRE_PENDING, HIRE_UNWRITTEN, Hiring, signed_on
 from rulehall.engines.packs import unique_options
-from rulehall.engines.panels import here_panel, party_panel
+from rulehall.engines.panels import party_panel
 from rulehall.engines.scenes.engine import SceneEngine
-from rulehall.engines.scenes.panels import trail_panel
 from rulehall.engines.sheet import PLAYER_ID, joined
 from rulehall.engines.twentyfourxx.args import (
     BringIn,
@@ -79,11 +79,11 @@ from rulehall.engines.twentyfourxx.world import (
 )
 from rulehall.engines.twentyfourxx.worldsmith import (
     COMPLICATING,
-    FLOWN,
     HIRING,
-    NEW_LOCATION,
     NEWCOMING,
     WORLDSMITH_GUIDANCE,
+    check_complication,
+    check_flown_away,
     check_newcomer,
 )
 from rulehall.engines.world import IS_DEAD
@@ -151,7 +151,7 @@ NO_TROUBLE_COMES = "no bad luck: the trouble does not come; play on"
 
 
 class TwentyFourXXEngine(
-    Revealing,
+    Revealing[TwentyFourXXWorld],
     Hiring[Crewmate, TwentyFourXXWorld, TwentyFourXXPack, TwentyFourXXNextProposal, SheetProposal],
     SceneEngine[Crewmate, TwentyFourXXWorld, TwentyFourXXPack, TwentyFourXXNextProposal],
 ):
@@ -203,9 +203,6 @@ class TwentyFourXXEngine(
                 f"Skills: {', '.join(self._rulebook_skills())}",
             )
         )
-
-    def check_hire(self, draft: TwentyFourXXGame, answer: SheetProposal, /) -> None:
-        self.build_sheet(draft.pack_id, answer)
 
     def sign_on(self, draft: TwentyFourXXGame, person: Crewmate, answer: SheetProposal) -> str:
         sheet = self.build_sheet(draft.pack_id, answer)
@@ -340,17 +337,15 @@ class TwentyFourXXEngine(
             return view
         return view.model_copy(update={"situation": f"{view.situation}\n{line}"})
 
-    def scene_panels(self, state: TwentyFourXXGame, /) -> tuple[Panel, ...]:
+    def lead_panels(self, state: TwentyFourXXGame, /) -> tuple[Panel | None, ...]:
         world = state.world
         return (
             sheet_panel(world, self.sheet_help),
-            *job_panel(world),
+            job_panel(world),
             ship_panel(world),
-            *party_panel(
+            party_panel(
                 world.party_members(), self.sheet_help, lambda member: crew_rows(world, member)
             ),
-            here_panel(other.subject() for other in world.others()),
-            trail_panel(scene.title for scene in world.scenes),
         )
 
     @tool
@@ -468,16 +463,14 @@ class TwentyFourXXEngine(
     async def leave_for_next_place(
         self, draft: TwentyFourXXGame, request: WorldsmithRequest, worldsmith: RoleAnswer
     ) -> Resolution:
+        world = draft.world
         by_ship = request.kind == FLIGHT
-        left = draft.world.scene.title
-        place_id = draft.world.scene.place_id
-
-        def check_flown_away(answer: TwentyFourXXNextProposal) -> None:
-            if by_ship and answer.place_id == place_id:
-                raise Refusal(FLOWN.format(place_id=place_id))
-
+        left = world.scene.title
         facts = await self.write_and_install_next(
-            draft, request.detail, worldsmith, extra_check=check_flown_away
+            draft,
+            request.detail,
+            worldsmith,
+            *((partial(check_flown_away, world=world),) if by_ship else ()),
         )
         if by_ship:
             draft.world.dock_here()
@@ -486,17 +479,17 @@ class TwentyFourXXEngine(
     async def complicate(
         self, draft: TwentyFourXXGame, request: WorldsmithRequest, worldsmith: RoleAnswer
     ) -> Resolution:
-        location = draft.world.scene.location
-
-        def check_same_location(answer: TwentyFourXXNextProposal) -> None:
-            if answer.location not in ("", location):
-                raise Refusal(NEW_LOCATION)
-
+        world = draft.world
         intent = COMPLICATING.format(brief=request.detail)
         facts = await self.write_and_install_next(
-            draft, intent, worldsmith, extra_check=check_same_location
+            draft, intent, worldsmith, lambda proposal: check_complication(proposal, world)
         )
         return Resolution(tuple(facts), TURNING)
+
+    def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> TwentyFourXXWorld:
+        world = super().new_game(scenario, character)
+        world.apply_opening_extras(scenario.opening)
+        return world
 
     def install_next(
         self, draft: TwentyFourXXGame, proposal: TwentyFourXXNextProposal, /
@@ -539,17 +532,13 @@ class TwentyFourXXEngine(
         self, draft: TwentyFourXXGame, request: WorldsmithRequest, worldsmith: RoleAnswer
     ) -> Resolution:
         world = draft.world
-
-        def check(answer: NewcomerProposal) -> None:
-            self.build_sheet(draft.pack_id, answer.sheet)
-            check_newcomer(answer, world)
-
         answer = await self.ask_worldsmith(
             draft,
             worldsmith,
             NEWCOMING.format(who=request.detail),
             NewcomerProposal,
-            check,
+            lambda proposal: self.build_sheet(draft.pack_id, proposal.sheet),
+            lambda proposal: check_newcomer(proposal, world),
             guidance=self.hire_guidance(draft),
         )
         world.hear(answer.name, answer.brief)

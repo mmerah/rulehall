@@ -213,7 +213,7 @@ async def test_the_model_opponent_thinks_at_the_request_and_its_choice_is_record
 
     assert len(asked) == 1
     assert run.inputs == [">p1 team 1", ">p2 team 1", ">p1 move 1", ">p2 move 1"]
-    assert "Ember 14 to 18 HP" in asked[0].user
+    assert "the foe's Charmander's Ember: 53-69%, 2x super effective" in asked[0].user
     assert run.result is not None and run.result.outcome == "won"
     assert run.log[-2:] == ["|c|Rook|You will not win!", "|win|Kael"]
 
@@ -223,7 +223,7 @@ def test_an_answer_outside_the_choices_is_refused_with_the_choices() -> None:
         BattleChoice(command="move 1", kind="move", name="Tackle"),
         BattleChoice(command="switch 2", kind="switch", name="Rattata"),
     )
-    offers = (Offer(mon_name="Rattata", choices=choices),)
+    offers = (Offer(slot=0, mon_name="Rattata", choices=choices),)
 
     with pytest.raises(Refusal, match="pick one of: move 1, switch 2"):
         check_commands(offers, OpponentAnswer(commands=("move 2",)))
@@ -279,8 +279,9 @@ def test_a_choice_carries_its_types_and_pp() -> None:
 
     move, switch = _seated(request, setup.team, frozenset({0, 1})).choices(0, ())
 
-    assert move.tags == (Tag(name="Electric", colour="#f8d030"),)
-    assert move.brief == "30/48 PP"
+    assert [tag.name for tag in move.tags] == ["Electric", "Special"]
+    assert move.brief == "40 BP · 100%"
+    assert [(meter.name, meter.current, meter.maximum) for meter in move.meters] == [("PP", 30, 48)]
     assert switch.command == "switch 2"
     assert switch.tags == (Tag(name="Normal", colour="#a8a878"),)
     assert switch.kind == "switch"
@@ -305,7 +306,18 @@ def test_each_outcome_reads_the_dump(
     outcome: Outcome | None, player_hp: int, foe_hp: int, expected: Outcome
 ) -> None:
     dump = Dump(
-        p1=(DumpMon(slot=0, hp=player_hp, status="", pp=(40, 60), out=1, held=True),),
+        p1=(
+            DumpMon(
+                slot=0,
+                hp=player_hp,
+                status="",
+                pp=(40, 60),
+                out=1,
+                held=True,
+                active=True,
+                boosts={},
+            ),
+        ),
         p2=(
             DumpMon(
                 slot=0,
@@ -314,6 +326,8 @@ def test_each_outcome_reads_the_dump(
                 pp=(50,),
                 out=1,
                 held=True,
+                active=True,
+                boosts={},
             ),
         ),
     )
@@ -348,11 +362,15 @@ def test_the_sent_out_foes_keep_their_team_order_and_leave_out_the_bench() -> No
     )
     # Showdown lists the active Pokemon first: the one switched in, then the lead it replaced.
     dump = Dump(
-        p1=(DumpMon(slot=0, hp=10, status="", pp=(40, 60), out=1, held=True),),
+        p1=(
+            DumpMon(
+                slot=0, hp=10, status="", pp=(40, 60), out=1, held=True, active=True, boosts={}
+            ),
+        ),
         p2=(
-            DumpMon(slot=1, hp=5, status="", pp=(40, 60), out=1, held=True),
-            DumpMon(slot=0, hp=0, status="fnt", pp=(50,), out=1, held=True),
-            DumpMon(slot=2, hp=15, status="", pp=(56,), out=0, held=True),
+            DumpMon(slot=1, hp=5, status="", pp=(40, 60), out=1, held=True, active=True, boosts={}),
+            DumpMon(slot=0, hp=0, status="fnt", pp=(50,), out=1, held=True, active=True, boosts={}),
+            DumpMon(slot=2, hp=15, status="", pp=(56,), out=0, held=True, active=False, boosts={}),
         ),
     )
 
@@ -407,7 +425,7 @@ def test_a_tag_player_keeps_their_slot_when_a_drag_brings_in_the_ally_pokemon() 
     assert player.deciding_slots() == (0,)
     choices = player.choices(0, ())
     assert [choice.command for choice in choices] == ["move 1", "switch 3", "switch 4"]
-    assert choices[0].tags == (Tag(name="Normal", colour="#a8a878"),)
+    assert choices[0].tags[0] == Tag(name="Normal", colour="#a8a878")
     assert _seated(request, dragged, frozenset({0, 1}), 1).deciding_slots() == (1,)
 
 
@@ -421,14 +439,18 @@ def test_a_tag_trainer_with_no_pokemon_left_leaves_the_slot_to_the_partner() -> 
 def test_a_tag_battle_result_leaves_out_the_ally_pokemon() -> None:
     dump = Dump(
         p1=(
-            DumpMon(slot=0, hp=10, status="", pp=(40, 60), out=1, held=True),
-            DumpMon(slot=2, hp=0, status="fnt", pp=(50, 40), out=1, held=True),
-            DumpMon(slot=1, hp=18, status="", pp=(56,), out=0, held=True),
-            DumpMon(slot=3, hp=15, status="", pp=(56,), out=0, held=True),
+            DumpMon(
+                slot=0, hp=10, status="", pp=(40, 60), out=1, held=True, active=True, boosts={}
+            ),
+            DumpMon(
+                slot=2, hp=0, status="fnt", pp=(50, 40), out=1, held=True, active=True, boosts={}
+            ),
+            DumpMon(slot=1, hp=18, status="", pp=(56,), out=0, held=True, active=False, boosts={}),
+            DumpMon(slot=3, hp=15, status="", pp=(56,), out=0, held=True, active=False, boosts={}),
         ),
         p2=(
-            DumpMon(slot=0, hp=0, status="fnt", pp=(56,), out=1, held=True),
-            DumpMon(slot=1, hp=0, status="fnt", pp=(56,), out=1, held=True),
+            DumpMon(slot=0, hp=0, status="fnt", pp=(56,), out=1, held=True, active=True, boosts={}),
+            DumpMon(slot=1, hp=0, status="fnt", pp=(56,), out=1, held=True, active=True, boosts={}),
         ),
     )
 
@@ -456,7 +478,7 @@ def test_a_packed_pokemon_carries_its_spread_item_and_friendship() -> None:
 
 def test_an_item_used_up_in_battle_is_gone_after_it() -> None:
     pikachu = PIKACHU.model_copy(update={"item_id": "oran-berry"})
-    kept = DumpMon(slot=0, hp=24, status="", pp=(48, 64), out=1, held=True)
+    kept = DumpMon(slot=0, hp=24, status="", pp=(48, 64), out=1, held=True, active=True, boosts={})
 
     assert as_dumped(pikachu, kept).item_id == "oran-berry"
     assert as_dumped(pikachu, kept.model_copy(update={"held": False})).item_id is None

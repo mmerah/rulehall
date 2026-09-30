@@ -31,9 +31,14 @@ from rulehall.engines.loner4e.rules import (
     transition_for,
 )
 from rulehall.engines.loner4e.sheet import Loner4eEntity, TagName, Tags
-from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
+from rulehall.engines.scenes.world import (
+    NEXT_ARC_DESCRIPTION,
+    NextProposal,
+    SceneProposal,
+    SceneWorld,
+)
 from rulehall.engines.sheet import Gauge, changed_tags, tag_card, tag_delta
-from rulehall.engines.world import IS_DEAD, OpeningProposal
+from rulehall.engines.world import IS_DEAD
 
 SCENE_CLOSED = "the scene has closed: change nothing more in it; call `direct` now"
 NO_SUCH_TAG = (
@@ -49,7 +54,7 @@ MEANWHILE_HINT = (
 )
 
 
-class Framing(Frozen):
+class Loner4eSceneProposal(SceneProposal[Loner4eEntity]):
     goal: str = Field(
         min_length=1,
         description="What the protagonist is here for in this scene, in one line the player "
@@ -63,19 +68,15 @@ class Framing(Frozen):
     )
     hidden_ids: SkipJsonSchema[tuple[()]] = ()
 
-
-class Loner4eOpeningProposal(Framing, SceneProposal[Loner4eEntity]):
     @model_validator(mode="after")
     def _scene_id_unfiled(self) -> Self:
         _check_scene_id_unfiled(self.filed_by_name().cast)
         return self
 
 
-class Loner4eNextProposal(Framing, NextProposal[Loner4eEntity]):
-    @model_validator(mode="after")
-    def _scene_id_unfiled(self) -> Self:
-        _check_scene_id_unfiled(self.filed_by_name().cast)
-        return self
+class Loner4eNextProposal(Loner4eSceneProposal, NextProposal[Loner4eEntity]):
+    # Declared again: the first base would hand down the opening's `arc`.
+    arc: str = Field(default="", description=NEXT_ARC_DESCRIPTION)
 
 
 class TagChange(Frozen):
@@ -245,11 +246,10 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         _check_scene_id_unfiled(self.cast)
         return self
 
-    def apply_proposal_extras(self, proposal: OpeningProposal) -> None:
-        if isinstance(proposal, Framing):
-            self.frame = Frame(
-                kind=self.frame.coming, goal=proposal.goal, details=list(proposal.details)
-            )
+    def apply_scene_extras(self, proposal: Loner4eSceneProposal) -> None:
+        self.frame = Frame(
+            kind=self.frame.coming, goal=proposal.goal, details=list(proposal.details)
+        )
 
     def close(self, reason: ClosedBy, rng: Random) -> list[Fact]:
         frame = self.frame
@@ -411,9 +411,9 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         return question
 
     def here_or_entering(self, entity_id: Slug) -> tuple[Loner4eEntity, list[Fact]]:
-        known = self.find_entity_id(entity_id)
-        if known is not None and (known == self.player.id or known in self.scene.here_ids):
-            return self.require_living_here(known), []
+        known = self.find_entity(entity_id)
+        if known is not None and (known is self.player or known.id in self.scene.here_ids):
+            return self.require_living_here(known.id), []
         facts = self.enter(entity_id)
         return self.require_living_here(entity_id), facts
 
@@ -501,10 +501,10 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
 
     def leave(self, entity_id: Slug) -> list[Fact]:
         self.require_open()
-        known = self.find_entity_id(entity_id) or entity_id
-        if known not in self.scene.here_ids:
+        known = self.find_entity(entity_id)
+        if known is None or known.id not in self.scene.here_ids:
             return []
-        return [*super().leave(known), *self.drop_opponent(known)]
+        return [*super().leave(known.id), *self.drop_opponent(known.id)]
 
     def kill(self, entity_id: Slug) -> list[Fact]:
         killed_id = self.require_entity(entity_id).id

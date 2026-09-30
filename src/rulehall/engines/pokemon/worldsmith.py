@@ -13,7 +13,7 @@ from rulehall.engines.pokemon.rules import (
 from rulehall.engines.pokemon.scheme import Operation, Scheme, SchemeDue
 from rulehall.engines.pokemon.sheet import KEY_TRAINER, Trainer
 from rulehall.engines.pokemon.world import (
-    PokemonMap,
+    PokemonMapProposal,
     PokemonOpeningProposal,
     PokemonRegionProposal,
     PokemonWorld,
@@ -160,7 +160,7 @@ def _check_scheme(scheme: Scheme, species_ids: Collection[Slug]) -> None:
 
 
 def _check_operation(
-    proposal: PokemonMap, operation: Operation, leader_ids: Collection[Slug]
+    proposal: PokemonMapProposal, operation: Operation, leader_ids: Collection[Slug]
 ) -> None:
     start_id = operation.place_id
     if start_id not in proposal.reachable(proposal.start_id):

@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from pathlib import Path
 from random import Random
 from typing import Any
@@ -6,9 +7,12 @@ from rulehall.core.facts import Fact
 from rulehall.core.game import AnyCharacter, AnyScenario, Game
 from rulehall.core.prompt import Sections, render_log, section_if
 from rulehall.core.tools import tool
+from rulehall.core.views import Panel
 from rulehall.engines.engine import Engine, SceneHeader
 from rulehall.engines.packs import Pack
+from rulehall.engines.panels import here_panel
 from rulehall.engines.scenes.args import Enter, Leave
+from rulehall.engines.scenes.panels import trail_panel
 from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
 from rulehall.engines.scenes.worldsmith import OPENING, OPENING_SECTIONS, check_next, check_opening
 from rulehall.engines.sheet import Person
@@ -69,6 +73,17 @@ class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](
     def scene_header(self, state: Game[W], /) -> SceneHeader:
         scene = state.world.scene
         return SceneHeader(place_id=scene.place_id, title=scene.title, situation=scene.situation)
+
+    def scene_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]:
+        world = state.world
+        return (
+            *self.lead_panels(state),
+            here_panel(other.subject() for other in world.others()),
+            trail_panel(scene.title for scene in world.scenes),
+        )
+
+    @abstractmethod
+    def lead_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]: ...
 
     @tool
     def enter(self, draft: Game[W], args: Enter, _rng: Random) -> list[Fact]:

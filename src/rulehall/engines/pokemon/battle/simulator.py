@@ -1,6 +1,6 @@
 import json
 from asyncio import Task, create_task, gather
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
@@ -14,6 +14,7 @@ from rulehall.core.validation import Loose, parse_json
 from rulehall.core.views import BattleChoice, BattleHeader
 from rulehall.engines.battles import Transport
 from rulehall.engines.engine import Resolution
+from rulehall.engines.pokemon.battle.assessment import Assessment
 from rulehall.engines.pokemon.battle.choices import (
     Hand,
     SeatRequest,
@@ -39,7 +40,6 @@ from rulehall.engines.pokemon.battle.models import (
     Seat,
 )
 from rulehall.engines.pokemon.battle.opponent import (
-    Assessment,
     Offer,
     OpponentAnswer,
     check_commands,
@@ -77,7 +77,8 @@ SNAPSHOT = (
     "Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, "
     "side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, "
     "status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), "
-    "out: mon.previouslySwitchedIn, held: !mon.lastItem}))]))"
+    "out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, "
+    "boosts: mon.boosts}))]))"
 )
 DUMP = f">eval JSON.stringify({SNAPSHOT})"
 RESTORE = (
@@ -174,12 +175,11 @@ class ShowdownRun:
     def setup(self) -> BattleSetup:
         return self.battle.setup
 
-    def props(self) -> Mapping[str, str | bool]:
-        return {"wild": self.setup.wild}
-
     def header(self) -> BattleHeader:
         assert self.dump is not None
-        return battle_header(self.setup, self.dump.p1, self.dump.p2, self.log)
+        return battle_header(
+            self.setup, self.dump.p1, self.dump.p2, self.log, self._deciding_slot()
+        )
 
     def choices(self) -> tuple[BattleChoice, ...]:
         request = self.side_request
@@ -224,6 +224,13 @@ class ShowdownRun:
             thinking.cancel()
         await gather(*self.thinking.values(), return_exceptions=True)
         await self.transport.close()
+
+    def _deciding_slot(self) -> int | None:
+        request = self.side_request
+        if request is None:
+            return None
+        slots = self._seated("player", request).deciding_slots()
+        return slots[len(self.picks)] if slots else None
 
     def _slot_choices(self, request: SideRequest) -> tuple[BattleChoice, ...]:
         seated = self._seated("player", request)
@@ -332,6 +339,7 @@ class ShowdownRun:
         seated = self._seated(seat, ask)
         offers = tuple(
             Offer(
+                slot=slot,
                 mon_name=ask.side.pokemon[slot].name,
                 choices=tuple(
                     choice for choice in seated.aimed_choices(slot, ()) if not choice.refusal
@@ -342,7 +350,7 @@ class ShowdownRun:
         if all(len(offer.choices) == 1 for offer in offers):
             return None
         assessment = await self._assess(SIDE_OF[seat])
-        prompt = render_opponent(self.setup, seat, assessment, offers, self._hand(seat))
+        prompt = render_opponent(self.setup, seat, assessment, offers, self._hand(seat), self.log)
         return create_task(role(prompt, OpponentAnswer, partial(check_commands, offers)))
 
     async def _decide(self, seat: RoleSeat, ask: SideRequest) -> dict[int, str]:

@@ -1,6 +1,10 @@
 from rulehall.core.validation import Refusal
 from rulehall.engines.hiring import HIRED, UNWRITTEN_CAST
-from rulehall.engines.twentyfourxx.world import NewcomerProposal, TwentyFourXXWorld
+from rulehall.engines.twentyfourxx.world import (
+    NewcomerProposal,
+    TwentyFourXXNextProposal,
+    TwentyFourXXWorld,
+)
 
 WORLDSMITH_GUIDANCE = (
     "24XX AUTHORING\n"
@@ -63,3 +67,14 @@ def check_newcomer(proposal: NewcomerProposal, world: TwentyFourXXWorld) -> None
     heard.refuse_unmet_names(proposal.name, proposal.brief)
     if any(proposal.name.casefold() == entry.name.casefold() for entry in world.cast.values()):
         raise Refusal(f"{proposal.name!r} is already in the cast: name a new operator")
+
+
+def check_flown_away(proposal: TwentyFourXXNextProposal, world: TwentyFourXXWorld) -> None:
+    left_id = world.scene.place_id
+    if proposal.place_id == left_id:
+        raise Refusal(FLOWN.format(place_id=left_id))
+
+
+def check_complication(proposal: TwentyFourXXNextProposal, world: TwentyFourXXWorld) -> None:
+    if proposal.location not in ("", world.scene.location):
+        raise Refusal(NEW_LOCATION)

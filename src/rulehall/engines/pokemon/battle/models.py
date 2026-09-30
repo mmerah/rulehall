@@ -196,6 +196,8 @@ class DumpMon(Loose):
     pp: tuple[int, ...]
     out: int
     held: bool
+    active: bool
+    boosts: dict[str, int]
 
     @property
     def pip(self) -> Pip:

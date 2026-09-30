@@ -14,7 +14,6 @@ from rulehall.core.decisions import ActionOption
 from rulehall.core.facts import Fact
 from rulehall.core.game import (
     AnyCharacter,
-    AnyGame,
     AnyScenario,
     Character,
     Check,
@@ -83,17 +82,18 @@ class RequestHandler[W: World[Any]]:
     failure_fact: Fact
 
 
-class Revealing:
+class Revealing[W: World[Any]]:
     @tool
-    def reveal(self, draft: AnyGame, args: Reveal, _rng: Random) -> list[Fact]:
+    def reveal(self, draft: Game[W], args: Reveal, _rng: Random) -> list[Fact]:
         """Make a hidden entity here known to the player. HIDDEN HERE lists what the player has
         not found: call this before you tell a hidden thing."""
         return draft.world.reveal_hidden(args.target_id)
 
 
-class Joining:
+# `Hiring` owns `join_party` instead in an engine that hires: an engine takes one or the other.
+class Joining[W: World[Any]]:
     @tool
-    def join_party(self, draft: AnyGame, args: JoinParty, _rng: Random) -> list[Fact]:
+    def join_party(self, draft: Game[W], args: JoinParty, _rng: Random) -> list[Fact]:
         """Make a person here travel with the player."""
         world = draft.world
         return world.join(world.require_person_here(args.target_id))
@@ -233,7 +233,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
             player=player.subject(),
             scene_title=header.title,
             situation=header.situation,
-            panels=self.scene_panels(state),
+            panels=tuple(panel for panel in self.scene_panels(state) if panel is not None),
             decision=pending,
             ending=self.ending(state),
             map=header.map_view,
@@ -251,8 +251,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         worldsmith: RoleAnswer,
         intent: str,
         answer_model: type[A],
-        check: Check[A],
-        *,
+        *checks: Check[A],
         guidance: str | None = None,
     ) -> A:
         if guidance is None:
@@ -267,32 +266,19 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
             guidance=guidance,
             answer_model=answer_model,
         )
-        return await worldsmith(prompt, answer_model, check)
+        return await worldsmith(prompt, answer_model, lambda answer: _check_all(answer, checks))
 
     async def write_and_install_next(
-        self,
-        draft: Game[W],
-        intent: str,
-        worldsmith: RoleAnswer,
-        *,
-        extra_check: Check[R] = lambda _: None,
+        self, draft: Game[W], intent: str, worldsmith: RoleAnswer, *checks: Check[R]
     ) -> list[Fact]:
-        def check(answer: R) -> None:
-            checks: tuple[Check[R], ...] = (
-                lambda next_part: self.check_next(draft, next_part),
-                extra_check,
-            )
-            faults: list[str] = []
-            for each_check in checks:
-                try:
-                    each_check(answer)
-                except Refusal as refused:
-                    faults.append(str(refused))
-            if faults:
-                raise Refusal("; ".join(faults))
-
-        model = self.next_proposal_model
-        answer = await self.ask_worldsmith(draft, worldsmith, intent, model, check)
+        answer = await self.ask_worldsmith(
+            draft,
+            worldsmith,
+            intent,
+            self.next_proposal_model,
+            lambda proposal: self.check_next(draft, proposal),
+            *checks,
+        )
         return self.install_next(draft, answer)
 
     def character_of(self, name: str, person: BaseModel) -> AnyCharacter:
@@ -346,9 +332,6 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
                 },
             )
 
-        def check_head(answer: PackHead) -> None:
-            built(answer, None)
-
         def asked(intent: str, world_sections: Sections, answer_model: type[BaseModel]) -> Prompt:
             return render_worldsmith(
                 self.worldsmith_role,
@@ -361,15 +344,15 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
             )
 
         head = await worldsmith(
-            asked(HEAD_ASK, (), self.pack_head_model), self.pack_head_model, check_head
+            asked(HEAD_ASK, (), self.pack_head_model),
+            self.pack_head_model,
+            lambda answer: built(answer, None),
         )
         so_far = ((PACK_SO_FAR, sections(built(head, None).sections(opening=True))),)
-
-        def check_body(answer: PackBody) -> None:
-            built(head, answer)
-
         body = await worldsmith(
-            asked(BODY_ASK, so_far, self.pack_body_model), self.pack_body_model, check_body
+            asked(BODY_ASK, so_far, self.pack_body_model),
+            self.pack_body_model,
+            lambda answer: built(head, answer),
         )
         return built(head, body)
 
@@ -486,7 +469,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     @abstractmethod
     def scene_header(self, state: Game[W], /) -> SceneHeader: ...
     @abstractmethod
-    def scene_panels(self, state: Game[W], /) -> tuple[Panel, ...]: ...
+    def scene_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]: ...
 
     def request_handlers(self) -> Mapping[Slug, RequestHandler[W]]:
         return {}
@@ -496,3 +479,14 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     ) -> tuple[Fact, ...]:
         method: Callable[[Game[W], BaseModel, Random], Sequence[Fact]] = getattr(self, name)
         return tuple(method(draft, args, rng))
+
+
+def _check_all[A](answer: A, checks: Sequence[Check[A]]) -> None:
+    faults: list[str] = []
+    for check in checks:
+        try:
+            check(answer)
+        except Refusal as refused:
+            faults.append(str(refused))
+    if faults:
+        raise Refusal("; ".join(faults))
