@@ -104,6 +104,7 @@ final terms so far: the boss's ace is the next gym's level +0
 - Pidgey[pidgey] Normal/Flying L2-4, weight 3 — Very docile. If attacked, it will often kick up sand to protect itself rather than fight back.
 - Rattata[rattata] Normal L2-4, weight 3 — Will chew on anything with its fangs. If you see one, you can be certain that 40 more live in the area.
 - Caterpie[caterpie] Bug L3-5, weight 2 — Its short feet are tipped with suction pads that enable it to tirelessly climb slopes and walls.
+- Bellsprout[bellsprout] Grass/Poison L3-5, weight 2 — Prefers hot and humid places. It ensnares tiny bugs with its vines and devours them.
 
 # RECENT PLAY (turn 2)
 ## Scene: The Harbour Road

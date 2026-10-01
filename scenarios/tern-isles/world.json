@@ -194,6 +194,12 @@
           "lowest": 3,
           "highest": 5,
           "weight": 2
+        },
+        {
+          "species_id": "bellsprout",
+          "lowest": 3,
+          "highest": 5,
+          "weight": 2
         }
       ],
       "gull-cove": [
@@ -212,6 +218,12 @@
         {
           "species_id": "shellder",
           "lowest": 7,
+          "highest": 9,
+          "weight": 2
+        },
+        {
+          "species_id": "magnemite",
+          "lowest": 6,
           "highest": 9,
           "weight": 2
         }
