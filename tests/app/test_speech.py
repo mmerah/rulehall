@@ -7,7 +7,7 @@ from pydantic import JsonValue
 from support.table import offline_settings, updated
 
 from rulehall.app.speech import Speaker
-from rulehall.config import LiveSettings, ProviderConfig
+from rulehall.config import ApiProvider, LiveSettings, ProviderConfig
 from rulehall.core.log import SpokenLine
 from rulehall.core.validation import Refusal
 
@@ -17,8 +17,8 @@ MARA = SpokenLine(speaker_id="mara", speaker="Mara", voice="feminine", text="Row
 REFUSED = SpokenLine(text="Nobody may voice this.")
 
 
-def _speaker(saves: Path, *, enabled: bool = True) -> Speaker:
-    settings = updated(offline_settings(), speech={"enabled": enabled})
+def _speaker(saves: Path, *, enabled: bool = True, provider: ApiProvider = "openrouter") -> Speaker:
+    settings = updated(offline_settings(), speech={"enabled": enabled, "provider": provider})
     return Speaker(live_settings=LiveSettings(settings), saves=saves)
 
 
@@ -59,10 +59,46 @@ async def test_a_character_keeps_one_voice_of_its_kind_and_narration_uses_the_na
     await speaker.speak((NARRATION, WARDEN, again, MARA))
     speech = speaker.live_settings.current.speech
     narrator, first, second, mara = (body["voice"] for body in posted)
-    assert narrator == speech.narrator_voice
+    assert narrator == speech.narrator == "bm_george"
     assert first == second
-    assert first in speech.other_voices
-    assert mara in speech.feminine_voices
+    assert first in speech.pool("other")
+    assert mara in speech.pool("feminine")
+    assert narrator not in speech.pool("masculine")
+
+
+async def test_an_other_voice_without_an_other_list_draws_from_both_genders_but_the_narrator(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    posted = _scripted(monkeypatch)
+    settings = updated(
+        offline_settings(), speech={"enabled": True, "speech_model": "deepgram/aura-2"}
+    )
+    speaker = Speaker(live_settings=LiveSettings(settings), saves=tmp_path)
+    await speaker.speak((NARRATION, WARDEN))
+    choice = settings.speech.speech_choice
+    both = {voice.id for voice in choice.feminine + choice.masculine}
+    pool = settings.speech.pool("other")
+    narrator, warden = (body["voice"] for body in posted)
+    assert choice.other == ()
+    assert narrator == "aura-2-draco-en"
+    assert set(pool) == both - {"aura-2-draco-en"}
+    assert warden in pool
+
+
+async def test_accents_are_folded_in_the_spoken_text(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    posted = _scripted(monkeypatch)
+    await _speaker(tmp_path).speak((SpokenLine(text="A wild Pokémon café."),))
+    assert [body["input"] for body in posted] == ["A wild Pokemon cafe."]
+
+
+async def test_the_local_provider_asks_for_the_local_model_name(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    posted = _scripted(monkeypatch)
+    await _speaker(tmp_path, provider="local").speak((NARRATION,))
+    assert [body["model"] for body in posted] == ["kokoro"]
 
 
 async def test_no_clip_is_found_or_generated_when_speech_is_off(

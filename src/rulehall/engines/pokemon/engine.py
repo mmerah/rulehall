@@ -254,7 +254,7 @@ class PokemonEngine(
             *super().master_sections(state),
             ("CHALLENGE", sheet.challenge_line()),
             *section_if("EDGE", "" if edge is None else EDGE_LINE.format(edge=edge)),
-            *section_if("POKEMON CENTERS", world.centers_line()),
+            *section_if("TOWNS", world.towns_line()),
             *_rival_section(world),
             *section_if(SCHEME, world.scheme_lines(worldsmith=False)),
             ("TYPE CHART", pokedex.type_chart_text()),
@@ -342,8 +342,8 @@ class PokemonEngine(
 
     @tool
     def heal_team(self, draft: PokemonGame, _args: NoArgs, _rng: Random) -> list[Fact]:
-        """Heal the whole team and the box: HP, PP and status. Only at a Pokemon Center: the
-        engine refuses anywhere else."""
+        """Heal the whole team and the box: HP, PP and status. Only in a town: the engine
+        refuses anywhere else."""
         return draft.world.heal_team()
 
     @tool
@@ -353,7 +353,9 @@ class PokemonEngine(
 
     @tool
     def buy(self, draft: PokemonGame, args: ItemCount, _rng: Random) -> list[Fact]:
-        """Buy items for the player at their price."""
+        """Buy items for the player at their price. Only in a town: the engine refuses anywhere
+        else."""
+        draft.world.require_town()
         return draft.world.player.buy(args.item_id, args.count)
 
     @tool

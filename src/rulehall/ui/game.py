@@ -173,7 +173,9 @@ class GamePage:
             if self.transcript.redrawn:
                 player.stop()
             else:
-                player.hear(self.transcript.landed_bubbles)
+                if self.transcript.withdrawn:
+                    player.stop()
+                player.hear(self.transcript.finished_bubbles)
         self.sync_controls(now)
         if moved_since(now, drawn):
             self.follow(now, drawn)

@@ -43,6 +43,7 @@ from rulehall.engines.pokemon.dex import (
 from rulehall.engines.pokemon.rules import (
     ATK_VS_DEF,
     BADGE_LEVELS,
+    CATCH_UP,
     EV_STAT_MAX,
     EV_TOTAL_MAX,
     EXP_PER_LEVEL,
@@ -549,15 +550,17 @@ class TrainerSheet(Mutable):
         return [mon.mon_id for mon in self.owned()]
 
     def exp_shares(self, result: BattleResult, *, trainer: bool) -> dict[Slug, int]:
-        total = sum(EXP_PER_LEVEL * foe.level for foe in result.fainted_foes())
+        total = sum(EXP_PER_LEVEL * foe.level for foe in result.defeated_foes())
         if trainer:
             total = total * 3 // 2
         if total == 0:
             return {}
+        caught_id = None if result.caught is None else result.caught.mon_id
+        table_level = self.table_level()
         return {
-            mon.mon_id: total if mon.mon_id in result.on_field_mon_ids else total // 2
+            mon.mon_id: total * CATCH_UP if mon.level < table_level else total
             for mon in self.team
-            if not mon.fainted
+            if not mon.fainted and mon.mon_id != caught_id
         }
 
     def pay(self, cost: int) -> None:

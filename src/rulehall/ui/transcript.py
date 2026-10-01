@@ -46,6 +46,7 @@ class TurnBlock:
         self.cards: tuple[Fact, ...] = ()
         self.lines: tuple[SpokenLine, ...] = ()
         self.bubbles: list[tuple[ui.chat_message, ui.html]] = []
+        self.heard: set[tuple[SpokenLine, int]] = set()
         with ui.element("div").classes("game-turn"):
             self.head_slot = ui.element("div").style(PASS_THROUGH)
             self.card_slot = ui.element("div").style(PASS_THROUGH)
@@ -105,10 +106,15 @@ class TurnBlock:
         for line, (message, body) in zip(self.lines, self.bubbles, strict=True):
             draw_read_aloud_button(message, body, partial(read_aloud, line, message.id))
 
-    def spoken_bubbles(self) -> list[tuple[SpokenLine, int]]:
-        return [
+    def take_unheard(self, *, landed: bool) -> tuple[list[tuple[SpokenLine, int]], bool]:
+        pairs = [
             (line, message.id) for line, (message, _) in zip(self.lines, self.bubbles, strict=True)
         ]
+        withdrawn = self.heard.difference(pairs)
+        self.heard -= withdrawn
+        unheard = [pair for pair in (pairs if landed else pairs[:-1]) if pair not in self.heard]
+        self.heard.update(unheard)
+        return unheard, bool(withdrawn)
 
 
 class Transcript:
@@ -127,7 +133,8 @@ class Transcript:
         self.column = ui.element("div").style(PASS_THROUGH)
         self.live_block: TurnBlock
         self.landed_block: TurnBlock | None = None
-        self.landed_bubbles: list[tuple[SpokenLine, int]] = []
+        self.finished_bubbles: list[tuple[SpokenLine, int]] = []
+        self.withdrawn = False
         self.redrawn = False
         self.redraw(now)
         self.show_pause(now.view)
@@ -141,7 +148,8 @@ class Transcript:
         return block.bubbles[0][0].id if block is not None and block.bubbles else None
 
     def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
-        self.landed_bubbles = []
+        self.finished_bubbles = []
+        self.withdrawn = False
         appended = appended_since(now.log_entries, drawn.log_entries)
         self.redrawn = appended is None
         if appended is None:
@@ -179,9 +187,10 @@ class Transcript:
             fresh = block.show_entry(entry, entering=entering)
             if self.read_aloud is not None:
                 block.add_read_aloud(self.read_aloud)
-            if entering and entry.cause != "battle":
-                self.sounds.roll_dice(told_cards(fresh))
-                self.landed_bubbles.extend(block.spoken_bubbles())
+            if entering:
+                if entry.cause != "battle":
+                    self.sounds.roll_dice(told_cards(fresh))
+                self.take_finished(block, landed=True)
             with self.column:
                 self.pause_line = (
                     ui.label(f"Paused: {entry.decision}").classes("game-paused")
@@ -197,6 +206,12 @@ class Transcript:
         block.show_lines(now.live, entering=entering)
         if entering:
             self.sounds.roll_dice(told_cards(fresh))
+            self.take_finished(block, landed=False)
+
+    def take_finished(self, block: TurnBlock, *, landed: bool) -> None:
+        unheard, withdrawn = block.take_unheard(landed=landed)
+        self.finished_bubbles.extend(unheard)
+        self.withdrawn = self.withdrawn or withdrawn
 
     def show_pause(self, view: PlayerView) -> None:
         if self.pause_line is not None:

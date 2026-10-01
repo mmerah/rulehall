@@ -53,7 +53,7 @@ class Speech(ui.element, component="speech.js"):
     def replay(self, path: Path, bubble_id: int) -> None:
         self.run_method("replay", media_url(path), bubble_id)
 
-    def wait(self, bubble_id: int) -> None:
+    def wait(self, bubble_id: int | None) -> None:
         self.run_method("wait", bubble_id)
 
     def stop(self) -> None:

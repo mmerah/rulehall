@@ -18,6 +18,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from rulehall.core.log import Voice
 from rulehall.core.validation import Frozen, parse
+from rulehall.voices import SpeechModel, SpeechModelChoice, voice_catalogue
 
 type ApiProvider = Literal["openrouter", "local"]
 type Role = Literal["master", "narrator", "worldsmith", "opponent"]
@@ -75,26 +76,38 @@ class MediaConfig(Configured):
 class SpeechConfig(Configured):
     enabled: bool = False
     provider: ApiProvider = "openrouter"
-    speech_model: str = "hexgrad/kokoro-82m"
-    narrator_voice: str = "bm_george"
-    feminine_voices: tuple[str, ...] = Field(
-        default=("af_heart", "bf_emma", "af_bella"), min_length=1
+    speech_model: SpeechModel = "hexgrad/kokoro-82m"
+    narrator_voice: str = Field(
+        default="",
+        description="Blank uses the model's own narrator; any voice id of the model's list below.",
     )
-    masculine_voices: tuple[str, ...] = Field(
-        default=("am_michael", "bm_lewis", "am_adam"), min_length=1
-    )
-    other_voices: tuple[str, ...] = Field(default=("bm_fable", "af_nicole"), min_length=1)
     transcription_model: str = "openai/whisper-large-v3-turbo"
     timeout: float = Field(default=60.0, gt=0.0)
 
+    @model_validator(mode="after")
+    def _fits_the_model(self) -> Self:
+        if self.narrator_voice and self.narrator_voice not in self.speech_choice.voice_ids():
+            raise ValueError(f"{self.narrator_voice!r} is no voice of {self.speech_model}")
+        if self.provider == "local" and self.speech_choice.local_model is None:
+            raise ValueError(f"{self.speech_model} does not run on the local provider")
+        return self
+
+    @property
+    def speech_choice(self) -> SpeechModelChoice:
+        return voice_catalogue().require_model(self.speech_model)
+
+    @property
+    def narrator(self) -> str:
+        return self.narrator_voice or self.speech_choice.narrator
+
+    @property
+    def requested_model(self) -> str:
+        if self.provider == "local" and (local_model := self.speech_choice.local_model):
+            return local_model
+        return self.speech_model
+
     def pool(self, voice: Voice) -> tuple[str, ...]:
-        match voice:
-            case "feminine":
-                return self.feminine_voices
-            case "masculine":
-                return self.masculine_voices
-            case "other":
-                return self.other_voices
+        return self.speech_choice.pool(voice, self.narrator)
 
 
 class BattleConfig(Configured):
@@ -158,7 +171,7 @@ class Settings(BaseSettings):
     providers: Providers = Providers()
     roles: RoleSettings = RoleSettings()
     media: MediaConfig = MediaConfig()
-    speech: SpeechConfig = SpeechConfig()
+    speech: SpeechConfig = Field(default_factory=SpeechConfig)
     battle: BattleConfig = BattleConfig()
     server: ServerConfig = ServerConfig()
     saves_dir: Path = Path("saves")

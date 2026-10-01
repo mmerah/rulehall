@@ -1,4 +1,5 @@
-"""The settings page: tabs, no-op save, a real save, validation, and a game that keeps playing."""
+"""The settings page: tabs, no-op save, the speech voices, a real save, validation, and a game
+that keeps playing."""
 
 import os
 import sys
@@ -56,11 +57,26 @@ def body(s: Session) -> None:
     tabs = [clean(t).lower() for t in page.locator(".q-tab").all_inner_texts()]
     s.note(f"tabs: {tabs}")
     s.check(
-        tabs == ["providers", "roles", "media", "battle", "transcript", "server"],
+        tabs == ["providers", "roles", "media", "speech", "battle", "server"],
         f"unexpected tabs: {tabs}",
     )
     page.get_by_role("button", name="Save").click()
     s.check(notified(page, "Nothing changed."), f"no-op save: {notifications(page)}")
+
+    # Speech tab: the model select shows the chosen model's voices from the catalogue.
+    page.get_by_role("tab", name="speech").click()
+    voices = page.locator(".q-tab-panel", has_text="Narrator:")
+    voices.wait_for()
+    s.check("Narrator: bm_george" in clean(voices.inner_text()), "the Kokoro voices are missing")
+    page.locator(".q-tab-panel .q-field", has_text="speech model").first.click()
+    page.get_by_role("option", name="minimax/speech-2.8-turbo").click()
+    s.check(
+        wait_until(page, lambda: "English_radiant_girl" in clean(voices.inner_text())),
+        "picking MiniMax did not show its voices",
+    )
+    still(page)
+    s.shot(page, "speech-voices")
+    page.reload()
 
     # Roles tab: the nested expansions and the provider select.
     page.get_by_role("tab", name="roles").click()

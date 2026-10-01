@@ -9,7 +9,7 @@ from rulehall.app.http_client import post
 from rulehall.config import LiveSettings, SpeechConfig
 from rulehall.core.log import SpokenLine
 from rulehall.core.stores import publish
-from rulehall.core.validation import Loose, Refusal, parse_json
+from rulehall.core.validation import Loose, Refusal, fold_accents, parse_json
 
 LOGGER = logging.getLogger(__name__)
 
@@ -84,8 +84,9 @@ class Speaker:
             "audio/speech",
             timeout=speech.timeout,
             json={
-                "model": speech.speech_model,
-                "input": line.text,
+                "model": speech.requested_model,
+                # Kokoro misreads accented words ("Pokémon"), so every model gets the plain letters.
+                "input": fold_accents(line.text),
                 "voice": _voice_for(speech, line),
                 "response_format": "mp3",
             },
@@ -101,7 +102,7 @@ class _Transcript(Loose):
 
 def _voice_for(speech: SpeechConfig, line: SpokenLine) -> str:
     if line.voice is None or line.speaker_id is None:
-        return speech.narrator_voice
+        return speech.narrator
     voices = speech.pool(line.voice)
     return voices[int(_digest(line.speaker_id), 16) % len(voices)]
 

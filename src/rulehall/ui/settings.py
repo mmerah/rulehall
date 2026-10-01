@@ -4,17 +4,20 @@ from pathlib import Path
 from typing import Literal, TypeAliasType, get_args, get_origin
 
 from nicegui import ui
-from pydantic import BaseModel, SecretStr
+from pydantic import BaseModel, SecretStr, TypeAdapter
 from pydantic.fields import FieldInfo
 
 from rulehall.app.runtime import Runtime
 from rulehall.config import Settings, env_key, read_settings, save_settings
 from rulehall.core.validation import Refusal, parse
-from rulehall.ui.widgets import alert, done, inform, page_body, page_header, page_intro
+from rulehall.ui.widgets import alert, done, heading, inform, page_body, page_header, page_intro
+from rulehall.voices import SpeechModel, VoiceChoice, voice_catalogue
 
 type Widget = ui.input | ui.switch | ui.select | ui.number
 # A cleared box writes no key at all, which is the only way back to a field's own default.
 type Changes = dict[tuple[str, ...], str | None]
+SPEECH_MODEL_PATH = ("speech", "speech_model")
+CHOSEN_SPEECH_MODEL: TypeAdapter[SpeechModel] = TypeAdapter(SpeechModel)
 
 
 class SettingsForm:
@@ -44,6 +47,11 @@ class SettingsForm:
                 for name, field, value in groups:
                     with ui.tab_panel(name):
                         self.render(value, field, (name,))
+                        if name == SPEECH_MODEL_PATH[0]:
+                            self.boxes[SPEECH_MODEL_PATH].on_value_change(
+                                lambda: self.draw_voices.refresh()
+                            )
+                            self.draw_voices()
 
     def render(self, value: object, field: FieldInfo, path: tuple[str, ...]) -> None:
         if not isinstance(value, BaseModel):
@@ -55,6 +63,22 @@ class SettingsForm:
                     self.render(nested_value, nested, (*path, name))
             else:
                 self.render(nested_value, nested, (*path, name))
+
+    @ui.refreshable_method
+    def draw_voices(self) -> None:
+        chosen = CHOSEN_SPEECH_MODEL.validate_python(self.boxes[SPEECH_MODEL_PATH].value)
+        model = voice_catalogue().require_model(chosen)
+        with ui.column().classes("w-full game-card"):
+            heading(model.label)
+            ui.label(model.note).classes("text-xs opacity-70")
+            ui.label(f"Narrator: {model.narrator}")
+            for title, voices in (
+                ("Feminine", model.feminine),
+                ("Masculine", model.masculine),
+                ("Other", model.other),
+            ):
+                heading(title)
+                _voice_list(voices)
 
     def save(self) -> None:
         changed = _changes(self.settings, {path: box.value for path, box in self.boxes.items()})
@@ -71,6 +95,17 @@ class SettingsForm:
         self.settings = read_settings()
         self.runtime.configure(self.settings)
         done("Saved to .env. The server keys apply at the next start.")
+
+
+def _voice_list(voices: tuple[VoiceChoice, ...]) -> None:
+    if not voices:
+        ui.label("None: other voices come from the feminine and masculine lists.").classes(
+            "text-xs opacity-70"
+        )
+    for voice in voices:
+        with ui.column().classes("game-gap-0"):
+            ui.label(f"{voice.label} · {voice.id}")
+            ui.label(voice.note).classes("text-xs opacity-70")
 
 
 def _changes(settings: Settings, entered: Mapping[tuple[str, ...], object]) -> Changes:

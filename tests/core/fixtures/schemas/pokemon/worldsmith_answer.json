@@ -266,9 +266,9 @@
       "propertyNames": {},
       "type": "object"
     },
-    "center_place_ids": {
+    "town_place_ids": {
       "default": [],
-      "description": "Ids of the places of this map that are a Pokemon Center, where the team heals. One in every town.",
+      "description": "Ids of the towns of this map. A town holds a Pokemon Center, where the team heals, and a mart, where the player buys; neither is a place of its own. List every town.",
       "items": {
         "type": "string"
       },

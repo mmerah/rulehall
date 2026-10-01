@@ -2,7 +2,7 @@
   "name": "Unova Dex",
   "origin": "The species of Pokemon Showdown 0.11.11 in the Unova regional dex (PokeAPI original-unova)",
   "license": "MIT (Pokemon Showdown data); personal, non-commercial use",
-  "backdrop": "The region is a land of busy cities, long bridges and deserts, with forests and marshes between them where wild Pokemon live. Every town has a Pokemon Center that heals a trainer's team for free, and the larger towns have a shop and a gym. Trainers travel from town to town with up to six Pokemon, and a trainer who beats a gym leader earns that gym's badge.",
+  "backdrop": "The region is a land of busy cities, long bridges and deserts, with forests and marshes between them where wild Pokemon live. Every town has a Pokemon Center that heals a trainer's team for free and a shop, and the larger towns have a gym. Trainers travel from town to town with up to six Pokemon, and a trainer who beats a gym leader earns that gym's badge.",
   "species_ids": [
     "victini",
     "snivy",

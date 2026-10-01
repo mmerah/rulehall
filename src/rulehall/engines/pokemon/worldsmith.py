@@ -27,9 +27,10 @@ WORLDSMITH_GUIDANCE = (
     "POKEMON AUTHORING\n"
     "A place is one town, route, cave, gym or building of the region. `wild` gives the wild table "
     "of each new place: species ids from SPECIES, the lowest level, the highest level and a "
-    "weight. A route, a cave or a shore has a table. A town or a building has none. Every town "
-    "has a Pokemon Center, a place of its own that `center_place_ids` lists: the team heals only "
-    "there, so the opening map has one. A person who battles has a `roster` of one to six "
+    "weight. A route, a cave or a shore has a table. A town or a building has none. A town is "
+    "one place; its Pokemon Center and its mart are inside it. Never write a Center or a mart as "
+    "a place of its own. List every town in `town_place_ids`. A gym is its own place, behind a "
+    "locked way from its town. A person who battles has a `roster` of one to six "
     "species ids with levels. A gym leader also has a `badge`, such as 'Tide Badge', and a "
     "`trial`, the task the challenger meets before the leader. Lock the way to the leader until "
     "the trial is done. A trainer with `double` true, such "
@@ -95,10 +96,10 @@ def _check_pokemon_map(
     boss_id = None if opening else proposal.boss_id
     if strays := unknown_wild_places(proposal.wild, proposal.places):
         raise Refusal(f"wild tables for places this map does not add: {strays}")
-    if strays := sorted(set(proposal.center_place_ids) - set(proposal.places)):
-        raise Refusal(f"`center_place_ids` names places this map does not add: {strays}")
-    if opening and not proposal.center_place_ids:
-        raise Refusal("the opening map needs a Pokemon Center in `center_place_ids`")
+    if strays := sorted(set(proposal.town_place_ids) - set(proposal.places)):
+        raise Refusal(f"`town_place_ids` names places this map does not add: {strays}")
+    if opening and not proposal.town_place_ids:
+        raise Refusal("the opening map needs a town in `town_place_ids`")
     trainers = list(proposal.npcs.values())
     used = {slot.species_id for rows in proposal.wild.values() for slot in rows} | {
         slot.species_id for npc in trainers for slot in npc.roster
