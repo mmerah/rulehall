@@ -13,7 +13,12 @@
               "null"
             ],
             "default": null,
-            "description": "Exact id of the speaker. Null for narration."
+            "description": "Exact id of the speaker. Null for narration or an unlisted speaker."
+          },
+          "unlisted_speaker": {
+            "default": "",
+            "description": "Only with a null speaker_id: a short description of an unlisted passer-by who speaks, such as Fish vendor. Never a proper name. Empty for narration.",
+            "type": "string"
           },
           "text": {
             "description": "One passage of narration, or only what the speaker says.",

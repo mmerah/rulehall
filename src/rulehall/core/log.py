@@ -13,7 +13,14 @@ type Voice = Literal["feminine", "masculine", "other"]
 class Line(Frozen):
     speaker_id: Slug | None = Field(
         default=None,
-        description="Exact id of the speaker. Null for narration.",
+        description="Exact id of the speaker. Null for narration or an unlisted speaker.",
+    )
+    unlisted_speaker: str = Field(
+        default="",
+        description=(
+            "Only with a null speaker_id: a short description of an unlisted passer-by who"
+            " speaks, such as Fish vendor. Never a proper name. Empty for narration."
+        ),
     )
     text: str = Field(
         min_length=1, description="One passage of narration, or only what the speaker says."
@@ -30,8 +37,8 @@ class SpokenLine(Frozen):
     def _named_when_spoken(self) -> Self:
         if (self.speaker_id is None) != (not self.speaker):
             raise ValueError("a spoken line names its speaker; narration names nobody")
-        if (self.speaker_id is None) != (self.voice is None):
-            raise ValueError("a spoken line has its speaker's voice; narration has none")
+        if self.speaker_id is None and self.voice is not None:
+            raise ValueError("narration has no voice")
         return self
 
     @property

@@ -173,25 +173,70 @@ async def test_a_call_after_the_ask_answers_handoff_wait_and_changes_nothing(
     assert not state.world.require_entity(WARDEN).known
 
 
-async def test_a_voice_not_here_is_narration_and_one_who_left_this_turn_still_speaks(
+def _narrated_lines(*lines: dict[str, object]) -> str:
+    return json.dumps({"lines": list(lines)})
+
+
+async def test_an_unknown_speaker_is_refused_and_one_who_left_this_turn_still_speaks(
     tmp_path: Path,
 ) -> None:
     table = open_game(tmp_path)
-    lines = [
-        {"speaker_id": "elena", "text": "You should not be here."},
-        {"speaker_id": MARA, "text": "Keep the lamp."},
+    table.roles.answers["narrator"] = [
+        _narrated_lines({"speaker_id": "elena", "text": "You should not be here."}),
+        _narrated_lines(
+            {"speaker_id": None, "text": "You should not be here."},
+            {"speaker_id": MARA, "text": "Keep the lamp."},
+        ),
     ]
-    table.roles.answers["narrator"] = [json.dumps({"lines": lines})]
     table.roles.turns.append(table.plays((tool_call("leave", target_id=MARA),)))
 
     await table.session.choose(PlayerInput(text="I wait."))
 
-    assert [role for role, _ in table.roles.prompts] == ["master", "narrator"]
+    narrator_prompts = [prompt for role, prompt in table.roles.prompts if role == "narrator"]
+    assert len(narrator_prompts) == 2
+    assert "'elena' cannot speak now" in narrator_prompts[1]
     newest = table.session.state.log_entries()[-1]
     assert [(line.speaker_id, line.text) for line in newest.lines] == [
         (None, "You should not be here."),
         (MARA, "Keep the lamp."),
     ]
+
+
+async def test_an_unlisted_speaker_lands_named_in_the_narrator_voice(tmp_path: Path) -> None:
+    table = open_game(tmp_path)
+    table.roles.answers["narrator"] = [
+        _narrated_lines(
+            {"speaker_id": None, "unlisted_speaker": "Fish vendor", "text": "Fresh fish!"}
+        )
+    ]
+
+    await table.session.choose(PlayerInput(text="I wait."))
+
+    (line,) = table.session.state.log_entries()[-1].lines
+    assert (line.speaker, line.voice, line.text) == ("Fish vendor", None, "Fresh fish!")
+    assert line.speaker_id == "unlisted-fish-vendor"
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        {"speaker_id": MARA, "unlisted_speaker": "Fish vendor", "text": "Fresh fish!"},
+        {"speaker_id": None, "unlisted_speaker": "Mara", "text": "Fresh fish!"},
+    ],
+)
+async def test_a_misused_unlisted_speaker_is_refused_for_the_retry(
+    tmp_path: Path, line: dict[str, object]
+) -> None:
+    table = open_game(tmp_path)
+    table.roles.answers["narrator"] = [
+        _narrated_lines(line),
+        _narrated_lines({"speaker_id": None, "text": "The market hums."}),
+    ]
+
+    await table.session.choose(PlayerInput(text="I wait."))
+
+    narrator_prompts = [prompt for role, prompt in table.roles.prompts if role == "narrator"]
+    assert len(narrator_prompts) == 2
 
 
 def _exploding_after_the_find(table: Table[Loner4eGame]) -> Callable[[], None]:
