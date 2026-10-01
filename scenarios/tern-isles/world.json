@@ -199,20 +199,20 @@
       "gull-cove": [
         {
           "species_id": "krabby",
-          "lowest": 8,
-          "highest": 12,
+          "lowest": 6,
+          "highest": 9,
           "weight": 3
         },
         {
           "species_id": "tentacool",
-          "lowest": 8,
-          "highest": 12,
+          "lowest": 6,
+          "highest": 9,
           "weight": 3
         },
         {
           "species_id": "shellder",
-          "lowest": 9,
-          "highest": 12,
+          "lowest": 7,
+          "highest": 9,
           "weight": 2
         }
       ]

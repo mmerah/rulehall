@@ -7,6 +7,7 @@ from rulehall.engines.pokemon.rules import (
     BADGE_LEVELS,
     LEVEL_SPREAD,
     REGULAR_TRAINERS_MAX,
+    WILD_BELOW_ACE,
     is_legendary,
     level_for,
 )
@@ -52,7 +53,11 @@ WORLDSMITH_GUIDANCE = (
     "and its stages not yet told are hidden: never write them into a place, a person or the "
     "recap. Every person has an "
     "`avatar_id` from TRAINER CLASSES: the look that fits them, such as 'hiker' or 'nurse'. "
-    "Early routes hold levels 2 to 6. A locked way can be a thin tree that Cut clears, or a "
+    f"Wild levels follow the next gym on the player's road: from {WILD_BELOW_ACE[0]} to "
+    f"{WILD_BELOW_ACE[1]} levels below its ace, so the routes before the second gym hold levels "
+    f"{BADGE_LEVELS[1] - WILD_BELOW_ACE[0]} to {BADGE_LEVELS[1] - WILD_BELOW_ACE[1]}. The first "
+    "routes of the opening map hold levels 2 to 6. A locked way can be a thin tree that Cut "
+    "clears, or a "
     "closed gym door. Never write `sheet`, `beaten`, `team` or `last_battle_visit`. Code writes "
     "the player's team."
 )
