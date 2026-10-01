@@ -66,20 +66,21 @@ def test_a_box_row_swaps_with_any_team_pokemon() -> None:
     assert sheet.mon_ids() == [pidgey.mon_id, "charmander"]
 
     _ = draft.world.move("tern-harbour", ())
-    _ = draft.world.move("pokemon-center", ())
     _ = change(ENGINE, draft, "heal_team")
     assert all(mon.hp.current == mon.hp.maximum for mon in (*sheet.team, *sheet.box))
 
 
-def test_only_a_pokemon_center_heals_the_team() -> None:
+def test_the_team_heals_and_the_player_buys_only_in_a_town() -> None:
     draft = started().draft()
     charmander = draft.world.player_sheet.require_mon("charmander")
     charmander.hp.current = 1
 
-    assert refused(ENGINE, draft, "heal_team") == "no Pokemon Center here"
+    no_town = "no town here: a Pokemon Center and a mart are only in a town"
+    assert refused(ENGINE, draft, "heal_team") == no_town
+    assert refused(ENGINE, draft, "buy", item_id="potion") == no_town
     _ = draft.world.move("tern-harbour", ())
-    _ = draft.world.move("pokemon-center", ())
     _ = change(ENGINE, draft, "heal_team")
+    _ = change(ENGINE, draft, "buy", item_id="potion")
 
     assert charmander.hp.current == charmander.hp.maximum
 
@@ -140,6 +141,7 @@ def test_a_rare_candy_raises_one_level_and_grows_the_pokemon() -> None:
 
     assert (charmander.level, charmander.exp, charmander.species_id) == (16, 16**3, "charmeleon")
     assert "rare-candy" not in sheet.bag
+    _ = draft.world.move("tern-harbour", ())
     assert refused(ENGINE, draft, "buy", item_id="rare-candy") == (
         "Rare Candy is not sold; it is found or given"
     )

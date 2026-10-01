@@ -22,14 +22,7 @@
         "name": "Tern Harbour",
         "brief": "The harbour town",
         "known": true,
-        "description": "A small town gathers around a ferry dock and a shop."
-      },
-      "pokemon-center": {
-        "id": "pokemon-center",
-        "name": "The Pokemon Center",
-        "brief": "The healing house by the dock",
-        "known": false,
-        "description": "A calm building where Nurse Wren heals every Pokemon for free."
+        "description": "A small town gathers around a ferry dock. It holds the Pokemon Center, where Nurse Wren heals every Pokemon for free, and the shop."
       },
       "tern-gym": {
         "id": "tern-gym",
@@ -60,19 +53,11 @@
           "to_id": "harbour-road"
         },
         {
-          "to_id": "pokemon-center"
-        },
-        {
           "to_id": "gull-cove"
         },
         {
           "to_id": "tern-gym",
           "locked": true
-        }
-      ],
-      "pokemon-center": [
-        {
-          "to_id": "tern-harbour"
         }
       ],
       "tern-gym": [
@@ -122,10 +107,10 @@
       "wren": {
         "id": "wren",
         "name": "Nurse Wren",
-        "brief": "The nurse of the Pokemon Center; she heals every team that comes in.",
+        "brief": "The nurse of the harbour's Pokemon Center; she heals every team that comes in.",
         "voice": "feminine",
         "known": true,
-        "place_id": "pokemon-center",
+        "place_id": "tern-harbour",
         "avatar_id": "nurse"
       },
       "ines": {
@@ -232,9 +217,6 @@
         }
       ]
     },
-    "center_place_ids": [
-      "pokemon-center"
-    ],
     "operation": {
       "place_id": "gull-cove",
       "leader_id": "vesper",
@@ -251,6 +233,9 @@
       ],
       "legendary_id": "articuno"
     },
-    "start_id": "harbour-road"
+    "start_id": "harbour-road",
+    "town_place_ids": [
+      "tern-harbour"
+    ]
   }
 }

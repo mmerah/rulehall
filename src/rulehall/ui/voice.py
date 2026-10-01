@@ -17,13 +17,14 @@ class VoicePlayer:
         self.speaking_id: int | None = None
         self.off_screen = False
         self.replay_bubble_id: int | None = None
+        self.waiting_id: int | None = None
 
-    def hear(self, landed: Sequence[tuple[SpokenLine, int]]) -> None:
-        if self.auto_read and landed:
-            self.session.speak_later([line for line, _ in landed])
+    def hear(self, finished: Sequence[tuple[SpokenLine, int]]) -> None:
+        if self.auto_read and finished:
+            self.session.speak_later([line for line, _ in finished])
             if not self.queued:
                 self.head_queued_at = monotonic()
-            self.queued.extend(landed)
+            self.queued.extend(finished)
         self.drain()
 
     def read_aloud(self, line: SpokenLine, bubble_id: int) -> None:
@@ -36,23 +37,25 @@ class VoicePlayer:
         self.head_queued_at = monotonic()
         if self.session.find_clip(line) is None:
             self.session.speak_later([line])
-            self.speech.wait(bubble_id)
         self.drain()
 
     def show_speaking(self, bubble_id: int | None, *, off_screen: bool) -> None:
         self.speaking_id = bubble_id
         self.off_screen = off_screen
 
+    def show_waiting(self, bubble_id: int | None) -> None:
+        if bubble_id != self.waiting_id:
+            self.waiting_id = bubble_id
+            self.speech.wait(bubble_id)
+
     def stop(self) -> None:
-        self.queued.clear()
-        self.replay_bubble_id = None
+        self._forget_queue()
         self.speech.stop()
 
     def switch(self, *, on: bool) -> None:
         self.auto_read = on
         if not on:
-            self.queued.clear()
-            self.replay_bubble_id = None
+            self._forget_queue()
 
     def drain(self) -> None:
         timeout = self.session.live_settings.current.speech.timeout
@@ -64,6 +67,7 @@ class VoicePlayer:
                 and not self.session.clip_refused(line)
                 and monotonic() - self.head_queued_at <= timeout
             ):
+                self.show_waiting(bubble_id)
                 return
             self.queued.popleft()
             self.head_queued_at = monotonic()
@@ -77,3 +81,9 @@ class VoicePlayer:
                 warn("The voice could not read this line.")
             else:
                 self.speech.replay(clip, bubble_id)
+        self.show_waiting(None)
+
+    def _forget_queue(self) -> None:
+        self.queued.clear()
+        self.replay_bubble_id = None
+        self.waiting_id = None

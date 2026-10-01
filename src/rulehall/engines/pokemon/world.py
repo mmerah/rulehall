@@ -48,9 +48,9 @@ RIVAL_WAITS = (
     "Your rival {name} waits here to battle. Voice them; call `start_battle` when the player "
     "agrees."
 )
-CENTER_PLACE_IDS = (
-    "Ids of the places of this map that are a Pokemon Center, where the team heals. One in every "
-    "town."
+TOWN_PLACE_IDS = (
+    "Ids of the towns of this map. A town holds a Pokemon Center, where the team heals, and a "
+    "mart, where the player buys; neither is a place of its own. List every town."
 )
 OPERATION = (
     "The evil team's operation in this map. Write it only when the request asks for it; else null."
@@ -84,7 +84,7 @@ class WildSlot(Frozen):
 
 class PokemonMapProposal(MapProposal[Trainer]):
     wild: dict[Slug, tuple[WildSlot, ...]] = Field(default_factory=dict, description=WILD)
-    center_place_ids: tuple[Slug, ...] = Field(default=(), description=CENTER_PLACE_IDS)
+    town_place_ids: tuple[Slug, ...] = Field(default=(), description=TOWN_PLACE_IDS)
 
 
 class PokemonOpeningProposal(PokemonMapProposal):
@@ -145,7 +145,7 @@ class PokemonWorld(RoomWorld[Trainer]):
     wild: dict[Slug, tuple[WildSlot, ...]] = Field(default_factory=dict)
     battle: Battle | None = None
     pending_edge: Edge | None = None
-    center_place_ids: list[Slug] = Field(default_factory=list)
+    town_place_ids: list[Slug] = Field(default_factory=list)
     encountered_place_ids: list[Slug] = Field(default_factory=list)
     rival_record: RivalRecord = Field(default_factory=RivalRecord)
     evil_team: EvilTeam = Field(default_factory=EvilTeam)
@@ -159,8 +159,8 @@ class PokemonWorld(RoomWorld[Trainer]):
         wild_species_ids = {slot.species_id for rows in self.wild.values() for slot in rows}
         if strays := sorted(wild_species_ids - set(self.species_ids)):
             raise ValueError(f"wild species outside `species_ids`: {strays}")
-        if strays := sorted(set(self.center_place_ids) - set(self.places)):
-            raise ValueError(f"Pokemon Centers that are no place: {strays}")
+        if strays := sorted(set(self.town_place_ids) - set(self.places)):
+            raise ValueError(f"towns that are no place: {strays}")
         if len([npc for npc in self.npcs.values() if npc.rival]) > 1:
             raise ValueError("a world has one rival at most")
         if strays := sorted(set(self.evil_team.key_ids()) - set(self.npcs)):
@@ -209,7 +209,7 @@ class PokemonWorld(RoomWorld[Trainer]):
                 f"{operation.goal}",
                 SCHEME_TRIGGER,
             ]
-            if not worldsmith and self.current.id in self.center_place_ids:
+            if not worldsmith and self.current.id in self.town_place_ids:
                 lines.append(RUMOUR.format(place=place.name, goal=operation.goal))
         legendary_id = evil_team.joining_legendary_id()
         legendary = "" if legendary_id is None else f"; {dex().species_ref(legendary_id)} joins it"
@@ -221,11 +221,11 @@ class PokemonWorld(RoomWorld[Trainer]):
         )
         return "\n".join(lines)
 
-    def centers_line(self) -> str:
+    def towns_line(self) -> str:
         here = self.current.id
         return ", ".join(
             self.places[place_id].ref + (" (here)" if place_id == here else "")
-            for place_id in self.center_place_ids
+            for place_id in self.town_place_ids
             if self.places[place_id].known
         )
 
@@ -238,20 +238,20 @@ class PokemonWorld(RoomWorld[Trainer]):
         return (*rows, ("Rival", "; ".join(ledger))) if ledger else rows
 
     def apply_opening_extras(self, opening: PokemonOpeningProposal) -> None:
-        self._add_wild_and_centers(opening)
+        self._add_wild_and_towns(opening)
         self.evil_team.scheme = opening.scheme
         self.open_operation(opening.operation)
 
     def apply_region_extras(self, region: PokemonRegionProposal) -> None:
-        self._add_wild_and_centers(region)
+        self._add_wild_and_towns(region)
         if region.boss_id is not None:
             self.evil_team.boss_id = region.boss_id
         if region.operation is not None:
             self.open_operation(region.operation)
 
-    def _add_wild_and_centers(self, proposal: PokemonMapProposal) -> None:
+    def _add_wild_and_towns(self, proposal: PokemonMapProposal) -> None:
         self.wild.update(proposal.wild)
-        self.center_place_ids.extend(proposal.center_place_ids)
+        self.town_place_ids.extend(proposal.town_place_ids)
 
     def earn_edge(self, edge: Edge) -> None:
         self.pending_edge = edge
@@ -389,9 +389,12 @@ class PokemonWorld(RoomWorld[Trainer]):
             raise Refusal(f"{species_id!r} is not in WILD HERE")
         return chosen
 
+    def require_town(self) -> None:
+        if self.current.id not in self.town_place_ids:
+            raise Refusal("no town here: a Pokemon Center and a mart are only in a town")
+
     def heal_team(self) -> list[Fact]:
-        if self.current.id not in self.center_place_ids:
-            raise Refusal("no Pokemon Center here")
+        self.require_town()
         self.player_sheet.heal_team()
         return [self.player.card_fact("Team healed")]
 
@@ -466,7 +469,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         shares = sheet.exp_shares(result, trainer=not setup.wild)
         for mon_id, exp in shares.items():
             mon = sheet.require_mon(mon_id)
-            mon.train(result.fainted_foes())
+            mon.train(result.defeated_foes())
             before = mon.exp
             reached, clipped = mon.gain(exp, cap)
             if gained := mon.exp - before:

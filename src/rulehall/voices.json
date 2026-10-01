@@ -1,0 +1,1070 @@
+{
+  "models": {
+    "hexgrad/kokoro-82m": {
+      "label": "Kokoro 82M",
+      "note": "0.6 s per line · $0.0006 per 1k characters · runs locally too (Kokoro-FastAPI) · middling quality (Artificial Analysis #49) · reads accented words wrong, so accents are folded",
+      "local_model": "kokoro",
+      "narrator": "bm_george",
+      "feminine": [
+        {
+          "id": "af_heart",
+          "label": "Heart",
+          "note": "US · warm, the best Kokoro voice · grade A"
+        },
+        {
+          "id": "af_bella",
+          "label": "Bella",
+          "note": "US · grade A-"
+        },
+        {
+          "id": "af_nicole",
+          "label": "Nicole",
+          "note": "US · soft, whispery · grade B-"
+        },
+        {
+          "id": "af_aoede",
+          "label": "Aoede",
+          "note": "US · grade C+"
+        },
+        {
+          "id": "af_kore",
+          "label": "Kore",
+          "note": "US · grade C+"
+        },
+        {
+          "id": "af_sarah",
+          "label": "Sarah",
+          "note": "US · grade C+"
+        },
+        {
+          "id": "af_alloy",
+          "label": "Alloy",
+          "note": "US · grade C"
+        },
+        {
+          "id": "af_nova",
+          "label": "Nova",
+          "note": "US · grade C"
+        },
+        {
+          "id": "af_sky",
+          "label": "Sky",
+          "note": "US · grade C-"
+        },
+        {
+          "id": "bf_emma",
+          "label": "Emma",
+          "note": "UK · grade B-"
+        },
+        {
+          "id": "bf_isabella",
+          "label": "Isabella",
+          "note": "UK · grade C"
+        }
+      ],
+      "masculine": [
+        {
+          "id": "am_fenrir",
+          "label": "Fenrir",
+          "note": "US · grade C+"
+        },
+        {
+          "id": "am_michael",
+          "label": "Michael",
+          "note": "US · grade C+"
+        },
+        {
+          "id": "am_puck",
+          "label": "Puck",
+          "note": "US · grade C+"
+        },
+        {
+          "id": "bm_fable",
+          "label": "Fable",
+          "note": "UK · grade C"
+        },
+        {
+          "id": "bm_george",
+          "label": "George",
+          "note": "UK · distinct storyteller · grade C"
+        }
+      ],
+      "other": [
+        {
+          "id": "af_heart(1)+am_michael(1)",
+          "label": "Heart and Michael",
+          "note": "blend of US Heart and US Michael"
+        },
+        {
+          "id": "af_nicole(1)+am_puck(1)",
+          "label": "Nicole and Puck",
+          "note": "blend of US Nicole and US Puck"
+        }
+      ]
+    },
+    "minimax/speech-2.8-turbo": {
+      "label": "MiniMax Speech 2.8 Turbo",
+      "note": "1.0 s per line · $0.06 per 1k characters · the best-ranked model that plays mp3 (Artificial Analysis #20, TTS Arena #11)",
+      "local_model": null,
+      "narrator": "English_expressive_narrator",
+      "feminine": [
+        {
+          "id": "English_radiant_girl",
+          "label": "Radiant Girl",
+          "note": "young, radiant"
+        },
+        {
+          "id": "English_compelling_lady1",
+          "label": "Compelling Lady",
+          "note": "adult, compelling"
+        },
+        {
+          "id": "English_captivating_female1",
+          "label": "Captivating Female",
+          "note": "adult, captivating"
+        },
+        {
+          "id": "English_Upbeat_Woman",
+          "label": "Upbeat Woman",
+          "note": "adult, upbeat"
+        },
+        {
+          "id": "English_CalmWoman",
+          "label": "Calm Woman",
+          "note": "adult, calm"
+        },
+        {
+          "id": "English_UpsetGirl",
+          "label": "Upset Girl",
+          "note": "young, upset"
+        },
+        {
+          "id": "English_Whispering_girl",
+          "label": "Whispering Girl",
+          "note": "young, whispering"
+        },
+        {
+          "id": "English_Graceful_Lady",
+          "label": "Graceful Lady",
+          "note": "adult, graceful"
+        },
+        {
+          "id": "English_PlayfulGirl",
+          "label": "Playful Girl",
+          "note": "young, playful"
+        },
+        {
+          "id": "English_LovelyGirl",
+          "label": "Lovely Girl",
+          "note": "young, sweet"
+        },
+        {
+          "id": "English_Wiselady",
+          "label": "Wise Lady",
+          "note": "mature, wise"
+        },
+        {
+          "id": "English_SentimentalLady",
+          "label": "Sentimental Lady",
+          "note": "adult, sentimental"
+        },
+        {
+          "id": "English_MatureBoss",
+          "label": "Bossy Lady",
+          "note": "mature, commanding"
+        },
+        {
+          "id": "English_ImposingManner",
+          "label": "Imposing Queen",
+          "note": "mature, imposing"
+        },
+        {
+          "id": "English_Soft-spokenGirl",
+          "label": "Soft-spoken Girl",
+          "note": "young, soft-spoken"
+        },
+        {
+          "id": "English_SereneWoman",
+          "label": "Serene Woman",
+          "note": "adult, serene"
+        },
+        {
+          "id": "English_ConfidentWoman",
+          "label": "Confident Woman",
+          "note": "adult, confident"
+        },
+        {
+          "id": "English_StressedLady",
+          "label": "Stressed Lady",
+          "note": "adult, stressed"
+        },
+        {
+          "id": "English_AssertiveQueen",
+          "label": "Assertive Queen",
+          "note": "mature, assertive"
+        },
+        {
+          "id": "English_AnimeCharacter",
+          "label": "Female Narrator",
+          "note": "anime-style narrator"
+        },
+        {
+          "id": "English_WhimsicalGirl",
+          "label": "Whimsical Girl",
+          "note": "young, whimsical"
+        },
+        {
+          "id": "English_Kind-heartedGirl",
+          "label": "Kind-hearted Girl",
+          "note": "young, kind"
+        }
+      ],
+      "masculine": [
+        {
+          "id": "English_magnetic_voiced_man",
+          "label": "Magnetic-voiced Man",
+          "note": "adult, magnetic"
+        },
+        {
+          "id": "English_Aussie_Bloke",
+          "label": "Aussie Bloke",
+          "note": "Australian, casual"
+        },
+        {
+          "id": "English_Trustworth_Man",
+          "label": "Trustworthy Man",
+          "note": "adult, trustworthy"
+        },
+        {
+          "id": "English_Gentle-voiced_man",
+          "label": "Gentle-voiced Man",
+          "note": "adult, gentle"
+        },
+        {
+          "id": "English_Diligent_Man",
+          "label": "Diligent Man",
+          "note": "adult, diligent"
+        },
+        {
+          "id": "English_ReservedYoungMan",
+          "label": "Reserved Young Man",
+          "note": "young, reserved"
+        },
+        {
+          "id": "English_ManWithDeepVoice",
+          "label": "Man With Deep Voice",
+          "note": "adult, deep"
+        },
+        {
+          "id": "English_FriendlyPerson",
+          "label": "Friendly Guy",
+          "note": "adult, friendly"
+        },
+        {
+          "id": "English_Debator",
+          "label": "Male Debater",
+          "note": "adult, argumentative"
+        },
+        {
+          "id": "English_Steadymentor",
+          "label": "Reliable Man",
+          "note": "adult, steady mentor"
+        },
+        {
+          "id": "English_Deep-VoicedGentleman",
+          "label": "Deep-voiced Gentleman",
+          "note": "mature, deep"
+        },
+        {
+          "id": "English_DecentYoungMan",
+          "label": "Decent Young Man",
+          "note": "young, decent"
+        },
+        {
+          "id": "English_SadTeen",
+          "label": "Teen Boy",
+          "note": "teen, sad"
+        },
+        {
+          "id": "English_PatientMan",
+          "label": "Patient Man",
+          "note": "adult, patient"
+        },
+        {
+          "id": "English_Strong-WilledBoy",
+          "label": "Strong-willed Boy",
+          "note": "young, determined"
+        },
+        {
+          "id": "English_Jovialman",
+          "label": "Jovial Man",
+          "note": "adult, jovial"
+        }
+      ],
+      "other": [
+        {
+          "id": "English_expressive_narrator",
+          "label": "Expressive Narrator",
+          "note": "expressive storyteller"
+        },
+        {
+          "id": "English_CaptivatingStoryteller",
+          "label": "Captivating Storyteller",
+          "note": "storyteller"
+        },
+        {
+          "id": "English_MaturePartner",
+          "label": "Mature Partner",
+          "note": "mature, intimate"
+        },
+        {
+          "id": "English_PassionateWarrior",
+          "label": "Passionate Warrior",
+          "note": "passionate, fierce"
+        },
+        {
+          "id": "English_WiseScholar",
+          "label": "Wise Scholar",
+          "note": "wise, learned"
+        },
+        {
+          "id": "English_Comedian",
+          "label": "Comedian",
+          "note": "comic"
+        },
+        {
+          "id": "English_BossyLeader",
+          "label": "Bossy Leader",
+          "note": "commanding"
+        }
+      ]
+    },
+    "minimax/speech-2.8-hd": {
+      "label": "MiniMax Speech 2.8 HD",
+      "note": "1.15 s per line · $0.10 per 1k characters · a shade above Turbo (Artificial Analysis #16, TTS Arena #10)",
+      "local_model": null,
+      "narrator": "English_expressive_narrator",
+      "feminine": [
+        {
+          "id": "English_radiant_girl",
+          "label": "Radiant Girl",
+          "note": "young, radiant"
+        },
+        {
+          "id": "English_compelling_lady1",
+          "label": "Compelling Lady",
+          "note": "adult, compelling"
+        },
+        {
+          "id": "English_captivating_female1",
+          "label": "Captivating Female",
+          "note": "adult, captivating"
+        },
+        {
+          "id": "English_Upbeat_Woman",
+          "label": "Upbeat Woman",
+          "note": "adult, upbeat"
+        },
+        {
+          "id": "English_CalmWoman",
+          "label": "Calm Woman",
+          "note": "adult, calm"
+        },
+        {
+          "id": "English_UpsetGirl",
+          "label": "Upset Girl",
+          "note": "young, upset"
+        },
+        {
+          "id": "English_Whispering_girl",
+          "label": "Whispering Girl",
+          "note": "young, whispering"
+        },
+        {
+          "id": "English_Graceful_Lady",
+          "label": "Graceful Lady",
+          "note": "adult, graceful"
+        },
+        {
+          "id": "English_PlayfulGirl",
+          "label": "Playful Girl",
+          "note": "young, playful"
+        },
+        {
+          "id": "English_LovelyGirl",
+          "label": "Lovely Girl",
+          "note": "young, sweet"
+        },
+        {
+          "id": "English_Wiselady",
+          "label": "Wise Lady",
+          "note": "mature, wise"
+        },
+        {
+          "id": "English_SentimentalLady",
+          "label": "Sentimental Lady",
+          "note": "adult, sentimental"
+        },
+        {
+          "id": "English_MatureBoss",
+          "label": "Bossy Lady",
+          "note": "mature, commanding"
+        },
+        {
+          "id": "English_ImposingManner",
+          "label": "Imposing Queen",
+          "note": "mature, imposing"
+        },
+        {
+          "id": "English_Soft-spokenGirl",
+          "label": "Soft-spoken Girl",
+          "note": "young, soft-spoken"
+        },
+        {
+          "id": "English_SereneWoman",
+          "label": "Serene Woman",
+          "note": "adult, serene"
+        },
+        {
+          "id": "English_ConfidentWoman",
+          "label": "Confident Woman",
+          "note": "adult, confident"
+        },
+        {
+          "id": "English_StressedLady",
+          "label": "Stressed Lady",
+          "note": "adult, stressed"
+        },
+        {
+          "id": "English_AssertiveQueen",
+          "label": "Assertive Queen",
+          "note": "mature, assertive"
+        },
+        {
+          "id": "English_AnimeCharacter",
+          "label": "Female Narrator",
+          "note": "anime-style narrator"
+        },
+        {
+          "id": "English_WhimsicalGirl",
+          "label": "Whimsical Girl",
+          "note": "young, whimsical"
+        },
+        {
+          "id": "English_Kind-heartedGirl",
+          "label": "Kind-hearted Girl",
+          "note": "young, kind"
+        }
+      ],
+      "masculine": [
+        {
+          "id": "English_magnetic_voiced_man",
+          "label": "Magnetic-voiced Man",
+          "note": "adult, magnetic"
+        },
+        {
+          "id": "English_Aussie_Bloke",
+          "label": "Aussie Bloke",
+          "note": "Australian, casual"
+        },
+        {
+          "id": "English_Trustworth_Man",
+          "label": "Trustworthy Man",
+          "note": "adult, trustworthy"
+        },
+        {
+          "id": "English_Gentle-voiced_man",
+          "label": "Gentle-voiced Man",
+          "note": "adult, gentle"
+        },
+        {
+          "id": "English_Diligent_Man",
+          "label": "Diligent Man",
+          "note": "adult, diligent"
+        },
+        {
+          "id": "English_ReservedYoungMan",
+          "label": "Reserved Young Man",
+          "note": "young, reserved"
+        },
+        {
+          "id": "English_ManWithDeepVoice",
+          "label": "Man With Deep Voice",
+          "note": "adult, deep"
+        },
+        {
+          "id": "English_FriendlyPerson",
+          "label": "Friendly Guy",
+          "note": "adult, friendly"
+        },
+        {
+          "id": "English_Debator",
+          "label": "Male Debater",
+          "note": "adult, argumentative"
+        },
+        {
+          "id": "English_Steadymentor",
+          "label": "Reliable Man",
+          "note": "adult, steady mentor"
+        },
+        {
+          "id": "English_Deep-VoicedGentleman",
+          "label": "Deep-voiced Gentleman",
+          "note": "mature, deep"
+        },
+        {
+          "id": "English_DecentYoungMan",
+          "label": "Decent Young Man",
+          "note": "young, decent"
+        },
+        {
+          "id": "English_SadTeen",
+          "label": "Teen Boy",
+          "note": "teen, sad"
+        },
+        {
+          "id": "English_PatientMan",
+          "label": "Patient Man",
+          "note": "adult, patient"
+        },
+        {
+          "id": "English_Strong-WilledBoy",
+          "label": "Strong-willed Boy",
+          "note": "young, determined"
+        },
+        {
+          "id": "English_Jovialman",
+          "label": "Jovial Man",
+          "note": "adult, jovial"
+        }
+      ],
+      "other": [
+        {
+          "id": "English_expressive_narrator",
+          "label": "Expressive Narrator",
+          "note": "expressive storyteller"
+        },
+        {
+          "id": "English_CaptivatingStoryteller",
+          "label": "Captivating Storyteller",
+          "note": "storyteller"
+        },
+        {
+          "id": "English_MaturePartner",
+          "label": "Mature Partner",
+          "note": "mature, intimate"
+        },
+        {
+          "id": "English_PassionateWarrior",
+          "label": "Passionate Warrior",
+          "note": "passionate, fierce"
+        },
+        {
+          "id": "English_WiseScholar",
+          "label": "Wise Scholar",
+          "note": "wise, learned"
+        },
+        {
+          "id": "English_Comedian",
+          "label": "Comedian",
+          "note": "comic"
+        },
+        {
+          "id": "English_BossyLeader",
+          "label": "Bossy Leader",
+          "note": "commanding"
+        }
+      ]
+    },
+    "microsoft/mai-voice-2": {
+      "label": "MAI-Voice-2",
+      "note": "1.15 s per line · $0.022 per 1k characters · not ranked yet · no neutral voice",
+      "local_model": null,
+      "narrator": "en-US-Ethan:MAI-Voice-2",
+      "feminine": [
+        {
+          "id": "en-US-Harper:MAI-Voice-2",
+          "label": "Harper",
+          "note": "US"
+        },
+        {
+          "id": "en-US-Olivia:MAI-Voice-2",
+          "label": "Olivia",
+          "note": "US"
+        },
+        {
+          "id": "en-US-Iris:MAI-Voice-2",
+          "label": "Iris",
+          "note": "US"
+        },
+        {
+          "id": "en-AU-Lisa:MAI-Voice-2",
+          "label": "Lisa",
+          "note": "Australian"
+        }
+      ],
+      "masculine": [
+        {
+          "id": "en-US-Ethan:MAI-Voice-2",
+          "label": "Ethan",
+          "note": "US"
+        },
+        {
+          "id": "en-US-Grant:MAI-Voice-2",
+          "label": "Grant",
+          "note": "US"
+        },
+        {
+          "id": "en-US-Jasper:MAI-Voice-2",
+          "label": "Jasper",
+          "note": "US"
+        }
+      ],
+      "other": []
+    },
+    "deepgram/aura-2": {
+      "label": "Deepgram Aura-2",
+      "note": "5 s per line: it streams at about real time, so a whole clip takes 5 to 6 s · $0.03 per 1k characters · no neutral voice",
+      "local_model": null,
+      "narrator": "aura-2-draco-en",
+      "feminine": [
+        {
+          "id": "aura-2-thalia-en",
+          "label": "Thalia",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-andromeda-en",
+          "label": "Andromeda",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-helena-en",
+          "label": "Helena",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-asteria-en",
+          "label": "Asteria",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-athena-en",
+          "label": "Athena",
+          "note": "US · mature, storytelling"
+        },
+        {
+          "id": "aura-2-aurora-en",
+          "label": "Aurora",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-callista-en",
+          "label": "Callista",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-cora-en",
+          "label": "Cora",
+          "note": "US · storytelling"
+        },
+        {
+          "id": "aura-2-cordelia-en",
+          "label": "Cordelia",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-delia-en",
+          "label": "Delia",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-electra-en",
+          "label": "Electra",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-harmonia-en",
+          "label": "Harmonia",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-hera-en",
+          "label": "Hera",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-iris-en",
+          "label": "Iris",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-janus-en",
+          "label": "Janus",
+          "note": "US Southern"
+        },
+        {
+          "id": "aura-2-juno-en",
+          "label": "Juno",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-luna-en",
+          "label": "Luna",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-minerva-en",
+          "label": "Minerva",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-ophelia-en",
+          "label": "Ophelia",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-phoebe-en",
+          "label": "Phoebe",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-selene-en",
+          "label": "Selene",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-vesta-en",
+          "label": "Vesta",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-amalthea-en",
+          "label": "Amalthea",
+          "note": "Filipino"
+        },
+        {
+          "id": "aura-2-pandora-en",
+          "label": "Pandora",
+          "note": "UK"
+        },
+        {
+          "id": "aura-2-theia-en",
+          "label": "Theia",
+          "note": "Australian"
+        }
+      ],
+      "masculine": [
+        {
+          "id": "aura-2-apollo-en",
+          "label": "Apollo",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-arcas-en",
+          "label": "Arcas",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-aries-en",
+          "label": "Aries",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-atlas-en",
+          "label": "Atlas",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-hermes-en",
+          "label": "Hermes",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-jupiter-en",
+          "label": "Jupiter",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-mars-en",
+          "label": "Mars",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-neptune-en",
+          "label": "Neptune",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-odysseus-en",
+          "label": "Odysseus",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-orion-en",
+          "label": "Orion",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-orpheus-en",
+          "label": "Orpheus",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-pluto-en",
+          "label": "Pluto",
+          "note": "US · baritone"
+        },
+        {
+          "id": "aura-2-saturn-en",
+          "label": "Saturn",
+          "note": "US"
+        },
+        {
+          "id": "aura-2-zeus-en",
+          "label": "Zeus",
+          "note": "US · deep"
+        },
+        {
+          "id": "aura-2-draco-en",
+          "label": "Draco",
+          "note": "UK · baritone, storytelling"
+        },
+        {
+          "id": "aura-2-hyperion-en",
+          "label": "Hyperion",
+          "note": "Australian"
+        }
+      ],
+      "other": []
+    },
+    "deepgram/flux-tts:free": {
+      "label": "Deepgram Flux TTS (free)",
+      "note": "6.3 s per line: it streams at about real time · free, with a daily request cap · no neutral voice",
+      "local_model": null,
+      "narrator": "flux-colin-en",
+      "feminine": [
+        {
+          "id": "flux-hannah-en",
+          "label": "Hannah",
+          "note": "US"
+        },
+        {
+          "id": "flux-alexis-en",
+          "label": "Alexis",
+          "note": "US"
+        },
+        {
+          "id": "flux-sienna-en",
+          "label": "Sienna",
+          "note": "US"
+        },
+        {
+          "id": "flux-brooke-en",
+          "label": "Brooke",
+          "note": "US"
+        },
+        {
+          "id": "flux-haley-en",
+          "label": "Haley",
+          "note": "US"
+        },
+        {
+          "id": "flux-heather-en",
+          "label": "Heather",
+          "note": "US"
+        },
+        {
+          "id": "flux-bree-en",
+          "label": "Bree",
+          "note": "US"
+        },
+        {
+          "id": "flux-brittany-en",
+          "label": "Brittany",
+          "note": "US"
+        },
+        {
+          "id": "flux-elise-en",
+          "label": "Elise",
+          "note": "US"
+        },
+        {
+          "id": "flux-kelsey-en",
+          "label": "Kelsey",
+          "note": "US"
+        },
+        {
+          "id": "flux-meghan-en",
+          "label": "Meghan",
+          "note": "US"
+        },
+        {
+          "id": "flux-paige-en",
+          "label": "Paige",
+          "note": "US"
+        },
+        {
+          "id": "flux-gemma-en",
+          "label": "Gemma",
+          "note": "UK"
+        },
+        {
+          "id": "flux-maeve-en",
+          "label": "Maeve",
+          "note": "Irish"
+        },
+        {
+          "id": "flux-meena-en",
+          "label": "Meena",
+          "note": "Indian"
+        },
+        {
+          "id": "flux-priya-en",
+          "label": "Priya",
+          "note": "Indian"
+        },
+        {
+          "id": "flux-sharon-en",
+          "label": "Sharon",
+          "note": "Australian"
+        }
+      ],
+      "masculine": [
+        {
+          "id": "flux-cliff-en",
+          "label": "Cliff",
+          "note": "US · deep"
+        },
+        {
+          "id": "flux-cole-en",
+          "label": "Cole",
+          "note": "US"
+        },
+        {
+          "id": "flux-miles-en",
+          "label": "Miles",
+          "note": "US"
+        },
+        {
+          "id": "flux-bruce-en",
+          "label": "Bruce",
+          "note": "US"
+        },
+        {
+          "id": "flux-donovan-en",
+          "label": "Donovan",
+          "note": "US"
+        },
+        {
+          "id": "flux-drew-en",
+          "label": "Drew",
+          "note": "US"
+        },
+        {
+          "id": "flux-marcus-en",
+          "label": "Marcus",
+          "note": "US"
+        },
+        {
+          "id": "flux-wade-en",
+          "label": "Wade",
+          "note": "US"
+        },
+        {
+          "id": "flux-wes-en",
+          "label": "Wes",
+          "note": "US"
+        },
+        {
+          "id": "flux-kit-en",
+          "label": "Kit",
+          "note": "UK"
+        },
+        {
+          "id": "flux-colin-en",
+          "label": "Colin",
+          "note": "UK"
+        },
+        {
+          "id": "flux-sean-en",
+          "label": "Sean",
+          "note": "UK"
+        },
+        {
+          "id": "flux-conor-en",
+          "label": "Conor",
+          "note": "UK"
+        },
+        {
+          "id": "flux-jack-en",
+          "label": "Jack",
+          "note": "UK"
+        },
+        {
+          "id": "flux-rufus-en",
+          "label": "Rufus",
+          "note": "UK"
+        },
+        {
+          "id": "flux-tanner-en",
+          "label": "Tanner",
+          "note": "UK"
+        },
+        {
+          "id": "flux-kai-en",
+          "label": "Kai",
+          "note": "Singaporean"
+        },
+        {
+          "id": "flux-marcelo-en",
+          "label": "Marcelo",
+          "note": "Filipino"
+        },
+        {
+          "id": "flux-naveen-en",
+          "label": "Naveen",
+          "note": "Indian"
+        }
+      ],
+      "other": []
+    },
+    "x-ai/grok-voice-tts-1.0": {
+      "label": "Grok Voice TTS 1.0",
+      "note": "2.25 s per line · $0.015 per 1k characters · Artificial Analysis #25 · genders follow the common persona, not the vendor",
+      "local_model": null,
+      "narrator": "rex",
+      "feminine": [
+        {
+          "id": "ara",
+          "label": "Ara",
+          "note": "warm and conversational"
+        },
+        {
+          "id": "eve",
+          "label": "Eve",
+          "note": "energetic and upbeat"
+        }
+      ],
+      "masculine": [
+        {
+          "id": "leo",
+          "label": "Leo",
+          "note": "authoritative and strong"
+        },
+        {
+          "id": "rex",
+          "label": "Rex",
+          "note": "clear and professional"
+        }
+      ],
+      "other": [
+        {
+          "id": "sal",
+          "label": "Sal",
+          "note": "smooth and balanced"
+        }
+      ]
+    }
+  }
+}

@@ -56,6 +56,9 @@ Tall grass grows beside a road that runs above the ferry dock.
 # CHALLENGE
 relaxed
 
+# TOWNS
+Tern Harbour[tern-harbour]
+
 # THE RIVAL
 Tamsin[tamsin]; style: attacks from the first turn and never switches out
 

@@ -1,5 +1,5 @@
 """The Tern Isles (Pokemon), the heaviest game page: a trainer made with a challenge, the Team
-tab, a row dialog, the map and the rival, turns with their traffic, a Center heal, a nickname,
+tab, a row dialog, the map and the rival, turns with their traffic, a town heal, a nickname,
 a wild battle, and the evil team: the first operation foiled, the next one lost to a badge, two
 more lost to their leaders, and the lair the scripted worldsmith writes."""
 
@@ -43,9 +43,7 @@ TURNS = (
     "!gain_money amount=200",
     '!check what="Spot the ferry" skill=perception difficulty=easy',
     "!buy item_id=potion count=1",
-    "!move to_id=pokemon-center",
     "!heal_team",
-    "!move to_id=tern-harbour",
     "!move to_id=harbour-road",
     "!gain_item item_id=poke-ball count=1",
     '!check what="Calm the Wingull" skill=nature difficulty=hard',
@@ -135,7 +133,7 @@ def body(s: Session) -> None:
     s.shot(page, "turns")
     s.check(
         any("Team healed" in card for card in cards(page)),
-        f"the Pokemon Center did not heal: {cards(page)[-6:]}",
+        f"the town did not heal: {cards(page)[-6:]}",
     )
 
     # A nickname: the card says it, and the Team tab names the Pokemon by it.

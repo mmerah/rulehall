@@ -10,6 +10,7 @@ from rulehall.core.game import Check
 from rulehall.core.prompt import Prompt
 from rulehall.engines.pokemon.battle.models import Battle, BattleResult, BattleSetup
 from rulehall.engines.pokemon.battle.simulator import end_battle
+from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.sheet import Mon, Trainer
 from rulehall.engines.pokemon.world import PokemonGame
 from rulehall.engines.sheet import Gauge
@@ -25,17 +26,55 @@ async def test_a_wild_battle_gets_no_model_opponent() -> None:
     assert run.opponent is None
 
 
-def test_exp_goes_whole_to_the_field_and_half_to_the_bench() -> None:
+def test_every_able_team_pokemon_gets_the_full_share() -> None:
     draft = started().draft()
     sheet = draft.world.player_sheet
-    sheet.team.append(Mon.new("squirtle", 5, Random(0), sheet.mon_ids()))
+    benched = Mon.new("squirtle", 12, Random(0), sheet.mon_ids())
+    fainted = Mon.new("bulbasaur", 12, Random(1), [*sheet.mon_ids(), benched.mon_id])
+    fainted.hp.current = 0
+    sheet.team.extend((benched, fainted))
+    charmander = sheet.require_mon("charmander")
+    charmander.level, charmander.exp = 12, 12**3
     setup = _wild(draft)
 
     _ = end_battle(draft, _won(setup))
 
     total = 20 * setup.foes[0].level
-    assert sheet.require_mon("charmander").exp == 125 + total
-    assert sheet.require_mon("squirtle").exp == 125 + total // 2
+    assert charmander.exp == 12**3 + total
+    assert benched.exp == 12**3 + total
+    assert fainted.exp == 12**3
+
+
+def test_exp_doubles_below_the_table_level() -> None:
+    draft = started().draft()
+    charmander = draft.world.player_sheet.require_mon("charmander")
+    setup = _wild(draft)
+
+    _ = end_battle(draft, _won(setup))
+
+    assert charmander.exp == 125 + 2 * 20 * setup.foes[0].level
+
+
+def test_a_catch_gives_exp_but_not_to_the_caught_pokemon() -> None:
+    draft = started().draft()
+    sheet = draft.world.player_sheet
+    charmander = sheet.require_mon("charmander")
+    setup = _wild(draft)
+    foe = setup.foes[0]
+    result = BattleResult(
+        outcome="caught",
+        team=setup.team,
+        sent_out_foes=(),
+        on_field_mon_ids=(setup.team[0].mon_id,),
+        caught=foe,
+    )
+
+    _ = end_battle(draft, result)
+
+    caught = sheet.require_mon(foe.mon_id)
+    assert charmander.exp == 125 + 2 * 20 * foe.level
+    assert charmander.evs == dex().species[foe.species_id].ev_yield
+    assert caught.exp == foe.level**3
 
 
 def test_a_level_up_raises_max_hp_by_the_formula() -> None:

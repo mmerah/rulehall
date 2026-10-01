@@ -2,7 +2,7 @@
   "name": "Johto Dex",
   "origin": "The species of Pokemon Showdown 0.11.11 in the Johto regional dex (PokeAPI original-johto)",
   "license": "MIT (Pokemon Showdown data); personal, non-commercial use",
-  "backdrop": "The region is a land of old temples, wooden towns and misty routes, with lakes and a long coast where wild Pokemon live. Every town has a Pokemon Center that heals a trainer's team for free, and the larger towns have a shop and a gym. Trainers travel from town to town with up to six Pokemon, and a trainer who beats a gym leader earns that gym's badge.",
+  "backdrop": "The region is a land of old temples, wooden towns and misty routes, with lakes and a long coast where wild Pokemon live. Every town has a Pokemon Center that heals a trainer's team for free and a shop, and the larger towns have a gym. Trainers travel from town to town with up to six Pokemon, and a trainer who beats a gym leader earns that gym's badge.",
   "species_ids": [
     "bulbasaur",
     "ivysaur",

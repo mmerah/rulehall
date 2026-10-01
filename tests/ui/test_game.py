@@ -34,7 +34,7 @@ class HeardSpeech(Speech):
         super().__init__()
         self.played: list[tuple[Path, int]] = []
         self.replayed: list[tuple[Path, int]] = []
-        self.waited: list[int] = []
+        self.waited: list[int | None] = []
         self.stopped = 0
 
     def play(self, path: Path, bubble_id: int) -> None:
@@ -43,7 +43,7 @@ class HeardSpeech(Speech):
     def replay(self, path: Path, bubble_id: int) -> None:
         self.replayed.append((path, bubble_id))
 
-    def wait(self, bubble_id: int) -> None:
+    def wait(self, bubble_id: int | None) -> None:
         self.waited.append(bubble_id)
 
     def stop(self) -> None:
@@ -236,6 +236,72 @@ async def test_a_landed_exchange_keeps_the_live_bubbles_and_a_rewind_redraws(
     assert chat.column.default_slot.children[0] not in old
 
 
+async def test_a_live_line_is_handed_out_once_the_next_starts_and_the_last_at_landing(
+    tmp_path: Path, page: Callable[[], Client]
+) -> None:
+    service = open_game(tmp_path).session
+    page()
+    lines = (SpokenLine(text="Rain."), SpokenLine(text="Thunder."))
+    before = replace(service.snapshot(), log_entries=(), live=())
+    chat = Transcript(before, service.icon, Sounds(), None)
+
+    first = replace(before, live=lines[:1])
+    chat.sync(first, before)
+    assert chat.finished_bubbles == []
+
+    both = replace(before, live=lines)
+    chat.sync(both, first)
+    ids = [message.id for message, _ in chat.live_block.bubbles]
+    assert chat.finished_bubbles == [(lines[0], ids[0])]
+
+    chat.sync(both, both)
+    assert chat.finished_bubbles == []
+
+    landed = replace(before, log_entries=(LogEntry(words="I listen.", lines=lines),))
+    chat.sync(landed, both)
+    assert chat.finished_bubbles == [(lines[1], ids[1])]
+
+
+async def test_a_restreamed_reply_withdraws_the_heard_lines_and_hands_out_the_new_once(
+    tmp_path: Path, page: Callable[[], Client]
+) -> None:
+    service = open_game(tmp_path).session
+    page()
+    refused = (SpokenLine(text="Rain."), SpokenLine(text="Thunder."))
+    kept = (SpokenLine(text="Snow."), SpokenLine(text="Wind."))
+    before = replace(service.snapshot(), log_entries=(), live=())
+    chat = Transcript(before, service.icon, Sounds(), None)
+
+    streamed = replace(before, live=refused)
+    chat.sync(streamed, before)
+    assert [line for line, _ in chat.finished_bubbles] == [refused[0]]
+    assert not chat.withdrawn
+
+    chat.sync(before, streamed)
+    assert (chat.finished_bubbles, chat.withdrawn) == ([], True)
+
+    restreamed = replace(before, live=kept)
+    chat.sync(restreamed, before)
+    assert [line for line, _ in chat.finished_bubbles] == [kept[0]]
+    assert not chat.withdrawn
+
+    chat.sync(restreamed, restreamed)
+    assert (chat.finished_bubbles, chat.withdrawn) == ([], False)
+
+
+async def test_a_battle_entrys_lines_are_handed_out(
+    tmp_path: Path, page: Callable[[], Client]
+) -> None:
+    service = open_game(tmp_path).session
+    page()
+    line = SpokenLine(text="The wild beast falls.")
+    before = replace(service.snapshot(), log_entries=(), live=())
+    chat = Transcript(before, service.icon, Sounds(), None)
+    ended = LogEntry(words="", cause="battle", lines=(line,))
+    chat.sync(replace(before, log_entries=(ended,)), before)
+    assert [said for said, _ in chat.finished_bubbles] == [line]
+
+
 async def test_a_pause_line_is_hidden_on_load_while_its_decision_is_still_open(
     tmp_path: Path, page: Callable[[], Client]
 ) -> None:
@@ -379,14 +445,14 @@ async def test_the_voice_plays_landed_clips_in_order_and_a_redraw_is_flagged(
     player.switch(on=True)
 
     chat.sync(landed, before)
-    bubbles = chat.landed_bubbles
+    bubbles = chat.finished_bubbles
     player.hear(bubbles)
     assert spoken == list(lines)
     assert [path for path, _ in speech.played] == [tmp_path / "Rain."]
 
     ready.add(lines[1].text)
     chat.sync(landed, landed)
-    player.hear(chat.landed_bubbles)
+    player.hear(chat.finished_bubbles)
     assert speech.played == [(tmp_path / line.text, bubble_id) for line, bubble_id in bubbles]
 
     player.queued.append((lines[0], 0))
@@ -428,3 +494,33 @@ async def test_a_replay_waits_for_a_missing_clip_and_a_stop_clears_the_wait(
     player.read_aloud(other, 8)
     player.stop()
     assert not player.queued
+
+
+async def test_the_voice_marks_a_blocked_head_as_waiting_until_its_clip_plays(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, page: Callable[[], Client]
+) -> None:
+    line = SpokenLine(text="Rain.")
+    ready: set[str] = set()
+
+    def speak_later(_session: GameSession, _said: Sequence[SpokenLine]) -> None:
+        return None
+
+    def find_clip(_session: GameSession, line: SpokenLine) -> Path | None:
+        return tmp_path / line.text if line.text in ready else None
+
+    monkeypatch.setattr(GameSession, "speak_later", speak_later)
+    monkeypatch.setattr(GameSession, "find_clip", find_clip)
+    service = open_game(tmp_path).session
+    page()
+    speech = HeardSpeech()
+    player = VoicePlayer(service, speech)
+    player.switch(on=True)
+
+    player.hear([(line, 3)])
+    player.hear(())
+    assert (speech.waited, speech.played) == ([3], [])
+
+    ready.add(line.text)
+    player.hear(())
+    assert speech.played == [(tmp_path / "Rain.", 3)]
+    assert speech.waited == [3, None]

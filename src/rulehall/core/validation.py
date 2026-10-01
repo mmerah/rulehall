@@ -45,8 +45,13 @@ def content_id(value: str) -> Slug:
     return value
 
 
+def fold_accents(text: str) -> str:
+    stripped = unicodedata.normalize("NFKD", text)
+    return "".join(char for char in stripped if not unicodedata.combining(char))
+
+
 def slug(text: str, taken: Iterable[str]) -> Slug:
-    words = re.sub(r"[^a-z0-9]+", "-", _folded(text.lower())).strip("-")
+    words = re.sub(r"[^a-z0-9]+", "-", fold_accents(text.lower())).strip("-")
     if not words:
         raise Refusal(f"{text!r} makes no id; give it a latin letter or a digit to be named by")
     return _unused(_capped(words, SLUG_MAX), taken)
@@ -118,11 +123,6 @@ def _refused(broken: ValidationError) -> Refusal:
 def _unique_keys(pairs: list[tuple[str, JsonValue]]) -> dict[str, JsonValue]:
     check_unique("keys in a JSON object", (key for key, _ in pairs))
     return dict(pairs)
-
-
-def _folded(text: str) -> str:
-    stripped = unicodedata.normalize("NFKD", text)
-    return "".join(char for char in stripped if not unicodedata.combining(char))
 
 
 def _unused(base: str, taken: Iterable[str]) -> str:

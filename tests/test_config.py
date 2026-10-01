@@ -2,7 +2,7 @@ import pydantic
 import pytest
 from support.table import EnvFileFreeSettings
 
-from rulehall.config import ProviderConfig, RoleConfig, RoleSettings
+from rulehall.config import ProviderConfig, RoleConfig, RoleSettings, SpeechConfig
 
 
 def test_a_role_carries_its_own_model_and_inherits_nothing(
@@ -53,3 +53,14 @@ def test_a_base_url_is_stored_as_given_or_refused(given: str, expected: str) -> 
         return
 
     assert ProviderConfig(base_url=given, api_key=pydantic.SecretStr("")).base_url == expected
+
+
+def test_a_narrator_voice_outside_the_models_list_is_refused() -> None:
+    with pytest.raises(pydantic.ValidationError, match="is no voice of hexgrad/kokoro-82m"):
+        _ = SpeechConfig(narrator_voice="English_CalmWoman")
+    assert SpeechConfig(narrator_voice="af_heart").narrator == "af_heart"
+
+
+def test_the_local_provider_with_a_model_that_runs_only_remotely_is_refused() -> None:
+    with pytest.raises(pydantic.ValidationError, match="does not run on the local provider"):
+        _ = SpeechConfig(provider="local", speech_model="minimax/speech-2.8-turbo")

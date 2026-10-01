@@ -188,6 +188,9 @@ class BattleResult(Frozen):
     def fainted_foes(self) -> tuple[Battler, ...]:
         return tuple(foe for foe in self.sent_out_foes if foe.hp == 0)
 
+    def defeated_foes(self) -> tuple[Battler, ...]:
+        return (*self.fainted_foes(), *(() if self.caught is None else (self.caught,)))
+
 
 class DumpMon(Loose):
     slot: int

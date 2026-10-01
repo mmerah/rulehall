@@ -1,4 +1,4 @@
-// Voice playback of landed lines and the microphone for the composer.
+// Voice playback of finished lines and the microphone for the composer.
 const AUTO_READ_KEY = "rulehall.auto-read";
 const RECORDING_TYPES = ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/mp4"];
 const RECORDING_LIMIT_MS = 60000;
@@ -83,6 +83,7 @@ export default {
       if (this.current) this.mark(this.current.id, null);
       const clip = this.clips.shift() ?? null;
       this.current = clip;
+      if (clip && clip.id === this.waitingId) this.waitingId = null;
       this.watcher.disconnect();
       this.offScreen = false;
       if (clip) {

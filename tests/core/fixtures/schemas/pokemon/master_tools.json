@@ -279,7 +279,7 @@
   },
   {
     "name": "heal_team",
-    "description": "Heal the whole team and the box: HP, PP and status. Only at a Pokemon Center: the engine refuses anywhere else.",
+    "description": "Heal the whole team and the box: HP, PP and status. Only in a town: the engine refuses anywhere else.",
     "parameters": {
       "additionalProperties": false,
       "properties": {},
@@ -310,7 +310,7 @@
   },
   {
     "name": "buy",
-    "description": "Buy items for the player at their price.",
+    "description": "Buy items for the player at their price. Only in a town: the engine refuses anywhere else.",
     "parameters": {
       "additionalProperties": false,
       "properties": {

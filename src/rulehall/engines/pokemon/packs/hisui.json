@@ -2,7 +2,7 @@
   "name": "Hisui Dex",
   "origin": "The species of Pokemon Showdown 0.11.11 in the Hisui regional dex (PokeAPI hisui)",
   "license": "MIT (Pokemon Showdown data); personal, non-commercial use",
-  "backdrop": "The region is a wild frontier of plains, marshes, snowfields and scattered villages, where wild Pokemon roam free. Every town has a Pokemon Center that heals a trainer's team for free, and the larger towns have a shop and a gym. Trainers travel from town to town with up to six Pokemon, and a trainer who beats a gym leader earns that gym's badge.",
+  "backdrop": "The region is a wild frontier of plains, marshes, snowfields and scattered villages, where wild Pokemon roam free. Every town has a Pokemon Center that heals a trainer's team for free and a shop, and the larger towns have a gym. Trainers travel from town to town with up to six Pokemon, and a trainer who beats a gym leader earns that gym's badge.",
   "species_ids": [
     "pikachu",
     "raichu",
