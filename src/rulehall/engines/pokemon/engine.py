@@ -217,8 +217,9 @@ class PokemonEngine(
         check_next(proposal, draft.world)
 
     def install_next(self, draft: PokemonGame, proposal: PokemonRegionProposal, /) -> list[Fact]:
+        facts = super().install_next(draft, proposal)
         draft.world.apply_region_extras(proposal)
-        return super().install_next(draft, proposal)
+        return facts
 
     def worldsmith_sections(self, draft: PokemonGame, /) -> Sections:
         world = draft.world

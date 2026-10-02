@@ -8,6 +8,7 @@ from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.battle.models import BattleResult, BattleSetup
 from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.rules import RosterSlot
+from rulehall.engines.pokemon.scheme import Operation
 from rulehall.engines.pokemon.sheet import Trainer
 from rulehall.engines.pokemon.world import PokemonGame, PokemonRegionProposal
 from rulehall.engines.rooms.world import Place
@@ -47,6 +48,39 @@ def test_a_region_without_the_operation_that_is_owed_is_refused() -> None:
 
     with pytest.raises(Refusal, match="write `operation`"):
         ENGINE.check_next(draft, region)
+
+
+def test_a_region_installs_an_operation_led_by_one_of_its_own_new_people() -> None:
+    draft = started().draft()
+    draft.world.evil_team.operation = None
+    grunt = Trainer(
+        id="grunt-haddock",
+        name="Grunt Haddock",
+        voice="masculine",
+        brief="A team grunt.",
+        known=False,
+        place_id="reef",
+        roster=(RosterSlot(species_id="zubat", level=12),),
+        style="swarms the field",
+        win_line="The reef is ours.",
+        lose_line="Back to the boat.",
+        avatar_id="veteran",
+    )
+    region = PokemonRegionProposal(
+        places={"reef": Place(id="reef", name="Reef", brief="b", known=False, description="d")},
+        npcs={grunt.id: grunt},
+        start_id="reef",
+        recap="They left the harbour behind.",
+        operation=Operation(place_id="reef", leader_id=grunt.id, goal="Drain the reef."),
+    )
+    ENGINE.check_next(draft, region)
+
+    _ = ENGINE.install_next(draft, region)
+
+    world = draft.world
+    assert world.evil_team.operation == region.operation
+    assert grunt.id in world.evil_team.leader_ids
+    assert world.npcs[grunt.id].place_id == "reef"
 
 
 def test_the_boss_ace_rises_with_each_success_and_the_legendary_joins_at_three() -> None:
