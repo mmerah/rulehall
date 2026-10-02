@@ -125,7 +125,7 @@ class GamePage:
             player.speech.on("speaking", partial(self.speaking_state, player))
             player.speech.on("escaped", player.stop)
         if session.battle_script is not None:
-            self.battle_panel = BattlePanel(session, self.sounds, self.tick)
+            self.battle_panel = BattlePanel(session, self.sounds, self.show_battle)
         opener = ui.timer(0.1, lambda: self._run(lambda: self._open_game(opener)))
         self.draw_header()
 
@@ -180,6 +180,11 @@ class GamePage:
         if moved_since(now, drawn):
             self.follow(now, drawn)
         self.drawn = now
+
+    def show_battle(self) -> None:
+        if self.voice_player is not None:
+            self.voice_player.stop()
+        self.tick()
 
     def sync_images(self) -> None:
         view = self.drawn.view
