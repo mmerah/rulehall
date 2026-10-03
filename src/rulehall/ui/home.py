@@ -39,6 +39,7 @@ def home_page(runtime: Runtime) -> None:
     catalog = runtime.catalog()
     now = datetime.now(UTC)
     with page_header("Rulehall", back=None):
+        ui.label(app_version()).classes("game-version")
         ui.space()
         nav_button("Settings", SETTINGS_ICON, SETTINGS)
     with page_body(classes="game-wide"):
@@ -59,7 +60,6 @@ def _welcome() -> None:
         ui.label("Rulehall").classes("game-title game-hero-title").props(
             'role="heading" aria-level="1"'
         )
-        ui.label(app_version()).classes("game-version")
         ui.label(WELCOME).classes("game-lead")
 
 

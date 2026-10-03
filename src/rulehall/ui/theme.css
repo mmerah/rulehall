@@ -414,7 +414,7 @@ body, body.body--dark {
 .game-hero > .game-glyph { position: absolute; top: 2.5rem; right: 3rem; transform: rotate(-8deg) scale(1.9) }
 .game-hero-meta { color: var(--game-muted); font-size: .95rem }
 .game-hero-play { align-self: flex-start; margin-top: .5rem }
-.game-version { color: var(--game-muted); font-size: .75rem; margin-top: -.5rem }
+.game-version { color: var(--game-muted); font-size: .75rem }
 .game-recent { display: flex; flex-direction: column; gap: 1rem; min-width: 0 }
 .game-save, .game-door, .game-adventure {
   color: var(--game-text); text-decoration: none;
