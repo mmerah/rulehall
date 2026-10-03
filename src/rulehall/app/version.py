@@ -1,13 +1,14 @@
 from functools import cache
-from os import environ
 from pathlib import Path
 from subprocess import CalledProcessError, TimeoutExpired, run
+
+VERSION_FILE = Path(__file__).with_name("VERSION")
 
 
 @cache
 def app_version() -> str:
-    if configured := environ.get("RULEHALL_VERSION"):
-        return configured
+    if VERSION_FILE.is_file():
+        return VERSION_FILE.read_text(encoding="utf-8").strip()
     try:
         return run(
             ["git", "describe", "--tags", "--long", "--dirty"],

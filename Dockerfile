@@ -26,8 +26,9 @@ COPY characters characters
 COPY src src
 RUN uv sync --locked --no-default-groups
 
+# A file, not an env var: a NAS update copies the old container env onto the new image.
 ARG RULEHALL_VERSION=dev
-ENV RULEHALL_VERSION=$RULEHALL_VERSION
+RUN echo "$RULEHALL_VERSION" > src/rulehall/app/VERSION
 
 RUN mkdir -m 1777 /home/rulehall /data && ln -s /data/vendor /app/vendor
 ENV SERVER__HOST=0.0.0.0 \

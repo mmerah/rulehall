@@ -26,3 +26,6 @@ qa/shots/
 # Battle simulator and view
 src/rulehall/engines/pokemon/showdown/node_modules/
 /vendor/
+
+# Version stamped into the image
+src/rulehall/app/VERSION
