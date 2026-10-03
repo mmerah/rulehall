@@ -9,6 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 SLUG_PATTERN = r"[a-z0-9]+(?:-[a-z0-9]+)*"
 SLUG_MAX = 64
+# Python 3.14 decodes any depth, but the code that walks a value recurses.
+JSON_DEPTH_MAX = 100
 Slug = Annotated[str, Field(pattern=rf"^{SLUG_PATTERN}$", max_length=SLUG_MAX)]
 
 EngineId = NewType("EngineId", str)
@@ -96,9 +98,12 @@ def parse_json[T: BaseModel](model: type[T], raw: str | bytes) -> T:
 def decode(raw: str) -> JsonValue:
     """`json` keeps the last of two equal keys, so a doubled id would vanish without a word."""
     try:
-        return json.loads(raw, object_pairs_hook=_unique_keys)
+        value: JsonValue = json.loads(raw, object_pairs_hook=_unique_keys)
     except (json.JSONDecodeError, RecursionError) as broken:
         raise Refusal(f"not JSON: {broken}") from broken
+    if _nesting_depth(value) > JSON_DEPTH_MAX:
+        raise Refusal(f"not JSON: nested deeper than {JSON_DEPTH_MAX} levels")
+    return value
 
 
 def parse_strict_json[T: BaseModel](model: type[T], raw: str) -> T:
@@ -135,3 +140,16 @@ def _unused(base: str, taken: Iterable[str]) -> str:
 
 def _capped(words: str, limit: int) -> str:
     return words[:limit].rstrip("-")
+
+
+def _nesting_depth(value: JsonValue) -> int:
+    deepest = 0
+    pending = [(value, 0)]
+    while pending:
+        node, depth = pending.pop()
+        deepest = max(deepest, depth)
+        if isinstance(node, dict):
+            pending.extend((child, depth + 1) for child in node.values())
+        elif isinstance(node, list):
+            pending.extend((child, depth + 1) for child in node)
+    return deepest
