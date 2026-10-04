@@ -29,7 +29,7 @@
         "name": "Tern Gym",
         "brief": "The harbour gym",
         "known": true,
-        "description": "A stone gym that opens its door at the evening tide."
+        "description": "A stone gym on the harbour front, its door open to every challenger."
       },
       "gull-cove": {
         "id": "gull-cove",
@@ -56,14 +56,12 @@
           "to_id": "gull-cove"
         },
         {
-          "to_id": "tern-gym",
-          "locked": true
+          "to_id": "tern-gym"
         }
       ],
       "tern-gym": [
         {
-          "to_id": "tern-harbour",
-          "locked": true
+          "to_id": "tern-harbour"
         }
       ],
       "gull-cove": [

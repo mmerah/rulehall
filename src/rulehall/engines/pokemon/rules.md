@@ -27,7 +27,8 @@ replaces the old one, the next battle here uses it, and it is lost when the play
 ## Pacing
 
 Play each stretch of the journey as a cold open, one local problem, one key fight and a hook
-toward the next place. While the team's operation is open, it is the local problem.
+toward the next place. While the team's operation is open, it is the local problem. When no
+operation is open, the local problem is the gym, the rival or the place.
 
 ## The challenge
 
@@ -77,15 +78,19 @@ the wild Pokemon of the current place. A place without WILD HERE has no wild Pok
 CHART and each Pokemon's entry tell how Pokemon act and what they can do outside a battle: use
 them for checks with a helper, and never settle a fight with them.
 
+A person with a Legendary row is a legendary Pokemon, one of a kind. Voice it as a creature; it
+may hide or roam. Call `start_battle` with its id when the player takes it on: it battles alone
+as a wild Pokemon, and the player can catch it. Once caught or beaten, it is gone for good; after
+a run or a loss, it battles again on a later visit. It never dies and never joins the party.
+
 A person who joins the party travels and talks with the player. A party member with a team can
 fight beside the player in a tag battle.
 
-A locked way can be a thin tree that Cut clears, or a gym door that opens at the right time.
+A locked way can be a thin tree that Cut clears, or a door the story opens.
 When the story opens it, call `unlock_way`.
 
-A gym leader's entry gives a trial, the task the challenger meets before the leader. Play it as
-a few checks or one strong scene. When the player completes it, call `unlock_way` on the way to
-the leader.
+A gym leader's entry gives a trial, the task the challenger meets before the leader. Play it in
+the gym as a few checks or one strong scene. When the player completes it, the leader battles.
 
 ## Battles
 
@@ -123,7 +128,8 @@ A battle line ends with its best moment, when it has one. The rival can bring it
 THE SCHEME names the evil team, its goal, the stage it has reached, its leaders and its open
 operation. Voice the team: its grunts, its leaders and its boss. Code moves the scheme; you never
 do. An operation succeeds when the player earns a badge while it is open, or loses to its
-leader, and its boss grows stronger. It is foiled when the player beats its leader.
+leader, and its boss grows stronger. It is foiled when the player beats its leader. When an
+operation ends, its leader leaves. The next operation comes two badges after the last one began.
 Call `start_battle` with the leader when the player takes them on. In a town,
 THE SCHEME gives a RUMOUR: tell it. After four operations, the next region holds the lair and
 the boss. When the player beats the boss, the journey ends.

@@ -19,6 +19,7 @@ from rulehall.engines.pokemon.rules import (
     succeeds,
 )
 from rulehall.engines.pokemon.sheet import Mon
+from rulehall.engines.pokemon.world import WildSlot
 
 TWO_NATURE_RANKS = {
     "rank-1": "nature",
@@ -117,9 +118,25 @@ def test_signature_moves_lead_with_a_same_type_move_then_coverage_and_skip_the_e
 
 
 def test_a_species_with_only_excluded_moves_is_built_with_its_latest_level_up_move() -> None:
-    unown = Mon.built("unown", 20, "unown", ace=True)
+    unown = Mon.built("unown", 20, "unown", ace=True, badges=0)
 
     assert [slot.move_id for slot in unown.moves] == ["hiddenpower"]
+
+
+def test_a_built_pokemon_grows_its_spread_and_gets_items_with_badges() -> None:
+    fresh = Mon.built("machop", 12, "machop", ace=True, badges=0)
+    seasoned = Mon.built("machop", 30, "machop", ace=True, badges=3)
+    champion = Mon.built("machop", 54, "machop", ace=True, badges=8)
+
+    assert (fresh.ivs, fresh.evs, fresh.item_id) == ((15,) * 6, (0,) * 6, None)
+    assert (seasoned.ivs, seasoned.evs) == ((21,) * 6, (0, 96, 0, 0, 0, 96))
+    assert seasoned.item_id is not None
+    assert (champion.ivs, champion.evs) == ((31,) * 6, (0, 252, 0, 0, 0, 252))
+
+
+def test_a_wild_table_refuses_a_legendary() -> None:
+    with pytest.raises(ValueError, match="legendary_id"):
+        _ = WildSlot(species_id="mewtwo", lowest=50, highest=50, weight=1)
 
 
 def test_the_rival_counter_picks_squirtle_against_charmander() -> None:

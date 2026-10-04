@@ -10,6 +10,7 @@ from rulehall.engines.sheet import PLAYER_ID, Entity, Person
 from rulehall.engines.world import IS_DEAD, UNKNOWN_ID, OpeningProposal, World, check_filing
 
 MEANWHILE_EVERY = 4
+OFF_MAP_ID: Slug = "off-map"
 
 
 class Dweller(Person):
@@ -51,10 +52,11 @@ class RoomMap[P: Dweller](Mutable):
         check_filing(self.npcs)
         check_filing(self.items)
         check_unique(
-            "ids across places, npcs and items", (*self.places, *self.npcs, *self.items, PLAYER_ID)
+            "ids across places, npcs and items",
+            (*self.places, *self.npcs, *self.items, PLAYER_ID, OFF_MAP_ID),
         )
         for npc in self.npcs.values():
-            if npc.place_id not in self.places:
+            if npc.place_id != OFF_MAP_ID and npc.place_id not in self.places:
                 raise ValueError(f"{npc.name} is in no place: {npc.place_id!r}")
         holders = {*self.npcs, *self.places, PLAYER_ID}
         for item in self.items.values():
@@ -355,6 +357,8 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
         return found
 
     def walk_offscreen(self, npc: P, place: Place) -> Fact:
+        if npc.place_id == OFF_MAP_ID:
+            raise Refusal(f"{npc.name} has left the map")
         if npc.place_id == self.current.id:
             raise Refusal(f"{npc.name} stands with the player; that is not offscreen")
         walked = self.find_way(npc.place_id, place.id)

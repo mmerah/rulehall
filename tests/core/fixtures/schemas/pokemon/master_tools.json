@@ -574,7 +574,7 @@
   },
   {
     "name": "start_battle",
-    "description": "Start a battle when a trainer here and the player agree to one. The battle screen plays the fight, and the engine applies the result. Call it last: it ends your turn. A trainer battles once per visit. A gym leader never battles again once beaten. The rival battles once before the first badge, then once after each badge. A double trainer battles two-on-two, and the player needs two Pokemon that can fight. In a tag battle, the first party member with a team fights beside the player, two-on-two; the player then needs one Pokemon that can fight.",
+    "description": "Start a battle when a trainer here and the player agree to one. The battle screen plays the fight, and the engine applies the result. Call it last: it ends your turn. A trainer battles once per visit. A gym leader never battles again once beaten. The rival battles once before the first badge, then once after each badge. A double trainer battles two-on-two, and the player needs two Pokemon that can fight. In a tag battle, the first party member with a team fights beside the player, two-on-two; the player then needs one Pokemon that can fight. A legendary Pokemon here battles alone as a wild Pokemon, never in a tag battle.",
     "parameters": {
       "additionalProperties": false,
       "properties": {

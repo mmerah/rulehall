@@ -1,5 +1,7 @@
 from random import Random
+from typing import Literal
 
+import pytest
 from pydantic import BaseModel
 from support.pokemon import ENGINE, started
 from support.showdown import WILD_SETUP, ScriptedSimulator
@@ -13,6 +15,7 @@ from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.sheet import Mon, Trainer
 from rulehall.engines.pokemon.world import PokemonGame
+from rulehall.engines.rooms.world import OFF_MAP_ID
 from rulehall.engines.sheet import Gauge
 
 
@@ -144,10 +147,10 @@ def test_a_gym_leader_battles_with_a_team_built_for_it_ace_last() -> None:
 
     assert setup.policy == "model"
     assert [(foe.species_id, foe.level, foe.item_id) for foe in setup.foes] == [
-        ("horsea", 11, "sitrus-berry"),
-        ("staryu", 12, "mystic-water"),
+        ("horsea", 11, None),
+        ("staryu", 12, None),
     ]
-    assert all(foe.ivs == (31,) * 6 for foe in setup.foes)
+    assert all(foe.ivs == (15,) * 6 for foe in setup.foes)
     assert not ines.team
 
 
@@ -168,6 +171,77 @@ def test_the_facts_name_the_built_team_and_only_the_foes_that_were_sent_out() ->
     told = " ".join(fact.trace for fact in settled if fact.told)
     assert "Horsea" in told
     assert "Staryu" not in told
+
+
+def test_a_legendary_here_battles_alone_as_a_wild_pokemon_at_the_table_level() -> None:
+    draft = started().draft()
+    _ = _zapdos_here(draft)
+
+    assert "battles alone" in refused(ENGINE, draft, "start_battle", trainer_id="zapdos", tag=True)
+    setup = _trainer_battle(draft, "zapdos")
+
+    assert setup.wild
+    assert [(foe.species_id, foe.level) for foe in setup.foes] == [("zapdos", 12)]
+    assert setup.balls
+
+
+@pytest.mark.parametrize("outcome", ["won", "caught", "fled"])
+def test_a_beaten_or_caught_legendary_is_gone_and_a_fled_one_stays(
+    outcome: Literal["won", "caught", "fled"],
+) -> None:
+    draft = started().draft()
+    _ = _zapdos_here(draft)
+    setup = _trainer_battle(draft, "zapdos")
+    foe = setup.foes[0]
+    result = BattleResult(
+        outcome=outcome,
+        team=setup.team,
+        sent_out_foes=(foe.model_copy(update={"hp": 0}),) if outcome == "won" else (),
+        on_field_mon_ids=(setup.team[0].mon_id,),
+        caught=foe if outcome == "caught" else None,
+    )
+
+    here = draft.world.current.id
+
+    _ = end_battle(draft, result)
+
+    zapdos = draft.world.npcs["zapdos"]
+    gone = outcome != "fled"
+    assert (zapdos.place_id == OFF_MAP_ID, zapdos.beaten) == (gone, gone)
+    if not gone:
+        assert zapdos.place_id == here
+        assert "already battled you on this visit" in refused(
+            ENGINE, draft, "start_battle", trainer_id="zapdos"
+        )
+
+
+def test_a_nuzlocke_legendary_is_always_catchable_and_keeps_the_first_encounter() -> None:
+    draft = started().draft()
+    draft.world.player_sheet.challenge = "nuzlocke"
+    here = draft.world.current.id
+    _ = _zapdos_here(draft)
+
+    assert _fled(draft, _trainer_battle(draft, "zapdos")).balls
+    assert _fled(draft, _rolled_wild(draft)).balls
+    _ = change(ENGINE, draft, "move", to_id="tern-harbour")
+    _ = change(ENGINE, draft, "move", to_id=here)
+    assert _trainer_battle(draft, "zapdos").balls
+
+
+def test_the_rival_leaves_the_map_after_a_battle_until_the_next_badge() -> None:
+    draft = started().draft()
+    rival = draft.world.npcs["tamsin"]
+    rival.place_id = draft.world.current.id
+    rival.known = True
+
+    resolution = end_battle(draft, _won(_trainer_battle(draft, "tamsin")))
+
+    assert rival.place_id == OFF_MAP_ID
+    assert f"{rival.name} leaves" in [fact.card for fact in resolution.facts]
+    _ = _ines_here(draft)
+    _ = end_battle(draft, _won(_trainer_battle(draft, "ines")))
+    _ = change(ENGINE, draft, "move", to_id="tern-harbour")
+    assert rival.place_id == "tern-harbour"
 
 
 def test_after_a_badge_the_next_move_places_the_rival_and_notes_it() -> None:
@@ -304,6 +378,29 @@ def _ines_here(draft: PokemonGame) -> Trainer:
     ines.place_id = draft.world.current.id
     ines.known = True
     return ines
+
+
+def _zapdos_here(draft: PokemonGame) -> Trainer:
+    mira = draft.world.npcs["mira"]
+    zapdos = Trainer(
+        id="zapdos",
+        name="Zapdos",
+        brief="A storm bird over the cliffs.",
+        voice=mira.voice,
+        known=True,
+        place_id=draft.world.current.id,
+        avatar_id=mira.avatar_id,
+        legendary_id="zapdos",
+    )
+    draft.world.npcs[zapdos.id] = zapdos
+    return zapdos
+
+
+def _fled(draft: PokemonGame, setup: BattleSetup) -> BattleSetup:
+    _ = end_battle(
+        draft, BattleResult(outcome="fled", team=setup.team, sent_out_foes=(), on_field_mon_ids=())
+    )
+    return setup
 
 
 def _won(setup: BattleSetup) -> BattleResult:

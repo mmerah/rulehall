@@ -157,6 +157,14 @@
               "description": "True for a trainer who always battles two-on-two, such as twins, a pair or a gym that fights in doubles. Needs a `roster` of at least two.",
               "type": "boolean"
             },
+            "legendary_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null,
+              "description": "A legendary species id from SPECIES, only for a legendary Pokemon that lives in this map, one of a kind: no roster, no badge; it battles alone as a wild Pokemon. Null for a person."
+            },
             "avatar_id": {
               "description": "How this person looks: exact id from TRAINER CLASSES.",
               "type": "string"

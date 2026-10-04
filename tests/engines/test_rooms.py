@@ -26,9 +26,11 @@ from rulehall.core.facts import Fact, told_cards
 from rulehall.core.validation import Refusal
 from rulehall.engines.rooms.args import MOVED_CARD, MOVES_OFFSCREEN
 from rulehall.engines.rooms.panels import map_view
-from rulehall.engines.rooms.world import MEANWHILE_EVERY, Way
-from rulehall.engines.sheet import PLAYER_ID
+from rulehall.engines.rooms.world import MEANWHILE_EVERY, OFF_MAP_ID, Place, RegionProposal, Way
+from rulehall.engines.rooms.worldsmith import check_next
+from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
+from rulehall.engines.tunnelgoons.sheet import Goon
 from rulehall.engines.tunnelgoons.world import TunnelGoonsGame
 
 
@@ -208,6 +210,38 @@ def test_meanwhile_never_reaches_the_narrator() -> None:
         assert name not in only.trace
         assert name not in only.card
     assert told_cards(facts) == (only,)
+
+
+def test_meanwhile_refuses_to_walk_an_npc_who_left_the_map() -> None:
+    draft = _walked(keep())
+    draft.world.npcs[WARDEN].place_id = OFF_MAP_ID
+    draft.world.meanwhile_due = True
+
+    message = refused(ENGINE, draft, "meanwhile", dweller_id=WARDEN, dweller_to_id=YARD)
+
+    assert "has left the map" in message
+
+
+def test_a_region_with_an_npc_off_the_map_is_refused() -> None:
+    world = keep().world
+    stray = Goon(
+        id="stray",
+        name="Stray",
+        voice="other",
+        brief="Lost",
+        known=False,
+        place_id=OFF_MAP_ID,
+        hp=Gauge(current=4, maximum=4),
+    )
+    region = RegionProposal[Goon](
+        places={"moat": Place(id="moat", name="Moat", brief="b", known=False, description="d")},
+        npcs={stray.id: stray},
+        start_id="moat",
+        recap="They left the keep.",
+    )
+
+    with pytest.raises(Refusal, match="every npc in a place"):
+        check_next(region, world)
 
 
 def test_the_clock_counts_only_a_turn_that_acted_and_arms_at_the_tempo() -> None:

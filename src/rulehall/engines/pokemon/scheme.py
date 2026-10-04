@@ -12,6 +12,7 @@ type SchemeDue = Literal["operation", "lair"]
 type Stage = Annotated[str, Field(min_length=1)]
 
 SCHEME_STAGES = 4
+BADGES_PER_OPERATION = 2
 
 
 class Scheme(Frozen):
@@ -45,6 +46,7 @@ class EvilTeam(Mutable):
     operation: Operation | None = None
     foiled: int = Field(default=0, ge=0)
     succeeded: int = Field(default=0, ge=0)
+    opened_at_badges: int = Field(default=0, ge=0)
     leader_ids: list[Slug] = Field(default_factory=list)
     boss_id: Slug | None = None
     boss_beaten: bool = False
@@ -67,8 +69,12 @@ class EvilTeam(Mutable):
     def stage(self) -> int:
         return self.foiled + self.succeeded
 
-    def due(self) -> SchemeDue | None:
-        if self.stage() < SCHEME_STAGES and self.operation is None:
+    def due(self, badges: int) -> SchemeDue | None:
+        if (
+            self.stage() < SCHEME_STAGES
+            and self.operation is None
+            and badges >= self.next_operation_badges()
+        ):
             return "operation"
         if self.stage() == SCHEME_STAGES and self.boss_id is None:
             return "lair"
@@ -82,8 +88,14 @@ class EvilTeam(Mutable):
             return None
         return self.require_scheme().legendary_id
 
-    def open_operation(self, operation: Operation) -> None:
+    def next_operation_badges(self) -> int:
+        return min(
+            self.opened_at_badges + BADGES_PER_OPERATION, BADGES_PER_OPERATION * (self.stage() + 1)
+        )
+
+    def open_operation(self, operation: Operation, badges: int) -> None:
         self.operation = operation
+        self.opened_at_badges = badges
         if operation.leader_id not in self.leader_ids:
             self.leader_ids.append(operation.leader_id)
 

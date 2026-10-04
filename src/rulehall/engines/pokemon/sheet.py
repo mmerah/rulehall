@@ -43,6 +43,7 @@ from rulehall.engines.pokemon.dex import (
 from rulehall.engines.pokemon.rules import (
     ATK_VS_DEF,
     BADGE_LEVELS,
+    BUILT_ITEMS_AT,
     CATCH_UP,
     EV_STAT_MAX,
     EV_TOTAL_MAX,
@@ -64,8 +65,11 @@ from rulehall.engines.pokemon.rules import (
     Skill,
     TmId,
     attacks_physically,
+    built_ev,
+    built_iv,
     check_species,
     help_bonus,
+    is_legendary,
     item_of,
     latest_moves,
     level_for,
@@ -101,6 +105,10 @@ RIVAL = (
 DOUBLE = (
     "True for a trainer who always battles two-on-two, such as twins, a pair or a gym that "
     "fights in doubles. Needs a `roster` of at least two."
+)
+LEGENDARY = (
+    "A legendary species id from SPECIES, only for a legendary Pokemon that lives in this map, "
+    "one of a kind: no roster, no badge; it battles alone as a wild Pokemon. Null for a person."
 )
 SHARED_MON_FIELDS = {
     "mon_id",
@@ -209,9 +217,13 @@ class Mon(Mutable):
         )
 
     @classmethod
-    def built(cls, species_id: Slug, level: int, mon_id: Slug, *, ace: bool) -> Self:
+    def built(cls, species_id: Slug, level: int, mon_id: Slug, *, ace: bool, badges: int) -> Self:
         species = dex().require_species(species_id)
         physical = attacks_physically(species)
+        ev = built_ev(badges)
+        item_id = None
+        if badges >= BUILT_ITEMS_AT:
+            item_id = TYPE_BOOSTERS[species.types[0]] if ace else "sitrus-berry"
         return cls._made(
             species_id,
             species,
@@ -220,12 +232,10 @@ class Mon(Mutable):
             nature="Adamant" if physical else "Modest",
             ability=species.abilities[0],
             gender=species.gender or ("M" if species.male_share >= 0.5 else "F"),
-            ivs=(IV_MAX,) * len(STAT_NAMES),
-            evs=(4, EV_STAT_MAX, 0, 0, 0, EV_STAT_MAX)
-            if physical
-            else (4, 0, 0, EV_STAT_MAX, 0, EV_STAT_MAX),
+            ivs=(built_iv(badges),) * len(STAT_NAMES),
+            evs=(0, ev, 0, 0, 0, ev) if physical else (0, 0, 0, ev, 0, ev),
             move_ids=signature_moves(species, level),
-            item_id=TYPE_BOOSTERS[species.types[0]] if ace else "sitrus-berry",
+            item_id=item_id,
         )
 
     @classmethod
@@ -607,6 +617,7 @@ class Trainer(Sheeted[TrainerSheet], Dweller):
     lose_line: str = Field(default="", description=LOSE_LINE)
     rival: bool = Field(default=False, description=RIVAL)
     double: bool = Field(default=False, description=DOUBLE)
+    legendary_id: Slug | None = Field(default=None, description=LEGENDARY)
     avatar_id: Slug = Field(description=AVATAR_ID)
     team: SkipJsonSchema[list[Mon]] = Field(default_factory=list)
     beaten: SkipJsonSchema[bool] = False
@@ -620,6 +631,20 @@ class Trainer(Sheeted[TrainerSheet], Dweller):
             raise ValueError(f"{self.avatar_id!r} is no id from TRAINER CLASSES")
         return self
 
+    @model_validator(mode="after")
+    def _a_lone_legendary(self) -> Self:
+        legendary_id = self.legendary_id
+        if legendary_id is None:
+            return self
+        check_species(legendary_id)
+        if not is_legendary(dex().species[legendary_id]):
+            raise ValueError(f"`legendary_id` {legendary_id!r} is no legendary species")
+        if self.roster or self.badge or self.rival or self.double:
+            raise ValueError(
+                f"{self.name} is a legendary Pokemon: no roster, no badge, not rival, not double"
+            )
+        return self
+
     def is_key(self, named_ids: Collection[Slug]) -> bool:
         return bool(self.badge) or self.rival or self.id in named_ids
 
@@ -627,7 +652,9 @@ class Trainer(Sheeted[TrainerSheet], Dweller):
         sheet = self.sheet
         if sheet is None:
             roster = ", ".join(slot.text() for slot in self.roster)
+            legendary_id = self.legendary_id
             shown = (
+                ("Legendary", "" if legendary_id is None else dex().species[legendary_id].name),
                 ("Team", roster),
                 ("Double", "battles two-on-two" if self.double else ""),
                 ("Style", self.style),
@@ -842,11 +869,11 @@ class Trainer(Sheeted[TrainerSheet], Dweller):
         return []
 
 
-def built_team(roster: Sequence[RosterSlot]) -> list[Mon]:
+def built_team(roster: Sequence[RosterSlot], badges: int) -> list[Mon]:
     ordered = sorted(roster, key=lambda slot: slot.level)
     mon_ids = slugs(dex().require_species(slot.species_id).name for slot in ordered)
     return [
-        Mon.built(slot.species_id, slot.level, mon_id, ace=index == len(ordered))
+        Mon.built(slot.species_id, slot.level, mon_id, ace=index == len(ordered), badges=badges)
         for index, (slot, mon_id) in enumerate(zip(ordered, mon_ids, strict=True), 1)
     ]
 

@@ -8,10 +8,10 @@ from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.battle.models import BattleResult, BattleSetup
 from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.rules import RosterSlot
-from rulehall.engines.pokemon.scheme import Operation
+from rulehall.engines.pokemon.scheme import EvilTeam, Operation
 from rulehall.engines.pokemon.sheet import Trainer
 from rulehall.engines.pokemon.world import PokemonGame, PokemonRegionProposal
-from rulehall.engines.rooms.world import Place
+from rulehall.engines.rooms.world import OFF_MAP_ID, Place
 
 TEAM_BEATEN = "The team is beaten. Your journey is complete."
 
@@ -28,6 +28,50 @@ def test_beating_the_operation_leader_foils_it_and_reveals_a_stage() -> None:
     assert draft.notes[-1] == "The team's operation at Gull Cove is foiled."
 
 
+def test_a_foiled_leader_leaves_the_map_with_a_card_when_here() -> None:
+    draft = started().draft()
+
+    resolution = end_battle(draft, _won(_battle(draft, "vesper")))
+
+    leader = draft.world.npcs["vesper"]
+    assert leader.place_id == OFF_MAP_ID
+    cards = [fact.card for fact in resolution.facts]
+    assert cards.index(f"{leader.name} leaves") > cards.index(
+        f'{leader.name}: "{leader.lose_line}"'
+    )
+
+
+def test_the_next_operation_is_due_by_two_badges_per_operation_at_the_latest() -> None:
+    assert EvilTeam(foiled=2, opened_at_badges=3).due(4) is None
+    assert EvilTeam(foiled=2, opened_at_badges=3).due(5) == "operation"
+    assert EvilTeam(foiled=3, opened_at_badges=7).due(8) == "operation"
+
+
+def test_an_operation_is_not_due_before_two_badges_after_the_last_opening() -> None:
+    draft = started().draft()
+    world = draft.world
+    world.evil_team.operation = None
+    world.player_sheet.badges.append("Tide Badge")
+    region = _reef_region(Operation(place_id="reef", leader_id="vesper", goal="Drain the reef."))
+
+    assert world.scheme_due() is None
+    with pytest.raises(Refusal, match="leave `operation` null"):
+        ENGINE.check_next(draft, region)
+
+
+def test_a_reused_leader_returns_at_the_new_operation() -> None:
+    draft = _operation_owed()
+    world = draft.world
+    world.npcs["vesper"].place_id = OFF_MAP_ID
+    region = _reef_region(Operation(place_id="reef", leader_id="vesper", goal="Drain the reef."))
+    ENGINE.check_next(draft, region)
+
+    _ = ENGINE.install_next(draft, region)
+
+    assert world.npcs["vesper"].place_id == "reef"
+    assert world.evil_team.opened_at_badges == 2
+
+
 def test_a_badge_earned_while_the_operation_is_open_makes_it_succeed() -> None:
     draft = started().draft()
 
@@ -38,8 +82,7 @@ def test_a_badge_earned_while_the_operation_is_open_makes_it_succeed() -> None:
 
 
 def test_a_region_without_the_operation_that_is_owed_is_refused() -> None:
-    draft = started().draft()
-    draft.world.evil_team.operation = None
+    draft = _operation_owed()
     region = PokemonRegionProposal(
         places={"reef": Place(id="reef", name="Reef", brief="b", known=False, description="d")},
         start_id="reef",
@@ -51,8 +94,7 @@ def test_a_region_without_the_operation_that_is_owed_is_refused() -> None:
 
 
 def test_a_region_installs_an_operation_led_by_one_of_its_own_new_people() -> None:
-    draft = started().draft()
-    draft.world.evil_team.operation = None
+    draft = _operation_owed()
     grunt = Trainer(
         id="grunt-haddock",
         name="Grunt Haddock",
@@ -110,6 +152,22 @@ def test_beating_the_boss_ends_the_journey_with_an_epilogue() -> None:
     assert draft.world.evil_team.boss_beaten
     assert ENGINE.ending(draft) == TEAM_BEATEN
     assert (resolution.narrator_cue or "").startswith("The boss is beaten.")
+
+
+def _operation_owed() -> PokemonGame:
+    draft = started().draft()
+    draft.world.evil_team.operation = None
+    draft.world.player_sheet.badges.extend(("Tide Badge", "Gale Badge"))
+    return draft
+
+
+def _reef_region(operation: Operation) -> PokemonRegionProposal:
+    return PokemonRegionProposal(
+        places={"reef": Place(id="reef", name="Reef", brief="b", known=False, description="d")},
+        start_id="reef",
+        recap="They left the harbour behind.",
+        operation=operation,
+    )
 
 
 def _boss(draft: PokemonGame) -> Trainer:

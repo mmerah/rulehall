@@ -1,7 +1,8 @@
 """The Tern Isles (Pokemon), the heaviest game page: a trainer made with a challenge, the Team
 tab, a row dialog, the map and the rival, turns with their traffic, a town heal, a nickname,
-a wild battle, and the evil team: the first operation foiled, the next one lost to a badge, two
-more lost to their leaders, and the lair the scripted worldsmith writes."""
+a wild battle, and the evil team: the first operation foiled, two badges before the next one,
+which a badge makes succeed, two more lost to their leaders two badges apart, and the lair the
+scripted worldsmith writes."""
 
 import json
 import sys
@@ -35,8 +36,8 @@ from drive import (
 
 GAME = BASE + "/game/tern-isles/kael"
 SETUP_HINT = "battle simulator is not installed"
-CANDIES = 25
-CANDY_ROUNDS = 6
+CANDIES = 60
+CANDY_ROUNDS = 16
 TURNS = (
     '!check what="Climb the sea wall" skill=athletics difficulty=easy',
     "!move to_id=tern-harbour",
@@ -172,8 +173,8 @@ def body(s: Session) -> None:
 
 
 def scheme(s: Session, page: Page) -> None:
-    # Candies make Charmander strong enough to beat Vesper and Ines with Dragon Breath. A new
-    # move to learn pauses every tool, so the candies go in rounds with the answers between.
+    # Candies make Charmander strong enough to beat Vesper and every gym. A new move to learn
+    # pauses every tool, so the candies go in rounds with the answers between.
     submit(page, f"Mira hands me candies.\n!gain_item item_id=rare-candy count={CANDIES}")
     wait_idle(page, timeout=60)
     candies = "\n".join(["!use_item item_id=rare-candy mon_id=charmander"] * CANDIES)
@@ -194,35 +195,35 @@ def scheme(s: Session, page: Page) -> None:
         any("opens the old sea caves" in card for card in cards(page)),
         f"beating Vesper told no stage: {cards(page)[-6:]}",
     )
-    s.check("Team Undertow" in drawer_text(page), "the Scene tab shows no Team Undertow panel")
+    s.check(
+        "team undertow" in drawer_text(page).lower(), "the Scene tab shows no Team Undertow panel"
+    )
 
-    # The next region carries the owed operation; a badge earned while it is open makes it succeed.
-    first_id, _ = more_map(s, page, "Out past the cove.", "write `operation`")
+    # The gym is open, and no operation is owed before the player holds two badges.
     submit(
         page,
-        "I head for the gym.\n!move to_id=tern-harbour\n!unlock_way to_id=tern-gym\n"
-        "!move to_id=tern-gym\n!reveal target_id=ines\n!start_battle trainer_id=ines",
+        "I head for the gym.\n!move to_id=tern-harbour\n!move to_id=tern-gym\n"
+        "!reveal target_id=ines\n!start_battle trainer_id=ines",
     )
     wait_idle(page, timeout=60)
-    fight(s, page, "Dragon Breath", "badge")
+    fight(s, page, "Dragon Breath", "badge-1")
+    earn_badge(s, page, "Out past the gym.")
+
+    # The second operation opens at two badges; the next badge makes it succeed.
+    _ = enter_operation(s, page, "On to operation 2.")
+    earn_badge(s, page, "To the next gym.")
     s.check(
         any("frozen shrine" in card for card in cards(page)),
         f"the badge made no operation succeed: {cards(page)[-8:]}",
     )
-    walk = "\n".join(
-        f"!move to_id={place_id}" for place_id in ("tern-harbour", "gull-cove", first_id)
-    )
-    submit(page, f"Back to the cove.\n{walk}")
-    wait_idle(page, timeout=60)
 
-    # Two more operations succeed as the player loses to their leaders; then the lair is written.
-    for number in (3, 4):
-        room_id, leader_id = more_map(s, page, f"On to operation {number}.", "write `operation`")
-        submit(
-            page,
-            f"I face the chief.\n!move to_id={room_id}\n!reveal target_id={leader_id}\n"
-            f"!start_battle trainer_id={leader_id}",
-        )
+    # Two more operations succeed as the player loses to their leaders, two badges apart: the
+    # third opens at four badges, the fourth at six.
+    for number, gyms in ((3, 1), (4, 2)):
+        for gym in range(gyms):
+            earn_badge(s, page, f"Gym {gym + 1} before operation {number}.")
+        leader_id = enter_operation(s, page, f"On to operation {number}.")
+        submit(page, f"I face the chief.\n!start_battle trainer_id={leader_id}")
         wait_idle(page, timeout=60)
         fight(s, page, "Forfeit", f"lost-{number}")
     lair_id, _ = more_map(s, page, "To the lair.", "holds the team's lair")
@@ -234,6 +235,27 @@ def scheme(s: Session, page: Page) -> None:
         "THE SCHEME does not show the lair",
     )
     s.shot(page, "lair")
+
+
+def earn_badge(s: Session, page: Page, words: str) -> None:
+    """A region that is owed nothing holds a gym; its leader gives the next badge."""
+    room_id, leader_id = more_map(s, page, words, "")
+    smith = [entry for entry in log() if entry["role"] == "worldsmith"][-1]
+    s.check("write `operation`" not in smith["prompt"], f"an operation was owed too soon: {words}")
+    submit(
+        page,
+        f"I take on the gym.\n!move to_id={room_id}\n!reveal target_id={leader_id}\n"
+        f"!start_battle trainer_id={leader_id}",
+    )
+    wait_idle(page, timeout=60)
+    fight(s, page, "Dragon Breath", f"gym-{room_id}")
+
+
+def enter_operation(s: Session, page: Page, words: str) -> str:
+    room_id, leader_id = more_map(s, page, words, "write `operation`")
+    submit(page, f"I find the team.\n!move to_id={room_id}\n!reveal target_id={leader_id}")
+    wait_idle(page, timeout=60)
+    return leader_id
 
 
 def answer_decisions(page: Page) -> None:

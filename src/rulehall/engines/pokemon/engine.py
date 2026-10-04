@@ -223,7 +223,7 @@ class PokemonEngine(
 
     def worldsmith_sections(self, draft: PokemonGame, /) -> Sections:
         world = draft.world
-        due = world.evil_team.due()
+        due = world.scheme_due()
         return (
             *super().worldsmith_sections(draft),
             *section_if(SCHEME, world.scheme_lines(worldsmith=True)),
@@ -234,6 +234,8 @@ class PokemonEngine(
         world = state.world
         found = world.find_entity(entity_id)
         if isinstance(found, Trainer):
+            if found.legendary_id is not None:
+                return mon_sprite(dex().species[found.legendary_id])
             return trainer_sprite(found.avatar_id)
         sheet = world.player_sheet
         if entity_id in sheet.bag or entity_id in ITEMS:
@@ -426,21 +428,42 @@ class PokemonEngine(
         once before the first badge, then once after each badge. A double trainer battles
         two-on-two, and the player needs two Pokemon that can fight. In a tag battle, the first
         party member with a team fights beside the player, two-on-two; the player then needs one
-        Pokemon that can fight."""
+        Pokemon that can fight. A legendary Pokemon here battles alone as a wild Pokemon, never in
+        a tag battle."""
         world = draft.world
         trainer = world.require_person_here(args.trainer_id)
-        if not trainer.roster and not trainer.rival:
+        legendary_id = trainer.legendary_id
+        if legendary_id is None and not trainer.roster and not trainer.rival:
             raise Refusal(f"{trainer.name} has no team and does not battle")
         if trainer.badge and trainer.beaten:
             raise Refusal(f"{trainer.name} is beaten and gives no rematch")
-        if trainer.rival and world.rival_record.fought_at_badges == len(world.player_sheet.badges):
-            raise Refusal(f"{trainer.name} will battle you again after your next badge")
         if trainer.last_battle_visit == len(world.visited_place_ids):
             raise Refusal(f"{trainer.name} already battled you on this visit; come back later")
+        if legendary_id is not None:
+            if args.tag:
+                raise Refusal(f"{trainer.name} battles alone; leave `tag` false")
+            sheet = world.player_sheet
+            foe = Mon.new(legendary_id, sheet.table_level(), rng, sheet.mon_ids())
+            world.setup_battle(
+                None,
+                (foe.battler(),),
+                rng,
+                weather=args.weather,
+                terrain=args.terrain,
+                companion=None,
+                legendary_id=trainer.id,
+            )
+            return [trainer.card_fact(f"The legendary {foe.species_name} appears")]
         companion = world.require_companion(trainer) if args.tag else None
         foes = tuple(mon.battler() for mon in world.trainer_team(trainer, rng))
         world.setup_battle(
-            trainer, foes, rng, weather=args.weather, terrain=args.terrain, companion=companion
+            trainer,
+            foes,
+            rng,
+            weather=args.weather,
+            terrain=args.terrain,
+            companion=companion,
+            legendary_id=None,
         )
         return [trainer.card_fact(challenge_line(trainer.name, foes))]
 
@@ -457,7 +480,13 @@ class PokemonEngine(
         level = rng.randint(row.lowest, row.highest)
         foe = Mon.new(row.species_id, level, rng, world.player_sheet.mon_ids())
         world.setup_battle(
-            None, (foe.battler(),), rng, weather=args.weather, terrain=args.terrain, companion=None
+            None,
+            (foe.battler(),),
+            rng,
+            weather=args.weather,
+            terrain=args.terrain,
+            companion=None,
+            legendary_id=None,
         )
         return [world.player.card_fact(f"A wild {foe.species_name} appears")]
 

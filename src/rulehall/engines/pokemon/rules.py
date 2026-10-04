@@ -49,6 +49,10 @@ TM_PRICE = 3000
 IV_MAX = 31
 EV_STAT_MAX = 252
 EV_TOTAL_MAX = 510
+BUILT_IV_START = 15
+BUILT_IV_PER_BADGE = 2
+BUILT_EV_PER_BADGE = 32
+BUILT_ITEMS_AT = 1
 STAT_NAMES = ("HP", "Atk", "Def", "SpA", "SpD", "Spe")
 FRIENDSHIP_START = 70
 FRIENDSHIP_PER_LEVEL = 5
@@ -165,6 +169,14 @@ def help_bonus(friendship: int) -> int:
 
 def level_for(badges: int) -> int:
     return BADGE_LEVELS[min(badges, len(BADGE_LEVELS) - 1)]
+
+
+def built_iv(badges: int) -> int:
+    return min(BUILT_IV_START + BUILT_IV_PER_BADGE * badges, IV_MAX)
+
+
+def built_ev(badges: int) -> int:
+    return min(BUILT_EV_PER_BADGE * badges, EV_STAT_MAX)
 
 
 def evolved(species_id: Slug, level: int, pool: Collection[Slug]) -> Slug:

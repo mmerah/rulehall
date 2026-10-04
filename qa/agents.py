@@ -10,7 +10,8 @@ Loner question the player asks is rolled as `ask(question: null)`.
 
 The narrator echoes what it was given, so every screenshot shows what the page was told. The
 worldsmith answers each request shape with a small valid draft; a Pokemon region carries the evil
-team's operation or its lair when the request asks. The opponent takes its first choice.
+team's operation or its lair when the request asks, else a gym that gives a badge.
+The opponent takes its first choice.
 """
 
 import json
@@ -30,6 +31,7 @@ from rulehall.app.turn import Turn
 from rulehall.config import Role
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal
+from rulehall.engines.pokemon.rules import level_for
 
 LOGGER = logging.getLogger("qa.agents")
 
@@ -60,6 +62,7 @@ class ScriptedAgents:
     holds: dict[Role, Event] = field(default_factory=dict)
     log: list[Spoken] = field(default_factory=list)
     scenes: "count[int]" = field(default_factory=lambda: count(1))
+    gyms: "count[int]" = field(default_factory=lambda: count(1))
 
     async def answer(
         self, role: Role, prompt: Prompt, *, heard: Callable[[str], None] | None = None
@@ -281,11 +284,30 @@ class ScriptedAgents:
                 "place_id": room,
                 "leader_id": person,
                 "goal": f"Grunts dig under room {number}.",
-                "consequence": "close_center",
             }
-        if lair:
+        elif lair:
             region["boss_id"] = person
+        else:
+            region["npcs"] = {person: self._gym_leader(person, room, number)}
         return json.dumps(region)
+
+    def _gym_leader(self, person: str, room: str, number: int) -> dict[str, JsonValue]:
+        """A region that carries nothing of the team holds a gym, so the badges keep coming."""
+        return {
+            "id": person,
+            "name": f"QA Leader {number}",
+            "brief": "A test gym leader.",
+            "voice": "feminine",
+            "known": False,
+            "place_id": room,
+            "roster": [{"species_id": "zubat", "level": level_for(next(self.gyms))}],
+            "badge": f"QA Badge {number}",
+            "trial": "Cross the test room.",
+            "style": "attacks at once",
+            "win_line": f"Win line {number}.",
+            "lose_line": f"Lose line {number}.",
+            "avatar_id": "roughneck",
+        }
 
     def _scene(self, schema: str, number: int, *, opening: bool) -> str:
         scene: dict[str, JsonValue] = {
