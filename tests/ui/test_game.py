@@ -121,12 +121,12 @@ async def test_a_tick_follows_only_on_the_readers_own_move(
 
     table.session.working_role = "master"  # another tab's turn starting: not the reader's move
     screen.tick()
-    assert screen.new_activity.visible is False
+    assert screen.unseen_activity is False
 
     screen.own_move = False
     table.session.working_role = "narrator"
     screen.tick()
-    assert screen.new_activity.visible is True
+    assert screen.unseen_activity is True
 
 
 async def test_the_live_turn_draws_each_fact_card_once_and_the_narration_heard_so_far(

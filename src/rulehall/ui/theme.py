@@ -39,13 +39,25 @@ KEYBOARD_FIT = """<script>
 (() => {
   const view = window.visualViewport;
   if (!view) return;
+  const root = document.documentElement;
+  const typing = () => document.activeElement?.matches?.("input, textarea, [contenteditable]");
   const fit = () => {
-    if (view.scale !== 1) return;
-    document.documentElement.style.setProperty("--game-vh", view.height + "px");
-    window.scrollTo(0, 0);
+    const zoomed = Math.abs(view.scale - 1) > 0.01;
+    const covered = window.innerHeight - view.height;
+    if (zoomed || !typing() || covered < 100) root.style.removeProperty("--game-vh");
+    else root.style.setProperty("--game-vh", view.height + "px");
+    if (!zoomed && (view.offsetTop || window.scrollY)) window.scrollTo(0, 0);
   };
-  view.addEventListener("resize", fit);
-  view.addEventListener("scroll", fit);
+  let settle;
+  const refit = () => {
+    fit();
+    clearTimeout(settle);
+    settle = setTimeout(fit, 350);
+  };
+  view.addEventListener("resize", refit);
+  view.addEventListener("scroll", refit);
+  document.addEventListener("focusin", refit);
+  document.addEventListener("focusout", refit);
 })();
 </script>"""
 

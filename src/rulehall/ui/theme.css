@@ -715,11 +715,20 @@ body, body.body--dark {
 .game-fact:hover { border-color: var(--game-border); box-shadow: var(--game-shadow-md), var(--game-highlight) }
 .game-fact-head { font-size: .9rem; font-weight: 700; line-height: 1.35 }
 .game-fact-icon { color: var(--game-accent); font-size: 1.15rem }
-.game-activity {
-  align-self: center; border-radius: 999px; padding-inline: 1rem;
-  box-shadow: 0 12px 28px -10px var(--game-accent-glow), var(--game-shadow-md);
+/* Outside `.game-foot`: its overflow would clip the button, and the composer never moves. */
+.game-jump-dock {
+  position: relative; flex: none; height: 0; z-index: 2;
+  width: 100%; max-width: var(--game-measure); margin-inline: auto;
 }
-.game-activity .q-icon { animation: game-nudge 1.4s var(--game-ease) infinite }
+.q-btn.game-jump {
+  position: absolute; bottom: .75rem; left: 0; right: 0; margin-inline: auto; width: fit-content;
+  min-width: 2.5rem; min-height: 2.5rem; padding: 0 .5rem; border-radius: 999px;
+  box-shadow: 0 12px 28px -10px var(--game-accent-glow), var(--game-shadow-md);
+  animation: game-enter var(--game-medium) var(--game-ease) both;
+}
+.q-btn.game-jump-news { padding-inline: 1rem }
+.game-jump-news .q-icon { animation: game-nudge 1.4s var(--game-ease) infinite }
+@media (pointer: coarse) { .q-btn.game-jump { min-width: 2.75rem; min-height: 2.75rem } }
 @keyframes game-nudge {
   50% { transform: translateY(3px) }
 }
@@ -1258,7 +1267,7 @@ body, body.body--dark {
 }
 @media (prefers-reduced-motion: reduce) {
   .game-die-live, .game-die-live .game-die-value, .game-enter, .nicegui-content,
-  .game-asking.game-enter .game-moves, .game-activity .q-icon, .q-btn.game-mic.game-mic-on, .game-working:before, .game-working:after,
+  .game-asking.game-enter .game-moves, .q-btn.game-jump, .game-jump-news .q-icon, .q-btn.game-mic.game-mic-on, .game-working:before, .game-working:after,
   .game-message[data-voice] .q-message-text, .game-message[data-voice] .game-read-aloud .q-btn__content:after { animation: none }
   .game-dots span { animation: none; opacity: .7 }
   .game-message[data-voice="waiting"] .q-message-text { border-style: dashed; border-color: color-mix(in srgb, var(--game-accent) 45%, transparent) }

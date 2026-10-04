@@ -40,6 +40,42 @@ RESTART_FAILED = failure_notice("The restart did not complete.")
 NEAR_END = 48
 SOUND_ICONS = {True: "sym_r_volume_up", False: "sym_r_volume_off"}
 AUTO_READ_ICONS = {True: "sym_r_record_voice_over", False: "sym_r_voice_over_off"}
+JUMP_LABEL = "Jump to latest"
+# Collapsed turns size themselves late: one scroll lands short, so the hold follows each resize.
+HOLD_AT_END = """<script>
+window.holdAtEnd = (id) => {
+  const started = performance.now();
+  const attach = () => {
+    const area = getHtmlElement(id);
+    const box = area?.querySelector(".q-scrollarea__container");
+    const content = box?.querySelector(".q-scrollarea__content");
+    if (!content) {
+      if (performance.now() - started < 10000) requestAnimationFrame(attach);
+      return;
+    }
+    area.releaseEnd?.();
+    const grabs = ["wheel", "touchstart", "pointerdown", "keydown"];
+    let quiet;
+    const toEnd = () => {
+      box.scrollTop = box.scrollHeight;
+      clearTimeout(quiet);
+      quiet = setTimeout(release, 1500);
+    };
+    const sizes = new ResizeObserver(toEnd);
+    function release() {
+      sizes.disconnect();
+      clearTimeout(quiet);
+      for (const name of grabs) area.removeEventListener(name, release);
+      delete area.releaseEnd;
+    }
+    for (const name of grabs) area.addEventListener(name, release, {passive: true});
+    area.releaseEnd = release;
+    sizes.observe(content);
+    toEnd();
+  };
+  attach();
+};
+</script>"""
 
 
 class Speaking(Frozen):
@@ -96,7 +132,7 @@ class GamePage:
         self.auto_read_button: ui.button
         self.scroll: ui.scroll_area
         self.transcript: Transcript
-        self.new_activity: ui.button
+        self.jump: ui.button
         self.speaking_pill: ui.row
         self.restart_item: ui.menu_item
         self.rewind_button: ui.button
@@ -105,6 +141,8 @@ class GamePage:
         self.row_dialog = ui.dialog()
         self.debrief_dialog = ui.dialog()
         self.at_end: bool = True
+        self.unseen_activity: bool = False
+        self.jump_shown: tuple[bool, bool] = (False, False)
         self.own_move: bool = False
 
     def build(self) -> None:
@@ -129,7 +167,6 @@ class GamePage:
         opener = ui.timer(0.1, lambda: self._run(lambda: self._open_game(opener)))
         self.draw_header()
 
-        theme.fit_to_viewport()
         with ui.row().classes("w-full h-full no-wrap game-gap-0"):
             self.drawer.build_rail()
             with (
@@ -149,7 +186,7 @@ class GamePage:
                         )
                     self.scroll = scroll
                     scroll.on_scroll(self.scrolled)
-                    ui.timer(0.5, lambda: scroll.scroll_to(percent=1.0), once=True)
+                    self.scroll_to_end()
                     self.draw_foot(now)
                 if self.battle_panel is not None:
                     self.battle_panel.build(story, now)
@@ -227,15 +264,17 @@ class GamePage:
 
     def draw_foot(self, now: SessionSnapshot) -> None:
         """In the column, not `ui.footer`: a page-wide footer ignores the rail and the drawer."""
+        with ui.element("div").classes("game-jump-dock"):
+            self.jump = (
+                ui.button(icon="sym_r_arrow_downward", on_click=self.catch_up)
+                .props(f'dense color=primary aria-label="{JUMP_LABEL}"')
+                .classes("game-jump")
+            )
+            self.jump.set_visibility(False)
         with (
             ui.column().classes("w-full game-foot"),
             ui.column().classes("w-full game-measure game-foot-body game-gap-lg"),
         ):
-            self.new_activity = ui.button(
-                "New activity", icon="sym_r_arrow_downward", on_click=self.catch_up
-            ).props("dense color=primary")
-            self.new_activity.classes("game-activity")
-            self.show_activity(visible=False)
             if (player := self.voice_player) is not None:
                 self.draw_speaking_pill(player)
             if self.battle_panel is not None:
@@ -355,18 +394,33 @@ class GamePage:
         unseen = event.vertical_size - event.vertical_position - event.vertical_container_size
         self.at_end = unseen <= NEAR_END
         if self.at_end:
-            self.show_activity(visible=False)
+            self.unseen_activity = False
+        self.show_jump()
         if (player := self.voice_player) is not None:
             self.show_speaking_pill(player)
 
     def catch_up(self) -> None:
-        self.scroll.scroll_to(percent=1.0)
-        self.show_activity(visible=False)
+        self.scroll_to_end()
+        self.unseen_activity = False
+        self.show_jump()
 
-    def show_activity(self, *, visible: bool) -> None:
-        """The class is set again, not kept: a CSS animation replays only when it is added."""
-        self.new_activity.classes(add="game-enter" if visible else "", remove="game-enter")
-        self.new_activity.set_visibility(visible)
+    def scroll_to_end(self) -> None:
+        self.scroll.client.run_javascript(f"holdAtEnd({self.scroll.id})")
+
+    def show_jump(self) -> None:
+        news = self.unseen_activity
+        visible = not self.at_end or news
+        if (visible, news) == self.jump_shown:
+            return
+        self.jump_shown = (visible, news)
+        jump = self.jump
+        jump.set_text("New activity" if news else "")
+        if news:
+            jump.props(remove="aria-label")
+        else:
+            jump.props(f'aria-label="{JUMP_LABEL}"')
+        jump.classes(add="game-jump-news" if news else "", remove="game-jump-news")
+        jump.set_visibility(visible)
 
     def follow(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
         if drawn.live:
@@ -380,20 +434,23 @@ class GamePage:
 
     def _scroll_to_reply_top(self, element_id: int) -> None:
         if not (self.at_end or self.own_move):
-            self.show_activity(visible=True)
+            self.unseen_activity = True
+            self.show_jump()
             return
         self.own_move = False
-        self.show_activity(visible=False)
-        script = f"getHtmlElement({element_id})?.scrollIntoView({{block: 'start'}})"
+        self.unseen_activity = False
+        self.show_jump()
+        script = (
+            f"getHtmlElement({self.scroll.id})?.releaseEnd?.();"
+            f"getHtmlElement({element_id})?.scrollIntoView({{block: 'start'}})"
+        )
         get_running_loop().call_later(0.1, lambda: self.scroll.client.run_javascript(script))
 
     def _scroll(self, *, follow: bool) -> None:
-        if not follow:
-            self.show_activity(visible=True)
-            return
-        self.show_activity(visible=False)
-        # A method call on an existing element needs no NiceGUI slot; `ui.timer` here would.
-        get_running_loop().call_later(0.1, lambda: self.scroll.scroll_to(percent=1.0))
+        self.unseen_activity = not follow
+        self.show_jump()
+        if follow:
+            self.scroll_to_end()
 
     async def _rewound(self) -> None:
         if words := await self.session.rewind():
@@ -428,6 +485,9 @@ async def game_page(runtime: Runtime, scenario: str, character: str) -> None:
     except Refusal as refused:
         refused_page(str(refused))
         return
+    # A script added after the handshake is inserted as inert HTML and never runs.
+    ui.add_body_html(HOLD_AT_END)
+    theme.fit_to_viewport()
     # Tab storage (the composer draft) is readable only after the handshake.
     await ui.context.client.connected()
     if ui.context.client.is_deleted:
