@@ -16,6 +16,7 @@ from rulehall.ui.widgets import (
     BROKEN_ICON,
     PLAY_ICON,
     art,
+    brand_mark,
     die_glyph,
     entry_card,
     link_box,
@@ -57,6 +58,7 @@ def home_page(runtime: Runtime) -> None:
 
 def _welcome() -> None:
     with ui.column().classes("game-welcome game-gap-md"):
+        brand_mark().classes("game-hero-mark")
         ui.label("Rulehall").classes("game-title game-hero-title").props(
             'role="heading" aria-level="1"'
         )

@@ -12,6 +12,7 @@ NEW_PACK = HALL + "/pack"
 PACKS = HALL + "/packs"
 GAME = "/game/{scenario}/{character}"
 SOUNDS = "/sounds/"
+ICONS = "/icons/"
 ASSETS = "/assets"
 CHOSEN_CHARACTER = "character"
 

@@ -17,6 +17,7 @@ from rulehall.ui.routes import (
     GAME,
     HALL,
     HOME,
+    ICONS,
     NEW_CHARACTER,
     NEW_PACK,
     NEW_SCENARIO,
@@ -26,7 +27,7 @@ from rulehall.ui.routes import (
     assets_route,
 )
 from rulehall.ui.settings import SettingsForm
-from rulehall.ui.widgets import SOUNDS_DIR, refused_page
+from rulehall.ui.widgets import ICONS_DIR, SOUNDS_DIR, refused_page
 
 type EnginePage = Callable[[Runtime, EngineId], object]
 
@@ -47,6 +48,7 @@ def mount(runtime: Runtime) -> None:
     app.mount(MOUNT_PATH, asgi)
     app.get("/status")(runtime.gate.status)
     app.add_static_files(SOUNDS, SOUNDS_DIR)
+    app.add_static_files(ICONS, ICONS_DIR)
     for engine in runtime.engines.values():
         if engine.assets is not None and engine.assets.is_dir():
             app.add_static_files(assets_route(engine.id), engine.assets)
@@ -74,6 +76,7 @@ def start() -> None:
     theme.install()
     ui.run(  # pyright: ignore[reportUnknownMemberType]
         title="Rulehall",
+        favicon=ICONS_DIR / "favicon.svg",
         host=settings.server.host,
         port=settings.server.port,
         reload=False,

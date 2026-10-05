@@ -12,9 +12,8 @@ from rulehall.core.facts import Fact
 from rulehall.core.validation import Refusal
 from rulehall.core.views import Look
 from rulehall.ui import theme
-from rulehall.ui.routes import HOME, SOUNDS
+from rulehall.ui.routes import HOME, ICONS, SOUNDS
 
-BRAND_ICON = "sym_r_casino"
 HOME_ICON = "sym_r_home"
 BACK_ICON = "sym_r_arrow_back"
 REFUSED_ICON = "sym_r_explore_off"
@@ -29,6 +28,8 @@ NEW_PACK_ICON = "sym_r_auto_fix_high"
 ON_TOUCH = "matchMedia('(hover: none)').matches"
 PASS_THROUGH = "display: contents"
 SOUNDS_DIR = Path(__file__).parent / "sounds"
+ICONS_DIR = Path(__file__).parent / "icons"
+BRAND_MARK = f"{ICONS}mark.svg"
 BLANK = string.whitespace + (
     "\xa0\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"
     "\u200b\u200c\u200d\u2060\ufeff"
@@ -165,6 +166,10 @@ def done(message: str) -> None:
     _notify(message, "positive")
 
 
+def brand_mark() -> ui.element:
+    return ui.element("img").props(f'src="{BRAND_MARK}" alt=""')
+
+
 def page_header(
     title: str,
     badge: str | None = None,
@@ -177,7 +182,7 @@ def page_header(
     with ui.header().classes("items-center no-wrap") as header:
         if back is None:
             with ui.element("div").classes("game-brand"):
-                ui.icon(BRAND_ICON)
+                brand_mark()
         elif back == HOME:
             icon_button(HOME_ICON, "Home", lambda: ui.navigate.to(HOME))
         else:

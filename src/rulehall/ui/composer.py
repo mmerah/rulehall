@@ -32,6 +32,8 @@ GAME_OVER = "The game is over. Restart it from the menu."
 BATTLE_ON = "A battle is on. Finish it on the battle screen."
 ANSWER_FIRST = "Answer the question above first."
 HEARING_FAILED = failure_notice("The speech was not understood.")
+# A tap that blurs the field shrinks the page (theme.py KEYBOARD_FIT) and iOS drops the click.
+KEEP_FOCUS = "(e) => e.preventDefault()"
 MIC_ICONS = {True: "sym_r_stop", False: "sym_r_mic"}
 PLACEHOLDERS: dict[ComposerLock, str] = {
     "over": GAME_OVER,
@@ -124,6 +126,7 @@ class Composer:
                         ui.button(icon="sym_r_arrow_upward", on_click=self.submit, color=None)
                         .props("round flat no-caps aria-label=Send")
                         .classes("game-send")
+                        .on("mousedown", js_handler=KEEP_FOCUS)
                     )
                     self.entry_controls += (self.send_button,)
         self._clear_spent_draft(now)
@@ -216,6 +219,7 @@ class Composer:
             ui.button(icon=MIC_ICONS[False], on_click=speech.toggle_recording, color=None)
             .props('flat round aria-label="Speak your action"')
             .classes("game-mic")
+            .on("mousedown", js_handler=KEEP_FOCUS)
         )
         mic.set_visibility(False)
 

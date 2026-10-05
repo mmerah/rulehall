@@ -5,6 +5,7 @@ from nicegui import ui
 
 from rulehall.core.stores import read_cached_text
 from rulehall.core.views import Look
+from rulehall.ui.routes import ICONS
 
 NEUTRAL_PALETTE: Mapping[str, str] = {
     "game-bg": "#111519",
@@ -31,6 +32,10 @@ FONTS = (
     "?family=EB+Garamond:wght@400;600;700"
     "&family=Inter:wght@400;600;700"
     '&display=swap">'
+)
+HOME_SCREEN_ICON = (
+    f'<link rel="apple-touch-icon" href="{ICONS}apple-touch-icon.png">'
+    '<meta name="apple-mobile-web-app-title" content="Rulehall">'
 )
 
 
@@ -90,6 +95,7 @@ def fit_to_viewport() -> None:
 
 def install() -> None:
     ui.add_head_html(FONTS, shared=True)
+    ui.add_head_html(HOME_SCREEN_ICON, shared=True)
     ui.button.default_props("no-caps unelevated")
     ui.badge.default_props("outline")
     ui.tooltip.default_props("delay=350 transition-show=jump-up transition-hide=fade")

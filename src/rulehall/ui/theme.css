@@ -94,11 +94,8 @@ body, body.body--dark {
   flex: none; display: grid; place-items: center;
   width: 2.25rem; height: 2.25rem;
   border-radius: calc(var(--game-radius) * .75);
-  color: var(--game-bg);
-  background: linear-gradient(140deg, var(--game-accent-strong), var(--game-accent) 55%, var(--game-accent-deep));
-  box-shadow: 0 6px 18px -6px var(--game-accent-glow), var(--game-highlight);
 }
-.game-brand .q-icon { font-size: 1.35rem }
+.game-brand img { width: 1.6rem; height: 1.6rem }
 .q-header .q-badge { font-size: .68rem }
 
 .q-tabs { color: var(--game-muted) }
@@ -148,6 +145,7 @@ body, body.body--dark {
   background: linear-gradient(100deg, var(--game-text) 30%, var(--game-accent-strong));
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
+.game-hero-mark { width: 4rem; height: 4rem }
 .game-lead { color: var(--game-muted); max-width: 42rem; line-height: 1.55 }
 .game-eyebrow {
   color: var(--game-accent);
@@ -913,8 +911,8 @@ body, body.body--dark {
   flex: 1 1 0; width: 100%; min-height: 30rem;
   display: grid; gap: .5rem;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, auto) auto auto 1fr auto auto auto auto;
-  grid-template-areas: "scene" "talk" "cards" "journal" "fielded" "tabs" "moves" "foot";
+  grid-template-rows: minmax(0, auto) auto 1fr auto auto auto auto;
+  grid-template-areas: "scene" "cards" "journal" "fielded" "tabs" "moves" "foot";
 }
 .game-battle-main, .game-battle-rail { display: contents }
 .game-battle-scene {
@@ -957,8 +955,8 @@ body, body.body--dark {
 .game-battle-conditions .game-tags { margin: 0; flex-direction: column; align-items: flex-end }
 .game-battle-conditions .game-tag { box-shadow: 0 2px 8px rgb(0 0 0 / .45) }
 
-/* What the trainers say: a row under the scene on a phone, the top of the rail when wide. */
-.game-battle-voices { grid-area: talk; display: flex; flex-wrap: wrap; gap: .4rem }
+/* What the trainers say: a bubble over the foot of the scene on a phone, the top of the rail when wide. */
+.game-battle-voices { display: flex; flex-wrap: wrap; gap: .4rem }
 .game-battle-speech {
   position: relative; flex: 1 1 12rem; padding: .4rem .7rem;
   background: var(--game-surface-raised);
@@ -1076,6 +1074,7 @@ body, body.body--dark {
 @keyframes game-picked { to { box-shadow: 0 0 0 2px var(--game-accent), 0 0 8px -4px var(--game-accent-glow) } }
 
 @container battle not ((min-width: 700px) and (min-aspect-ratio: 4 / 5)) {
+  .game-battle-voices { grid-area: scene; align-self: end; z-index: 2; margin: .4rem; max-height: 60%; overflow: hidden; pointer-events: none }
   .game-battle-team-open .game-battle-moves, .game-battle-grid:not(.game-battle-team-open):has(.game-battle-moves) .game-battle-team { display: none }
   .game-battle-grid:has(.game-battle-tabs) .game-battle-team > .game-section-head { display: none }
   .game-battle-cards > :not(:last-child) { display: none }
