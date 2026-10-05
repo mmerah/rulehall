@@ -1,6 +1,6 @@
 import json
 from asyncio import Task, create_task, gather
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
@@ -200,6 +200,12 @@ class ShowdownRun:
             command=LEAVE, kind="leave", name="Run" if self.setup.wild else "Forfeit"
         )
         return (*self._slot_choices(request), *balls, leave)
+
+    def view_props(self) -> Mapping[str, str]:
+        return {
+            "battleBackground": self.setup.battle_background,
+            "battleMusic": self.setup.battle_music,
+        }
 
     async def choose(self, draft: PokemonGame, command: str, rng: Random) -> None:
         draft.world.battle = self.battle

@@ -109,7 +109,7 @@ const FILES = [
   "sprites/pokemonicons-pokeball-sheet.png",
 ];
 
-// The 15 tracks BattleScene.rollBgm picks from, in data/graphics.js.
+// The 15 tracks BattleScene.rollBgm picks from in data/graphics.js, and spl-elite4, its setBgm(-101).
 const MUSIC = [
   "dpp-trainer",
   "dpp-rival",
@@ -126,6 +126,7 @@ const MUSIC = [
   "oras-rival",
   "sm-trainer",
   "sm-rival",
+  "spl-elite4",
 ];
 // The base species whose forme cries have their own file, from specialBaseSpeciesCries in js/battledata.js.
 const CRY_FORMES = [
@@ -166,11 +167,13 @@ async function fetchFile(file, base = BASE_URL, optional = false, fallback = nul
 
 function effectFiles(graphics) {
   const urls = [...graphics.matchAll(/url:'([^']+)'/g)].map((match) => `fx/${match[1]}`);
-  const backdrops = listed(graphics, "BattleBackdropsFive").map((name) => `fx/${name}`);
+  const backgrounds = ["BattleBackdropsThree", "BattleBackdropsFour", "BattleBackdropsFive"]
+    .flatMap((list) => listed(graphics, list))
+    .map((name) => `fx/${name}`);
   const gen6bgs = listed(graphics, "BattleBackdrops").map((name) => `sprites/gen6bgs/${name}`);
   const literals = graphics.match(/fx\/[a-z0-9-]+\.(png|jpg|gif)/g);
   const weather = graphics.match(/weather-[a-z]+\.(png|jpg)/g).map((name) => `fx/${name}`);
-  return [...urls, ...backdrops, ...gen6bgs, ...literals, ...weather];
+  return [...urls, ...backgrounds, ...gen6bgs, ...literals, ...weather];
 }
 
 function listed(graphics, name) {
@@ -233,8 +236,8 @@ async function main() {
     ),
   );
   fetched += sum(await pool([...new Set(itemFiles())], (file) => fetchFile(file, ITEM_URL, true)));
-  // The engine opens a battle only once this marker exists.
-  fs.writeFileSync(path.join(VENDOR, "complete"), "");
+  // The engine opens a battle only once this marker holds the current assets version.
+  fs.writeFileSync(path.join(VENDOR, "complete"), fs.readFileSync(path.join(__dirname, "assets-version")));
   console.log(`fetched ${fetched} files`);
 }
 

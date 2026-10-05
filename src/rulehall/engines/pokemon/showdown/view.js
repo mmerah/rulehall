@@ -1,5 +1,15 @@
 const SOUND_KEY = "rulehall.dice.sound";
 const SOUND_EVENT = "rulehall-sound";
+const BGM_VOLUME = 30;
+// The setBgm numbers of BattleScene in data/graphics.js.
+const BATTLE_MUSIC = { "bw-trainer": 5, "bw-rival": 6, "bw2-kanto-gym-leader": 8, "spl-elite4": -101 };
+// The image files of each Showdown battle background generation, under the client root.
+const BATTLE_BACKGROUND_FILES = {
+  gen6: (name) => `sprites/gen6bgs/bg-${name}.jpg`,
+  gen5: (name) => `fx/bg-${name}.png`,
+  gen4: (name) => `fx/bg-gen4-${name}.png`,
+  gen3: (name) => `fx/bg-gen3-${name}.png`,
+};
 const STYLES = ["style/battle.css", "style/battle-log.css"];
 const SCRIPTS = [
   "js/lib/jquery-1.11.0.min.js",
@@ -52,7 +62,15 @@ export default {
       </Teleport>
     </div>
   `,
-  props: { base: String, lines: Array, sprites: String, music: Boolean, dock: String },
+  props: {
+    base: String,
+    lines: Array,
+    sprites: String,
+    music: Boolean,
+    dock: String,
+    battleBackground: String,
+    battleMusic: String,
+  },
   data: () => ({ open: false }),
   created() {
     this.queued = [];
@@ -67,6 +85,7 @@ export default {
     await this.$nextTick();
     if (this.$.isUnmounted) return;
     this.battle = new Battle({ $frame: $(this.$refs.frame), $logFrame: $(this.$refs.log) });
+    this.pinBattleBackgroundAndMusic();
     this.battle.setMute(!this.music || localStorage.getItem(SOUND_KEY) === "off");
     this.sound = (event) => this.battle.setMute(!this.music || !event.detail);
     window.addEventListener(SOUND_EVENT, this.sound);
@@ -91,6 +110,20 @@ export default {
       for (const line of lines) this.battle.add(line);
       this.battle.play();
     },
+    pinBattleBackgroundAndMusic() {
+      const scene = this.battle.scene;
+      const [gen, name] = this.battleBackground.split(/-(.*)/);
+      const image = BATTLE_BACKGROUND_FILES[gen](name);
+      const updateGen = scene.updateGen.bind(scene);
+      // The client re-rolls the battle background on every |gen|, |rated| and reset.
+      scene.updateGen = () => {
+        updateGen();
+        scene.backdropImage = image;
+        scene.$bg?.css("background-image", `url(${Dex.resourcePrefix}${image})`);
+      };
+      scene.updateGen();
+      scene.setBgm(BATTLE_MUSIC[this.battleMusic]);
+    },
     async load() {
       const url = (path) => `${this.base}/${path}`;
       document.head.append(Object.assign(document.createElement("style"), { textContent: STYLE }));
@@ -100,6 +133,8 @@ export default {
       for (const path of SCRIPTS) await attach("script", { src: url(path) });
       // The client asks for each sound over https, which this server does not speak.
       BattleSound.getSound = (path) => (BattleSound.soundCache[path] ??= new Audio(url(path)));
+      // Showdown's music drowns the speech at its default volume.
+      BattleSound.setBgmVolume(BGM_VOLUME);
     },
     fit() {
       const { clientWidth: width, clientHeight: height } = this.$el;

@@ -1,8 +1,8 @@
-"""The Tern Isles (Pokemon), the heaviest game page: a trainer made with a challenge, the Team
-tab, a row dialog, the map and the rival, turns with their traffic, a town heal, a nickname,
-a wild battle, and the evil team: the first operation foiled, two badges before the next one,
-which a badge makes succeed, two more lost to their leaders two badges apart, and the lair the
-scripted worldsmith writes."""
+"""The Tern Isles (Pokemon), the heaviest game page: a trainer made with a challenge, the Team tab,
+a row dialog, the map and the rival, who blocks the road until a lost battle, turns with their
+traffic, a town heal, a nickname, a wild battle, and the evil team: the first operation foiled,
+two badges before the next one, which a badge makes succeed, two more lost to their leaders two
+badges apart, and the lair the scripted worldsmith writes."""
 
 import json
 import sys
@@ -121,6 +121,15 @@ def body(s: Session) -> None:
     s.check(page.locator(".game-drawer canvas").count() > 0, "the Scene tab draws no map")
     s.check("Tamsin" in drawer_text(page), "the rival Tamsin is not here at the start")
 
+    # Before the first move the rival blocks every way, so a forfeit to Tamsin opens the road.
+    submit(page, "Tamsin blocks the road.\n!start_battle trainer_id=tamsin")
+    wait_idle(page, timeout=60)
+    if not open_battle(page):
+        s.shot(page, "battle")
+        s.note("battle: setup hint; the rest is skipped, the battle simulator is not installed")
+        return
+    play_battle(s, page, "Forfeit", "rival")
+
     # Marks sit only after an idle page, so frames that land late count toward the next turn.
     for turn, script in enumerate(TURNS, start=1):
         submit(page, f"Turn {turn} of pokemon.\n{script}")
@@ -151,22 +160,12 @@ def body(s: Session) -> None:
     page.locator(".game-rail-btn", has_text="Scene").click()
     page.locator(".game-drawer canvas").first.wait_for()
 
-    # A wild battle: the banner, then the battle screen or, without the simulator, the hint.
+    # A wild battle: the banner, then the battle screen.
     submit(page, "I step into the tall grass.\n!start_wild_battle")
-    banner = page.locator(".game-banner", has_text="A battle waits for you.")
-    banner.wait_for(timeout=40000)
-    banner.get_by_role("button", name="Battle").click()
-    hint = page.locator(".q-notification__message", has_text=SETUP_HINT)
+    s.check(open_battle(page), "the wild battle showed the setup hint")
     choice = page.locator(".game-battle .game-choice:visible")
-    hint.or_(choice).first.wait_for(timeout=40000)
-    hinted = hint.count() > 0
-    choices = choice.count()
-    s.note(f"battle: {'setup hint' if hinted else f'battle screen, {choices} choices'}")
-    s.check(hinted or choices > 0, "Battle showed neither the battle screen nor the setup hint")
+    s.note(f"battle: battle screen, {choice.count()} choices")
     s.shot(page, "battle")
-    if hinted:
-        s.note("scheme: skipped, the battle simulator is not installed")
-        return
     choice.filter(has_text="Run").first.click()
     wait_idle(page, timeout=60)
     scheme(s, page)
@@ -271,10 +270,23 @@ def answer_decisions(page: Page) -> None:
         wait_idle(page, timeout=60)
 
 
-def fight(s: Session, page: Page, pick: str, shot: str) -> None:
+def open_battle(page: Page) -> bool:
+    """The banner opens the battle screen or, without the simulator, the setup hint."""
     banner = page.locator(".game-banner", has_text="A battle waits for you.")
     banner.wait_for(timeout=40000)
     banner.get_by_role("button", name="Battle").click()
+    hint = page.locator(".q-notification__message", has_text=SETUP_HINT)
+    choice = page.locator(".game-battle .game-choice:visible")
+    hint.or_(choice).first.wait_for(timeout=40000)
+    return hint.count() == 0
+
+
+def fight(s: Session, page: Page, pick: str, shot: str) -> None:
+    s.check(open_battle(page), f"the {shot} battle showed the setup hint")
+    play_battle(s, page, pick, shot)
+
+
+def play_battle(s: Session, page: Page, pick: str, shot: str) -> None:
     screen = page.locator(".game-battle:visible")
     choices = page.locator(".game-battle .game-choice:visible:enabled")
     choices.first.wait_for(timeout=40000)

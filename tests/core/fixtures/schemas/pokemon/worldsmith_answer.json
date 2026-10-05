@@ -282,6 +282,61 @@
       },
       "type": "array"
     },
+    "battle_background_ids": {
+      "description": "The battle background of each new place, keyed by place id: the image a battle there is fought on. A place left out shows 'gen6-city' if it is a town, else 'gen5-route'.",
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "enum": [
+            "gen6-aquacordetown",
+            "gen6-beach",
+            "gen6-city",
+            "gen6-dampcave",
+            "gen6-darkbeach",
+            "gen6-darkcity",
+            "gen6-darkmeadow",
+            "gen6-deepsea",
+            "gen6-desert",
+            "gen6-earthycave",
+            "gen6-elite4drake",
+            "gen6-forest",
+            "gen6-icecave",
+            "gen6-leaderwallace",
+            "gen6-library",
+            "gen6-meadow",
+            "gen6-orasdesert",
+            "gen6-orassea",
+            "gen6-skypillar",
+            "gen5-beach",
+            "gen5-beachshore",
+            "gen5-city",
+            "gen5-dampcave",
+            "gen5-deepsea",
+            "gen5-desert",
+            "gen5-earthycave",
+            "gen5-forest",
+            "gen5-icecave",
+            "gen5-meadow",
+            "gen5-mountain",
+            "gen5-river",
+            "gen5-route",
+            "gen5-thunderplains",
+            "gen5-volcanocave",
+            "gen4-cave",
+            "gen4-indoors",
+            "gen4-snow",
+            "gen4-water",
+            "gen3-arena",
+            "gen3-cave",
+            "gen3-forest",
+            "gen3-ocean",
+            "gen3-sand"
+          ],
+          "type": "string"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
     "operation": {
       "additionalProperties": false,
       "properties": {

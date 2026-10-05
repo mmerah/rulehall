@@ -37,6 +37,7 @@ class Decision(Frozen):
     prompt: str = Field(min_length=1)
     options: tuple[ActionOption, ...]
     allows_text: bool
+    silent: bool = False
 
     @model_validator(mode="after")
     def _options_are_unambiguous(self) -> Self:

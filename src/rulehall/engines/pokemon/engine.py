@@ -29,12 +29,14 @@ from rulehall.engines.pokemon.args import (
     SwapMon,
     TeachMove,
     UseItem,
+    WildPick,
 )
 from rulehall.engines.pokemon.battle.simulator import SHOWDOWN, ShowdownRun
 from rulehall.engines.pokemon.dex import ITEMS, avatars, dex
 from rulehall.engines.pokemon.pack import PokemonHead, PokemonPack
 from rulehall.engines.pokemon.panels import (
     SHEET_HELP,
+    WILD_ICON_PREFIX,
     bag_panel,
     box_panel,
     item_sprite,
@@ -43,6 +45,7 @@ from rulehall.engines.pokemon.panels import (
     scheme_panel,
     team_panel,
     trainer_sprite,
+    wild_panel,
 )
 from rulehall.engines.pokemon.rules import (
     CHALLENGES,
@@ -84,14 +87,15 @@ from rulehall.engines.sheet import PLAYER_ID
 SIMULATOR = SHOWDOWN / "node_modules" / "pokemon-showdown" / "pokemon-showdown"
 ASSETS = Path(__file__).parents[4] / "vendor" / "showdown"
 ASSETS_COMPLETE = ASSETS / "complete"
+ASSETS_VERSION = SHOWDOWN / "assets-version"
 SETUP_HINT = (
     "the battle simulator is not installed: run "
     "`npm --prefix src/rulehall/engines/pokemon/showdown run setup`, then start the app again"
 )
 ASSETS_HINT = (
-    "the Pokemon art and sound are not fetched yet: run "
+    "the Pokemon art and sound are not fetched or are out of date: run "
     "`npm --prefix src/rulehall/engines/pokemon/showdown run setup`, then start the app again; "
-    "in Docker, the container fetches them on its first start, so wait for "
+    "in Docker, the container fetches them when it starts, so wait for "
     "'Pokemon art and sound: ready' in its log"
 )
 SCHEME = "THE SCHEME"
@@ -231,6 +235,9 @@ class PokemonEngine(
         )
 
     def sprite(self, state: PokemonGame, entity_id: Slug) -> Sprite | None:
+        if entity_id.startswith(WILD_ICON_PREFIX):
+            species = dex().species.get(entity_id.removeprefix(WILD_ICON_PREFIX))
+            return None if species is None else mon_sprite(species)
         world = state.world
         found = world.find_entity(entity_id)
         if isinstance(found, Trainer):
@@ -281,6 +288,7 @@ class PokemonEngine(
             team_panel(world),
             box_panel(world),
             bag_panel(world),
+            wild_panel(world),
         )
 
     def ending(self, state: PokemonGame) -> str | None:
@@ -301,7 +309,10 @@ class PokemonEngine(
     def simulator_argv(self) -> tuple[str, ...]:
         if not SIMULATOR.is_file():
             raise Refusal(SETUP_HINT)
-        if not ASSETS_COMPLETE.is_file():
+        if (
+            not ASSETS_COMPLETE.is_file()
+            or ASSETS_COMPLETE.read_text() != ASSETS_VERSION.read_text()
+        ):
             raise Refusal(ASSETS_HINT)
         # The npm package ships built; a build run prints to stdout before the first block.
         return ("node", str(SIMULATOR), "simulate-battle", "--skip-build")
@@ -412,7 +423,10 @@ class PokemonEngine(
 
     @tool
     def move(self, draft: PokemonGame, args: MoveTo, rng: Random) -> list[Fact]:
-        """Move the player through an unlocked way out of this place."""
+        """Move the player through an unlocked way out of this place. While the rival waits here
+        to battle, the engine refuses every way but the one back to the place the player came
+        from; before the first move, it refuses every way."""
+        draft.world.require_road_open(args.to_id)
         facts = super().move(draft, args, rng)
         draft.world.drop_edge()
         placed, notes = draft.world.place_rival()
@@ -474,21 +488,13 @@ class PokemonEngine(
         """Start a battle when the player meets a wild Pokemon here, such as in tall grass.
         Set `species_id` to one from WILD HERE, or leave it null to roll on the table; in a
         Nuzlocke, always leave it null. Call it last: it ends your turn."""
-        world = draft.world
-        rows = world.wild_rows(args.species_id)
-        row = rng.choices(rows, weights=[row.weight for row in rows])[0]
-        level = rng.randint(row.lowest, row.highest)
-        foe = Mon.new(row.species_id, level, rng, world.player_sheet.mon_ids())
-        world.setup_battle(
-            None,
-            (foe.battler(),),
-            rng,
-            weather=args.weather,
-            terrain=args.terrain,
-            companion=None,
-            legendary_id=None,
+        return draft.world.start_wild_battle(
+            args.species_id, rng, weather=args.weather, terrain=args.terrain
         )
-        return [world.player.card_fact(f"A wild {foe.species_name} appears")]
+
+    @action
+    def battle_wild(self, draft: PokemonGame, args: WildPick, rng: Random) -> list[Fact]:
+        return draft.world.start_wild_battle(args.species_id, rng, weather=None, terrain=None)
 
     @action
     def learn_move(self, draft: PokemonGame, args: LearnMove, _rng: Random) -> list[Fact]:

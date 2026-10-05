@@ -117,6 +117,10 @@ class StartWildBattle(Frozen):
     terrain: Terrain | None = Field(default=None, description=TERRAIN)
 
 
+class WildPick(Frozen):
+    species_id: Slug | None = None
+
+
 class LearnMove(Frozen):
     mon_id: Slug
     move_id: Slug

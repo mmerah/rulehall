@@ -52,6 +52,8 @@ WILD_SETUP = BattleSetup(
     player_avatar_id="ethan",
     foe_avatar_id=None,
     seed=(1, 2, 3, 4),
+    battle_background="gen5-route",
+    battle_music="bw-trainer",
     team=(PIKACHU,),
     foes=(RATTATA,),
 )
@@ -95,6 +97,8 @@ DOUBLES_SETUP = BattleSetup(
     player_avatar_id="ethan",
     foe_avatar_id="camper",
     seed=(1, 2, 3, 4),
+    battle_background="gen5-route",
+    battle_music="bw-trainer",
     team=(PIKACHU, CHARMANDER),
     foes=(RATTATA, PIDGEY),
     double=True,

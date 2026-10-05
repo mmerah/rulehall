@@ -22,6 +22,7 @@ from rulehall.app.roles import RoleRunner, ask, role_answer
 from rulehall.app.speech import Speaker
 from rulehall.app.turn import Turn
 from rulehall.config import LiveSettings, Role
+from rulehall.core.creation import find_option
 from rulehall.core.decisions import ActionOption, PlayerInput
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyCharacter, AnyGame, AnyScenario
@@ -133,8 +134,17 @@ class GameSession:
 
     async def choose(self, answer: PlayerInput) -> None:
         with self.gate.admit(self), self.remember_for_rewind(answer.text):
-            if self.state.pending is not None:
-                await self._turn(answer, self.state, self.rng)
+            if (pending := self.state.pending) is not None:
+                silent_option = (
+                    find_option(pending.options, answer.option_id)
+                    if pending.silent and answer.option_id is not None and not self.state.unnarrated
+                    else None
+                )
+                if silent_option is None:
+                    await self._turn(answer, self.state, self.rng)
+                else:
+                    require_playable(self.engine, self.state)
+                    await self._play_silent(silent_option.with_words(answer.text))
                 return
             require_playable(self.engine, self.state)
             view = self.player_view()
@@ -299,6 +309,7 @@ class GameSession:
 
     async def _play_silent(self, option: ActionOption) -> None:
         draft = self.state.draft()
+        draft.pending = None
         facts = self.engine.play_option(draft, option, self.rng)
         accepted = self.engine.accept(draft)
         self.save(self.engine.record(accepted, (), facts, words=option.name, by_option=True))

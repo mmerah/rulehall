@@ -10,7 +10,7 @@ from support.table import change, refused
 
 from rulehall.core.game import Check
 from rulehall.core.prompt import Prompt
-from rulehall.engines.pokemon.battle.models import Battle, BattleResult, BattleSetup
+from rulehall.engines.pokemon.battle.models import Battle, BattleMusic, BattleResult, BattleSetup
 from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.sheet import Mon, Trainer
@@ -154,6 +154,38 @@ def test_a_gym_leader_battles_with_a_team_built_for_it_ace_last() -> None:
     assert not ines.team
 
 
+def test_a_battle_shows_its_places_battle_background_else_a_city_in_a_town_and_a_route() -> None:
+    draft = started().draft()
+    world = draft.world
+
+    assert _wild(draft).battle_background == "gen5-route"
+    assert world.battle_background_of("tern-harbour") == "gen6-city"
+    world.battle_background_ids["tern-harbour"] = "gen4-snow"
+    assert world.battle_background_of("tern-harbour") == "gen4-snow"
+
+
+def test_a_wild_battle_plays_the_trainer_track() -> None:
+    assert _wild(started().draft()).battle_music == "bw-trainer"
+
+
+@pytest.mark.parametrize(
+    ("trainer_id", "battle_music"),
+    [
+        ("rook", "bw-trainer"),
+        ("tamsin", "bw-rival"),
+        ("ines", "bw2-kanto-gym-leader"),
+        ("vesper", "spl-elite4"),
+    ],
+)
+def test_the_battle_music_follows_the_foes_role(trainer_id: str, battle_music: BattleMusic) -> None:
+    draft = started().draft()
+    foe = draft.world.npcs[trainer_id]
+    foe.place_id = draft.world.current.id
+    foe.known = True
+
+    assert _trainer_battle(draft, trainer_id).battle_music == battle_music
+
+
 def test_the_facts_name_the_built_team_and_only_the_foes_that_were_sent_out() -> None:
     draft = started().draft()
     _ = _ines_here(draft)
@@ -220,6 +252,7 @@ def test_a_nuzlocke_legendary_is_always_catchable_and_keeps_the_first_encounter(
     draft.world.player_sheet.challenge = "nuzlocke"
     here = draft.world.current.id
     _ = _zapdos_here(draft)
+    draft.world.npcs["tamsin"].place_id = OFF_MAP_ID
 
     assert _fled(draft, _trainer_battle(draft, "zapdos")).balls
     assert _fled(draft, _rolled_wild(draft)).balls
@@ -246,6 +279,7 @@ def test_the_rival_leaves_the_map_after_a_battle_until_the_next_badge() -> None:
 
 def test_after_a_badge_the_next_move_places_the_rival_and_notes_it() -> None:
     draft = started().draft()
+    draft.world.npcs["tamsin"].place_id = OFF_MAP_ID
     _ = _ines_here(draft)
     _ = end_battle(draft, _won(_trainer_battle(draft, "ines")))
 
@@ -338,6 +372,7 @@ def test_a_nuzlocke_offers_balls_only_at_the_first_wild_battle_of_a_place() -> N
 
 def test_an_edge_won_in_a_check_reaches_the_next_battle_here_and_a_move_clears_it() -> None:
     draft = started().draft()
+    draft.world.npcs["tamsin"].place_id = OFF_MAP_ID
     ambush = {"what": "Sneak up", "skill": "stealth", "difficulty": "easy", "edge": "foe-asleep"}
     _ = change(ENGINE, draft, "check", **ambush)
 

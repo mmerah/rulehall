@@ -100,6 +100,7 @@ class BattlePanel:
         self.battle_view_element = view = battle_component_class(component)()
         view.props.update(
             {
+                **run.view_props(),
                 "base": assets_route(session.engine.id),
                 "lines": list(now.battle_log),
                 "sprites": session.live_settings.current.battle.sprites,

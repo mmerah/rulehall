@@ -108,7 +108,7 @@
   },
   {
     "name": "move",
-    "description": "Move the player through an unlocked way out of this place.",
+    "description": "Move the player through an unlocked way out of this place. While the rival waits here to battle, the engine refuses every way but the one back to the place the player came from; before the first move, it refuses every way.",
     "parameters": {
       "additionalProperties": false,
       "properties": {

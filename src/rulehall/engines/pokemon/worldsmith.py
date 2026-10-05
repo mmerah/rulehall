@@ -19,7 +19,7 @@ from rulehall.engines.pokemon.world import (
     PokemonRegionProposal,
     PokemonWorld,
     legendary_ids,
-    unknown_wild_places,
+    unknown_place_ids,
 )
 from rulehall.engines.rooms.worldsmith import check_next as check_room_map_next
 from rulehall.engines.rooms.worldsmith import check_opening as check_room_map_opening
@@ -31,7 +31,10 @@ WORLDSMITH_GUIDANCE = (
     "of each new place: species ids from SPECIES, the lowest level, the highest level and a "
     "weight. A route, a cave or a shore has a table. A town or a building has none. A town is "
     "one place; its Pokemon Center and its mart are inside it. Never write a Center or a mart as "
-    "a place of its own. List every town in `town_place_ids`. A gym is its own place, reached "
+    "a place of its own. List every town in `town_place_ids`. `battle_background_ids` gives each "
+    "new place the battle background its battles are fought on, the one that fits it best: "
+    "'gen6-forest' for a wood, 'gen5-dampcave' for a cave, 'gen4-snow' for a snowy route, "
+    "'gen6-beach' for a shore, 'gen3-arena' for a gym. A gym is its own place, reached "
     "from its town. Not every gym is locked: lock a gym's door only when this map shows how it "
     "opens, and never tie it to the evil team. A person who battles has a `roster` of one to six "
     "species ids with levels. A gym leader also has a `badge`, such as 'Tide Badge', and a "
@@ -126,9 +129,11 @@ def _check_pokemon_map(
     opening = isinstance(proposal, PokemonOpeningProposal)
     operation = proposal.operation
     boss_id = None if opening else proposal.boss_id
-    if strays := unknown_wild_places(proposal.wild, proposal.places):
+    if strays := unknown_place_ids(proposal.wild, proposal.places):
         raise Refusal(f"wild tables for places this map does not add: {strays}")
-    if strays := sorted(set(proposal.town_place_ids) - set(proposal.places)):
+    if strays := unknown_place_ids(proposal.battle_background_ids, proposal.places):
+        raise Refusal(f"`battle_background_ids` names places this map does not add: {strays}")
+    if strays := unknown_place_ids(proposal.town_place_ids, proposal.places):
         raise Refusal(f"`town_place_ids` names places this map does not add: {strays}")
     if opening and not proposal.town_place_ids:
         raise Refusal("the opening map needs a town in `town_place_ids`")

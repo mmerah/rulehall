@@ -6,7 +6,7 @@ from pydantic import Field, model_validator
 
 from rulehall.core.facts import Fact, roll
 from rulehall.core.game import Game
-from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, check_unique
+from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, check_unique, refuse
 from rulehall.core.views import Rows
 from rulehall.engines.pokemon.battle.models import (
     DOUBLE_TEAM_MIN,
@@ -15,6 +15,8 @@ from rulehall.engines.pokemon.battle.models import (
     Ally,
     Ball,
     Battle,
+    BattleBackground,
+    BattleMusic,
     Battler,
     BattleResult,
     BattleSetup,
@@ -46,8 +48,16 @@ from rulehall.engines.rooms.world import OFF_MAP_ID, MapProposal, RegionProposal
 
 WILD = "The wild table of each new place, keyed by place id. A town or a building has no table."
 RIVAL_WAITS = (
-    "Your rival {name} waits here to battle. Voice them; call `start_battle` when the player "
-    "agrees."
+    "Your rival {name} waits here to battle. They block the road: until they battle, the player "
+    "can only go back the way they came, and before the first move every way is blocked. Voice "
+    "them; call `start_battle` when the player agrees."
+)
+TOWN_BATTLE_BACKGROUND: BattleBackground = "gen6-city"
+ROUTE_BATTLE_BACKGROUND: BattleBackground = "gen5-route"
+BATTLE_BACKGROUND_IDS = (
+    "The battle background of each new place, keyed by place id: the image a battle there is "
+    f"fought on. A place left out shows {TOWN_BATTLE_BACKGROUND!r} if it is a town, else "
+    f"{ROUTE_BATTLE_BACKGROUND!r}."
 )
 TOWN_PLACE_IDS = (
     "Ids of the towns of this map. A town holds a Pokemon Center, where the team heals, and a "
@@ -92,6 +102,9 @@ class WildSlot(Frozen):
 class PokemonMapProposal(MapProposal[Trainer]):
     wild: dict[Slug, tuple[WildSlot, ...]] = Field(default_factory=dict, description=WILD)
     town_place_ids: tuple[Slug, ...] = Field(default=(), description=TOWN_PLACE_IDS)
+    battle_background_ids: dict[Slug, BattleBackground] = Field(
+        default_factory=dict, description=BATTLE_BACKGROUND_IDS
+    )
 
 
 class PokemonOpeningProposal(PokemonMapProposal):
@@ -151,6 +164,7 @@ class PokemonWorld(RoomWorld[Trainer]):
     battle: Battle | None = None
     pending_edge: Edge | None = None
     town_place_ids: list[Slug] = Field(default_factory=list)
+    battle_background_ids: dict[Slug, BattleBackground] = Field(default_factory=dict)
     encountered_place_ids: list[Slug] = Field(default_factory=list)
     rival_record: RivalRecord = Field(default_factory=RivalRecord)
     evil_team: EvilTeam = Field(default_factory=EvilTeam)
@@ -159,13 +173,15 @@ class PokemonWorld(RoomWorld[Trainer]):
     def _a_trainer_on_a_map(self) -> Self:
         if self.player.roster:
             raise ValueError("the player's team is `sheet.team`; `roster` is for npc trainers")
-        if strays := unknown_wild_places(self.wild, self.places):
+        if strays := unknown_place_ids(self.wild, self.places):
             raise ValueError(f"wild tables for places that do not exist: {strays}")
         wild_species_ids = {slot.species_id for rows in self.wild.values() for slot in rows}
         if strays := sorted(wild_species_ids - set(self.species_ids)):
             raise ValueError(f"wild species outside `species_ids`: {strays}")
-        if strays := sorted(set(self.town_place_ids) - set(self.places)):
+        if strays := unknown_place_ids(self.town_place_ids, self.places):
             raise ValueError(f"towns that are no place: {strays}")
+        if strays := unknown_place_ids(self.battle_background_ids, self.places):
+            raise ValueError(f"battle backgrounds for places that do not exist: {strays}")
         if len([npc for npc in self.npcs.values() if npc.rival]) > 1:
             raise ValueError("a world has one rival at most")
         if strays := sorted(set(self.evil_team.key_ids()) - set(self.npcs)):
@@ -245,6 +261,12 @@ class PokemonWorld(RoomWorld[Trainer]):
             if self.places[place_id].known
         )
 
+    def battle_background_of(self, place_id: Slug) -> BattleBackground:
+        return self.battle_background_ids.get(
+            place_id,
+            TOWN_BATTLE_BACKGROUND if place_id in self.town_place_ids else ROUTE_BATTLE_BACKGROUND,
+        )
+
     def find_rival(self) -> Trainer | None:
         return next((npc for npc in self.npcs.values() if npc.rival), None)
 
@@ -254,20 +276,21 @@ class PokemonWorld(RoomWorld[Trainer]):
         return (*rows, ("Rival", "; ".join(ledger))) if ledger else rows
 
     def apply_opening_extras(self, opening: PokemonOpeningProposal) -> None:
-        self._add_wild_and_towns(opening)
+        self._add_map_extras(opening)
         self.evil_team.scheme = opening.scheme
         self.open_operation(opening.operation)
 
     def apply_region_extras(self, region: PokemonRegionProposal) -> None:
-        self._add_wild_and_towns(region)
+        self._add_map_extras(region)
         if region.boss_id is not None:
             self.evil_team.boss_id = region.boss_id
         if region.operation is not None:
             self.open_operation(region.operation)
 
-    def _add_wild_and_towns(self, proposal: PokemonMapProposal) -> None:
+    def _add_map_extras(self, proposal: PokemonMapProposal) -> None:
         self.wild.update(proposal.wild)
         self.town_place_ids.extend(proposal.town_place_ids)
+        self.battle_background_ids.update(proposal.battle_background_ids)
 
     def earn_edge(self, edge: Edge) -> None:
         self.pending_edge = edge
@@ -336,6 +359,8 @@ class PokemonWorld(RoomWorld[Trainer]):
                 rng.randrange(SEED_LIMIT),
                 rng.randrange(SEED_LIMIT),
             ),
+            battle_background=self.battle_background_of(here),
+            battle_music=self._battle_music_of(trainer),
             team=tuple(mon.battler() for mon in able),
             foes=foes,
             balls=balls,
@@ -353,6 +378,40 @@ class PokemonWorld(RoomWorld[Trainer]):
             ),
         )
         self.battle = Battle(setup=setup, legendary_id=legendary_id)
+
+    def _battle_music_of(self, trainer: Trainer | None) -> BattleMusic:
+        if trainer is None:
+            return "bw-trainer"
+        if trainer.rival:
+            return "bw-rival"
+        if trainer.badge:
+            return "bw2-kanto-gym-leader"
+        if trainer.id in self.evil_team.key_ids():
+            return "spl-elite4"
+        return "bw-trainer"
+
+    def start_wild_battle(
+        self,
+        species_id: Slug | None,
+        rng: Random,
+        *,
+        weather: Weather | None,
+        terrain: Terrain | None,
+    ) -> list[Fact]:
+        rows = self.wild_rows(species_id)
+        row = rng.choices(rows, weights=[row.weight for row in rows])[0]
+        level = rng.randint(row.lowest, row.highest)
+        foe = Mon.new(row.species_id, level, rng, self.player_sheet.mon_ids())
+        self.setup_battle(
+            None,
+            (foe.battler(),),
+            rng,
+            weather=weather,
+            terrain=terrain,
+            companion=None,
+            legendary_id=None,
+        )
+        return [self.player.card_fact(f"A wild {foe.species_name} appears")]
 
     def require_companion(self, foe: Trainer) -> Trainer:
         companion = next(
@@ -386,15 +445,19 @@ class PokemonWorld(RoomWorld[Trainer]):
         battle.throws.append(throw)
         return throw
 
+    def wild_pick_refusal(self, species_id: Slug | None) -> str:
+        if species_id is None or self.player_sheet.challenge != "nuzlocke":
+            return ""
+        return "in a Nuzlocke the wild table decides: search the grass, with no species picked"
+
     def wild_rows(self, species_id: Slug | None) -> tuple[WildSlot, ...]:
         here = self.current
         rows = self.wild.get(here.id, ())
         if not rows:
             raise Refusal(f"{here.name} has no wild Pokemon")
+        refuse(self.wild_pick_refusal(species_id))
         sheet = self.player_sheet
         if sheet.challenge == "nuzlocke":
-            if species_id is not None:
-                raise Refusal("in a Nuzlocke the wild table decides: leave species_id null")
             if here.id in self.encountered_place_ids:
                 return rows
             return (
@@ -406,6 +469,21 @@ class PokemonWorld(RoomWorld[Trainer]):
         if not chosen:
             raise Refusal(f"{species_id!r} is not in WILD HERE")
         return chosen
+
+    def require_road_open(self, to_id: Slug) -> None:
+        rival = self.find_rival()
+        if rival is None or not rival.known or rival.place_id != self.current.id:
+            return
+        visited = self.visited_place_ids
+        back_id = visited[-2] if len(visited) > 1 else None
+        if to_id == back_id:
+            return
+        way_back = (
+            "there is no way back yet"
+            if back_id is None
+            else f"only the way back to {self.places[back_id].name} is open"
+        )
+        raise Refusal(f"{rival.name} blocks the road until you battle: {way_back}")
 
     def require_town(self) -> None:
         if self.current.id not in self.town_place_ids:
@@ -622,8 +700,8 @@ def legendary_ids(npcs: Iterable[Trainer]) -> list[Slug]:
     return [npc.legendary_id for npc in npcs if npc.legendary_id]
 
 
-def unknown_wild_places(wild: Collection[Slug], places: Collection[Slug]) -> list[Slug]:
-    return sorted(place_id for place_id in wild if place_id not in places)
+def unknown_place_ids(place_ids: Collection[Slug], known_place_ids: Collection[Slug]) -> list[Slug]:
+    return sorted(place_id for place_id in place_ids if place_id not in known_place_ids)
 
 
 def _sent_out_line(setup: BattleSetup, result: BattleResult) -> str:

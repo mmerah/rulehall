@@ -60,6 +60,7 @@ PP_LOW_SHARE = 0.25
 GENDER_SIGNS = {"M": "♂", "F": "♀", "N": ""}
 RAISED, LOWERED = " ▲", " ▼"
 ITEMS_GROUP, LEARN_GROUP, TEAM_GROUP = "Items", "Learn", "Team"
+WILD_ICON_PREFIX = "wild-"
 POCKETS = {
     "potion": "Medicine",
     "full-heal": "Medicine",
@@ -202,6 +203,48 @@ def scheme_panel(world: PokemonWorld) -> Panel | None:
     rows = tuple(PanelRow(name=name, brief=brief, help=SCHEME_HELP[name]) for name, brief in shown)
     help_text = "The evil team's scheme: stop each operation by beating its leader."
     return Panel(title=scheme.name, rows=rows, help=help_text)
+
+
+def wild_panel(world: PokemonWorld) -> Panel | None:
+    slots = world.wild.get(world.current.id, ())
+    if not slots:
+        return None
+    total = sum(slot.weight for slot in slots)
+    species = dex().species
+    rows = tuple(
+        PanelRow(
+            name=species[slot.species_id].name,
+            brief=f"L{slot.lowest}-{slot.highest} · {round(100 * slot.weight / total)}%",
+            icon_id=f"{WILD_ICON_PREFIX}{slot.species_id}",
+            options=(
+                ActionOption(
+                    id=f"wild-{slot.species_id}",
+                    name=f"Battle {species[slot.species_id].name}",
+                    action_name="battle_wild",
+                    args={"species_id": slot.species_id},
+                    refusal=world.wild_pick_refusal(slot.species_id),
+                ),
+            ),
+        )
+        for slot in slots
+    )
+    search = PanelRow(
+        name="Search the grass",
+        brief="Meet a wild Pokemon rolled on this table.",
+        options=(
+            ActionOption(
+                id="wild-search",
+                name="Search the grass",
+                action_name="battle_wild",
+                args={"species_id": None},
+            ),
+        ),
+    )
+    return Panel(
+        title="Wild here",
+        rows=(*rows, search),
+        help="The wild Pokemon of this place: battle one, or search the grass for a random one.",
+    )
 
 
 def pending_decision(sheet: TrainerSheet) -> Decision | None:
@@ -424,6 +467,7 @@ def _learning_decision(sheet: TrainerSheet) -> Decision | None:
             )
         ),
         allows_text=False,
+        silent=True,
     )
 
 
@@ -466,6 +510,7 @@ def _rank_decision(sheet: TrainerSheet) -> Decision | None:
         prompt="Your new badge gives one skill rank. Which skill gains it?",
         options=options,
         allows_text=False,
+        silent=True,
     )
 
 

@@ -26,6 +26,52 @@ type Edge = Literal[
 ]
 type Weather = Literal["rain", "sun", "sand", "snow"]
 type Terrain = Literal["electric", "grassy", "misty", "psychic"]
+type BattleBackground = Literal[
+    "gen6-aquacordetown",
+    "gen6-beach",
+    "gen6-city",
+    "gen6-dampcave",
+    "gen6-darkbeach",
+    "gen6-darkcity",
+    "gen6-darkmeadow",
+    "gen6-deepsea",
+    "gen6-desert",
+    "gen6-earthycave",
+    "gen6-elite4drake",
+    "gen6-forest",
+    "gen6-icecave",
+    "gen6-leaderwallace",
+    "gen6-library",
+    "gen6-meadow",
+    "gen6-orasdesert",
+    "gen6-orassea",
+    "gen6-skypillar",
+    "gen5-beach",
+    "gen5-beachshore",
+    "gen5-city",
+    "gen5-dampcave",
+    "gen5-deepsea",
+    "gen5-desert",
+    "gen5-earthycave",
+    "gen5-forest",
+    "gen5-icecave",
+    "gen5-meadow",
+    "gen5-mountain",
+    "gen5-river",
+    "gen5-route",
+    "gen5-thunderplains",
+    "gen5-volcanocave",
+    "gen4-cave",
+    "gen4-indoors",
+    "gen4-snow",
+    "gen4-water",
+    "gen3-arena",
+    "gen3-cave",
+    "gen3-forest",
+    "gen3-ocean",
+    "gen3-sand",
+]
+type BattleMusic = Literal["bw-trainer", "bw-rival", "bw2-kanto-gym-leader", "spl-elite4"]
 
 STATUSES: tuple[Status, ...] = ("brn", "frz", "par", "psn", "tox", "slp")
 TEAM_MAX = 6
@@ -125,6 +171,8 @@ class BattleSetup(Frozen):
     player_avatar_id: Slug
     foe_avatar_id: Slug | None
     seed: tuple[int, int, int, int]
+    battle_background: BattleBackground
+    battle_music: BattleMusic
     team: tuple[Battler, ...] = Field(min_length=1, max_length=TEAM_MAX)
     foes: tuple[Battler, ...] = Field(min_length=1, max_length=TEAM_MAX)
     balls: tuple[Ball, ...] = ()
