@@ -34,7 +34,7 @@ TASK = (
     "Each turn you get the state of the battle and pick one command for each of your Pokemon "
     "listed in THE CHOICES. Aim to win the battle: knock out every foe Pokemon and keep yours "
     "alive. Before you answer, check who moves first, which move knocks out or hurts the most, "
-    "what the foe will likely do, and whether a switch is safer. Answer with JSON only."
+    "and what the foe will likely do. Answer with JSON only."
 )
 HOW_A_BATTLE_WORKS = (
     "- Each trainer has a team of up to 6 Pokemon. Only the Pokemon on the field fight; the "
@@ -108,10 +108,12 @@ TACTICS = (
     "- First look for a knock-out: a move marked KO does at least the target's remaining HP. A "
     "sure KO is better than a stronger move that needs a high roll.",
     "- Check the SPEED ORDER: a faster foe that can knock your Pokemon out stops your move. "
-    "Then switch to a Pokemon that takes little from it, or use a priority move.",
+    "Use a priority move, or see the switch rule below.",
     "- Use moves that are super effective; avoid moves the target resists or is immune to.",
-    "- Switch out a Pokemon that takes heavy damage and deals little. DAMAGE YOU TAKE shows how "
-    "your bench Pokemon would fare. Do not switch without a reason: it costs the turn.",
+    "- Staying in and attacking is the default. Switch only to dodge a sure knock-out, and only "
+    "when a bench Pokemon takes clearly less damage; DAMAGE YOU TAKE shows how your bench "
+    "Pokemon would fare. A switch costs the turn.",
+    "- A Pokemon that just came in stays and fights. Do not switch it out again.",
     "- Status and stat-raising moves pay off early, while your Pokemon is healthy and safe. "
     "When it is in danger, attack.",
     "- A foe likely has moves of its own types, even if you have not seen them yet.",
