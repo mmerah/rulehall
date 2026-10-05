@@ -1,4 +1,5 @@
-from typing import Self
+from collections.abc import Sequence
+from typing import ClassVar, Self
 
 from pydantic import Field, model_validator
 
@@ -9,6 +10,7 @@ from rulehall.engines.pokemon.dex import avatars, dex
 
 
 class PokemonPack(Pack):
+    mixable: ClassVar[bool] = True
     species_ids: tuple[Slug, ...] = Field(min_length=1)
     starters: tuple[Slug, ...] = Field(min_length=1)
 
@@ -21,6 +23,18 @@ class PokemonPack(Pack):
         if strays := sorted(set(self.starters) - set(self.species_ids)):
             raise ValueError(f"starters that are not in species_ids: {strays}")
         return self
+
+    def joined(self, others: Sequence[Pack]) -> Self:
+        if not others:
+            return self
+        species_ids = list(self.species_ids)
+        for other in others:
+            if not isinstance(other, PokemonPack):
+                raise TypeError(f"a Pokemon pack joins no {type(other).__name__}")
+            species_ids.extend(other.species_ids)
+        return self.model_validate(
+            {**self.model_dump(), "species_ids": tuple(dict.fromkeys(species_ids))}
+        )
 
     def sections(self, *, opening: bool) -> Sections:
         pokedex = dex()

@@ -257,7 +257,7 @@ async def test_a_written_opening_becomes_a_playable_scenario(tmp_path: Path) -> 
         scope="One crossing, before the tide turns.",
         art_style="woodcut",
     )
-    scenario_id = await runtime.new_scenario(LONER4E, description, None, "srd", "kael")
+    scenario_id = await runtime.new_scenario(LONER4E, description, None, "srd", (), "kael")
 
     # The scene bar refuses the first answer, and the reason goes back with the re-prompt.
     assert "these name nobody" in roles.prompts[1][1]
@@ -294,6 +294,7 @@ async def test_an_opening_the_rules_will_not_play_never_reaches_disk(tmp_path: P
             ),
             None,
             "srd",
+            (),
             "kael",
         )
 
@@ -307,7 +308,7 @@ async def test_a_scenario_for_unknown_rules_is_refused(tmp_path: Path) -> None:
     )
 
     with pytest.raises(Refusal, match="no rules 'nowhere'"):
-        _ = await runtime.new_scenario(EngineId("nowhere"), description, None, "srd", "kael")
+        _ = await runtime.new_scenario(EngineId("nowhere"), description, None, "srd", (), "kael")
 
 
 async def test_a_scenario_written_from_a_document_carries_its_text(tmp_path: Path) -> None:
@@ -322,6 +323,7 @@ async def test_a_scenario_written_from_a_document_carries_its_text(tmp_path: Pat
         ),
         SOURCE_MD,
         "srd",
+        (),
         "kael",
     )
 

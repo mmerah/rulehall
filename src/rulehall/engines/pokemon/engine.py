@@ -200,7 +200,7 @@ class PokemonEngine(
 
     def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> PokemonWorld:
         opening: PokemonOpeningProposal = scenario.opening
-        pack = self.packs.require_pack(scenario.pack_id)
+        pack = self.packs.require_joined(scenario.pack_id, scenario.extra_pack_ids)
         check_opening(opening, pack.species_ids)
         world = self.world_model.opening(
             opening, self.player_of(character), (), species_ids=pack.species_ids

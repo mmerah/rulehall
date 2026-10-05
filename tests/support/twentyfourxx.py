@@ -55,6 +55,7 @@ def small_world() -> TwentyFourXXGame:
         ),
         engine_id=EngineId("twentyfourxx"),
         pack_id=SRD_PACK,
+        extra_pack_ids=(),
         chapters=[
             Chapter(
                 title="The Loading Bay",

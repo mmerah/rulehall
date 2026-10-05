@@ -180,7 +180,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         if state.request is not None:
             raise Refusal("the save carries a pending request")
         self.validate(state)
-        self.packs.require_pack(state.pack_id)
+        self.packs.require_joined(state.pack_id, state.extra_pack_ids)
         return state
 
     def published(self, _state: Game[W], /) -> tuple[MasterTool, ...]:
@@ -255,7 +255,9 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         guidance: str | None = None,
     ) -> A:
         if guidance is None:
-            guidance = self.packs.guidance(draft.pack_id, self.worldsmith_guidance, opening=False)
+            guidance = self.packs.guidance(
+                draft.pack_id, draft.extra_pack_ids, self.worldsmith_guidance, opening=False
+            )
         prompt = render_worldsmith(
             self.worldsmith_role,
             source=draft.source,
@@ -289,6 +291,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         description: ScenarioDescription,
         source: str,
         pack_id: Slug,
+        extra_pack_ids: tuple[Slug, ...],
         worldsmith: RoleAnswer,
         check: Callable[[AnyScenario], None],
     ) -> AnyScenario:
@@ -299,6 +302,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
                 ),
                 engine_id=self.id,
                 pack_id=pack_id,
+                extra_pack_ids=extra_pack_ids,
                 source=source,
                 opening=proposal,
             )
@@ -310,7 +314,9 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
             scope=description.scope,
             world_sections=self.opening_sections,
             intent=self.opening_intent,
-            guidance=self.packs.guidance(pack_id, self.worldsmith_guidance, opening=True),
+            guidance=self.packs.guidance(
+                pack_id, extra_pack_ids, self.worldsmith_guidance, opening=True
+            ),
             answer_model=self.opening_model,
         )
         return built(
@@ -408,7 +414,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
                 f"{character.id!r} is written for the {character.engine_id!r} rules, which the "
                 f"{self.id!r} engine does not play"
             )
-        self.packs.require_pack(scenario.pack_id)
+        self.packs.require_joined(scenario.pack_id, scenario.extra_pack_ids)
         state = parse(
             Game[self.world_model],
             {
@@ -417,6 +423,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
                 "scenario_description": scenario.description,
                 "engine_id": self.id,
                 "pack_id": scenario.pack_id,
+                "extra_pack_ids": scenario.extra_pack_ids,
                 "source": scenario.source,
                 "world": self.new_game(scenario, character),
             },

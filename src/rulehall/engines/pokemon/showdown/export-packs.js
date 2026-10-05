@@ -7,6 +7,7 @@ const DEX = path.join(__dirname, "..", "dex.json");
 const PACKS = path.join(__dirname, "..", "packs");
 const POKEDEX_API = "https://pokeapi.co/api/v2/pokedex/";
 const REGIONS = {
+  national: {},
   srd: { dexes: ["kanto"] },
   johto: { dexes: ["original-johto"] },
   hoenn: { dexes: ["hoenn"] },
@@ -25,6 +26,7 @@ const exported = Object.keys(JSON.parse(fs.readFileSync(DEX, "utf8")).species).m
 );
 
 async function numbersOf(dexes) {
+  if (!dexes) return [...new Set(exported.map((s) => s.num))].sort((a, b) => a - b);
   const lists = await pool(dexes, (name) => fetchJson(POKEDEX_API + name));
   const nums = lists.flatMap((list) =>
     list.pokemon_entries.map((entry) => Number(entry.pokemon_species.url.split("/").at(-2))),
@@ -45,9 +47,9 @@ async function main() {
   for (const [id, { dexes, forme }] of Object.entries(REGIONS)) {
     const file = path.join(PACKS, `${id}.json`);
     const pack = JSON.parse(fs.readFileSync(file, "utf8"));
-    pack.species = (await numbersOf(dexes)).flatMap((num) => idsOf(num, forme));
+    pack.species_ids = (await numbersOf(dexes)).flatMap((num) => idsOf(num, forme));
     fs.writeFileSync(file, JSON.stringify(pack, null, 2) + "\n");
-    console.log(`${id} ${pack.species.length} species`);
+    console.log(`${id} ${pack.species_ids.length} species`);
   }
 }
 

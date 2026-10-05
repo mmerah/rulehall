@@ -66,11 +66,12 @@ class Runtime:
         description: ScenarioDescription,
         document: Path | None,
         pack_id: Slug,
+        extra_pack_ids: tuple[Slug, ...],
         character_id: Slug,
     ) -> Slug:
         engine = self.require_engine(engine_id)
         character = self.library.read_character(character_id, engine.id, engine.character_model)
-        engine.packs.require_pack(pack_id)
+        engine.packs.require_joined(pack_id, extra_pack_ids)
         source = await to_thread(given_text, description.premise, document)
         scenario_id = slug(description.title, self.library.scenario_ids())
 
@@ -79,7 +80,12 @@ class Runtime:
 
         with self.gate.creation():
             scenario = await engine.write_opening(
-                description, source, pack_id, role_answer(self.roles, "worldsmith"), check
+                description,
+                source,
+                pack_id,
+                extra_pack_ids,
+                role_answer(self.roles, "worldsmith"),
+                check,
             )
         self.library.write_scenario(scenario_id, scenario)
         LOGGER.info("scenario written: scenario_id=%s title=%r", scenario_id, description.title)

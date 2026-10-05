@@ -52,6 +52,7 @@ class Scenario[O: BaseModel](Frozen):
     description: ScenarioDescription
     engine_id: EngineId
     pack_id: Slug
+    extra_pack_ids: tuple[Slug, ...] = ()
     source: str = ""
     opening: O
 
@@ -80,6 +81,7 @@ class Game[W: BaseModel](Mutable):
     scenario_description: ScenarioDescription
     engine_id: EngineId
     pack_id: Slug
+    extra_pack_ids: tuple[Slug, ...]
     source: str = ""
     pending: Decision | None = None
     # `exclude=True` keeps it out of every save, so `restore` only refuses a hand-edited one.

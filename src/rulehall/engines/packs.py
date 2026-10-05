@@ -1,9 +1,9 @@
 import logging
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Self
+from typing import ClassVar, Self
 
 from pydantic import Field, model_validator
 
@@ -74,6 +74,7 @@ class Location(Frozen):
 
 
 class Pack(Frozen):
+    mixable: ClassVar[bool] = False
     name: str = Field(min_length=1)
     origin: str
     license: str
@@ -82,6 +83,11 @@ class Pack(Frozen):
     rules: str = ""
     locations: tuple[Location, ...] = ()
     seeds: tuple[str, ...] = ()
+
+    def joined(self, others: Sequence["Pack"]) -> Self:
+        if others and not self.mixable:
+            raise Refusal(f"the {self.name!r} pack joins no other pack")
+        return self
 
     def sections(self, *, opening: bool) -> Sections:
         name_lines = "\n".join(
@@ -179,6 +185,11 @@ class PackSet[K: Pack]:
             raise Refusal(f"pack {pack_id!r} is not installed for {self.engine_id!r}")
         return found
 
+    def require_joined(self, pack_id: Slug, extra_pack_ids: Sequence[Slug]) -> K:
+        return self.require_pack(pack_id).joined(
+            [self.require_pack(extra_pack_id) for extra_pack_id in extra_pack_ids]
+        )
+
     def played(self, pack_id: Slug) -> tuple[K, ...]:
         srd = self.srd()
         return (srd,) if pack_id == SRD_PACK else (srd, self.require_pack(pack_id))
@@ -191,8 +202,15 @@ class PackSet[K: Pack]:
         )
         return (DecisionOption(id=SRD_PACK, name=self.srd().name), *rest)
 
-    def guidance(self, pack_id: Slug, engine_guidance: str, *, opening: bool) -> str:
-        pack = self.require_pack(pack_id)
+    def guidance(
+        self,
+        pack_id: Slug,
+        extra_pack_ids: Sequence[Slug],
+        engine_guidance: str,
+        *,
+        opening: bool,
+    ) -> str:
+        pack = self.require_joined(pack_id, extra_pack_ids)
         if not (parts := pack.sections(opening=opening)):
             return engine_guidance
         return f"{engine_guidance}\n\nPACK: {pack.name}\n\n{sections(parts)}"

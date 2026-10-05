@@ -130,6 +130,7 @@ def _game(world: TunnelGoonsWorld, *, scenario_id: Slug, chapter: Chapter) -> Tu
         ),
         engine_id=EngineId("tunnelgoons"),
         pack_id="srd",
+        extra_pack_ids=(),
         chapters=[chapter],
         world=world,
     )

@@ -224,6 +224,7 @@ class ScenarioForm:
         self.engine = engine = runtime.require_engine(engine_id)
         self.characters = runtime.catalog().characters_for(engine_id)
         self.pack_id = engine.packs.options()[0].id
+        self.extra_pack_ids: tuple[Slug, ...] = ()
         self.seed_button: ui.button
         self.backdrop_button: ui.button
         self.character: ui.select
@@ -263,6 +264,7 @@ class ScenarioForm:
 
     def draw_character_fields(self) -> None:
         _pack_select(self.engine.packs.options(), self.pack_id, self.choose_pack)
+        self.draw_extra_packs()
         with ui.row().classes("items-center game-gap-lg"):
             self.seed_button = ui.button(
                 "Roll a seed", icon="sym_r_casino", on_click=self.roll_seed
@@ -277,9 +279,32 @@ class ScenarioForm:
         )
         self._show_pack_buttons()
 
+    @ui.refreshable_method
+    def draw_extra_packs(self) -> None:
+        if not self.engine.pack_model.mixable:
+            return
+        ui.select(
+            options={
+                option.id: option.name
+                for option in self.engine.packs.options()
+                if option.id != self.pack_id
+            },
+            value=list(self.extra_pack_ids),
+            label="Extra dexes",
+            multiple=True,
+            on_change=self.choose_extra_packs,
+        ).props("use-chips")
+
     def choose_pack(self, event: ValueChangeEventArguments[str]) -> None:
         self.pack_id = content_id(event.value)
+        self.extra_pack_ids = tuple(
+            pack_id for pack_id in self.extra_pack_ids if pack_id != self.pack_id
+        )
+        self.draw_extra_packs.refresh()
         self._show_pack_buttons()
+
+    def choose_extra_packs(self, event: ValueChangeEventArguments[list[str]]) -> None:
+        self.extra_pack_ids = tuple(content_id(value) for value in event.value)
 
     def roll_seed(self) -> None:
         if seeds := self.pack.seeds:
@@ -320,7 +345,12 @@ class ScenarioForm:
         async def writing() -> None:
             played_id = content_id(character_id)
             scenario_id = await self.runtime.new_scenario(
-                self.engine.id, description, document, self.pack_id, played_id
+                self.engine.id,
+                description,
+                document,
+                self.pack_id,
+                self.extra_pack_ids,
+                played_id,
             )
             LOGGER.info("scenario created: scenario_id=%s", scenario_id)
             ui.navigate.to(game_path(SavedGameKey(scenario_id=scenario_id, character_id=played_id)))
