@@ -27,6 +27,7 @@ LOAD_SPEED = 60
 # Where `stage.html` puts the iframe, and its scale.
 FRAME_LEFT, FRAME_TOP, FRAME_SCALE = 192, 74, 1.2
 TRANSCRIPT = ".game-transcript .q-scrollarea__container"
+BATTLE_CHOICES = ".game-battle button.game-choice:enabled"
 THEMES = {
     "title": ("#6b4fd8", "#c0507a"),
     "loner": ("#6b4fd8", "#b0507a"),
@@ -207,7 +208,7 @@ class Demo:
             working = self.app.locator(".game-working:visible").count()
             box = self.app.locator(".game-composer textarea")
             disabled = box.is_disabled() if box.count() else True
-            battle = self.app.get_by_role("button", name="Battle").is_visible()
+            battle = self.app.get_by_role("button", name="Battle", exact=True).is_visible()
             if not working and (not disabled or battle):
                 return
             self.page.wait_for_timeout(200)
@@ -348,23 +349,23 @@ class Demo:
         self.slam("Pokémon.", "A WHOLE REGION", "poke", "/game/tern-isles/kael")
         st.caption("Catch them *all.", "d20 checks, gyms and battles")
         self.turn("I walk into the tall grass to find a wild Pokemon.")
-        battle = app.get_by_role("button", name="Battle")
+        battle = app.get_by_role("button", name="Battle", exact=True)
         self.fast(FAST)
         battle.wait_for(timeout=60000)
         self.fast(1)
         st.click(battle, 600)
         st.caption("Real *Showdown battles.", "Pick a move. The simulator plays it.")
-        choices = app.locator(".game-battle-choices button:enabled")
+        choices = app.locator(BATTLE_CHOICES)
         self.fast(FAST)
         choices.first.wait_for(timeout=60000)
         self.page.wait_for_timeout(1500)
         self.fast(1)
-        st.zoom(1.35, app.locator(".game-battle").first, dy=0.3, ms=600)
+        st.zoom(1.35, app.locator(".game-battle").first, dy=0.5, ms=600)
         st.click(choices.first, 600)  # sends out the starter
         # Weaken, then throw; the battle may end at any step.
         thrown = False
         for move in ("Scratch", "Poké Ball", "Scratch", "Poké Ball", "Poké Ball"):
-            button = app.locator(".game-battle-choices button:enabled").filter(has_text=move)
+            button = app.locator(BATTLE_CHOICES).filter(has_text=move)
             self.fast(FAST)
             end = time.time() + 40
             while not button.count() and not self.closed_battle() and time.time() < end:
