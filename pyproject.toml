@@ -1,6 +1,6 @@
 [project]
 name = "rulehall"
-version = "0.5.4"
+version = "0.6.0"
 description = "Solo tabletop role-playing: AI roles play many rule sets, code owns the dice"
 license = "MIT"
 license-files = ["LICENSE"]
