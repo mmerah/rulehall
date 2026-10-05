@@ -117,9 +117,38 @@ class Dex(Frozen):
         )
 
 
+class Avatar(Frozen):
+    id: Slug
+    label: str
+
+
+class NpcAvatars(Frozen):
+    classes: tuple[Avatar, ...] = Field(min_length=1)
+    leaders: tuple[Avatar, ...] = Field(min_length=1)
+    evil_team: tuple[Avatar, ...] = Field(min_length=1)
+    rivals: tuple[Avatar, ...] = Field(min_length=1)
+
+    def listed(self) -> tuple[tuple[str, tuple[Avatar, ...]], ...]:
+        return (
+            ("classes", self.classes),
+            ("leaders, Elite Four and champions", self.leaders),
+            ("evil team grunts, admins and bosses", self.evil_team),
+            ("rivals and professors", self.rivals),
+        )
+
+
 class Avatars(Frozen):
     player: tuple[Slug, ...] = Field(min_length=1)
-    npc: tuple[Slug, ...] = Field(min_length=1)
+    npc: NpcAvatars
+
+    def npc_ids(self) -> tuple[Slug, ...]:
+        return tuple(avatar.id for _, group in self.npc.listed() for avatar in group)
+
+    def npc_group_lines(self) -> str:
+        return "\n".join(
+            f"{label}: " + ", ".join(f"{avatar.id} ({avatar.label})" for avatar in group)
+            for label, group in self.npc.listed()
+        )
 
 
 class BagItem(Frozen):

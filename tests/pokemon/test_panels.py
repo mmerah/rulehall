@@ -67,7 +67,7 @@ def test_the_cap_tag_shows_only_at_a_cap_a_badge_can_lift() -> None:
 def test_a_trainer_class_outside_the_list_is_refused() -> None:
     rook = started().world.npcs["rook"].model_dump()
 
-    with pytest.raises(ValidationError, match="'ash' is no id from TRAINER CLASSES"):
+    with pytest.raises(ValidationError, match="'ash' is no id from TRAINER LOOKS"):
         _ = Trainer.model_validate({**rook, "avatar_id": "ash"})
 
 

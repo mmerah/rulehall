@@ -86,7 +86,7 @@ ROSTER = (
     "not battle."
 )
 BADGE = "The badge this trainer gives when beaten, such as a gym leader's. Empty for most trainers."
-AVATAR_ID = "How this person looks: exact id from TRAINER CLASSES."
+AVATAR_ID = "How this person looks: exact id from TRAINER LOOKS."
 KEY_TRAINER = "key trainer (a gym leader, the rival, an operation's leader or the team's boss)"
 STYLE = (
     f"One line on how this {KEY_TRAINER} battles, such as 'sets up rain, then sweeps'. Empty for "
@@ -627,8 +627,8 @@ class Trainer(Sheeted[TrainerSheet], Dweller):
     def _a_listed_avatar(self) -> Self:
         if self.sheet is not None and self.avatar_id not in avatars().player:
             raise ValueError(f"{self.avatar_id!r} is no player look")
-        if self.sheet is None and self.avatar_id not in avatars().npc:
-            raise ValueError(f"{self.avatar_id!r} is no id from TRAINER CLASSES")
+        if self.sheet is None and self.avatar_id not in avatars().npc_ids():
+            raise ValueError(f"{self.avatar_id!r} is no id from TRAINER LOOKS")
         return self
 
     @model_validator(mode="after")

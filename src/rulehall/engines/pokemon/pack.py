@@ -44,7 +44,7 @@ class PokemonPack(Pack):
                 "SPECIES",
                 ", ".join(pokedex.species_ref(species_id) for species_id in self.species_ids),
             ),
-            ("TRAINER CLASSES", ", ".join(avatars().npc)),
+            ("TRAINER LOOKS", avatars().npc_group_lines()),
         )
 
 

@@ -195,7 +195,8 @@ function spriteFiles(sprites) {
       );
     }
   }
-  plain.push(...[...avatars.player, ...avatars.npc].map((name) => `sprites/trainers/${name}.png`));
+  const npcIds = Object.values(avatars.npc).flatMap((group) => group.map((avatar) => avatar.id));
+  plain.push(...[...avatars.player, ...npcIds].map((name) => `sprites/trainers/${name}.png`));
   return [plain, withFallback];
 }
 

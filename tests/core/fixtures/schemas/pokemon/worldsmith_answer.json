@@ -166,7 +166,7 @@
               "description": "A legendary species id from SPECIES, only for a legendary Pokemon that lives in this map, one of a kind: no roster, no badge; it battles alone as a wild Pokemon. Null for a person."
             },
             "avatar_id": {
-              "description": "How this person looks: exact id from TRAINER CLASSES.",
+              "description": "How this person looks: exact id from TRAINER LOOKS.",
               "type": "string"
             }
           },
