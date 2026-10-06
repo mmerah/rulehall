@@ -18,7 +18,7 @@ from rulehall.engines.pokemon.rules import (
     tm_move,
 )
 from rulehall.engines.pokemon.scheme import SCHEME_STAGES
-from rulehall.engines.pokemon.sheet import Mon, MoveSlot, TrainerSheet
+from rulehall.engines.pokemon.sheet import Learning, Mon, MoveSlot, TrainerSheet
 from rulehall.engines.pokemon.world import PokemonWorld
 
 type StatLine = tuple[str, int, str]
@@ -299,6 +299,11 @@ def move_stats(move: Move) -> str:
     return " · ".join((*((f"{move.power} BP",) if move.power else ()), accuracy))
 
 
+def move_brief(move: Move, pp: int | None = None) -> str:
+    left = f"PP {move.pp}" if pp is None else f"PP {pp}/{move.pp}"
+    return " · ".join((move.type, move.category, move_stats(move), left))
+
+
 def move_summary(move: Move) -> str:
     return f"{move_stats(move)} · {move.text}" if move.text else move_stats(move)
 
@@ -361,20 +366,10 @@ def mon_options(mon: Mon, world: PokemonWorld, bag: list[BagId]) -> tuple[Action
             ),
         )
     )
-    remembered = (
-        ActionOption(
-            id=f"remember-{mon.mon_id}-{move_id}",
-            name=f"Remember {dex().moves[move_id].name}",
-            action_name="relearn_move",
-            args={"mon_id": mon.mon_id, "move_id": move_id},
-            group=LEARN_GROUP,
-        )
-        for move_id in mon.relearnable()
-    )
     return (
         *take,
         *(item_option(mon, item_id, world) for item_id in bag),
-        *remembered,
+        *(_remember_option(mon, move_id) for move_id in mon.relearnable()),
         ActionOption(
             id=f"store-mon-{mon.mon_id}",
             name=f"Send {name} to the Box",
@@ -421,17 +416,22 @@ def box_options(boxed: Mon, sheet: TrainerSheet) -> tuple[ActionOption, ...]:
 def item_option(mon: Mon, item_id: BagId, world: PokemonWorld) -> ActionOption:
     item = item_of(item_id)
     name = mon.name
+    brief = help_text = ""
     match item.kind:
         case "held":
             label, action_name, group = f"Give the {item.name} to {name}", "hold_item", ITEMS_GROUP
         case "tm":
-            label, action_name = f"Teach {tm_move(item_id).name} to {name}", "teach_move"
+            move = tm_move(item_id)
+            label, action_name = f"Teach {move.name} to {name}", "teach_move"
             group = LEARN_GROUP
+            brief, help_text = move_brief(move), move.text
         case _:
             label, action_name, group = f"Use the {item.name} on {name}", "use_item", ITEMS_GROUP
     return ActionOption(
         id=f"{item_id}-{mon.mon_id}",
         name=label,
+        brief=brief,
+        help=help_text,
         action_name=action_name,
         args={"mon_id": mon.mon_id, "item_id": item_id},
         group=group,
@@ -444,30 +444,61 @@ def _learning_decision(sheet: TrainerSheet) -> Decision | None:
         return None
     learning = sheet.learning[0]
     mon = sheet.require_mon(learning.mon_id)
-    move = dex().moves[learning.move_id].name
+    new_move = dex().moves[learning.move_id]
+    description = f": {new_move.text}" if new_move.text else ""
     return Decision(
         kind="new-move",
         prompt=(
-            f"{mon.name} wants to learn {move}. It knows four moves. Forget one, or skip {move}?"
+            f"{mon.name} wants to learn {new_move.name} ({move_brief(new_move)}){description} "
+            f"It knows four moves. Forget one, or skip {new_move.name}?"
         ),
-        options=tuple(
-            ActionOption(
-                id=forget_id or "skip",
-                name=name,
-                action_name="learn_move",
-                args={
-                    "mon_id": learning.mon_id,
-                    "move_id": learning.move_id,
-                    "forget_id": forget_id,
-                },
-            )
-            for forget_id, name in (
-                *((slot.move_id, f"Forget {slot.move.name}") for slot in mon.moves),
-                (None, f"Skip {move}"),
-            )
+        options=(
+            *(
+                _learn_option(
+                    learning,
+                    slot.move_id,
+                    f"Forget {slot.move.name}",
+                    move_brief(slot.move, slot.pp),
+                    slot.move.text,
+                )
+                for slot in mon.moves
+            ),
+            _learn_option(
+                learning, None, f"Skip {new_move.name}", move_brief(new_move), new_move.text
+            ),
         ),
         allows_text=False,
         silent=True,
+    )
+
+
+def _learn_option(
+    learning: Learning, forget_id: Slug | None, name: str, brief: str, help_text: str
+) -> ActionOption:
+    return ActionOption(
+        id=forget_id or "skip",
+        name=name,
+        brief=brief,
+        help=help_text,
+        action_name="learn_move",
+        args={
+            "mon_id": learning.mon_id,
+            "move_id": learning.move_id,
+            "forget_id": forget_id,
+        },
+    )
+
+
+def _remember_option(mon: Mon, move_id: Slug) -> ActionOption:
+    move = dex().moves[move_id]
+    return ActionOption(
+        id=f"remember-{mon.mon_id}-{move_id}",
+        name=f"Remember {move.name}",
+        brief=move_brief(move),
+        help=move.text,
+        action_name="relearn_move",
+        args={"mon_id": mon.mon_id, "move_id": move_id},
+        group=LEARN_GROUP,
     )
 
 
