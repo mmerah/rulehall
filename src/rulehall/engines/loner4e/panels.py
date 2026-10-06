@@ -21,8 +21,8 @@ SHEET_HELP = {
     "Goal": "What this character wants; reaching it, or losing it for good, can end the adventure.",
     "Motive": "Why this character wants their goal.",
     "Nemesis": "Who or what stands against this character.",
-    "Luck": "How long this character holds out in a fight: each lost exchange costs some, and it "
-    "refills when a fight starts or ends and in every quiet scene.",
+    "Luck": "How long this character holds out in a conflict: each lost exchange costs some, and "
+    "it refills when a conflict starts or ends and in every quiet scene.",
     "Twist Counter": "Doubles on the oracle's dice outside a fight add one; at "
     f"{DOUBLES_PER_TWIST} a twist shakes up the scene.",
 }
@@ -39,7 +39,8 @@ CONFLICT_HELP = (
 TAKE_BREATHER = ActionOption(
     id="breather",
     name="Take the breather",
-    help="Type how you rest; luck refills.",
+    help="Type what you do with the pause: rest, plan, look into something, or spend time "
+    "with someone.",
     action_name="take_breather",
     needs_words=True,
 )

@@ -40,7 +40,7 @@ twist counter: 0/3
 
 # YOU PLAY FOR
 - Kael[player] — A scarred relic-hunter who comes wherever something old lies sealed, and does not leave it shut.
-  concept: A Wary Relic-Hunter; skills: Reads Old Stonework, Quiet Hands; frailties: Never Walks Away; gear: Pry Bar, Chalk and Wire, A Guttering Lantern; luck: 6/6
+  concept: A Wary Relic-Hunter; skills: Reads Old Stonework, Quiet Hands; frailties: Never Walks Away; gear: Pry Bar, A Guttering Lantern; luck: 6/6
 
 # HERE WITH THE PLAYER
 - Mara[mara] — The abbey's last scribe, cautious and tired, still cataloguing books nobody will read.
@@ -56,7 +56,6 @@ twist counter: 0/3
 - Quiet Hands: Picks locks, pockets, and latches without a sound.
 - Never Walks Away: Cannot leave a fight, or a wrong, unfinished.
 - Pry Bar: Forces a door, a crate, or a stubborn slab of stone.
-- Chalk and Wire: Marks a trail and rigs a lock from chalk and a length of wire.
 
 # RECENT PLAY (turn 3)
 ## Scene: The Vault Stair

@@ -40,7 +40,7 @@ location: The abbey of Saint Corvin
 
 # THE WHOLE CAST
 - Kael[player] — A scarred relic-hunter who comes wherever something old lies sealed, and does not leave it shut.
-  concept: A Wary Relic-Hunter; skills: Reads Old Stonework, Quiet Hands; frailties: Never Walks Away; gear: Pry Bar, Chalk and Wire, A Guttering Lantern; luck: 6/6
+  concept: A Wary Relic-Hunter; skills: Reads Old Stonework, Quiet Hands; frailties: Never Walks Away; gear: Pry Bar, A Guttering Lantern; luck: 6/6
 - Mara[mara] — The abbey's last scribe, cautious and tired, still cataloguing books nobody will read.
   concept: A Cautious Scribe; skills: Reads a Faded Hand, Knows the Catalogue; frailties: Slow to Trust; gear: Ledger and Ink; goal: Finish the catalogue before anyone strips the abbey; motive: It is the last thing the abbot asked of her; luck: 6/6
   met; last seen in: The Abbot's Study

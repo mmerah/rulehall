@@ -55,7 +55,7 @@ nobody travels with you
 - Concept: A Wary Relic-Hunter
 - Skills: Reads Old Stonework, Quiet Hands
 - Frailties: Never Walks Away
-- Gear: Pry Bar, Chalk and Wire, A Guttering Lantern
+- Gear: Pry Bar, A Guttering Lantern
 - Conditions: Listening
 - Luck: 6/6
 

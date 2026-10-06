@@ -20,7 +20,7 @@ OUTCOME_WORDING: dict[str, str] = {
     "yes-and": "yes, and better than hoped",
     "yes": "yes",
     "yes-but": "yes, but at a cost",
-    "no-but": "no, but not badly",
+    "no-but": "no, but with a small gain",
     "no": "no",
     "no-and": "no, and worse",
 }
