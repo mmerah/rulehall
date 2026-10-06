@@ -77,7 +77,7 @@ export default {
   },
   async mounted() {
     window.exports = window;
-    window.Config = { routes: { client: location.host + this.base } };
+    window.Config = { routes: { client: location.host + this.base }, customcolors: {} };
     const still = this.sprites === "2d";
     window.Storage = { prefs: (key) => ({ noanim: still, bwgfx: still })[key] };
     if (!window.Battle) await this.load();
