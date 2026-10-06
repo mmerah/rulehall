@@ -19,13 +19,16 @@ Rulehall is not affiliated with, endorsed or sponsored by Nintendo, Creatures In
 |---|---|---|
 | The engine, the rules and the battle driver | This repo | MIT, Rulehall |
 | The simulator | npm, installed at setup | MIT |
-| The battle view (`battle*.js`), Showdown's data files | Fetched at setup | MIT. The file headers say "the battle replay/animation engine (battle-*.ts) by itself is MIT" |
-| The rest of the Showdown client | Not used | AGPLv3. We fetch none of it and draw our own choice buttons |
+| `battle.js`, `battledata.js`, `battle-tooltips.js`, `data/graphics.js` | Fetched at setup | MIT, per file headers; move animations CC0 |
+| `data/pokedex.js`, `moves.js`, `abilities.js`, `items.js` | Fetched at setup | MIT |
+| `battle-sound.js`, `battle-log.css`, `data/teambuilder-tables.js`, `data/pokedex-mini*.js` | Fetched at setup, never stored in this repo or the image | No file header: the client's AGPLv3 applies. Source: <https://github.com/smogon/pokemon-showdown-client> |
+| `battle.css` | Fetched at setup | GPLv2 (file header) |
+| The rest of the client | Not used | AGPLv3 |
 | jQuery, html-sanitizer | Fetched at setup | MIT, Apache 2.0 |
 | `dex.json` | This repo, built by `export-dex` | Numbers from Showdown's MIT data. The names, the ability texts and the Pokedex entries are the owners' text, through PokeAPI |
 | Pokemon and trainer sprites, battle backgrounds, music, cries, item icons | Fetched at setup, with the version in `showdown/assets-version`: in Docker, a new version fetches the new files on the next container start; locally, run the setup again | © Nintendo, Creatures Inc., Game Freak, The Pokemon Company |
 
-The git repo holds no Nintendo art or sound files. The only Pokemon images in it are screenshots of play, in the demo video and the social card. The setup fetches the art and sound to your computer from the same public servers that the Showdown website uses. The Docker image holds none of them either: the container fetches them into its `/data` volume on its first start, and after that it runs offline.
+The git repo holds no Nintendo art or sound files. It does hold game text: `dex.json` carries the English Pokedex entries and ability descriptions, game text © Nintendo/Creatures/Game Freak, through PokeAPI, and it ships in the repo and the image. The only Pokemon images in the repo are screenshots of play, in the demo video and the social card. The setup fetches the art and sound to your computer from the same public servers that the Showdown website uses. The Docker image holds none of them either: the container fetches them into its `/data` volume on its first start, and after that it runs offline.
 
 If you hold rights to anything here and want it removed, open an issue. It comes out.
 

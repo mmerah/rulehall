@@ -1,6 +1,6 @@
 # TUNNEL GOONS RULES
 
-Tunnel Goons is © Nate Treme (Highland Paranormal Society), released under a Creative Commons 4.0 International License. <https://tunnelgoons.com/>
+Tunnel Goons is © Nate Treme (Highland Paranormal Society), released under a Creative Commons 4.0 International License (read as CC BY 4.0, https://creativecommons.org/licenses/by/4.0/). Adapted for Rulehall. <https://tunnelgoons.com/>
 
 ## The sheet
 

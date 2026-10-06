@@ -1,6 +1,6 @@
 # 24XX RULES
 
-24XX rules (v1.4) are CC BY Jason Tocci. <https://24xx-srd.carrd.co/>
+24XX rules (v1.4) are CC BY Jason Tocci (https://creativecommons.org/licenses/by/4.0/). Adapted for Rulehall. <https://24xx-srd.carrd.co/>
 
 ## The sheet
 

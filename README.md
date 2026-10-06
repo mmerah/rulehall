@@ -128,7 +128,7 @@ The app has no login. Any device that can reach the port can play and change eve
 
 ## Run in Docker
 
-Every push to `master` publishes `ghcr.io/mmerah/rulehall`, tagged `latest` and `sha-<commit>`, and each release adds its version, like `0.1.0`. The image holds Python, Node, the Pokemon Showdown simulator, and the `claude` and `codex` commands. It holds no Pokemon art or sound: on its first start, the container fetches them (about 220 MB, a few minutes) into `/data` in the background. The other rule sets work at once, and Pokemon battles open once the log says `Pokemon art and sound: ready.` After that, the game needs no network.
+Every push to `master` publishes `ghcr.io/mmerah/rulehall`, tagged `latest` and `sha-<commit>`, and each release adds its version, like `0.1.0`. The image holds Python, Node, the Pokemon Showdown simulator, and the `claude` and `codex` commands. It holds no Pokemon art or sound: on its first start, the container fetches them (about 220 MB, a few minutes) into `/data` in the background. The other rule sets work at once, and Pokemon battles open once the log says `Pokemon art and sound: ready.` After that, the game needs no network. The image also installs Anthropic's Claude Code (proprietary, under Anthropic's terms) and OpenAI Codex (Apache-2.0); Rulehall's MIT licence does not cover them.
 
 ```bash
 docker run -d -p 8080:8080 \
@@ -155,6 +155,8 @@ docker run -d -p 8080:8080 \
 ## License
 
 The code is MIT, © 2026 Mounir Merah. Read [LICENSE](LICENSE). The rule sets below keep their own licenses.
+
+The sample portraits under `scenarios/` and `characters/` are AI-generated. `src/rulehall/ui/sounds/roll.wav` was made for Rulehall and is MIT.
 
 Loner 4e: Core Rules © 2026 Roberto Bisceglie. Licensed under CC BY-SA 4.0 — attribution in the [Loner notes](docs/LONER-4E.md).
 

@@ -1,7 +1,7 @@
 {
   "name": "Paldea Dex",
   "origin": "The species of Pokemon Showdown 0.11.11 in the Paldea regional dex (PokeAPI paldea)",
-  "license": "MIT (Pokemon Showdown data); personal, non-commercial use",
+  "license": "Species lists from Pokemon Showdown data (MIT) and PokeAPI regional dexes; Pokemon names are trademarks of Nintendo/Creatures/Game Freak/The Pokemon Company.",
   "backdrop": "The region is a wide land of open plains, deserts and snowy peaks, with a vast crater at its heart where wild Pokemon live. Every town has a Pokemon Center that heals a trainer's team for free and a shop, and the larger towns have a gym. Trainers travel from town to town with up to six Pokemon, and a trainer who beats a gym leader earns that gym's badge.",
   "species_ids": [
     "pikachu",

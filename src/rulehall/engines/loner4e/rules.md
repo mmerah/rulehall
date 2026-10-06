@@ -1,6 +1,6 @@
 # LONER 4E RULES
 
-Loner 4e: Core Rules © 2026 Roberto Bisceglie. Licensed under CC BY-SA 4.0.
+Adapted from Loner 4e: Core Rules © 2026 Roberto Bisceglie (https://lonersrd.zotiquestgames.com/core/loner-4e.html), CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Changes: rewritten as model instructions. This adaptation is CC BY-SA 4.0.
 
 ## The sheet
 

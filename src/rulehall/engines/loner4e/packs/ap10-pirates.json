@@ -1,7 +1,7 @@
 {
   "name": "AP10 Pirates",
   "origin": "https://lonersrd.zotiquestgames.com/adventure_packs/AP10_pirates.html",
-  "license": "Adventure Pack 10: Pirates, Loner SRD site (CC BY-SA 4.0), (c) Roberto Bisceglie / Zotiquest Games",
+  "license": "Adapted from Adventure Pack 10: Pirates, Loner SRD © 2021-2026 Roberto Bisceglie / Zotiquest Games, CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/. Changes: converted to JSON tables, ids added. This adaptation is CC BY-SA 4.0.",
   "backdrop": "The world is ruled by tide and cannon — a storm-wracked sea of blood, gold, and betrayal where every ship sails on superstition as much as sailcloth.\nThe age is the twilight of empire — the late 1600s to early 1700s — when crowns send fleets they cannot control and laws are more rumor than rule.\nThe setting is the Caribbean, where jungle-choked islands rise from sapphire waters, forts crumble under the sun, and every cove might hide a rogue fleet or buried sin.\nPower is fractured and volatile — Spanish galleons patrol the trade lanes, English governors whisper to smugglers, and pirate captains carve empires from coral and gunpowder.\nJustice is a matter of aim and timing — courts are bought, navies are stretched thin, and gallows swing heavy with names no one remembers.\nCulture is wild and layered — tongues clash on every dock, drums echo in sugarcane fields, and stolen gods are prayed to under false names.\nGold is the hunger that drives it all — chests of coin, crates of rum, charts marked with cursed Xs — enough to make a sailor king, or sink him screaming.\nThe sea is freedom, but it keeps no promises — only the bold, the cruel, and the damned rise with the tide.",
   "names": {
     "female": [

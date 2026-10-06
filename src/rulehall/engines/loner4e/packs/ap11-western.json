@@ -1,7 +1,7 @@
 {
   "name": "AP11 Western",
   "origin": "https://lonersrd.zotiquestgames.com/adventure_packs/AP11_western.html",
-  "license": "Adventure Pack 11: Western, Loner SRD site (CC BY-SA 4.0), (c) Roberto Bisceglie / Zotiquest Games",
+  "license": "Adapted from Adventure Pack 11: Western, Loner SRD © 2021-2026 Roberto Bisceglie / Zotiquest Games, CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/. Changes: converted to JSON tables, ids added. This adaptation is CC BY-SA 4.0.",
   "backdrop": "The world is dust, gunpowder, and silence — a stretch of sunburnt land where justice rides a tired horse and graves are dug with one eye open.\nThe age is the fading light of the 1800s — a time when the frontier gasps its last breath before the iron rails and telegraph wires stitch it shut.\nThe setting is a lonely town at the edge of the known — saloons creak at dusk, cattle trails run dry, and the nearest law rides days behind.\nWilderness presses from all sides — jagged canyons, storm-bit plains, forests thick with eyes, and rivers that have swallowed more than they quenched.\nThe town is a crossroads for fortune and ruin — ranchers, trappers, drifters, preachers, bounty men, and worse — all passing through, none passing clean.\nLife runs on grit and guts — fences built by calloused hands, whiskey poured for coin or company, and grudges carried further than water.\nDanger comes with the wind — wolves in the hills, bandits on the ridge, a stranger with a slow draw and no name to answer for.\nThis is a land where every man writes his name in lead, and the only truth worth a damn is what you can hold onto when the shooting starts.",
   "names": {
     "female": [

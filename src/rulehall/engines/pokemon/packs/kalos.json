@@ -1,7 +1,7 @@
 {
   "name": "Kalos Dex",
   "origin": "The species of Pokemon Showdown 0.11.11 in the Kalos regional dex (PokeAPI kalos-central, kalos-coastal, kalos-mountain)",
-  "license": "MIT (Pokemon Showdown data); personal, non-commercial use",
+  "license": "Species lists from Pokemon Showdown data (MIT) and PokeAPI regional dexes; Pokemon names are trademarks of Nintendo/Creatures/Game Freak/The Pokemon Company.",
   "backdrop": "The region is a land of grand cities, gardens and castles, with coasts, caves and mountain routes where wild Pokemon live. Every town has a Pokemon Center that heals a trainer's team for free and a shop, and the larger towns have a gym. Trainers travel from town to town with up to six Pokemon, and a trainer who beats a gym leader earns that gym's badge.",
   "species_ids": [
     "bulbasaur",

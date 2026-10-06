@@ -1,7 +1,7 @@
 {
   "name": "Sinnoh Dex",
   "origin": "The species of Pokemon Showdown 0.11.11 in the Sinnoh regional dex (PokeAPI original-sinnoh)",
-  "license": "MIT (Pokemon Showdown data); personal, non-commercial use",
+  "license": "Species lists from Pokemon Showdown data (MIT) and PokeAPI regional dexes; Pokemon names are trademarks of Nintendo/Creatures/Game Freak/The Pokemon Company.",
   "backdrop": "The region is a cold land split by a tall mountain range, with snowy routes, deep lakes and old ruins where wild Pokemon live. Every town has a Pokemon Center that heals a trainer's team for free and a shop, and the larger towns have a gym. Trainers travel from town to town with up to six Pokemon, and a trainer who beats a gym leader earns that gym's badge.",
   "species_ids": [
     "pikachu",

@@ -1,7 +1,7 @@
 {
   "name": "Core tables",
   "origin": "https://24xx-srd.carrd.co/",
-  "license": "24XX rules (v1.4) are CC BY Jason Tocci.",
+  "license": "24XX rules (v1.4) are CC BY Jason Tocci (https://creativecommons.org/licenses/by/4.0/). Adapted for Rulehall.",
   "skills": [
     { "id": "climbing", "name": "Climbing" },
     { "id": "connections", "name": "Connections" },

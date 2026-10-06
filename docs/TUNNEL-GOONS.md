@@ -14,12 +14,13 @@ This file holds no rules text. Build from the SRD page above, not from a summary
 
 ## Licence and attribution
 
-Every page says "released under a Creative Commons 4.0 International License" and nothing more. The itch.io page quotes the deed's "Share" and "Adapt ... for any purpose, even commercially" lines, which match CC BY 4.0, but no page links the deed or names the variant. Neither rules PDF carries a licence line at all (1.1: "Created by Nate Treme. Find more RPG stuff at NATETREME.COM"; 1.2: "by Nate Treme"), so the itch.io statement is the licence of record and the attribution below is final. One email to the author would settle the variant.
+Every page says "released under a Creative Commons 4.0 International License" and nothing more. The itch.io page quotes the deed's "Share" and "Adapt ... for any purpose, even commercially" lines, which match CC BY 4.0, but no page links the deed or names the variant. Neither rules PDF carries a licence line at all (1.1: "Created by Nate Treme. Find more RPG stuff at NATETREME.COM"; 1.2: "by Nate Treme"), so the itch.io statement is the licence of record and the attribution below is final. One email to the author would settle the variant. The files read it as CC BY 4.0 (<https://creativecommons.org/licenses/by/4.0/>) and say "Adapted for Rulehall".
 
 Attribution, as `rules.md` carries it:
 
 > Tunnel Goons is © Nate Treme (Highland Paranormal Society), released under a Creative Commons
-> 4.0 International License. <https://tunnelgoons.com/>
+> 4.0 International License (read as CC BY 4.0, https://creativecommons.org/licenses/by/4.0/). Adapted for Rulehall.
+> <https://tunnelgoons.com/>
 
 ## Pack sources
 

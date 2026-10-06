@@ -1,7 +1,7 @@
 {
   "name": "AP12 Cyberpunk",
   "origin": "https://lonersrd.zotiquestgames.com/adventure_packs/AP12_cyberpunk.html",
-  "license": "Adventure Pack 12: Cyberpunk, Loner SRD site (CC BY-SA 4.0), (c) Roberto Bisceglie / Zotiquest Games",
+  "license": "Adapted from Adventure Pack 12: Cyberpunk, Loner SRD © 2021-2026 Roberto Bisceglie / Zotiquest Games, CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/. Changes: converted to JSON tables, ids added. This adaptation is CC BY-SA 4.0.",
   "backdrop": "The world is steel, static, and surveillance — a corporate dystopia where freedom is a marketing term and every breath is logged in a database you can’t see.\nThe age is a broken future — governments are ghosts, replaced by contracts and firewalls, and the streets answer only to those who pay in blood or bandwidth.\nThe setting is a neon-drenched megacity — towers scrape the clouds, alleys stink of oil and ozone, and light never quite reaches the ground.\nBodies are currency — cybernetic implants are everywhere, from high-end augment suites to junk-tier grafts that spark and fail under strain.\nVirtual reality is more real than the meat — a labyrinth of digital sanctuaries and trapdoors, ruled by rogue AIs, corporate censors, and whispering code.\nPower is fractured and predatory — megacorps rule from chrome citadels, gangs control the gutters, and insurgent nodes crack systems no one admits exist.\nIdentity is malleable, truth is encrypted, and memory is a service with monthly fees — who you are depends on who still has the data.\nThis is a world where survival means picking a side, faking a name, and never staying still — because the grid is always watching, and mercy isn't in the code.",
   "names": {
     "female": [

@@ -2,7 +2,7 @@
 name = "rulehall"
 version = "0.6.1"
 description = "Solo tabletop role-playing: AI roles play many rule sets, code owns the dice"
-license = "MIT"
+license = "MIT AND CC-BY-SA-4.0 AND CC-BY-4.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.13"
 dependencies = [
