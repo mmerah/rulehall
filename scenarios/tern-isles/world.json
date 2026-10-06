@@ -236,10 +236,22 @@
       "name": "Team Undertow",
       "goal": "Wake Articuno in the sea caves under the isles and freeze the ferry lanes, so every island must pay Team Undertow to cross.",
       "stages": [
-        "Team Undertow opens the old sea caves that run under the isles.",
-        "Deep in the caves lies a frozen shrine, and a legendary bird sleeps in it.",
-        "Team Undertow means to wake Articuno and turn the sea lanes to ice.",
-        "The boss of Team Undertow waits in a lair under the last isle, ready to seize the ferries."
+        {
+          "foiled": "The grunts flee before they open the old sea caves, but their maps show the caves run under every isle.",
+          "succeeded": "Team Undertow opens the old sea caves that run under the isles."
+        },
+        {
+          "foiled": "Deep in the caves lies a frozen shrine, and a legendary bird sleeps in it.",
+          "succeeded": "Team Undertow reaches a frozen shrine deep in the caves and finds a legendary bird asleep in it."
+        },
+        {
+          "foiled": "Team Undertow means to wake Articuno and turn the sea lanes to ice.",
+          "succeeded": "Team Undertow stirs Articuno in its shrine, and frost creeps over the sea lanes."
+        },
+        {
+          "foiled": "The fleeing leader names the boss's lair under the last isle; the ferries still run free.",
+          "succeeded": "The boss of Team Undertow waits in a lair under the last isle, ready to seize the ferries."
+        }
       ],
       "legendary_id": "articuno"
     },

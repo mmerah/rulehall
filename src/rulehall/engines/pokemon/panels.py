@@ -196,8 +196,8 @@ def scheme_panel(world: PokemonWorld) -> Panel | None:
     operation = evil_team.operation
     shown = (
         ("Stage", f"{evil_team.stage()}/{SCHEME_STAGES}"),
-        ("Foiled", str(evil_team.foiled)),
-        ("Succeeded", str(evil_team.succeeded)),
+        ("Foiled", str(evil_team.foiled())),
+        ("Succeeded", str(evil_team.succeeded())),
         *(() if operation is None else (("Now", operation.goal),)),
     )
     rows = tuple(PanelRow(name=name, brief=brief, help=SCHEME_HELP[name]) for name, brief in shown)

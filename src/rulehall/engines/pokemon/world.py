@@ -42,7 +42,14 @@ from rulehall.engines.pokemon.rules import (
     item_of,
     rescaled,
 )
-from rulehall.engines.pokemon.scheme import SCHEME_STAGES, EvilTeam, Operation, Scheme, SchemeDue
+from rulehall.engines.pokemon.scheme import (
+    SCHEME_STAGES,
+    EvilTeam,
+    Operation,
+    Outcome,
+    Scheme,
+    SchemeDue,
+)
 from rulehall.engines.pokemon.sheet import Mon, Trainer, TrainerSheet, built_team
 from rulehall.engines.rooms.world import OFF_MAP_ID, MapProposal, RegionProposal, RoomWorld
 
@@ -219,14 +226,26 @@ class PokemonWorld(RoomWorld[Trainer]):
         if scheme is None:
             return ""
         done = evil_team.stage()
-        shown = scheme.stages[: done + 1] if worldsmith else scheme.stages[:done]
         lines = [
             f"{scheme.name}. Goal: {scheme.goal}",
-            f"stage {done}/{SCHEME_STAGES}, foiled {evil_team.foiled}, "
-            f"succeeded {evil_team.succeeded}",
-            *(f"- stage {number}: {line}" for number, line in enumerate(shown, 1)),
-            "leaders: " + ", ".join(self.npcs[leader_id].ref for leader_id in evil_team.leader_ids),
+            f"stage {done}/{SCHEME_STAGES}, foiled {evil_team.foiled()}, "
+            f"succeeded {evil_team.succeeded()}",
+            *(
+                f"- stage {number}, {outcome}: {stage.text_for(outcome)}"
+                for number, (stage, outcome) in enumerate(
+                    zip(scheme.stages, evil_team.outcomes, strict=False), 1
+                )
+            ),
         ]
+        if worldsmith and done < SCHEME_STAGES:
+            upcoming = scheme.stages[done]
+            lines.append(
+                f"- stage {done + 1}, if foiled: {upcoming.foiled} / "
+                f"if it succeeds: {upcoming.succeeded}"
+            )
+        lines.append(
+            "leaders: " + ", ".join(self.npcs[leader_id].ref for leader_id in evil_team.leader_ids)
+        )
         if (operation := evil_team.operation) is not None:
             place = self.places[operation.place_id]
             lines += [
@@ -246,7 +265,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         boss = "" if boss_id is None else f"; the boss is {self.npcs[boss_id].ref}"
         lines.append(
             f"final terms so far: the boss's ace is the next gym's level "
-            f"+{BOSS_RISE * evil_team.succeeded}{legendary}{boss}"
+            f"+{BOSS_RISE * evil_team.succeeded()}{legendary}{boss}"
         )
         return "\n".join(lines)
 
@@ -644,20 +663,24 @@ class PokemonWorld(RoomWorld[Trainer]):
             return [], []
         leads = trainer.id == operation.leader_id
         if leads and result.outcome == "won":
-            return self._end_operation(operation, foiled=True)
+            return self._end_operation(operation, "foiled")
         if badged or (leads and result.outcome == "lost"):
-            return self._end_operation(operation, foiled=False)
+            return self._end_operation(operation, "succeeded")
         return [], []
 
-    def _end_operation(self, operation: Operation, *, foiled: bool) -> tuple[list[Fact], list[str]]:
-        revealed_stage = self.evil_team.record_outcome(foiled=foiled)
-        note = (FOILED if foiled else SUCCEEDED).format(place=self.places[operation.place_id].name)
-        facts = [self.player.card_fact(revealed_stage)]
+    def _end_operation(
+        self, operation: Operation, outcome: Outcome
+    ) -> tuple[list[Fact], list[str]]:
+        stage_text = self.evil_team.record_outcome(outcome)
+        headline = (FOILED if outcome == "foiled" else SUCCEEDED).format(
+            place=self.places[operation.place_id].name
+        )
+        facts = [self.player.card_fact(f"{headline}\n{stage_text}")]
         leader = self.npcs[operation.leader_id]
         if leader.place_id == self.current.id:
             facts.append(leader.card_fact(f"{leader.name} leaves"))
         leader.place_id = OFF_MAP_ID
-        return facts, [note]
+        return facts, [headline]
 
     def _rival_leaves(self, rival: Trainer, highlights: Sequence[str], *, won: bool) -> list[Fact]:
         badges = len(self.player_sheet.badges)

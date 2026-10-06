@@ -191,7 +191,7 @@ def scheme(s: Session, page: Page) -> None:
     wait_idle(page, timeout=60)
     fight(s, page, "Dragon Breath", "foiled")
     s.check(
-        any("opens the old sea caves" in card for card in cards(page)),
+        any("before they open the old sea caves" in card for card in cards(page)),
         f"beating Vesper told no stage: {cards(page)[-6:]}",
     )
     s.check(

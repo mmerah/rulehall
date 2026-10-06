@@ -1,5 +1,5 @@
 from collections.abc import Collection
-from typing import Annotated, Literal, Self
+from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
@@ -9,18 +9,30 @@ from rulehall.engines.pokemon.rules import BOSS_RISE, LEGENDARY_AT, RosterSlot, 
 from rulehall.engines.pokemon.sheet import Trainer
 
 type SchemeDue = Literal["operation", "lair"]
-type Stage = Annotated[str, Field(min_length=1)]
+type Outcome = Literal["foiled", "succeeded"]
 
 SCHEME_STAGES = 4
 BADGES_PER_OPERATION = 2
+
+
+class Stage(Frozen):
+    foiled: str = Field(
+        min_length=1, description="What the player learns when this operation is foiled."
+    )
+    succeeded: str = Field(
+        min_length=1, description="What the player learns when this operation succeeds."
+    )
+
+    def text_for(self, outcome: Outcome) -> str:
+        return self.foiled if outcome == "foiled" else self.succeeded
 
 
 class Scheme(Frozen):
     name: str = Field(min_length=1, description="The evil team's name, such as 'Team Tide'.")
     goal: str = Field(min_length=1, description="What the team's boss wants in the end.")
     stages: tuple[Stage, Stage, Stage, Stage] = Field(
-        description="What the player learns of the scheme as each of the four operations ends, "
-        "foiled or not, in order."
+        description="The four operations in order, each with what the player learns of the "
+        "scheme as it ends: one text for when it is foiled, one for when it succeeds."
     )
     legendary_id: Slug | None = Field(
         default=None,
@@ -44,8 +56,7 @@ class Operation(Frozen):
 class EvilTeam(Mutable):
     scheme: Scheme | None = None
     operation: Operation | None = None
-    foiled: int = Field(default=0, ge=0)
-    succeeded: int = Field(default=0, ge=0)
+    outcomes: list[Outcome] = Field(default_factory=list)
     opened_at_badges: int = Field(default=0, ge=0)
     leader_ids: list[Slug] = Field(default_factory=list)
     boss_id: Slug | None = None
@@ -67,7 +78,13 @@ class EvilTeam(Mutable):
         return self.scheme
 
     def stage(self) -> int:
-        return self.foiled + self.succeeded
+        return len(self.outcomes)
+
+    def foiled(self) -> int:
+        return self.outcomes.count("foiled")
+
+    def succeeded(self) -> int:
+        return self.outcomes.count("succeeded")
 
     def due(self, badges: int) -> SchemeDue | None:
         if (
@@ -84,7 +101,7 @@ class EvilTeam(Mutable):
         return (*self.leader_ids, *filter(None, (self.boss_id,)))
 
     def joining_legendary_id(self) -> Slug | None:
-        if self.succeeded < LEGENDARY_AT:
+        if self.succeeded() < LEGENDARY_AT:
             return None
         return self.require_scheme().legendary_id
 
@@ -99,18 +116,15 @@ class EvilTeam(Mutable):
         if operation.leader_id not in self.leader_ids:
             self.leader_ids.append(operation.leader_id)
 
-    def record_outcome(self, *, foiled: bool) -> Stage:
+    def record_outcome(self, outcome: Outcome) -> str:
         self.operation = None
-        if foiled:
-            self.foiled += 1
-        else:
-            self.succeeded += 1
-        return self.require_scheme().stages[self.stage() - 1]
+        self.outcomes.append(outcome)
+        return self.require_scheme().stages[self.stage() - 1].text_for(outcome)
 
     def boss_roster(
         self, boss: Trainer, table_level: int, species_ids: Collection[Slug]
     ) -> tuple[RosterSlot, ...]:
-        ace_level = min(table_level + BOSS_RISE * self.succeeded, LEVEL_MAX)
+        ace_level = min(table_level + BOSS_RISE * self.succeeded(), LEVEL_MAX)
         roster = rescaled(boss.roster, ace_level, species_ids)
         legendary_id = self.joining_legendary_id()
         if legendary_id is None:

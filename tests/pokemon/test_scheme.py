@@ -22,10 +22,25 @@ def test_beating_the_operation_leader_foils_it_and_reveals_a_stage() -> None:
     resolution = end_battle(draft, _won(_battle(draft, "vesper")))
 
     evil_team = draft.world.evil_team
-    assert (evil_team.foiled, evil_team.succeeded, evil_team.operation) == (1, 0, None)
+    assert (evil_team.outcomes, evil_team.operation) == (["foiled"], None)
     stage = evil_team.require_scheme().stages[0]
-    assert any(fact.told and stage in fact.trace for fact in resolution.facts)
+    assert any(fact.told and stage.foiled in fact.trace for fact in resolution.facts)
     assert draft.notes[-1] == "The team's operation at Gull Cove is foiled."
+
+
+def test_a_foiled_and_a_succeeded_operation_reveal_different_texts() -> None:
+    foiled_draft = started().draft()
+    succeeded_draft = started().draft()
+
+    foiled = end_battle(foiled_draft, _won(_battle(foiled_draft, "vesper")))
+    succeeded = end_battle(succeeded_draft, _won(_battle(succeeded_draft, "ines")))
+
+    stage = foiled_draft.world.evil_team.require_scheme().stages[0]
+    assert stage.foiled != stage.succeeded
+    assert any(stage.foiled in fact.trace for fact in foiled.facts)
+    assert not any(stage.succeeded in fact.trace for fact in foiled.facts)
+    assert any(stage.succeeded in fact.trace for fact in succeeded.facts)
+    assert not any(stage.foiled in fact.trace for fact in succeeded.facts)
 
 
 def test_a_foiled_leader_leaves_the_map_with_a_card_when_here() -> None:
@@ -42,9 +57,9 @@ def test_a_foiled_leader_leaves_the_map_with_a_card_when_here() -> None:
 
 
 def test_the_next_operation_is_due_by_two_badges_per_operation_at_the_latest() -> None:
-    assert EvilTeam(foiled=2, opened_at_badges=3).due(4) is None
-    assert EvilTeam(foiled=2, opened_at_badges=3).due(5) == "operation"
-    assert EvilTeam(foiled=3, opened_at_badges=7).due(8) == "operation"
+    assert EvilTeam(outcomes=["foiled"] * 2, opened_at_badges=3).due(4) is None
+    assert EvilTeam(outcomes=["foiled"] * 2, opened_at_badges=3).due(5) == "operation"
+    assert EvilTeam(outcomes=["foiled"] * 3, opened_at_badges=7).due(8) == "operation"
 
 
 def test_an_operation_is_not_due_before_two_badges_after_the_last_opening() -> None:
@@ -78,7 +93,7 @@ def test_a_badge_earned_while_the_operation_is_open_makes_it_succeed() -> None:
     _ = end_battle(draft, _won(_battle(draft, "ines")))
 
     evil_team = draft.world.evil_team
-    assert (evil_team.foiled, evil_team.succeeded, evil_team.operation) == (0, 1, None)
+    assert (evil_team.outcomes, evil_team.operation) == (["succeeded"], None)
 
 
 def test_a_region_without_the_operation_that_is_owed_is_refused() -> None:
@@ -130,9 +145,9 @@ def test_the_boss_ace_rises_with_each_success_and_the_legendary_joins_at_three()
     world = draft.world
     boss = _boss(draft)
 
-    world.evil_team.succeeded = 1
+    world.evil_team.outcomes = ["succeeded"]
     once = world.trainer_team(boss, Random(0))
-    world.evil_team.succeeded = 3
+    world.evil_team.outcomes = ["succeeded"] * 3
     thrice = world.trainer_team(boss, Random(0))
 
     assert [(mon.species_id, mon.level) for mon in once] == [("zubat", 12), ("grimer", 14)]

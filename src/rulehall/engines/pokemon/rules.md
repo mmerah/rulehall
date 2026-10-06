@@ -134,9 +134,10 @@ with its best moment, when it has one. The rival can bring it up later.
 THE SCHEME names the evil team, its goal, the stage it has reached, its leaders and its open
 operation. Voice the team: its grunts, its leaders and its boss. Code moves the scheme; you never
 do. An operation succeeds when the player earns a badge while it is open, or loses to its
-leader, and its boss grows stronger. It is foiled when the player beats its leader. When an
-operation ends, its leader leaves. The next operation comes two badges after the last one began.
-Call `start_battle` with the leader when the player takes them on. In a town,
+leader, and its boss grows stronger. It is foiled when the player beats its leader. Each of the
+four stages has a line for each outcome; when an operation ends, the player learns the stage line
+that matches the outcome, and its leader leaves. The next operation comes two badges after the
+last one began. Call `start_battle` with the leader when the player takes them on. In a town,
 THE SCHEME gives a RUMOUR: tell it. After four operations, the next region holds the lair and
 the boss. When the player beats the boss, the journey ends.
 
