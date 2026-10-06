@@ -218,6 +218,42 @@ async def test_the_model_opponent_thinks_at_the_request_and_its_choice_is_record
     assert run.log[-2:] == ["|c|Rook|You will not win!", "|win|Kael"]
 
 
+async def test_a_refused_model_opponent_falls_back_to_the_scripted_choice() -> None:
+    setup = BattleSetup.model_validate(
+        {
+            **WILD_SETUP.model_dump(),
+            "policy": "model",
+            "foe_id": "rook",
+            "foe_name": "Rook",
+            "foe_avatar_id": "camper",
+            "team": (PIKACHU, CHARMANDER),
+            "foes": (RATTATA, PIKACHU),
+        }
+    )
+    draft = _battling(setup, [">p1 team 1", ">p2 team 1"])
+    simulator = ScriptedSimulator(
+        [
+            *blocks_started(setup),
+            *moving(setup),
+            *assessed(),
+            *assessed(),
+            *ended(setup, foe_hp=0),
+        ]
+    )
+
+    async def opponent[M: BaseModel](_prompt: Prompt, _model: type[M], _check: Check[M]) -> M:
+        raise Refusal("the opponent timed out")
+
+    run = await ShowdownRun.start(draft, simulator, opponent)
+    await sleep(0)
+    await run.choose(draft, "move 1", Random(0))
+
+    assert simulator.sent.count(assess_line("p2")) == 2
+    assert run.inputs[-2:] == [">p1 move 1", ">p2 move 1"]
+    assert run.result is not None and run.result.outcome == "won"
+    assert not any(line.startswith("|c|Rook|") for line in run.log)
+
+
 def test_an_answer_outside_the_choices_is_refused_with_the_choices() -> None:
     choices = (
         BattleChoice(command="move 1", kind="move", name="Tackle"),

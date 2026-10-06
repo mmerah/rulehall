@@ -1,4 +1,5 @@
 import json
+import logging
 from asyncio import Task, create_task, gather
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -10,7 +11,7 @@ from typing import Literal, Self
 from rulehall.core.facts import Fact
 from rulehall.core.game import RoleAnswer
 from rulehall.core.stores import read_cached_text
-from rulehall.core.validation import Loose, parse_json
+from rulehall.core.validation import Loose, Refusal, parse_json
 from rulehall.core.views import BattleChoice, BattleHeader
 from rulehall.engines.battles import Transport
 from rulehall.engines.engine import Resolution
@@ -52,6 +53,7 @@ from rulehall.engines.pokemon.world import PokemonGame
 
 type SideId = Literal["p1", "p2"]
 
+LOGGER = logging.getLogger(__name__)
 SINGLES_FORMAT = "gen9customgame@@@Terastal Clause"
 DOUBLES_FORMAT = "gen9doublescustomgame@@@Terastal Clause"
 SHOWDOWN = Path(__file__).parents[1] / "showdown"
@@ -368,11 +370,15 @@ class ShowdownRun:
             leads = sorted(seated.hand)
             return {slot: f"team {at + 1}" for slot, at in zip(slots, leads, strict=False)}
         if thinking := self.thinking.pop(seat, None) or await self._think(seat, ask):
-            answer = await thinking
-            if answer.line:
-                name = self.setup.foe_name if seat == "foe" else self._ally().name
-                self.said.append(f"|c|{name}|{answer.line}")
-            return dict(zip(slots, answer.commands, strict=True))
+            try:
+                answer = await thinking
+            except Refusal as refused:
+                LOGGER.warning("the %s plays the scripted choice: %s", seat, refused)
+            else:
+                if answer.line:
+                    name = self.setup.foe_name if seat == "foe" else self._ally().name
+                    self.said.append(f"|c|{name}|{answer.line}")
+                return dict(zip(slots, answer.commands, strict=True))
         if self.policy == "random":
             rng = Random(f"{self.setup.seed} {len(self.inputs)}")
             return {slot: opponent_choice(ask, rng) for slot in slots}

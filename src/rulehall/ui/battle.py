@@ -295,6 +295,8 @@ class BattlePanel:
         # The sync may have deleted the clicked button while the model was thinking.
         with self.column:
             chosen = await attempt(lambda: self.session.battle_command(command), failed=MOVE_FAILED)
+        if self.column.is_deleted:
+            return
         self.grid.classes(remove=RESOLVING)
         if picked is not None and not picked.is_deleted:
             picked.classes(remove=PICKED)

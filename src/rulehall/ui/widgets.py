@@ -128,21 +128,25 @@ def media_url(path: Path) -> str:
 async def attempt(
     action: Callable[[], Awaitable[object]], *, failed: str, loading: ui.button | None = None
 ) -> bool:
+    # Read while the page is alive: it may close while the action runs.
+    client = ui.context.client
     if loading is not None:
         loading.props("loading")
     try:
         await action()
     except Busy as busy:
         # Silent when it is this game's own turn: a double-click guard, not a message.
-        if busy.elsewhere:
+        if busy.elsewhere and not client.is_deleted:
             alert(str(busy))
         return False
     except Refusal as refused:
-        alert(str(refused))
+        if not client.is_deleted:
+            alert(str(refused))
         return False
     except Exception:
         # Announced, not handled: the re-raise is what logs the detail kept off the screen.
-        alert(failed)
+        if not client.is_deleted:
+            alert(failed)
         raise
     finally:
         if loading is not None:

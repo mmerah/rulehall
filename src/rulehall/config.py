@@ -134,7 +134,7 @@ class RoleSettings(Configured):
     master: RoleConfig = RoleConfig(model="opus", effort="high")
     narrator: RoleConfig = RoleConfig(model="sonnet", effort="low", timeout=120.0)
     worldsmith: RoleConfig = RoleConfig(model="sonnet", timeout=900.0)
-    opponent: RoleConfig = RoleConfig(model="sonnet", effort="low", timeout=120.0)
+    opponent: RoleConfig = RoleConfig(model="sonnet", effort="low", timeout=30.0)
 
     def for_name(self, name: Role) -> RoleConfig:
         return {
