@@ -43,7 +43,7 @@ AUTO_READ_ICONS = {True: "sym_r_record_voice_over", False: "sym_r_voice_over_off
 JUMP_LABEL = "Jump to latest"
 # Collapsed turns size themselves late: one scroll lands short, so the hold follows each resize.
 HOLD_AT_END = """<script>
-window.holdAtEnd = (id) => {
+window.holdAtEnd = (id, nearEnd) => {
   const started = performance.now();
   const attach = () => {
     const area = getHtmlElement(id);
@@ -54,6 +54,7 @@ window.holdAtEnd = (id) => {
       return;
     }
     area.releaseEnd?.();
+    pinEnd(box, nearEnd);
     const grabs = ["wheel", "touchstart", "pointerdown", "keydown"];
     let quiet;
     const toEnd = () => {
@@ -74,6 +75,25 @@ window.holdAtEnd = (id) => {
     toEnd();
   };
   attach();
+};
+// A shrinking scroll box (the keyboard opening) keeps its scrollTop, hiding the last messages.
+window.pinEnd = (box, nearEnd) => {
+  if (box.endPin) return;
+  let seenHeight = box.clientHeight;
+  box.endPin = new ResizeObserver(() => {
+    const gap = box.scrollHeight - box.scrollTop - seenHeight;
+    if (gap <= nearEnd) box.scrollTop = box.scrollHeight;
+    seenHeight = box.clientHeight;
+  });
+  box.endPin.observe(box);
+};
+window.showReplyTop = (areaId, elementId) => {
+  const area = getHtmlElement(areaId);
+  const box = area?.querySelector(".q-scrollarea__container");
+  const element = getHtmlElement(elementId);
+  if (!box || !element) return;
+  area.releaseEnd?.();
+  box.scrollTop += element.getBoundingClientRect().top - box.getBoundingClientRect().top;
 };
 </script>"""
 
@@ -405,7 +425,7 @@ class GamePage:
         self.show_jump()
 
     def scroll_to_end(self) -> None:
-        self.scroll.client.run_javascript(f"holdAtEnd({self.scroll.id})")
+        self.scroll.client.run_javascript(f"holdAtEnd({self.scroll.id}, {NEAR_END})")
 
     def show_jump(self) -> None:
         news = self.unseen_activity
@@ -440,10 +460,7 @@ class GamePage:
         self.own_move = False
         self.unseen_activity = False
         self.show_jump()
-        script = (
-            f"getHtmlElement({self.scroll.id})?.releaseEnd?.();"
-            f"getHtmlElement({element_id})?.scrollIntoView({{block: 'start'}})"
-        )
+        script = f"showReplyTop({self.scroll.id}, {element_id})"
         get_running_loop().call_later(0.1, lambda: self.scroll.client.run_javascript(script))
 
     def _scroll(self, *, follow: bool) -> None:

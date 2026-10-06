@@ -32,7 +32,8 @@ GAME_OVER = "The game is over. Restart it from the menu."
 BATTLE_ON = "A battle is on. Finish it on the battle screen."
 ANSWER_FIRST = "Answer the question above first."
 HEARING_FAILED = failure_notice("The speech was not understood.")
-# A tap that blurs the field shrinks the page (theme.py KEYBOARD_FIT) and iOS drops the click.
+# A blur closes the keyboard, the shell grows under the finger (theme.py KEYBOARD_FIT), and iOS
+# drops the click.
 KEEP_FOCUS = "(e) => e.preventDefault()"
 MIC_ICONS = {True: "sym_r_stop", False: "sym_r_mic"}
 PLACEHOLDERS: dict[ComposerLock, str] = {

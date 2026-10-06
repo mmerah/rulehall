@@ -34,6 +34,38 @@ PLACEHOLDER_FITS = """() => {
   const room = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
   return pen.measureText(box.placeholder).width <= room;
 }"""
+# Chromium shows no soft keyboard: a stand-in visual viewport that `setKeyboard` covers and pans.
+FAKE_KEYBOARD = """(() => {
+  const view = new EventTarget();
+  let covered = 0, pan = 0;
+  const fit = () => {
+    Object.assign(view, {
+      scale: 1, offsetTop: pan, offsetLeft: 0,
+      width: window.innerWidth, height: window.innerHeight - covered,
+    });
+    view.dispatchEvent(new Event("resize"));
+    view.dispatchEvent(new Event("scroll"));
+  };
+  window.setKeyboard = (keyboard, offset) => {
+    covered = keyboard;
+    pan = offset;
+    fit();
+  };
+  window.addEventListener("resize", fit);
+  Object.defineProperty(window, "visualViewport", { value: view, configurable: true });
+  fit();
+})()"""
+TRANSCRIPT_GAP = """() => {
+  const box = document.querySelector('.game-transcript .q-scrollarea__container');
+  return box.scrollHeight - box.scrollTop - box.clientHeight;
+}"""
+VIEW_HEIGHT = "() => document.documentElement.style.getPropertyValue('--game-vh')"
+SHELL = """() => {
+  const shell = document.querySelector('.q-layout').getBoundingClientRect();
+  const field = document.querySelector('.game-composer').getBoundingClientRect();
+  return {top: shell.top, height: shell.height, composer: field.bottom,
+          inner: window.innerHeight, scrollY: window.scrollY};
+}"""
 
 
 def body(s: Session, device: Device) -> None:
@@ -171,9 +203,88 @@ TABLET: Device = {
 }
 
 
+def keyboard(s: Session) -> None:
+    context = s.browser.new_context(**{**PHONE, "viewport": {"width": 390, "height": 844}})
+    context.add_init_script(FAKE_KEYBOARD)
+    page = context.new_page()
+    page.set_default_timeout(15000)
+    page.on("pageerror", lambda e: s.issues.append(f"pageerror: {e}"))
+    page.goto(GAME)
+    wait_idle(page, timeout=40)
+    for words in ("I look around.", "I listen.", "I wait."):
+        submit(page, words)
+        wait_idle(page)
+    jump = page.locator(".game-jump")
+
+    def gap() -> float:
+        return page.evaluate(TRANSCRIPT_GAP)
+
+    s.check(wait_until(page, lambda: gap() <= 1), f"not at the end before the keyboard: {gap()}")
+    page.evaluate("setKeyboard(300, 300)")
+    s.check(wait_until(page, lambda: gap() <= 1), f"the keyboard hid the last message: {gap()}")
+    shell = page.evaluate(SHELL)
+    s.check(abs(shell["top"] - 300) <= 1, f"the shell is not at the visible offset: {shell}")
+    s.check(
+        abs(shell["height"] - (shell["inner"] - 300)) <= 1,
+        f"the shell is not the visible height: {shell}",
+    )
+    s.check(shell["composer"] <= shell["inner"], f"the composer is under the keyboard: {shell}")
+    s.check(shell["scrollY"] == 0, f"the page scrolled under the keyboard: {shell}")
+    s.check(
+        wait_until(page, lambda: not jump.is_visible()),
+        "the jump button shows with the keyboard open",
+    )
+    s.shot(page, "keyboard-open")
+    page.evaluate("setKeyboard(0, 0)")
+    s.check(wait_until(page, lambda: gap() <= 1), f"closing the keyboard left the end: {gap()}")
+    page.locator(".game-transcript").hover()
+    page.mouse.wheel(0, -400)
+    s.check(wait_until(page, lambda: gap() >= 300), f"the transcript did not scroll up: {gap()}")
+    page.evaluate("setKeyboard(300, 300)")
+    s.check(
+        not wait_until(page, lambda: gap() <= 1, timeout=1),
+        "the keyboard pinned a reader who scrolled up",
+    )
+    s.check(wait_until(page, jump.is_visible), "no jump button after scrolling up")
+    page.evaluate("setKeyboard(0, 0)")
+    jump.click()
+    s.check(wait_until(page, lambda: gap() <= 1), f"the jump did not reach the end: {gap()}")
+    context.close()
+
+
+def resized(s: Session) -> None:
+    context = s.browser.new_context(**{**PHONE, "viewport": {"width": 390, "height": 844}})
+    page = context.new_page()
+    page.set_default_timeout(15000)
+    page.on("pageerror", lambda e: s.issues.append(f"pageerror: {e}"))
+    page.goto(GAME)
+    wait_idle(page, timeout=40)
+    for words in ("I look around.", "I listen.", "I wait."):
+        submit(page, words)
+        wait_idle(page)
+    s.check(
+        wait_until(page, lambda: page.evaluate(TRANSCRIPT_GAP) <= 1),
+        "not at the end before the resize",
+    )
+    page.set_viewport_size({"width": 390, "height": 364})
+    # The shell resizes one event after the call returns.
+    s.check(
+        wait_until(page, lambda: page.evaluate(VIEW_HEIGHT) == "364px"),
+        "the shell did not follow the resize",
+    )
+    s.check(
+        wait_until(page, lambda: page.evaluate(TRANSCRIPT_GAP) <= 1),
+        f"a resized window left the end: {page.evaluate(TRANSCRIPT_GAP)}",
+    )
+    s.shot(page, "keyboard-resized")
+    context.close()
+
+
 def both(s: Session) -> None:
     body(s, PHONE)
     body(s, TABLET)
+    keyboard(s)
+    resized(s)
 
 
 run("mobile", both)

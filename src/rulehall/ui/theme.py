@@ -39,30 +39,20 @@ HOME_SCREEN_ICON = (
 )
 
 
-# iOS slides the page up under the soft keyboard instead of shrinking it, hiding the fixed header.
+# Safari shrinks only the visual viewport for the keyboard; the shell follows it.
 KEYBOARD_FIT = """<script>
 (() => {
   const view = window.visualViewport;
   if (!view) return;
   const root = document.documentElement;
-  const typing = () => document.activeElement?.matches?.("input, textarea, [contenteditable]");
   const fit = () => {
-    const zoomed = Math.abs(view.scale - 1) > 0.01;
-    const covered = window.innerHeight - view.height;
-    if (zoomed || !typing() || covered < 100) root.style.removeProperty("--game-vh");
-    else root.style.setProperty("--game-vh", view.height + "px");
-    if (!zoomed && (view.offsetTop || window.scrollY)) window.scrollTo(0, 0);
+    if (Math.abs(view.scale - 1) > 0.01) return;
+    root.style.setProperty("--game-vh", view.height + "px");
+    root.style.setProperty("--game-vy", view.offsetTop + "px");
   };
-  let settle;
-  const refit = () => {
-    fit();
-    clearTimeout(settle);
-    settle = setTimeout(fit, 350);
-  };
-  view.addEventListener("resize", refit);
-  view.addEventListener("scroll", refit);
-  document.addEventListener("focusin", refit);
-  document.addEventListener("focusout", refit);
+  view.addEventListener("resize", fit);
+  view.addEventListener("scroll", fit);
+  fit();
 })();
 </script>"""
 
