@@ -117,6 +117,16 @@ def test_signature_moves_lead_with_a_same_type_move_then_coverage_and_skip_the_e
     assert not SIGNATURE_EXCLUDED.intersection(picked)
 
 
+def test_signature_moves_take_only_tm_moves_up_to_three_times_the_level_in_power() -> None:
+    tentacool = dex().species["tentacool"]
+    levelup = {move_id for _, move_id in tentacool.levelup}
+
+    picked = signature_moves(tentacool, 14)
+
+    machines = [dex().moves[move_id] for move_id in picked if move_id not in levelup]
+    assert all(move.power <= 42 for move in machines)
+
+
 def test_a_species_with_only_excluded_moves_is_built_with_its_latest_level_up_move() -> None:
     unown = Mon.built("unown", 20, "unown", ace=True, badges=0)
 
@@ -125,11 +135,13 @@ def test_a_species_with_only_excluded_moves_is_built_with_its_latest_level_up_mo
 
 def test_a_built_pokemon_grows_its_spread_and_gets_items_with_badges() -> None:
     fresh = Mon.built("machop", 12, "machop", ace=True, badges=0)
+    first_badge = Mon.built("machop", 14, "machop", ace=False, badges=1)
     seasoned = Mon.built("machop", 30, "machop", ace=True, badges=3)
     champion = Mon.built("machop", 54, "machop", ace=True, badges=8)
 
     assert (fresh.ivs, fresh.evs, fresh.item_id) == ((15,) * 6, (0,) * 6, None)
     assert (seasoned.ivs, seasoned.evs) == ((21,) * 6, (0, 96, 0, 0, 0, 96))
+    assert first_badge.item_id is None
     assert seasoned.item_id is not None
     assert (champion.ivs, champion.evs) == ((31,) * 6, (0, 252, 0, 0, 0, 252))
 

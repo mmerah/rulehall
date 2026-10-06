@@ -52,7 +52,8 @@ EV_TOTAL_MAX = 510
 BUILT_IV_START = 15
 BUILT_IV_PER_BADGE = 2
 BUILT_EV_PER_BADGE = 32
-BUILT_ITEMS_AT = 1
+BUILT_ITEMS_AT = 2
+MACHINE_POWER_PER_LEVEL = 3
 STAT_NAMES = ("HP", "Atk", "Def", "SpA", "SpD", "Spe")
 FRIENDSHIP_START = 70
 FRIENDSHIP_PER_LEVEL = 5
@@ -211,7 +212,11 @@ def signature_moves(species: Species, level: int) -> tuple[Slug, ...]:
     for learned_at, move_id in species.levelup:
         if learned_at <= level:
             learned[move_id] = max(learned_at, learned.get(move_id, 0))
-    machines = (move_id for move_id in species.machines if 0 < moves[move_id].power <= 5 * level)
+    machines = (
+        move_id
+        for move_id in species.machines
+        if 0 < moves[move_id].power <= MACHINE_POWER_PER_LEVEL * level
+    )
     candidates = sorted({*learned, *machines} - SIGNATURE_EXCLUDED)
     physical = attacks_physically(species)
 
