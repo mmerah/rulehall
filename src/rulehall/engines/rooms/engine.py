@@ -16,10 +16,14 @@ from rulehall.engines.packs import Pack
 from rulehall.engines.panels import character_panel, here_panel, party_panel
 from rulehall.engines.rooms.args import (
     ELSEWHERE,
+    FRONTIER_LEFT,
+    MAP_EDGE,
     MOVED_CARD,
     MOVES_OFFSCREEN,
     NOTHING_OFFSCREEN,
+    PAST_THE_EDGE,
     DropHere,
+    ExtendMap,
     Meanwhile,
     MoveItem,
     MoveTo,
@@ -85,6 +89,7 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
             (HIDDEN_TITLE, world.place_lines(known=False)),
             *section_if(ARC_TITLE, world.arc),
             ("WAYS OUT", world.ways_lines()),
+            *section_if("MAP EDGE", "" if world.has_frontier() else MAP_EDGE),
             *self.packs.rules_section(state.pack_id),
             *(((ELSEWHERE, world.elsewhere_lines()),) if world.meanwhile_due else ()),
         )
@@ -166,6 +171,16 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
         facts.append(Fact(trace=MOVES_OFFSCREEN, told=True, card=MOVED_CARD))
         world.meanwhile_due = False
         return facts
+
+    @tool
+    def extend_map(self, draft: Game[W], args: ExtendMap, _rng: Random) -> list[Fact]:
+        """Extend the map past its edge. Call this when MAP EDGE shows and the player heads past
+        it: after the goal here is met, or when they set out somewhere new. Call it last: it ends
+        your turn."""
+        if draft.world.has_frontier():
+            raise Refusal(FRONTIER_LEFT)
+        draft.request = WorldsmithRequest(kind=EXTEND, detail=args.heading)
+        return [Fact(trace=PAST_THE_EDGE, told=True)]
 
     @action
     def extend(self, draft: Game[W], args: Words, _rng: Random) -> list[Fact]:

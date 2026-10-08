@@ -47,8 +47,6 @@ A locked way opens after a roll, or after the story uses a key that the player c
 `move` carry the player through. A missed roll leaves the way locked. The player can try again
 with another plan.
 
-When no open known way leads to a new place, the page gives the player more map. You call no tool.
-
 ## Resting
 
 Call `rest` for a night in a safe place. You decide what is safe.

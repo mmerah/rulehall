@@ -23,9 +23,10 @@ from support.tunnelgoons import (
 )
 
 from rulehall.core.facts import Fact, told_cards
+from rulehall.core.game import WorldsmithRequest
 from rulehall.core.validation import Refusal
 from rulehall.engines.rooms.args import MOVED_CARD, MOVES_OFFSCREEN
-from rulehall.engines.rooms.panels import map_view
+from rulehall.engines.rooms.panels import EXTEND, map_view
 from rulehall.engines.rooms.world import MEANWHILE_EVERY, OFF_MAP_ID, Place, RegionProposal, Way
 from rulehall.engines.rooms.worldsmith import check_next
 from rulehall.engines.sheet import PLAYER_ID, Gauge
@@ -85,6 +86,19 @@ def test_the_frontier_skips_a_locked_way_and_a_place_the_player_cannot_reach() -
     for way in world.ways[HALL]:
         way.locked = True
     assert not world.has_frontier()
+
+
+def test_extend_map_is_refused_with_a_frontier_and_requests_the_region_at_the_edge() -> None:
+    draft = small_world()
+    assert draft.world.has_frontier()
+    _ = refused(ENGINE, draft, "extend_map", heading="north")
+    assert draft.request is None
+
+    _ = draft.world.move(HALL, ())
+    assert not draft.world.has_frontier()
+    _ = change(ENGINE, draft, "extend_map", heading="north")
+
+    assert draft.request == WorldsmithRequest(kind=EXTEND, detail="north")
 
 
 def test_a_known_way_into_an_unknown_place_is_a_stub_that_hides_its_end() -> None:

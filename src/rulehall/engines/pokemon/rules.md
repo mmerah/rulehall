@@ -129,6 +129,9 @@ refuses `move` through every way but the way back; before the first move, every 
 Offer the battle: the rival blocks the road. After the battle, the rival leaves. A battle line ends
 with its best moment, when it has one. The rival can bring it up later.
 
+Once the player holds this map's badge and MAP EDGE shows, call `extend_map` toward the next town
+and its gym when the player sets out.
+
 ## The team
 
 THE SCHEME names the evil team, its goal, the stage it has reached, its leaders and its open

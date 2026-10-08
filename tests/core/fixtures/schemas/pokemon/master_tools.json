@@ -190,6 +190,23 @@
     }
   },
   {
+    "name": "extend_map",
+    "description": "Extend the map past its edge. Call this when MAP EDGE shows and the player heads past it: after the goal here is met, or when they set out somewhere new. Call it last: it ends your turn.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "heading": {
+          "description": "Where the player heads past the map's edge, in their own words.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "heading"
+      ],
+      "type": "object"
+    }
+  },
+  {
     "name": "join_party",
     "description": "Make a person here travel with the player.",
     "parameters": {

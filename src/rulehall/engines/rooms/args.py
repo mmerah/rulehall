@@ -8,6 +8,14 @@ ELSEWHERE = "ELSEWHERE (time has passed; you can move what the player cannot see
 NOTHING_OFFSCREEN = "no time has passed offscreen; call this only while ELSEWHERE is shown"
 MOVES_OFFSCREEN = "something moves where the player cannot see"
 MOVED_CARD = "Elsewhere, something moves."
+FRONTIER_LEFT = (
+    "an open way the player knows still leads to a place they have not visited; go there first"
+)
+PAST_THE_EDGE = "the player heads past the map's edge"
+MAP_EDGE = (
+    "No open way the player knows leads to a place they have not visited. When the player heads "
+    "on, call extend_map."
+)
 
 
 class MoveItem(Frozen):
@@ -30,6 +38,13 @@ class MoveTo(Frozen):
 
 class UnlockWay(Frozen):
     to_id: Slug = Field(description="Exact id of the locked way's destination.")
+
+
+class ExtendMap(Frozen):
+    heading: str = Field(
+        min_length=1,
+        description="Where the player heads past the map's edge, in their own words.",
+    )
 
 
 class Meanwhile(Frozen):
