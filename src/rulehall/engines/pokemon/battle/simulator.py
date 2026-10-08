@@ -12,15 +12,20 @@ from rulehall.core.facts import Fact
 from rulehall.core.game import RoleAnswer
 from rulehall.core.stores import read_cached_text
 from rulehall.core.validation import Loose, Refusal, parse_json
-from rulehall.core.views import BattleChoice, BattleHeader
+from rulehall.core.views import BattleChoice, BattleHeader, Tag
 from rulehall.engines.battles import Transport
 from rulehall.engines.engine import Resolution
 from rulehall.engines.pokemon.battle.assessment import Assessment
-from rulehall.engines.pokemon.battle.choices import Hand, SeatRequest, SideRequest, opponent_choice
+from rulehall.engines.pokemon.battle.choices import (
+    MEGA_SUFFIX,
+    Hand,
+    SeatRequest,
+    SideRequest,
+    opponent_choice,
+)
 from rulehall.engines.pokemon.battle.header import battle_header
 from rulehall.engines.pokemon.battle.highlights import battle_highlights
 from rulehall.engines.pokemon.battle.models import (
-    FORMATS,
     STATUSES,
     TERRAINS,
     WEATHERS,
@@ -43,9 +48,11 @@ from rulehall.engines.pokemon.battle.opponent import (
     greedy_choice,
     render_opponent,
 )
+from rulehall.engines.pokemon.battle.preview import render_preview, scripted_preview
 from rulehall.engines.pokemon.battle.world import BattleGame
+from rulehall.engines.pokemon.dex import Species, dex
 from rulehall.engines.pokemon.rules import TIMES
-from rulehall.engines.pokemon.sprites import item_sprite
+from rulehall.engines.pokemon.sprites import MEGA_COLOUR, item_sprite
 
 type SideId = Literal["p1", "p2"]
 
@@ -57,6 +64,11 @@ SIDE_OF: dict[RoleSeat, SideId] = {"foe": "p2", "ally": "p1"}
 TURN_ENDS = ("|upkeep", "|turn|", "|win|", "|tie")
 BACK = "back"
 NEXT = "next"
+MEGA = "mega"
+MEGA_HELP = (
+    "Mega Evolve this Pokemon before its move this turn. Your team can Mega Evolve only once "
+    "per battle."
+)
 BALL = "ball "
 LEAVE = "leave"
 DUMPED = '||<<< "'
@@ -131,6 +143,7 @@ class ShowdownRun:
     said: list[str] = field(default_factory=list)
     picks: list[str] = field(default_factory=list)
     aiming: str = ""
+    mega: bool = False
 
     @classmethod
     async def start(
@@ -206,7 +219,10 @@ class ShowdownRun:
             self.facts.append(throw.fact)
             if throw.caught:
                 await self._end("caught")
+        elif command == MEGA:
+            self.mega = not self.mega
         elif command == BACK:
+            self.mega = False
             if self.aiming:
                 self.aiming = ""
             else:
@@ -240,12 +256,22 @@ class ShowdownRun:
             if self.aiming
             else seated.choices(slot, self.picks)
         )
-        if not (self.picks or self.aiming):
-            return choices
-        back = BattleChoice(
-            command=BACK, kind="back", name="Back", group=request.side.pokemon[slot].name
+        picking = request.team_preview and request.max_chosen_team_size is not None
+        group = choices[0].group if picking else request.side.pokemon[slot].name
+        mega = BattleChoice(
+            command=MEGA,
+            kind="mega",
+            name="Mega Evolution: on" if self.mega else "Mega Evolve",
+            help=MEGA_HELP,
+            group=group,
+            tags=(Tag(name="On", colour=MEGA_COLOUR),) if self.mega else (),
         )
-        return (*choices, back)
+        back = BattleChoice(command=BACK, kind="back", name="Back", group=group)
+        return (
+            *choices,
+            *((mega,) if seated.can_mega(slot, self.picks) else ()),
+            *((back,) if self.picks or self.aiming else ()),
+        )
 
     async def _pick(self, command: str) -> None:
         request = self.side_request
@@ -256,7 +282,9 @@ class ShowdownRun:
                 self.aiming = command
                 return
             self.aiming = ""
-            self.picks.append(command)
+            mega = self.mega and command.startswith("move ")
+            self.picks.append(f"{command}{MEGA_SUFFIX}" if mega else command)
+            self.mega = False
         if len(self.picks) == len(slots):
             picked = dict(zip(slots, self.picks, strict=True)) | await self._decide("ally", request)
             self.picks = []
@@ -320,7 +348,13 @@ class ShowdownRun:
             foe_side=self.asks[foe].side,
             hand=self._hand(seat),
             slots=self._slots(seat),
+            spec=self.setup.format_spec(),
         )
+
+    def _foe_species(self, seat: RoleSeat) -> tuple[Species, ...]:
+        # Team preview shows each side the other's species, and nothing more.
+        foes = self.setup.player_side() if seat == "foe" else self.setup.foes
+        return tuple(dex().species[battler.species_id] for battler in foes)
 
     def _ally(self) -> Ally:
         assert self.setup.ally is not None
@@ -330,23 +364,30 @@ class ShowdownRun:
         role = self.opponent
         if role is None or (seat == "foe" and self.policy != "model"):
             return None
-        if ask.wait or ask.team_preview:
+        if ask.wait or (ask.team_preview and ask.max_chosen_team_size is None):
             return None
         seated = self._seated(seat, ask)
         offers = tuple(
             Offer(
                 slot=slot,
-                mon_name=ask.side.pokemon[slot].name,
+                mon_name=seated.pick_label(slot)
+                if ask.team_preview
+                else ask.side.pokemon[slot].name,
                 choices=tuple(
                     choice for choice in seated.aimed_choices(slot, ()) if not choice.refusal
                 ),
+                can_mega=seated.can_mega(slot, ()),
             )
             for slot in seated.deciding_slots()
         )
         if all(len(offer.choices) == 1 for offer in offers):
             return None
-        assessment = await self._assess(SIDE_OF[seat])
-        prompt = render_opponent(self.setup, seat, assessment, offers, self._hand(seat), self.log)
+        if ask.team_preview:
+            own, hand, foes = seated.battlers, seated.hand, self._foe_species(seat)
+            prompt = render_preview(self.setup, seat, offers, own, hand, foes)
+        else:
+            assessment = await self._assess(SIDE_OF[seat])
+            prompt = render_opponent(self.setup, seat, assessment, offers, seated.hand, self.log)
         return create_task(role(prompt, OpponentAnswer, partial(check_commands, offers)))
 
     async def _decide(self, seat: RoleSeat, ask: SideRequest) -> dict[int, str]:
@@ -354,7 +395,7 @@ class ShowdownRun:
         slots = seated.deciding_slots()
         if not slots:
             return {}
-        if ask.team_preview:
+        if ask.team_preview and ask.max_chosen_team_size is None:
             leads = sorted(seated.hand)
             return {slot: f"team {at + 1}" for slot, at in zip(slots, leads, strict=False)}
         if thinking := self.thinking.pop(seat, None) or await self._think(seat, ask):
@@ -367,13 +408,20 @@ class ShowdownRun:
                     name = self.setup.foe_name if seat == "foe" else self._ally().name
                     self.said.append(f"|c|{name}|{answer.line}")
                 return dict(zip(slots, answer.commands, strict=True))
+        if ask.team_preview:
+            leads = self.setup.format_spec().active_slots
+            foes = self._foe_species(seat)
+            picked = scripted_preview(seated.battlers, foes, seated.hand, len(slots), leads)
+            return dict(zip(slots, picked, strict=True))
         if self.policy == "random":
             rng = Random(f"{self.setup.seed} {len(self.inputs)}")
             return {slot: opponent_choice(ask, rng) for slot in slots}
         assessment = await self._assess(SIDE_OF[seat])
         picks: list[str] = []
         for slot in slots:
-            picks.append(greedy_choice(assessment, seated.aimed_choices(slot, picks), slot))
+            pick = greedy_choice(assessment, seated.aimed_choices(slot, picks), slot)
+            mega = pick.startswith("move ") and seated.can_mega(slot, picks)
+            picks.append(f"{pick}{MEGA_SUFFIX}" if mega else pick)
         return dict(zip(slots, picks, strict=True))
 
     async def _assess(self, side: SideId) -> Assessment:
@@ -455,11 +503,7 @@ def packed(battler: Battler) -> str:
 
 
 def start_lines(setup: BattleSetup) -> tuple[str, ...]:
-    states = [
-        [[battler.hp, battler.status, [move.pp for move in battler.moves]] for battler in side]
-        for side in (setup.player_side(), setup.foes)
-    ]
-    showdown_id = FORMATS[setup.format_id].showdown_id
+    spec = setup.format_spec()
     p1 = {
         "name": setup.player_name,
         "avatar": setup.player_avatar_id,
@@ -471,10 +515,10 @@ def start_lines(setup: BattleSetup) -> tuple[str, ...]:
         "team": _packed_team(setup.foes),
     }
     return (
-        f">start {json.dumps({'formatid': showdown_id, 'seed': list(setup.seed)})}",
+        f">start {json.dumps({'formatid': spec.showdown_id, 'seed': list(setup.seed)})}",
         f">player p1 {json.dumps(p1)}",
         f">player p2 {json.dumps(p2)}",
-        RESTORE.replace("STATES", json.dumps(states)),
+        *(_restore_lines(setup) if spec.carry_over else ()),
         DUMP,
     )
 
@@ -546,6 +590,14 @@ def battle_result(
         caught=_first_foe(setup, dump) if decided == "caught" else None,
         highlights=highlights,
     )
+
+
+def _restore_lines(setup: BattleSetup) -> tuple[str]:
+    states = [
+        [[battler.hp, battler.status, [move.pp for move in battler.moves]] for battler in side]
+        for side in (setup.player_side(), setup.foes)
+    ]
+    return (RESTORE.replace("STATES", json.dumps(states)),)
 
 
 def _packed_team(battlers: Sequence[Battler]) -> str:

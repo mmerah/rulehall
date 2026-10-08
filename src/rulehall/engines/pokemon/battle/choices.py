@@ -6,7 +6,7 @@ from pydantic import Field
 
 from rulehall.core.validation import Loose
 from rulehall.core.views import BattleChoice, Tag
-from rulehall.engines.pokemon.battle.models import Battler
+from rulehall.engines.pokemon.battle.models import Battler, FormatSpec
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.rules import max_hp
 from rulehall.engines.pokemon.sprites import (
@@ -25,6 +25,7 @@ type Hand = frozenset[int]
 
 PASS = "pass"
 PICKED = "Picked for another Pokemon"
+MEGA_SUFFIX = " mega"
 TARGETED = frozenset({"normal", "any", "adjacentAlly", "adjacentAllyOrSelf", "adjacentFoe"})
 
 
@@ -41,6 +42,7 @@ class RequestMove(Loose):
 class ActiveRequest(Loose):
     moves: tuple[RequestMove, ...]
     trapped: bool = False
+    can_mega_evo: bool = Field(default=False, alias="canMegaEvo")
 
 
 class SideMon(Loose):
@@ -74,6 +76,8 @@ class SideRequest(Loose):
     active: tuple[ActiveRequest, ...] = ()
     force_switch: tuple[bool, ...] = Field(default=(), alias="forceSwitch")
     team_preview: bool = Field(default=False, alias="teamPreview")
+    # Only a format that brings some of the team, such as 4 of 6, sets it.
+    max_chosen_team_size: int | None = Field(default=None, alias="maxChosenTeamSize")
     wait: bool = False
 
     def joined(self, picked: dict[int, str]) -> str:
@@ -102,9 +106,13 @@ class SeatRequest:
     hand: Hand
     # The field slots this trainer plays, whoever's Pokemon stands there.
     slots: frozenset[int]
+    spec: FormatSpec
 
     def deciding_slots(self) -> tuple[int, ...]:
         request = self.request
+        if request.max_chosen_team_size is not None and request.team_preview:
+            # Each pick is a position in the order brought: the leads first, then the back.
+            return tuple(range(min(request.max_chosen_team_size, len(self.hand))))
         if request.team_preview:
             return tuple(sorted(self.slots))
         team = request.side.pokemon
@@ -137,7 +145,9 @@ class SeatRequest:
                     self.battlers[at],
                     self.battlers[at].hp,
                     self.battlers[at].status,
-                    refusal=PICKED if f"team {at + 1}" in picks else "",
+                    self.spec,
+                    group=self._preview_group(slot),
+                    refusal=self._preview_refusal(f"team {at + 1}", picks),
                 )
                 for at in sorted(self.hand)
             )
@@ -148,6 +158,7 @@ class SeatRequest:
                 self.battlers[at],
                 mon.hp,
                 mon.status,
+                self.spec,
                 group=user,
                 refusal="Fainted" if mon.fainted else PICKED if f"switch {at + 1}" in picks else "",
             )
@@ -183,6 +194,19 @@ class SeatRequest:
         )
         return moves if active.trapped else moves + switches
 
+    def can_mega(self, slot: int, picks: Sequence[str]) -> bool:
+        request = self.request
+        return (
+            not request.team_preview
+            and not any(request.force_switch)
+            and request.active[slot].can_mega_evo
+            and not any(pick.endswith(MEGA_SUFFIX) for pick in picks)
+        )
+
+    def pick_label(self, position: int) -> str:
+        leads = self.spec.active_slots
+        return f"Lead {position + 1}" if position < leads else f"Back {position - leads + 1}"
+
     def target_choices(self, slot: int, command: str) -> tuple[BattleChoice, ...]:
         move = self.request.active[slot].moves[int(command.split()[1]) - 1]
         return tuple(
@@ -208,6 +232,16 @@ class SeatRequest:
                 else (choice,)
             )
         )
+
+    def _preview_group(self, position: int) -> str:
+        return "" if self.request.max_chosen_team_size is None else self.pick_label(position)
+
+    def _preview_refusal(self, command: str, picks: Sequence[str]) -> str:
+        if command not in picks:
+            return ""
+        if self.request.max_chosen_team_size is None:
+            return PICKED
+        return f"Picked: {self.pick_label(picks.index(command))}"
 
     def _move_tags(self, slot: int, move: RequestMove) -> tuple[Tag, ...]:
         kinds = {known.move_id: known.type for known in self.battlers[slot].moves}
@@ -244,7 +278,14 @@ def opponent_choice(request: SideRequest, rng: Random) -> str:
 
 
 def _mon_choice(
-    command: str, battler: Battler, hp: int, status: str, *, group: str = "", refusal: str = ""
+    command: str,
+    battler: Battler,
+    hp: int,
+    status: str,
+    spec: FormatSpec,
+    *,
+    group: str = "",
+    refusal: str = "",
 ) -> BattleChoice:
     return BattleChoice(
         command=command,
@@ -256,6 +297,6 @@ def _mon_choice(
             *(type_tag(kind) for kind in dex().species[battler.species_id].types),
             *((status_tag(status),) if status else ()),
         ),
-        meters=(hp_meter(hp, max_hp(battler)),),
+        meters=(hp_meter(hp, max_hp(battler, stat_points=spec.stat_points)),),
         sprite=mon_sprite(dex().species[battler.species_id]),
     )

@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from random import Random
 from typing import Annotated
 
 from pydantic import AfterValidator
@@ -15,15 +16,20 @@ EV_TOTAL_MAX = 510
 STAT_NAMES = ("HP", "Atk", "Def", "SpA", "SpD", "Spe")
 LEGENDARY_TAGS = frozenset(("Sub-Legendary", "Restricted Legendary", "Mythical"))
 TIMES = "×"  # noqa: RUF001
+SEED_LIMIT = 0x10000
 # NATURES is in game order: index = 5 * raised + lowered, over Atk, Def, Spe, SpA, SpD.
 NATURE_STATS = (1, 2, 5, 3, 4)
 
 
-def stats(species: Species, level: int, nature: str, ivs: Stats, evs: Stats) -> Stats:
+def stats(
+    species: Species, level: int, nature: str, ivs: Stats, evs: Stats, *, stat_points: bool = False
+) -> Stats:
     raised, lowered = nature_effect(nature) or (None, None)
     shown: list[int] = []
     for index, (base, iv, ev) in enumerate(zip(species.base_stats, ivs, evs, strict=True)):
-        core = (2 * base + iv + ev // 4) * level // 100
+        # Champions spends Stat Points where EVs were: the first point gives 4 EVs, each other 8.
+        gained = max(2 * ev - 1, 0) if stat_points else ev // 4
+        core = (2 * base + iv + gained) * level // 100
         if index == 0:
             shown.append(core + level + 10)
             continue
@@ -41,9 +47,20 @@ def nature_effect(nature: str) -> tuple[int, int] | None:
     return None if raised == lowered else (NATURE_STATS[raised], NATURE_STATS[lowered])
 
 
-def max_hp(battler: Battler) -> int:
+def max_hp(battler: Battler, *, stat_points: bool = False) -> int:
     species = dex().species[battler.species_id]
-    return stats(species, battler.level, battler.nature, battler.ivs, battler.evs)[0]
+    return stats(
+        species, battler.level, battler.nature, battler.ivs, battler.evs, stat_points=stat_points
+    )[0]
+
+
+def battle_seed(rng: Random) -> tuple[int, int, int, int]:
+    return (
+        rng.randrange(SEED_LIMIT),
+        rng.randrange(SEED_LIMIT),
+        rng.randrange(SEED_LIMIT),
+        rng.randrange(SEED_LIMIT),
+    )
 
 
 def is_legendary(species: Species) -> bool:
@@ -51,8 +68,11 @@ def is_legendary(species: Species) -> bool:
 
 
 def check_species(species_id: Slug) -> None:
-    if species_id not in dex().species:
+    species = dex().species.get(species_id)
+    if species is None:
         raise ValueError(f"{species_id!r} is no species id from SPECIES")
+    if species.forme_only:
+        raise ValueError(f"{species_id!r} is a forme a Pokemon takes in battle, not a species")
 
 
 def effectiveness(attack: str, defender_types: Sequence[str]) -> float:

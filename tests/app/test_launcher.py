@@ -43,6 +43,7 @@ KAEL_FOR_EACH = [
     ("kael", TUNNELGOONS),
     ("kael", TWENTYFOURXX),
     ("kael", POKEMON),
+    ("kael", EngineId("pokemon-champions")),
 ]
 
 
@@ -345,4 +346,8 @@ def test_a_door_holds_its_engines_in_registry_order(tmp_path: Path) -> None:
     mode.id = MIRROR
     runtime.engines[MIRROR] = mode
 
-    assert runtime.door_engines(POKEMON) == (runtime.engines[POKEMON], mode)
+    assert runtime.door_engines(POKEMON) == (
+        runtime.engines[POKEMON],
+        runtime.engines[EngineId("pokemon-champions")],
+        mode,
+    )

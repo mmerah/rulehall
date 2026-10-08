@@ -1,5 +1,7 @@
 # Pokemon
 
+Pokemon is one door with two modes. Journey is a Pokemon journey played as a tabletop RPG; Champions is a competitive circuit season, described under Champions mode below. This part and the rules up to Champions mode are the journey.
+
 A Pokemon journey played as a tabletop RPG. No official Pokemon tabletop game exists, so this rule set is our own: a light d20 layer for the trainer, and the real battle rules for the fights. The master runs towns, routes, people and trainer checks on a map. When a fight starts, the fight runs in the Pokemon Showdown simulator, and the player picks moves in Showdown's battle view.
 
 ## Sources
@@ -90,6 +92,85 @@ The player also acts without the master, from the Team tab, the Wild here panel 
 
 Left out: a post-game after the boss falls, the race to catch the legendary, Terastallization, Mega Evolution, Dynamax, items in battle other than balls, trades, breeding, eggs and shiny Pokemon.
 
+## Champions mode
+
+Champions is the second mode of the Pokemon door, beside Journey. It is a season of VGC doubles events at level 50, in the format of the pinned Showdown (`gen9championsvgc2026regmc` now; `champions/data.json` names it in `source`). Its engine id is `pokemon-champions`; the journey keeps `pokemon`, so old saves stay valid. The master narrates the circuit, the player builds six Pokemon, and every match is a one-game doubles battle in Showdown. Journey rules do not apply: no badges, gyms, EXP, wild battles, balls, Nuzlocke or evil team.
+
+The player picks the mode on the Pokemon door and three things at creation: the roster, the starting team and the look. The map is the Tunnel Goons map machinery. Each map is the host city of one event, with its venue, and `extend_map` moves the story to the next city and event. While an event is under way, `extend_map` and the player's extend action refuse.
+
+### The season
+
+- Four tiers: Locals, Regionals, Internationals, Worlds. Every event is Swiss rounds, then a top cut. Every match is Bo1.
+- The field is a power of two: 2 to the number of Swiss rounds.
+
+| Tier | Swiss rounds | Field | Cut | Opens at |
+|---|---|---|---|---|
+| Locals | 3 | 8 | top 4 | 0 CP |
+| Regionals | 4 | 16 | top 8 | 50 CP |
+| Internationals | 5 | 32 | top 8 | 250 CP |
+| Worlds | 6 | 64 | top 8 | 600 CP, the invite |
+
+- A placing earns Championship Points (CP). A placing at or better than the row earns the CP, the best row that fits. No other placing earns CP.
+
+| Tier | 1st | 2nd | 3rd to 4th | 5th to 8th |
+|---|---|---|---|---|
+| Locals | 50 | 40 | 25 | 0 |
+| Regionals | 200 | 160 | 130 | 100 |
+| Internationals | 500 | 400 | 320 | 250 |
+| Worlds | 0 | 0 | 0 | 0 |
+
+- Only the best four finishes of each tier count; the total is the sum over the tiers. A tier opens when the total reaches its number. Losing never ends the season, and events of an open tier repeat.
+- Worlds earns no CP. It needs the invite, 600 CP, and the player plays it once. When its last match is done, the season is over: the game ends after a short epilogue.
+- The worldsmith writes the event of each map: its tier, a name that carries the tier, the venue (a place of the map reached from the start without a lock) and the battle background. The first event is a Locals. Later events must be of a tier the player has open. The venue's matches use the event's background.
+- Ranking in the Swiss rounds: wins, then the opponents' mean win rate (each opponent counts at 25% at least), then entry order. Round 1 pairs by the event's seed; later rounds pair down the ranking, each player with the next one they have not met. The cut is seeded 1 against the last, 2 against the one before. A loss in the cut places at the size of the bracket left: 8, 4 or 2. A player who misses the cut places at their Swiss rank, and code rolls out the rest of the cut. Once the cut is played, the standings rank the players by how far they went in the cut, then by their Swiss rank.
+- Code rolls every match between other players: the first player wins with a chance of their strength over the sum of both. Strength is 2 for an archetype team, 3 for a top 8 team, 4 for a top 4 team, and 5 for a finalist team, a key trainer, the rival and the player.
+- The Season panel shows the placing of the last event played, and the master reads every finish.
+
+### Registration and the team
+
+- `register_team` registers the player at the venue while the event is open and its tier is open to them. Code draws the field, pairs round 1 and locks the team. The locked team is the registered copy; every edit and `recruit` refuses until the event ends.
+- A team is exactly six Pokemon, each a set: species, ability, item, up to four moves, a nature and Stat Points (SP).
+- Showdown's legality for the format decides the species, abilities, moves and items. Each stat has 0 to 32 SP and a Pokemon has 66 SP at most. Any of the 25 natures is allowed.
+- Stat Points take the place of EVs: the stat formula adds `2 × SP - 1` for a stat with SP, in the place of `EV / 4`. IVs are 31, friendship 255, level 50.
+- Species clause: each species once, by base species, so a Mega and its base count as one. Item clause: each item once.
+- A team may hold several Mega Stones. Only one Mega Evolution happens per battle.
+- The team is checked at creation, on every edit and when a save loads.
+- Between events the player edits the team without the master: `set_slot`, `move_slot`, `apply_preset` (a preset id such as `garchomp-a`, up to three per species from the Smogon usage), `load_template` (an archetype id or a real team id) and `save_team`. The Team page shows the six with their builds and SP; the team builder UI is not yet there.
+- The roster is a creation setting. Open: every legal species is the player's. Story: the player starts with the six of the chosen archetype team and can build only with species they own. The master calls `recruit` once per event, when the story gives a species (a trade, a gift); it refuses while the team is registered, for a species already owned, and in an open roster. The next event resets it.
+- The starting team is one of the nine archetype teams, picked at creation.
+
+### The opponents
+
+- A field team is a real team from `champions/data.json` or an archetype template. The real teams are the top 8 decklists of large Limitless events; each has a pool (top 8, top 4 or finalist) and carries its archetypes. The tier sets the pools: Locals draw archetype templates and top 8 teams; Regionals top 8; Internationals top 4 and top 8; Worlds finalist and top 4. A team the world has already used comes last in a draw, and the newest regulation comes first. The player's starting archetype counts as used from the start, and a field player never gets the team of this event's key trainers.
+- Field players are named from the pack's names. Their Pokemon come from the team; a field team has a style, its archetype, and no more.
+- Key trainers are players of an event the worldsmith writes, at most three per map. Each has an `archetype_id`, optionally an `ace_species_id`, a style, a win line and a lose line. Code builds the team: the newest unused real team of that archetype in the tier's pools, else the archetype template. With an ace, code swaps in one of the ace's presets for the member with the lowest teammate share, never the archetype's setter, unless the team already holds the ace's species. The worldsmith never writes a team; the map is refused when no team can be built.
+- Each new game draws a fresh season seed, which shapes the rival's team and the key trainers' aces. The rival stands in the opening map. Code builds a team of six at the start from the player's six: two core Pokemon from the pool, none of a species the player has, filled from the archetype templates by teammate share. The same team enters every event the player enters. A key trainer or the rival who dies or joins is refused: the part in the season is theirs. The rival's record keeps a line for each match, with its best highlight.
+- The opponent role plays every Champions match, on the key trainer's or field team's style. The scripted opponent, the same as in the journey, plays only when the role fails.
+- A key trainer speaks their line after the match: the lose line when the player wins, the win line when the player loses.
+
+### What each role sees
+
+- The worldsmith reads SEASON (CP and the tiers allowed), ARCHETYPES (each with its setter and cores) and ACE SPECIES. It writes the event and the people, never a team or a sheet.
+- The master reads SEASON with every finish, EVENT (tier, stage, round, the player's record, the standings of the top 8 and the player, and the next opponent: a key trainer by name and style, a field player as a field team), THE TEAM with full builds, OWNED in a story roster, THE RIVAL with the ledger, and the type chart. The master never sees a foe's team and never names a foe's Pokemon before the match shows them.
+- The opponent role sees its own team in full and the foe's Pokemon only as the battle shows them, as in the journey. At team preview both sides show species and types.
+- The narrator reads what happened: the result of the round, the highlights, the other tables, the record, and at the end the placing, the CP and the tiers it opened. The player watched the match, so the narrator does not tell it again.
+
+### The battle
+
+- `start_match` opens the next match at the venue. It is a doubles battle in the format of `source`, level 50, with the player's registered team against the opponent's. Showdown's Open Team Sheets rule is dropped. It ends the master's turn, and the battle screen plays the match.
+- At team preview the player brings four of six: they pick four, the first two lead and the other two wait on the bench, and Back undoes a pick. The two left out sit the match out. The opponent role picks its four from the same screen, with a suggestion; the scripted pick ranks each Pokemon by its best move against each foe species and its type risk, and puts a Fake Out, Tailwind or Trick Room user among the leads.
+- Mega Evolution: a Pokemon that holds its Mega Stone gets a Mega Evolve choice. It toggles, and the next move of that Pokemon goes with `mega`. Showdown offers it only while the team has not Mega Evolved, and only one Pokemon per turn may take it. The opponent role gets the same choice in its prompt, and its answer may hold one `mega`. The scripted opponent Mega Evolves as soon as it can.
+- No HP or PP carries over, and no EXP, item or ball applies: every match starts fresh. A ball throw refuses.
+- Win or lose, the result goes to the event: code records it, rolls the other tables, pairs the next round or seeds the cut. A loss in the Swiss rounds does not end the player's event.
+
+Left out, and not yet: open team sheets, scouting, foe estimates that know SP, and the team builder UI.
+
 ## Where the rules live
 
-`src/rulehall/engines/pokemon/journey/`: the master's instructions in `rules.md`, the journey numbers in `rules.py` and the packs in `packs/`. The shared base is `src/rulehall/engines/pokemon/`: the stat, type, nature and item rules in `rules.py`, the battle module in `battle/`, and the Node side in `showdown/`. The map machinery is `RoomEngine` in `src/rulehall/engines/rooms/`.
+The shared base is `src/rulehall/engines/pokemon/`: the stat, type, nature and item rules in `rules.py`, the dex in `dex.py`, the battle module in `battle/` (the driver, the choices, the opponent role, team preview and Mega), and the Node side in `showdown/`.
+
+`src/rulehall/engines/pokemon/journey/`: the journey engine, with the master's instructions in `rules.md`, the journey numbers in `rules.py` and the packs in `packs/`.
+
+`src/rulehall/engines/pokemon/champions/`: the Champions engine. `season.py` holds the tiers (`TIERS`), the CP rules and the event with its Swiss rounds and cut. `world.py` holds the world: registration, matches, results and recruiting. `rules.py` holds the team rules and the builders for key trainers, the rival and the field. `sheet.py` is the player's sheet and the trainer. `worldsmith.py` checks the worldsmith's event. `data.py` loads `data.json`, the legality, presets, usage and teams. `panels.py` builds the Team and Season panels, and `rules.md` is the master's instructions.
+
+The map machinery is `RoomEngine` in `src/rulehall/engines/rooms/`.

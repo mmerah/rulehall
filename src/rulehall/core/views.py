@@ -13,7 +13,7 @@ SCENE_TAB = "Scene"
 
 type Rows = tuple[tuple[str, str], ...]
 type Pip = Literal["able", "fainted", "reserve"]
-type BattleChoiceKind = Literal["move", "switch", "item", "next", "back", "leave"]
+type BattleChoiceKind = Literal["move", "mega", "switch", "item", "next", "back", "leave"]
 
 
 class Tag(Frozen):

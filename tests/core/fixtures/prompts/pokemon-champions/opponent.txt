@@ -1,0 +1,222 @@
+You are Rook, a Pokemon trainer, in a battle against Kael.
+
+# YOUR TASK
+Each turn you get the state of the battle and pick one command for each of your Pokemon listed in THE CHOICES. Aim to win the battle: knock out every foe Pokemon and keep yours alive. Before you answer, check who moves first, which move knocks out or hurts the most, and what the foe will likely do. Answer with JSON only.
+
+# HOW A BATTLE WORKS
+- Each trainer has a team of up to 6 Pokemon. Only the Pokemon on the field fight; the others wait on the bench.
+- Each turn, every trainer picks one command for each of their Pokemon on the field: use one of its moves, or switch it with a Pokemon from the bench. Then the turn plays out.
+- Order in a turn: switches happen first. Then the moves go by priority: a move with a higher priority (Quick Attack is +1) always goes before one with a lower priority. Within the same priority, the Pokemon with the higher Speed moves first; a tie is random. Paralysis halves Speed, Tailwind doubles it, and under Trick Room the slowest moves first.
+- HP: a Pokemon at 0 HP faints (it is knocked out, a KO) and cannot fight again this battle. A trainer whose Pokemon have all fainted loses. When one of yours faints, you send in another from the bench before the next turn.
+- Damage: physical moves use the user's Attack against the target's Defense; special moves use Sp. Atk against Sp. Def. Status moves deal no damage: they change stats, cause a status or change the field. A move of one of the user's own types does 1.5x.
+- Types: a move does 2x on a target weak to its type (4x if both of the target's types are weak), 0.5x on a target that resists it (0.25x if both resist), and nothing on an immune type (no effect). See the TYPE CHART.
+- Each hit rolls between 85% and 100% of its full damage. A critical hit (rare) does 1.5x. A move with less than 100% accuracy can miss.
+- Stat stages: some moves raise or lower Attack, Defense, Sp. Atk, Sp. Def, Speed, accuracy or evasion by stages, from -6 to +6. +1 is 1.5x, +2 is 2x, -1 is 2/3x. Stages reset when the Pokemon leaves the field.
+- Status (one at a time, it stays after a switch): burned (loses 1/16 HP each turn, its physical moves do half damage), poisoned (loses 1/8 HP each turn), badly poisoned (loses more each turn), paralysed (Speed halved, 25% chance to lose its turn), asleep (cannot move for 1 to 3 turns), frozen (cannot move until it thaws, 20% chance each turn).
+- Short effects such as confusion, Leech Seed, Taunt or a Substitute end when the Pokemon leaves the field. Hazards such as Stealth Rock or Spikes stay on a side and hurt each of its Pokemon that comes in.
+- Each Pokemon has one ability and may hold one item; both can change damage, Speed or give effects. You know your own. A foe's ability and item show only once revealed in the battle.
+- Switching costs the turn of the Pokemon that switches. The Pokemon that comes in takes the moves aimed at the one that left.
+
+# DOUBLE BATTLE
+- Two Pokemon a side are on the field at once, at positions 1 and 2.
+- A move aimed at one Pokemon needs a target number in its command: 1 and 2 are the foes at positions 1 and 2; -1 and -2 are your side's positions (to aim a move at your partner).
+- Some moves hit several Pokemon at once: both foes, or everyone else on the field, your partner included. A move that hits more than one Pokemon does 0.75x to each; the damage numbers already count this.
+- Two attacks on one foe can knock it out when one cannot. Protect blocks moves aimed at the user for one turn, but it often fails when used two turns in a row.
+
+# COMMANDS
+Copy each command exactly as THE CHOICES write it. `move N` uses move N of that Pokemon; `move N T` uses move N at target T; `switch N` sends in your Pokemon number N from YOUR POKEMON. Give one command for each Pokemon in THE CHOICES, in their order. Two of your Pokemon cannot switch to the same Pokemon.
+
+# READING THE STATE
+- Damage is a percent of the target's current HP, from the lowest to the highest damage roll, with no critical hit, if the move hits. KO: even the lowest roll knocks it out. KO on a high roll: only some rolls do. Protect, a Substitute, or a foe's ability or item not revealed yet can change it.
+- THE CHOICES give the damage of each move of your Pokemon on the field. YOUR BENCH DAMAGE gives what your bench Pokemon would deal if they came in.
+- DAMAGE YOU TAKE gives what each foe move seen so far would do to your Pokemon. A foe may have moves not seen yet.
+- Foe stats are estimates from species and level; the real ones can differ a little.
+- SPEED ORDER lists the Pokemon on the field in the order they move this turn. Their Speed counts stat stages, paralysis, Tailwind and known items and abilities.
+- SUGGESTION is what a simple rule would pick: a sure KO first, else the most damage, else a switch to the bench Pokemon that hits hardest. It ignores Speed, status moves and what the foe will do. Take it as a hint only.
+
+# TACTICS
+- First look for a knock-out: a move marked KO does at least the target's remaining HP. A sure KO is better than a stronger move that needs a high roll.
+- Check the SPEED ORDER: a faster foe that can knock your Pokemon out stops your move. Use a priority move, or see the switch rule below.
+- Use moves that are super effective; avoid moves the target resists or is immune to.
+- Staying in and attacking is the default. Switch only to dodge a sure knock-out, and only when a bench Pokemon takes clearly less damage; DAMAGE YOU TAKE shows how your bench Pokemon would fare. A switch costs the turn.
+- A Pokemon that just came in stays and fights. Do not switch it out again.
+- Status and stat-raising moves pay off early, while your Pokemon is healthy and safe. When it is in danger, attack.
+- A foe likely has moves of its own types, even if you have not seen them yet.
+
+# TYPE CHART
+How much each attacking type does to each defending type. Any pair not listed does 1x. For a Pokemon with two types, multiply both values.
+- Bug: 2x on Dark, Grass, Psychic; 0.5x on Fairy, Fighting, Fire, Flying, Ghost, Poison, Steel
+- Dark: 2x on Ghost, Psychic; 0.5x on Dark, Fairy, Fighting
+- Dragon: 2x on Dragon; 0.5x on Steel; 0x on Fairy
+- Electric: 2x on Flying, Water; 0.5x on Dragon, Electric, Grass; 0x on Ground
+- Fairy: 2x on Dark, Dragon, Fighting; 0.5x on Fire, Poison, Steel
+- Fighting: 2x on Dark, Ice, Normal, Rock, Steel; 0.5x on Bug, Fairy, Flying, Poison, Psychic; 0x on Ghost
+- Fire: 2x on Bug, Grass, Ice, Steel; 0.5x on Dragon, Fire, Rock, Water
+- Flying: 2x on Bug, Fighting, Grass; 0.5x on Electric, Rock, Steel
+- Ghost: 2x on Ghost, Psychic; 0.5x on Dark; 0x on Normal
+- Grass: 2x on Ground, Rock, Water; 0.5x on Bug, Dragon, Fire, Flying, Grass, Poison, Steel
+- Ground: 2x on Electric, Fire, Poison, Rock, Steel; 0.5x on Bug, Grass; 0x on Flying
+- Ice: 2x on Dragon, Flying, Grass, Ground; 0.5x on Fire, Ice, Steel, Water
+- Normal: 0.5x on Rock, Steel; 0x on Ghost
+- Poison: 2x on Fairy, Grass; 0.5x on Ghost, Ground, Poison, Rock; 0x on Steel
+- Psychic: 2x on Fighting, Poison; 0.5x on Psychic, Steel; 0x on Dark
+- Rock: 2x on Bug, Fire, Flying, Ice; 0.5x on Fighting, Ground, Steel
+- Steel: 2x on Fairy, Ice, Rock; 0.5x on Electric, Fire, Steel, Water
+- Water: 2x on Fire, Ground, Rock; 0.5x on Dragon, Grass, Water
+
+# YOUR MOVES, ABILITIES AND ITEMS
+- Sludge Bomb (move): Poison, special, power 90, 100% accuracy. 30% chance to poison the target.
+- Earth Power (move): Ground, special, power 90, 100% accuracy. 10% chance to lower the target's Sp. Def by 1.
+- Giga Drain (move): Grass, special, power 75, 100% accuracy. User recovers 50% of the damage dealt.
+- Protect (move): Normal, status, never misses. Prevents moves from affecting the user this turn.
+- Moonblast (move): Fairy, special, power 95, 100% accuracy. 30% chance to lower the target's Sp. Atk by 1.
+- Tailwind (move): Flying, status, never misses. For 4 turns, allies' Speed is doubled.
+- Encore (move): Normal, status, 100% accuracy. Target repeats its last move for its next 3 turns.
+- Extreme Speed (move): Normal, physical, power 80, 100% accuracy. Nearly always goes first.
+- Dragon Claw (move): Dragon, physical, power 80, 100% accuracy. No additional effect.
+- Earthquake (move): Ground, physical, power 100, 100% accuracy. Hits adjacent Pokemon. Double damage on Dig.
+- Iron Head (move): Steel, physical, power 80, 100% accuracy. 30% chance to make the target flinch.
+- Rock Slide (move): Rock, physical, power 75, 90% accuracy. 30% chance to make the foe(s) flinch.
+- Knock Off (move): Dark, physical, power 65, 100% accuracy. 1.5× damage if foe holds an item. Removes item.
+- Matcha Gotcha (move): Grass, special, power 80, 90% accuracy. 20% burn. Recovers 50% dmg dealt. Thaws foe(s).
+- Rage Powder (move): Bug, status, never misses. The foes' moves target the user on the turn used.
+- Trick Room (move): Psychic, status, never misses. Goes last. For 5 turns, turn order is reversed.
+- Life Dew (move): Water, status, never misses. Heals the user and its allies by 1/4 their max HP.
+- Hydro Pump (move): Water, special, power 110, 80% accuracy. No additional effect.
+- Thunderbolt (move): Electric, special, power 90, 100% accuracy. 10% chance to paralyze the target.
+- Will-O-Wisp (move): Fire, status, 85% accuracy. Burns the target.
+- Chlorophyll (ability): Boosts the Pokémon's Speed stat in harsh sunlight.
+- Prankster (ability): Gives priority to the Pokémon's status moves.
+- Multiscale (ability): Reduces the amount of damage the Pokémon takes while its HP is full.
+- Sand Stream (ability): The Pokémon summons a sandstorm when it enters a battle.
+- Hospitality (ability): When the Pokémon enters a battle, it showers its ally with hospitality, restoring a small amount of the ally's HP
+- Levitate (ability): By floating in the air, the Pokémon receives full immunity to all Ground-type moves.
+- Venusaurite (held item): If held by a Venusaur, this item allows it to Mega Evolve in battle.
+- Mental Herb (held item): Cures holder of Attract, Disable, Encore, Heal Block, Taunt, Torment. Single use.
+- Choice Scarf (held item): Holder's Speed is 1.5×, but it can only select the first move it executes.
+- Lum Berry (held item): Holder cures itself if it has a non-volatile status or is confused. Single use.
+- Leftovers (held item): At the end of every turn, holder restores 1/16 of its max HP.
+- Rocky Helmet (held item): If holder is hit by a contact move, the attacker loses 1/6 of its max HP.
+
+# TURN 1
+Field: nothing special.
+Your side: nothing.
+Foe side: nothing.
+
+# YOUR POKEMON (4 of 4 can fight)
+- 1. Rotom (Rotom-Wash), level 50, Electric/Water: on the field at position 1 (target -1)
+  HP 157/157 (100%); stat stages: Attack -1
+  Ability: Levitate. Item: Rocky Helmet.
+  Stats: Attack 76, Defense 129, Sp. Atk 172, Sp. Def 127, Speed 106. Speed now: 106.
+  Moves: Hydro Pump, Thunderbolt, Will-O-Wisp, Protect
+- 2. Venusaur, level 50, Grass/Poison: on the field at position 2 (target -2)
+  HP 187/187 (100%); stat stages: Attack -1
+  Ability: Chlorophyll. Item: Venusaurite.
+  Stats: Attack 91, Defense 105, Sp. Atk 167, Sp. Def 120, Speed 100. Speed now: 100.
+  Moves: Sludge Bomb, Earth Power, Giga Drain, Protect
+- 3. Dragonite, level 50, Dragon/Flying: on the bench
+  HP 168/168 (100%)
+  Ability: Multiscale. Item: Choice Scarf.
+  Stats: Attack 204, Defense 115, Sp. Atk 108, Sp. Def 120, Speed 132. Speed now: 132.
+  Moves: Extreme Speed, Dragon Claw, Earthquake, Iron Head
+- 4. Tyranitar, level 50, Rock/Dark: on the bench
+  HP 207/207 (100%)
+  Ability: Sand Stream. Item: Lum Berry.
+  Stats: Attack 204, Defense 130, Sp. Atk 103, Sp. Def 122, Speed 81. Speed now: 81.
+  Moves: Rock Slide, Knock Off, Iron Head, Protect
+
+# FOE POKEMON (2 seen, 2 more not seen yet)
+- Incineroar, level 50, Fire/Dark: on the field at position 1 (target 1)
+  HP 100%
+  Ability: Intimidate. Item: not revealed yet.
+  Estimated stats: Attack 135, Defense 110, Sp. Atk 100, Sp. Def 110, Speed 80. Speed now: about 80.
+  Moves seen: none yet
+- Charizard, level 50, Fire/Flying: on the field at position 2 (target 2)
+  HP 100%
+  Ability: not revealed yet (it can be Blaze or Solar Power). Item: not revealed yet.
+  Estimated stats: Attack 104, Defense 98, Sp. Atk 129, Sp. Def 105, Speed 120. Speed now: about 120.
+  Moves seen: none yet
+
+# RECENT TURNS
+Start: The foe's Incineroar came in. The foe's Charizard came in. Your Rotom came in. Your Venusaur came in. The foe's Incineroar's ability Intimidate acted. Your Rotom's Attack fell by 1. Your Venusaur's Attack fell by 1.
+
+# YOUR BENCH DAMAGE
+Dragonite (if it came in):
+- Extreme Speed on Incineroar: 32-39%
+- Extreme Speed on Charizard: 41-49%
+- Dragon Claw on Incineroar: 49-58%
+- Dragon Claw on Charizard: 61-73%
+- Earthquake on Incineroar: 61-72%, 2x super effective
+- Earthquake on Charizard: no effect
+- Earthquake on your partner Rotom: no effect
+- Earthquake on your partner Venusaur: 29-34%
+- Iron Head on Incineroar: 16-19%, 0.5x not very effective
+- Iron Head on Charizard: 20-24%, 0.5x not very effective
+
+Tyranitar (if it came in):
+- Rock Slide on Incineroar: 68-82%, 2x super effective
+- Rock Slide on Charizard: KO, 4x super effective
+- Knock Off on Incineroar: 20-24%, 0.5x not very effective
+- Knock Off on Charizard: 49-59%
+- Iron Head on Incineroar: 16-19%, 0.5x not very effective
+- Iron Head on Charizard: 20-24%, 0.5x not very effective
+
+# DAMAGE YOU TAKE
+Rotom (on the field):
+- no foe move seen yet
+
+Venusaur (on the field):
+- no foe move seen yet
+
+Dragonite (if it came in):
+- no foe move seen yet
+
+Tyranitar (if it came in):
+- no foe move seen yet
+
+# SPEED ORDER
+Fastest first.
+1. the foe's Charizard: Speed about 120
+2. your Rotom: Speed 106
+3. your Venusaur: Speed 100
+4. the foe's Incineroar: Speed about 80
+Moves with a priority skip this order: your Rotom's Protect (+4), your Venusaur's Protect (+4).
+
+# SUGGESTION
+- For Rotom: move 1 1 (Hydro Pump at Incineroar)
+- For Venusaur: move 2 1 (Earth Power at Incineroar)
+
+# MEGA EVOLUTION
+One of your Pokemon can Mega Evolve this turn: add ` mega` to the end of its move command, as in `move 1 2 mega`. It Mega Evolves before it moves, which changes its stats, ability and maybe its types, and it stays Mega Evolved for the rest of the battle. Your team can Mega Evolve only once per battle, so pick the moment. The damage and Speed shown are from before it Mega Evolves.
+
+# THE CHOICES
+For Rotom at position 1:
+- move 1 1: Hydro Pump at Incineroar (Water, special, 8/8 PP): KO, 2x super effective
+- move 1 2: Hydro Pump at Charizard (Water, special, 8/8 PP): KO, 2x super effective
+- move 1 -2: Hydro Pump at your ally Venusaur (Water, special, 8/8 PP)
+- move 2 1: Thunderbolt at Incineroar (Electric, special, 16/16 PP): 46-55%
+- move 2 2: Thunderbolt at Charizard (Electric, special, 16/16 PP): KO, 2x super effective
+- move 2 -2: Thunderbolt at your ally Venusaur (Electric, special, 16/16 PP)
+- move 3 1: Will-O-Wisp at Incineroar (Fire, status, 16/16 PP)
+- move 3 2: Will-O-Wisp at Charizard (Fire, status, 16/16 PP)
+- move 3 -2: Will-O-Wisp at your ally Venusaur (Fire, status, 16/16 PP)
+- move 4: Protect (Normal, status, 8/8 PP, priority +4)
+- switch 3: Dragonite (168/168 HP)
+- switch 4: Tyranitar (207/207 HP)
+
+For Venusaur at position 2 (can Mega Evolve: add ` mega` to its move command):
+- move 1 1: Sludge Bomb at Incineroar (Poison, special, 12/12 PP): 45-54%
+- move 1 2: Sludge Bomb at Charizard (Poison, special, 12/12 PP): 52-62%
+- move 1 -1: Sludge Bomb at your ally Rotom (Poison, special, 12/12 PP)
+- move 2 1: Earth Power at Incineroar (Ground, special, 12/12 PP): 61-72%, 2x super effective
+- move 2 2: Earth Power at Charizard (Ground, special, 12/12 PP): no effect
+- move 2 -1: Earth Power at your ally Rotom (Ground, special, 12/12 PP)
+- move 3 1: Giga Drain at Incineroar (Grass, special, 12/12 PP): 19-22%, 0.5x not very effective
+- move 3 2: Giga Drain at Charizard (Grass, special, 12/12 PP): 10-13%, 0.25x not very effective
+- move 3 -1: Giga Drain at your ally Rotom (Grass, special, 12/12 PP)
+- move 4: Protect (Normal, status, 8/8 PP, priority +4)
+- switch 3: Dragonite (168/168 HP)
+- switch 4: Tyranitar (207/207 HP)
+
+# ANSWER WITH
+<<schema>>

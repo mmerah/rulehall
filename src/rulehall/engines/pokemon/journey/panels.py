@@ -15,14 +15,19 @@ from rulehall.engines.pokemon.journey.rules import (
 from rulehall.engines.pokemon.journey.scheme import SCHEME_STAGES
 from rulehall.engines.pokemon.journey.sheet import Learning, Mon, MoveSlot, TrainerSheet
 from rulehall.engines.pokemon.journey.world import PokemonWorld
-from rulehall.engines.pokemon.rules import STAT_NAMES, TIMES, nature_effect
+from rulehall.engines.pokemon.rules import STAT_NAMES, TIMES
 from rulehall.engines.pokemon.sprites import (
     ITEM_SPRITES,
+    LOWERED,
+    RAISED,
     category_tag,
     hp_meter,
     item_sprite,
     move_brief,
     move_summary,
+    nature_arrows,
+    nature_tag,
+    nature_text,
     pp_meter,
     status_tag,
     type_tag,
@@ -30,7 +35,6 @@ from rulehall.engines.pokemon.sprites import (
 
 type StatLine = tuple[str, int, str]
 GENDER_SIGNS = {"M": "♂", "F": "♀", "N": ""}
-RAISED, LOWERED = " ▲", " ▼"
 ITEMS_GROUP, LEARN_GROUP, TEAM_GROUP = "Items", "Learn", "Team"
 WILD_ICON_PREFIX = "wild-"
 POCKETS = {
@@ -256,22 +260,6 @@ def item_text(item_id: BagId) -> str:
             return item.text or dex().items[item_id.replace("-", "")]
         case kind:
             return KIND_TEXT[kind].format(heal=item.heal)
-
-
-def nature_tag(nature: str) -> Tag:
-    return Tag(name=nature, help=nature_text(nature))
-
-
-def nature_text(nature: str) -> str:
-    arrows = nature_arrows(nature)
-    if not arrows:
-        return "no stat changed"
-    return " · ".join(STAT_NAMES[index] + arrow for index, arrow in arrows.items())
-
-
-def nature_arrows(nature: str) -> dict[int, str]:
-    effect = nature_effect(nature)
-    return {} if effect is None else dict(zip(effect, (RAISED, LOWERED), strict=True))
 
 
 def mon_options(mon: Mon, world: PokemonWorld, bag: list[BagId]) -> tuple[ActionOption, ...]:

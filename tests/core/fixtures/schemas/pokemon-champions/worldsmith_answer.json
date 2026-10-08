@@ -1,0 +1,288 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "places": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "type": "string"
+            },
+            "known": {
+              "default": false,
+              "type": "boolean"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "brief",
+            "description"
+          ],
+          "type": "object"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "ways": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "items": {
+            "additionalProperties": false,
+            "description": "One way out, in one direction, from the place it is filed under.",
+            "properties": {
+              "to_id": {
+                "type": "string"
+              },
+              "known": {
+                "default": true,
+                "description": "False only for a secret way the story must find.",
+                "type": "boolean"
+              },
+              "locked": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "to_id"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "npcs": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "type": "string"
+            },
+            "known": {
+              "default": false,
+              "type": "boolean"
+            },
+            "voice": {
+              "description": "How this person sounds read aloud: feminine, masculine, or other for creatures, machines and voices that are neither.",
+              "enum": [
+                "feminine",
+                "masculine",
+                "other"
+              ],
+              "type": "string"
+            },
+            "place_id": {
+              "type": "string"
+            },
+            "style": {
+              "default": "",
+              "description": "One line on how this key trainer (a trainer with an archetype, or the rival) battles, such as 'sets Tailwind, then hits hard'. Empty for anyone else.",
+              "type": "string"
+            },
+            "win_line": {
+              "default": "",
+              "description": "What this key trainer (a trainer with an archetype, or the rival) says on beating the player. Empty for anyone else.",
+              "type": "string"
+            },
+            "lose_line": {
+              "default": "",
+              "description": "What this key trainer (a trainer with an archetype, or the rival) says when the player beats them. Empty for anyone else.",
+              "type": "string"
+            },
+            "avatar_id": {
+              "description": "How this person looks: exact id from TRAINER LOOKS.",
+              "type": "string"
+            },
+            "rival": {
+              "default": false,
+              "description": "True for the one rival of the season, who stands in the opening map. Code builds the rival's team and brings them to every event.",
+              "type": "boolean"
+            },
+            "archetype_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null,
+              "description": "Exact id from ARCHETYPES for a key trainer who enters this map's event with a team of that archetype. Null for anyone else, and for the rival."
+            },
+            "ace_species_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null,
+              "description": "Exact id from ACE SPECIES: the signature Pokemon code puts on this key trainer's team. Null for no ace."
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "brief",
+            "voice",
+            "place_id",
+            "avatar_id"
+          ],
+          "type": "object"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "items": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "type": "string"
+            },
+            "known": {
+              "default": false,
+              "type": "boolean"
+            },
+            "holder_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "brief",
+            "holder_id"
+          ],
+          "type": "object"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "arc": {
+      "default": "",
+      "description": "The truth behind this map: secrets, what can come, and what ties one hidden thing to another. The player never reads it.",
+      "type": "string"
+    },
+    "start_id": {
+      "description": "Exact id of the place this map starts from.",
+      "type": "string"
+    },
+    "recap": {
+      "description": "One paragraph on the part of the map the player leaves behind: what the player did there, paid and learned. The narrator reads it. Name nothing hidden.",
+      "type": "string"
+    },
+    "event": {
+      "description": "The event this map hosts: its tier, its name, the venue where it is played and the battle background of its matches.",
+      "additionalProperties": false,
+      "properties": {
+        "tier": {
+          "description": "The tier of the event; SEASON lists the tiers allowed.",
+          "enum": [
+            "locals",
+            "regionals",
+            "internationals",
+            "worlds"
+          ],
+          "type": "string"
+        },
+        "name": {
+          "description": "The event's name, carrying its tier, such as 'Lumiose Locals' or 'Kanto Regionals'.",
+          "type": "string"
+        },
+        "venue_id": {
+          "description": "Exact id of the place of this map where the matches are played.",
+          "type": "string"
+        },
+        "battle_background": {
+          "description": "The battle background of the venue's matches, such as 'gen3-arena'.",
+          "enum": [
+            "gen6-aquacordetown",
+            "gen6-beach",
+            "gen6-city",
+            "gen6-dampcave",
+            "gen6-darkbeach",
+            "gen6-darkcity",
+            "gen6-darkmeadow",
+            "gen6-deepsea",
+            "gen6-desert",
+            "gen6-earthycave",
+            "gen6-elite4drake",
+            "gen6-forest",
+            "gen6-icecave",
+            "gen6-leaderwallace",
+            "gen6-library",
+            "gen6-meadow",
+            "gen6-orasdesert",
+            "gen6-orassea",
+            "gen6-skypillar",
+            "gen5-beach",
+            "gen5-beachshore",
+            "gen5-city",
+            "gen5-dampcave",
+            "gen5-deepsea",
+            "gen5-desert",
+            "gen5-earthycave",
+            "gen5-forest",
+            "gen5-icecave",
+            "gen5-meadow",
+            "gen5-mountain",
+            "gen5-river",
+            "gen5-route",
+            "gen5-thunderplains",
+            "gen5-volcanocave",
+            "gen4-cave",
+            "gen4-indoors",
+            "gen4-snow",
+            "gen4-water",
+            "gen3-arena",
+            "gen3-cave",
+            "gen3-forest",
+            "gen3-ocean",
+            "gen3-sand"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "tier",
+        "name",
+        "venue_id",
+        "battle_background"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "start_id",
+    "recap",
+    "event"
+  ],
+  "type": "object"
+}

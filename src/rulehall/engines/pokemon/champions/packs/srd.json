@@ -1,0 +1,12 @@
+{
+  "name": "The Champions Circuit",
+  "origin": "Written for rulehall's Champions mode",
+  "license": "Pokemon names are trademarks of Nintendo/Creatures/Game Freak/The Pokemon Company.",
+  "backdrop": "The Champions Circuit is a season of official VGC doubles events. Each event is held in a host city: a convention venue with a registration desk and a stage, a hotel where players stay, and practice halls and cafes where they test teams and talk shop. Players bring a team of six at level 50 and pick four for each match. Locals are small events in a game shop or community hall; Regionals fill a convention centre; Internationals draw players from every continent; Worlds is the one invitational at the end of the season. Championship Points from good placings open the bigger events, and enough of them earn the Worlds invite.",
+  "names": {
+    "female": ["Aiko", "Bea", "Camila", "Dana", "Elena", "Freya", "Hana", "Ines", "Jade", "Kira", "Lena", "Mei", "Nadia", "Olivia", "Priya", "Rosa", "Sofia", "Yuna"],
+    "male": ["Aaron", "Ben", "Carlos", "Diego", "Eli", "Felix", "Hugo", "Ivan", "Jonas", "Kenji", "Leo", "Marco", "Nico", "Oscar", "Pablo", "Raj", "Sami", "Tomas"],
+    "neutral": ["Alex", "Charlie", "Jordan", "Quinn", "Robin", "Sky"],
+    "surnames": ["Adler", "Baker", "Chen", "Duarte", "Evans", "Fischer", "Garcia", "Haddad", "Ito", "Jensen", "Kowalski", "Lambert", "Moreau", "Nakamura", "Okafor", "Petrov", "Rossi", "Silva", "Tanaka", "Weber"]
+  }
+}

@@ -1,3 +1,4 @@
+import re
 from collections.abc import Mapping, Sequence
 
 from rulehall.core.views import BattleHeader, BattleMon, BattleSide, Tag
@@ -8,10 +9,12 @@ from rulehall.engines.pokemon.battle.models import (
     BattleSetup,
     DumpMon,
     FieldCondition,
+    FormatSpec,
 )
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.rules import max_hp
 from rulehall.engines.pokemon.sprites import (
+    MEGA_COLOUR,
     STATUS_COLOURS,
     TYPE_COLOURS,
     hp_meter,
@@ -43,6 +46,9 @@ def battle_header(
     # A line shows through the turn after the one it was said in, then expires.
     said: dict[str, str] = {}
     said_before: dict[str, str] = {}
+    # A Mega Evolution lasts the whole battle: each player-side name keeps its stone and forme.
+    formes: dict[str, str] = {}
+    megas: dict[str, tuple[str, str]] = {}
     for line in log:
         _, kind, *fields = line.split("|", 3)
         match kind:
@@ -50,6 +56,12 @@ def battle_header(
                 said_before, said = said, {}
             case "c":
                 said[fields[0]] = fields[1]
+            case "detailschange" if fields[0].startswith("p1"):
+                forme = fields[1].partition(",")[0]
+                formes[fields[0].partition(": ")[2]] = re.sub(r"[^a-z0-9]", "", forme.lower())
+            case "-mega" if fields[0].startswith("p1"):
+                name = fields[0].partition(": ")[2]
+                megas[name] = (fields[1].rpartition("|")[2], formes.get(name, ""))
             case "-weather":
                 weather = _field_id(fields[0], WEATHERS)
             case "-fieldstart" | "-fieldend" if found := _field_id(fields[0], TERRAINS):
@@ -87,20 +99,40 @@ def battle_header(
             *(() if terrain is None else (_chip(f"{terrain} terrain", TERRAINS[terrain]),)),
         ),
         fielded=tuple(
-            _fielded(setup.player_side()[mon.slot], mon, deciding=position == deciding_slot)
+            _fielded(
+                setup.player_side()[mon.slot],
+                mon,
+                setup.format_spec(),
+                megas,
+                deciding=position == deciding_slot,
+            )
             for position, mon in enumerate(p1)
             if mon.active and mon.hp
         ),
     )
 
 
-def _fielded(battler: Battler, dumped: DumpMon, *, deciding: bool) -> BattleMon:
+def _fielded(
+    battler: Battler,
+    dumped: DumpMon,
+    spec: FormatSpec,
+    megas: Mapping[str, tuple[str, str]],
+    *,
+    deciding: bool,
+) -> BattleMon:
+    species = dex().species
+    stone, forme_id = megas.get(battler.name, ("", ""))
     return BattleMon(
         name=battler.name,
-        sprite=mon_sprite(dex().species[battler.species_id]),
-        hp=hp_meter(dumped.hp, max_hp(battler)),
+        sprite=mon_sprite(species.get(forme_id) or species[battler.species_id]),
+        hp=hp_meter(dumped.hp, max_hp(battler, stat_points=spec.stat_points)),
         tags=(
             Tag(name=f"Lv{battler.level}"),
+            *(
+                (Tag(name="Mega", colour=MEGA_COLOUR, help=f"Mega Evolved with {stone}"),)
+                if stone
+                else ()
+            ),
             *((status_tag(dumped.status),) if dumped.status in STATUS_COLOURS else ()),
             *(
                 Tag(

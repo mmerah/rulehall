@@ -60,6 +60,7 @@ class Species(Frozen):
     levelup: tuple[tuple[int, Slug], ...]
     machines: tuple[Slug, ...]
     entry: str = Field(min_length=1)
+    forme_only: bool = False
 
     def types_text(self) -> str:
         return "/".join(self.types)
@@ -98,7 +99,9 @@ class Dex(Frozen):
     moves: dict[Slug, Move]
     # Text by ability name, and by Showdown item id (the slug without dashes).
     abilities: dict[str, str]
+    ability_names: dict[Slug, str]
     items: dict[str, str]
+    item_names: dict[Slug, str]
     type_chart: dict[str, Matchups]
 
     def require_species(self, species_id: str) -> Species:
@@ -106,6 +109,12 @@ class Dex(Frozen):
         if found is None:
             raise Refusal(f"{species_id!r} is no species id of the dex")
         return found
+
+    def item_name(self, item_id: Slug) -> str:
+        return ITEMS[item_id].name if item_id in ITEMS else self.item_names.get(item_id, item_id)
+
+    def item_text(self, item_id: Slug) -> str:
+        return self.items.get(item_id.replace("-", ""), "")
 
     def species_ref(self, species_id: Slug) -> str:
         species = self.species[species_id]

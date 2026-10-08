@@ -1,16 +1,25 @@
 import json
 from pathlib import Path
 
+import pytest
 from pydantic import JsonValue
 from support.golden import FIXTURES, golden, masked
-from support.showdown import PIKACHU, WILD_SETUP, assessed
+from support.showdown import CHAMPIONS_SETUP, PIKACHU, WILD_SETUP, assessed
 
-from rulehall.core.validation import parse_json
+from rulehall.core.validation import Refusal, parse_json
 from rulehall.core.views import BattleChoice
 from rulehall.engines.pokemon.battle.assessment import Assessment
 from rulehall.engines.pokemon.battle.models import BattleMove, Battler
-from rulehall.engines.pokemon.battle.opponent import Offer, greedy_choice, render_opponent
+from rulehall.engines.pokemon.battle.opponent import (
+    Offer,
+    OpponentAnswer,
+    check_commands,
+    greedy_choice,
+    render_opponent,
+)
+from rulehall.engines.pokemon.battle.preview import scripted_preview
 from rulehall.engines.pokemon.battle.simulator import DUMPED, Dump
+from rulehall.engines.pokemon.dex import dex
 
 HIDDEN = Path(__file__).parent / "fixtures" / "hidden.txt"
 TRAINER_CHARMANDER = Battler(
@@ -128,7 +137,7 @@ LOG = (
 
 
 def test_the_opponent_prompt_renders_unchanged() -> None:
-    offers = (Offer(slot=0, mon_name="Bulbasaur", choices=CHOICES),)
+    offers = (Offer(slot=0, mon_name="Bulbasaur", choices=CHOICES, can_mega=False),)
     prompt = render_opponent(TRAINER_SETUP, "foe", _assessment(), offers, frozenset({0, 1}), LOG)
 
     golden(FIXTURES / "prompts" / "pokemon" / "opponent.txt", masked(prompt.text))
@@ -156,7 +165,7 @@ def test_greedy_takes_the_knockout_else_the_most_damage() -> None:
 
 def test_a_foe_ability_and_item_not_revealed_yet_do_not_shape_the_damage() -> None:
     earthquake = BattleChoice(command="move 1", kind="move", name="Earthquake")
-    offers = (Offer(slot=0, mon_name="Sandshrew", choices=(earthquake,)),)
+    offers = (Offer(slot=0, mon_name="Sandshrew", choices=(earthquake,), can_mega=False),)
     assessment = _assessment(HIDDEN.read_text().strip())
 
     prompt = render_opponent(HIDDEN_SETUP, "foe", assessment, offers, frozenset({0}), ())
@@ -245,3 +254,47 @@ def _doubles_assessment(*, charmander_hp: int) -> Assessment:
         "unseen": 0,
     }
     return parse_json(Assessment, json.dumps(assessment))
+
+
+@pytest.mark.parametrize(
+    ("commands", "refusal"),
+    [
+        (("team 3", "team 3"), "the same Pokemon twice"),
+        (("move 1 1 mega", "move 1 mega"), "only one of your Pokemon"),
+        (("move 1 1", "move 1 mega"), "Garchomp cannot Mega Evolve"),
+        (("switch 3 mega", "move 1"), "Charizard cannot Mega Evolve"),
+    ],
+)
+def test_a_double_pick_or_a_mega_evolution_out_of_turn_is_refused(
+    commands: tuple[str, str], refusal: str
+) -> None:
+    with pytest.raises(Refusal, match=refusal):
+        check_commands(_mega_offers(), OpponentAnswer(commands=commands))
+
+
+def test_the_pokemon_that_can_mega_evolve_does_it_with_its_move() -> None:
+    check_commands(_mega_offers(), OpponentAnswer(commands=("move 1 1 mega", "move 1")))
+
+
+def test_the_scripted_preview_brings_four_distinct_pokemon_its_leads_first() -> None:
+    foes = tuple(dex().species[battler.species_id] for battler in CHAMPIONS_SETUP.team)
+
+    picks = scripted_preview(CHAMPIONS_SETUP.foes, foes, frozenset(range(6)), 4, 2)
+
+    assert picks == ("team 6", "team 1", "team 3", "team 4")
+
+
+def _mega_offers() -> tuple[Offer, Offer]:
+    picks = tuple(
+        BattleChoice(command=f"team {at}", kind="switch", name=f"Pokemon {at}") for at in (3, 4)
+    )
+    charizard = (
+        BattleChoice(command="move 1 1", kind="move", name="Heat Wave"),
+        BattleChoice(command="switch 3", kind="switch", name="Pelipper"),
+        *picks,
+    )
+    garchomp = (BattleChoice(command="move 1", kind="move", name="Earthquake"), *picks)
+    return (
+        Offer(slot=0, mon_name="Charizard", choices=charizard, can_mega=True),
+        Offer(slot=1, mon_name="Garchomp", choices=garchomp, can_mega=False),
+    )

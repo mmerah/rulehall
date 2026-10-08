@@ -1,0 +1,266 @@
+[
+  {
+    "name": "kill",
+    "description": "Kill someone here.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of who here died.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "leave_party",
+    "description": "Make a party member stop travelling with the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of the party member leaving.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "direct",
+    "description": "End the turn and give notes to the narrator. Call this last, once per turn. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Apply world changes through the other tools before calling direct.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "description": "Brief factual notes for the narrator to phrase. Answer each question in the player action. Include the result, its known reason, and details needed for the next choice. For a request or warning, give what the person wants and the reason they share. Use facts the player can know now. Identify claims and unknown reasons as such. Keep every outcome consistent with tool results.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "reveal",
+    "description": "Make a hidden entity here known to the player. HIDDEN HERE lists what the player has not found: call this before you tell a hidden thing.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of something hidden here.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "move_item",
+    "description": "Move an item to a new holder.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "description": "Exact id of an item here or carried.",
+          "type": "string"
+        },
+        "holder_id": {
+          "description": "Exact id of the player, an npc here, or this place.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "holder_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "unlock_way",
+    "description": "Open a locked way out of this place.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "to_id": {
+          "description": "Exact id of the locked way's destination.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "to_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "move",
+    "description": "Move the player through an unlocked way out of this place.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "to_id": {
+          "description": "Exact id of the place to move to.",
+          "type": "string"
+        },
+        "with_ids": {
+          "default": [],
+          "description": "Exact ids of living npcs here who follow one time. Party members come without this field.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "to_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "meanwhile",
+    "description": "Pass time where the player is not: move a dweller, move a loose item, and shut a way the player knows. Use any combination in one call. Call this only while ELSEWHERE is shown.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "dweller_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a dweller elsewhere who walks to a new place."
+        },
+        "dweller_to_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of the place the dweller walks to."
+        },
+        "item_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a loose item elsewhere that moves to a new place."
+        },
+        "item_to_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of the place the item moves to."
+        },
+        "shut_from_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of one end of the way that shuts."
+        },
+        "shut_to_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of the other end of the way that shuts."
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "extend_map",
+    "description": "Extend the map past its edge: the next host city and its event. Call this when MAP EDGE shows and the player sets out for the next event. The engine refuses while an event is under way. Call it last: it ends your turn.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "heading": {
+          "description": "Where the player heads past the map's edge, in their own words.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "heading"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "join_party",
+    "description": "Make a person here travel with the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of who is joining.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "register_team",
+    "description": "Register the player's team for this map's event, at its venue, when the player signs up. The engine draws the field, pairs round 1 and locks the team until the event ends.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    }
+  },
+  {
+    "name": "start_match",
+    "description": "Start the player's next match of the event, against the opponent EVENT names, when the player sits down to play it. The battle screen plays the match, and the engine records the result. Call it last: it ends your turn.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    }
+  },
+  {
+    "name": "recruit",
+    "description": "Give the player a new Pokemon species in story mode, when the story brings one, such as a trade or a gift. One per event, never while the team is registered.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "species_id": {
+          "description": "Exact id of a species legal in the format, such as 'garchomp'.",
+          "type": "string"
+        },
+        "how": {
+          "description": "How the Pokemon joins the player, such as 'traded for at the practice hall'. The player reads it.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "species_id",
+        "how"
+      ],
+      "type": "object"
+    }
+  }
+]

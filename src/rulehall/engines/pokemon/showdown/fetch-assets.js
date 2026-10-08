@@ -184,9 +184,19 @@ function listed(graphics, name) {
 function spriteFiles(sprites) {
   const plain = ["sprites/gen5/substitute.png", "sprites/gen5-back/substitute.png"];
   const withFallback = [];
-  for (const id of Object.keys(species)) {
-    const spriteId = Dex.species.get(id).spriteid;
-    plain.push(`sprites/gen5/${spriteId}.png`, `sprites/gen5-back/${spriteId}.png`);
+  for (const [id, { forme_only }] of Object.entries(species)) {
+    const entry = Dex.species.get(id);
+    const spriteId = entry.spriteid;
+    if (forme_only) {
+      // Upstream lacks some gen5 PNGs of the newer Mega formes; the base forme stands in.
+      const baseId = Dex.species.get(entry.baseSpecies).spriteid;
+      withFallback.push(
+        [`sprites/gen5/${spriteId}.png`, `sprites/gen5/${baseId}.png`],
+        [`sprites/gen5-back/${spriteId}.png`, `sprites/gen5-back/${baseId}.png`],
+      );
+    } else {
+      plain.push(`sprites/gen5/${spriteId}.png`, `sprites/gen5-back/${spriteId}.png`);
+    }
     if (sprites[id].front) plain.push(`sprites/ani/${spriteId}.gif`);
     if (sprites[id].back) plain.push(`sprites/ani-back/${spriteId}.gif`);
     if (sprites[id].frontf) plain.push(`sprites/ani/${spriteId}-f.gif`);

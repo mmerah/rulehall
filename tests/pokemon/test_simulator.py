@@ -4,16 +4,22 @@ from random import Random
 
 import pytest
 from pydantic import BaseModel, JsonValue, ValidationError
+from support.golden import FIXTURES, golden, masked
 from support.pokemon import started
 from support.showdown import (
+    CHAMPIONS_SETUP,
+    CHARIZARD,
     CHARMANDER,
     DOUBLES_SETUP,
     PIDGEY,
     PIKACHU,
     RATTATA,
+    RECORDED_CHAMPIONS,
     RECORDED_DOUBLES,
     WILD_SETUP,
     ScriptedSimulator,
+    StubBattleGame,
+    StubBattleWorld,
     assessed,
     ended,
     moving,
@@ -46,8 +52,11 @@ from rulehall.engines.pokemon.battle.simulator import (
     packed,
     start_lines,
 )
+from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.journey.sheet import Mon
 from rulehall.engines.pokemon.journey.world import PokemonGame
+from rulehall.engines.pokemon.rules import stats
+from rulehall.engines.pokemon.sprites import mon_sprite
 
 TAG_SETUP = DOUBLES_SETUP.model_copy(
     update={
@@ -254,7 +263,7 @@ def test_an_answer_outside_the_choices_is_refused_with_the_choices() -> None:
         BattleChoice(command="move 1", kind="move", name="Tackle"),
         BattleChoice(command="switch 2", kind="switch", name="Rattata"),
     )
-    offers = (Offer(slot=0, mon_name="Rattata", choices=choices),)
+    offers = (Offer(slot=0, mon_name="Rattata", choices=choices, can_mega=False),)
 
     with pytest.raises(Refusal, match="pick one of: move 1, switch 2"):
         check_commands(offers, OpponentAnswer(commands=("move 2",)))
@@ -515,6 +524,90 @@ def test_an_item_used_up_in_battle_is_gone_after_it() -> None:
     assert as_dumped(pikachu, kept.model_copy(update={"held": False})).item_id is None
 
 
+async def test_a_champions_battle_brings_four_of_six_and_each_side_mega_evolves_once() -> None:
+    draft = StubBattleGame(StubBattleWorld(Battle(setup=CHAMPIONS_SETUP, inputs=[])))
+    run = await ShowdownRun.start(draft, ScriptedSimulator(recorded(RECORDED_CHAMPIONS)))
+    first = run.choices()
+    assert [choice.command for choice in first] == [f"team {at}" for at in range(1, 7)] + ["leave"]
+    assert {choice.group for choice in first[:6]} == {"Lead 1"}
+    await run.choose(draft, "team 3", Random(0))
+    assert run.choices()[2].refusal == "Picked: Lead 1"
+    await run.choose(draft, "back", Random(0))
+    for command in ("team 3", "team 1", "team 5", "team 2"):
+        await run.choose(draft, command, Random(0))
+    assert run.inputs[0] == ">p1 team 3, 1, 5, 2"
+    assert run.dump is not None and (len(run.dump.p1), len(run.dump.p2)) == (4, 4)
+
+    await run.choose(draft, "move 1", Random(0))
+    assert "mega" not in [choice.command for choice in run.choices()]
+    await run.choose(draft, "move 1 1", Random(0))
+    assert "mega" in [choice.command for choice in run.choices()]
+    await run.choose(draft, "mega", Random(0))
+    assert [choice.name for choice in run.choices() if choice.kind == "mega"] == [
+        "Mega Evolution: on"
+    ]
+    await run.choose(draft, "move 1", Random(0))
+
+    assert run.inputs[2] == ">p1 move 1 1, move 1 mega"
+    assert run.inputs[3].endswith(" mega")
+    assert not [choice for choice in run.choices() if choice.kind == "mega"]
+    charizard = next(mon for mon in run.header().fielded if mon.name == "Charizard")
+    assert "Mega" in [tag.name for tag in charizard.tags]
+    assert charizard.sprite == mon_sprite(dex().species["charizardmegay"])
+    await run.choose(draft, "leave", Random(0))
+    (result,) = draft.world.results
+    assert len(result.team) == 4
+
+
+async def test_the_model_opponent_picks_its_four_and_mega_evolves() -> None:
+    setup = CHAMPIONS_SETUP.model_copy(update={"policy": "model"})
+    draft = StubBattleGame(StubBattleWorld(Battle(setup=setup, inputs=[])))
+    blocks = recorded(RECORDED_CHAMPIONS)
+    # Turn 2 asks for one more assessment before the player forfeits.
+    blocks.insert(10, blocks[6])
+    answers = (
+        ("team 1", "team 6", "team 3", "team 4"),
+        ("move 2 2", "move 2 1 mega"),
+        ("move 4", "move 1 1"),
+    )
+    asked: list[Prompt] = []
+
+    async def opponent[M: BaseModel](prompt: Prompt, model: type[M], check: Check[M]) -> M:
+        answer = model.model_validate({"commands": answers[len(asked)]})
+        asked.append(prompt)
+        check(answer)
+        return answer
+
+    run = await ShowdownRun.start(draft, ScriptedSimulator(blocks), opponent)
+    for command in ("team 3", "team 1", "team 5", "team 2", "move 1", "move 1 1", "move 1"):
+        await run.choose(draft, command, Random(0))
+    await run.choose(draft, "leave", Random(0))
+
+    assert run.inputs[1] == ">p2 team 1, 6, 3, 4"
+    assert run.inputs[3] == ">p2 move 2 2, move 2 1 mega"
+    golden(FIXTURES / "prompts" / "pokemon-champions" / "preview.txt", masked(asked[0].text))
+    golden(FIXTURES / "prompts" / "pokemon-champions" / "opponent.txt", masked(asked[1].text))
+
+
+def test_a_champions_battle_names_its_format_and_restores_nothing() -> None:
+    lines = start_lines(CHAMPIONS_SETUP)
+
+    assert json.loads(lines[0].removeprefix(">start "))["formatid"] == (
+        f"{CHAMPIONS_SETUP.format_id}@@@!Open Team Sheets"
+    )
+    assert not [line for line in lines if line.startswith(">eval const states")]
+    with pytest.raises(ValidationError, match="format_id"):
+        _ = BattleSetup.model_validate({**CHAMPIONS_SETUP.model_dump(), "format_id": "gen9foo"})
+
+
+def test_stat_points_give_the_stats_showdown_shows() -> None:
+    charizard = dex().species["charizard"]
+
+    shown = stats(charizard, 50, "Timid", CHARIZARD.ivs, CHARIZARD.evs, stat_points=True)
+
+    assert shown == (155, 93, 98, 161, 105, 167)
+
+
 def test_the_start_lines_send_each_side_its_avatar() -> None:
     lines = start_lines(WILD_SETUP)
 
@@ -545,6 +638,7 @@ def _seated(
         foe_side=request.side,
         hand=hand,
         slots=frozenset({slot}),
+        spec=WILD_SETUP.format_spec(),
     )
 
 

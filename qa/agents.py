@@ -11,7 +11,8 @@ Loner question the player asks is rolled as `ask(question: null)`.
 The narrator echoes what it was given, so every screenshot shows what the page was told. The
 worldsmith answers each request shape with a small valid draft; a Pokemon region carries the evil
 team's operation or its lair when the request asks, else a gym that gives a badge.
-The opponent takes its first choice.
+The opponent takes its first choice, a Pokemon not picked yet at team preview, and Mega Evolves
+when it is offered.
 """
 
 import json
@@ -44,6 +45,7 @@ SUBMIT_ATTEMPTS = 2
 DEFAULT_ROLLS: dict[str, tuple[str, dict[str, JsonValue]]] = {
     "loner4e": ("ask", {"question": "Does the player get what they want?"}),
     "pokemon": ("check", {"what": "Try it", "skill": "athletics", "difficulty": "easy"}),
+    "pokemon-champions": ("direct", {"text": "The player looks around; nothing stands out."}),
     "tunnelgoons": ("roll", {"what": "Try it", "ability": "skulker", "difficulty": 8}),
     "twentyfourxx": ("roll", {"what": "Try it", "skill": "Stealth"}),
 }
@@ -181,11 +183,20 @@ class ScriptedAgents:
         return json.dumps({"lines": lines})
 
     def _opponent(self, prompt: str) -> str:
-        blocks = _section(prompt, "THE CHOICES").split("For ")[1:]
-        firsts = [re.search(r"^- ([\w-]+(?: -?\d+)*):", block, re.M) for block in blocks]
-        if not firsts or None in firsts:
-            raise Refusal("scripted: the opponent was offered no choice")
-        return json.dumps({"commands": [first.group(1) for first in firsts if first]})
+        blocks = _section(prompt, "THE CHOICES").split("\n\n")
+        # A preview picks each Pokemon once: every block takes the first one not picked yet.
+        preview = bool(_section(prompt, "TEAM PREVIEW"))
+        commands: list[str] = []
+        for block in blocks:
+            header = block.partition("\n")[0]
+            offered = re.findall(r"^- ([\w-]+(?: -?\d+)*):", block, re.M)
+            free = [command for command in offered if not (preview and command in commands)]
+            if not free:
+                raise Refusal("scripted: the opponent was offered no choice")
+            mega = "can Mega Evolve" in header and free[0].startswith("move ")
+            mega = mega and not any(each.endswith(" mega") for each in commands)
+            commands.append(f"{free[0]} mega" if mega else free[0])
+        return json.dumps({"commands": commands})
 
     def _worldsmith(self, prompt: str) -> str:
         schema = _section(prompt, "ANSWER WITH")

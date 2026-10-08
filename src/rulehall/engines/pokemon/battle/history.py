@@ -143,6 +143,8 @@ def _event(kind: str, fields: Sequence[str], owners: Mapping[str, str]) -> str:
         case "-enditem" if len(fields) >= 2:
             used = "ate" if "[eat]" in fields else "lost"
             return f"{who(0)} {used} its {fields[1]}{source}"
+        case "-mega" if len(fields) >= 3:
+            return f"{who(0)} Mega Evolved with its {fields[2]}"
         case "-item" if len(fields) >= 2:
             return f"{who(0)} holds {fields[1]}{source}"
         case "-ability" if len(fields) >= 2:

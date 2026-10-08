@@ -128,6 +128,11 @@ _POKEMON_SCRIPT: tuple[Scripted, ...] = (
     tool_call("direct", text="Rook has seen the new trainer, and he wants a battle"),
 )
 
+_CHAMPIONS_SCRIPT: tuple[Scripted, ...] = (
+    tool_call("register_team"),
+    tool_call("direct", text="the field is drawn, and Sable is already reading the pairings"),
+)
+
 SCRIPTS: dict[EngineId, tuple[tuple[Scripted, ...], Callable[[AnyGame], AnyGame]]] = {
     EngineId("loner4e"): (_LONER4E_SCRIPT, _loner4e_behind),
     EngineId("tunnelgoons"): (
@@ -152,6 +157,14 @@ SCRIPTS: dict[EngineId, tuple[tuple[Scripted, ...], Callable[[AnyGame], AnyGame]
             _one_exchange,
             words="I look along the harbour road before going further.",
             said="Rook waves at you from the tall grass.",
+        ),
+    ),
+    EngineId("pokemon-champions"): (
+        _CHAMPIONS_SCRIPT,
+        partial(
+            _one_exchange,
+            words="I walk up to the registration desk.",
+            said="Ada slides a registration sheet across the desk.",
         ),
     ),
 }

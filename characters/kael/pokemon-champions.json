@@ -1,0 +1,157 @@
+{
+  "id": "kael",
+  "engine_id": "pokemon-champions",
+  "person": {
+    "id": "player",
+    "name": "Kael",
+    "brief": "A quiet trainer from Tern Harbour who wants to win Worlds.",
+    "known": true,
+    "voice": "masculine",
+    "alive": true,
+    "place_id": "player",
+    "sheet": {
+      "roster": "open",
+      "team": [
+        {
+          "species_id": "salamence",
+          "ability_id": "intimidate",
+          "item_id": "salamencite",
+          "move_ids": [
+            "protect",
+            "hypervoice",
+            "tailwind",
+            "dracometeor"
+          ],
+          "nature": "Timid",
+          "sp": [
+            2,
+            0,
+            0,
+            32,
+            0,
+            32
+          ]
+        },
+        {
+          "species_id": "sneasler",
+          "ability_id": "unburden",
+          "item_id": "whiteherb",
+          "move_ids": [
+            "closecombat",
+            "direclaw",
+            "protect",
+            "fakeout"
+          ],
+          "nature": "Adamant",
+          "sp": [
+            2,
+            32,
+            0,
+            0,
+            0,
+            32
+          ]
+        },
+        {
+          "species_id": "kingambit",
+          "ability_id": "defiant",
+          "item_id": "lifeorb",
+          "move_ids": [
+            "suckerpunch",
+            "kowtowcleave",
+            "protect",
+            "ironhead"
+          ],
+          "nature": "Adamant",
+          "sp": [
+            32,
+            32,
+            0,
+            0,
+            1,
+            1
+          ]
+        },
+        {
+          "species_id": "incineroar",
+          "ability_id": "intimidate",
+          "item_id": "sitrusberry",
+          "move_ids": [
+            "fakeout",
+            "partingshot",
+            "flareblitz",
+            "throatchop"
+          ],
+          "nature": "Impish",
+          "sp": [
+            32,
+            0,
+            10,
+            0,
+            1,
+            23
+          ]
+        },
+        {
+          "species_id": "basculegion",
+          "ability_id": "adaptability",
+          "item_id": "choicescarf",
+          "move_ids": [
+            "lastrespects",
+            "aquajet",
+            "wavecrash",
+            "flipturn"
+          ],
+          "nature": "Adamant",
+          "sp": [
+            2,
+            32,
+            0,
+            0,
+            0,
+            32
+          ]
+        },
+        {
+          "species_id": "arcaninehisui",
+          "ability_id": "rockhead",
+          "item_id": "focussash",
+          "move_ids": [
+            "flareblitz",
+            "protect",
+            "headsmash",
+            "extremespeed"
+          ],
+          "nature": "Jolly",
+          "sp": [
+            2,
+            32,
+            0,
+            0,
+            0,
+            32
+          ]
+        }
+      ],
+      "registered": null,
+      "owned_species_ids": [
+        "salamence",
+        "sneasler",
+        "kingambit",
+        "incineroar",
+        "basculegion",
+        "arcaninehisui"
+      ],
+      "finishes": [],
+      "recruits_left": 1
+    },
+    "style": "",
+    "win_line": "",
+    "lose_line": "",
+    "avatar_id": "ethan",
+    "rival": false,
+    "archetype_id": null,
+    "ace_species_id": null,
+    "team": []
+  }
+}

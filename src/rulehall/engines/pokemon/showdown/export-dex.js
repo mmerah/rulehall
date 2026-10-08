@@ -1,7 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 const { Dex, toID } = require("pokemon-showdown");
-const { fetchJson, pool } = require("./net");
+const { Regulation, championsFormatIds } = require("./champions-legal");
+const { fail, fetchJson, pool } = require("./net");
 
 const OUTPUT = path.join(__dirname, "..", "dex.json");
 const LEVELUP = /^(\d)L(\d+)$/;
@@ -29,6 +30,23 @@ const ABILITY_API = "https://pokeapi.co/api/v2/ability/";
 const OFF_CHART = ["???", "Stellar"];
 
 const dex = Dex.forGen(9);
+const texts = dex.loadTextData();
+
+function shared(s, icons, evYield, entry) {
+  return {
+    icon: icons.get(s.id) ?? s.num,
+    name: s.name,
+    types: s.types,
+    base_stats: STATS.map((stat) => s.baseStats[stat]),
+    ev_yield: evYield,
+    abilities: Object.entries(s.abilities)
+      .filter(([key]) => key !== "H")
+      .map(([, name]) => name),
+    gender: s.gender || "",
+    male_share: s.genderRatio.M,
+    entry,
+  };
+}
 
 function evolutionsLeft(species) {
   if (!species.evos.length) return 0;
@@ -125,6 +143,16 @@ async function evYieldOf(s, varieties) {
   return EFFORTS.map((name) => stats.find((stat) => stat.stat.name === name).effort);
 }
 
+// The species of the newest Champions VGC format and the Mega formes of its stones, by id.
+function championsFormes(regulation, legal) {
+  const megaIds = Object.entries(legal.mega_stones).flatMap(([stoneId, holderIds]) =>
+    holderIds.map((holderId) =>
+      toID(regulation.dex.items.get(stoneId).megaStone[regulation.dex.species.get(holderId).name]),
+    ),
+  );
+  return [...Object.keys(legal.species), ...megaIds].map((id) => regulation.dex.species.get(id));
+}
+
 function typeChart() {
   const types = dex.types
     .all()
@@ -150,11 +178,17 @@ async function main() {
     .filter(exported)
     .sort((a, b) => a.num - b.num || a.name.localeCompare(b.name));
   const ids = new Set(all.map((s) => s.id));
+  const regulation = new Regulation(championsFormatIds()[0]);
+  const legal = regulation.legalData();
+  const formes = championsFormes(regulation, legal).filter((s) => !ids.has(s.id));
   const icons = iconIndexes();
   const nums = [...new Set(all.map((s) => s.num))];
   const fetched = await pool(nums, speciesOf);
   const byNum = new Map(nums.map((num, index) => [num, fetched[index]]));
-  const yields = await pool(all, (s) => evYieldOf(s, byNum.get(s.num).varieties));
+  const speciesOfNum = (num) => byNum.get(num) ?? fail(`no species ${num} for a Champions forme`);
+  const yields = await pool([...all, ...formes], (s) =>
+    evYieldOf(s, speciesOfNum(s.num).varieties),
+  );
   for (const [index, s] of all.entries()) {
     const { gen, moves } = levelupOf(s.id);
     if (gen !== 9) fallback++;
@@ -162,16 +196,8 @@ async function main() {
     const machines = machinesOf(s.id);
     for (const moveId of machines) machineIds.add(moveId);
     species[s.id] = {
-      icon: icons.get(s.id) ?? s.num,
-      name: s.name,
-      types: s.types,
-      base_stats: STATS.map((stat) => s.baseStats[stat]),
-      ev_yield: yields[index],
-      abilities: Object.entries(s.abilities)
-        .filter(([key]) => key !== "H")
-        .map(([, name]) => name),
-      gender: s.gender || "",
-      male_share: s.genderRatio.M,
+      ...shared(s, icons, yields[index], byNum.get(s.num).entry),
+      forme_only: false,
       evolution_species_ids: s.evos.map(toID).filter((id) => ids.has(id)),
       evo_level: s.evoLevel ?? null,
       evo_type: s.evoType ?? null,
@@ -183,8 +209,26 @@ async function main() {
       tags: s.tags,
       levelup: moves,
       machines,
-      entry: byNum.get(s.num).entry,
     };
+  }
+  for (const [index, s] of formes.entries()) {
+    species[s.id] = {
+      ...shared(s, icons, yields[all.length + index], speciesOfNum(s.num).entry),
+      forme_only: true,
+      evolution_species_ids: [],
+      evo_level: null,
+      evo_type: null,
+      evo_item: null,
+      evo_condition: null,
+      evolution_move_id: null,
+      evolutions_left: 0,
+      tags: s.tags,
+      levelup: [],
+      machines: [],
+    };
+  }
+  for (const { move_ids } of Object.values(legal.species)) {
+    for (const moveId of move_ids) moveIds.add(moveId);
   }
 
   const moves = {};
@@ -199,25 +243,45 @@ async function main() {
       accuracy: move.accuracy === true ? null : move.accuracy,
       pp: move.noPPBoosts ? move.pp : Math.floor((move.pp * 8) / 5),
       tm: machineIds.has(id),
-      text: move.shortDesc,
+      text: texts.Moves[id].shortDesc,
     };
   }
-  const abilityNames = [...new Set(all.flatMap((s) => species[s.id].abilities))];
-  const texts = await pool(abilityNames, abilityText);
-  const abilities = Object.fromEntries(abilityNames.map((name, index) => [name, texts[index]]));
+  const legalAbilityIds = Object.values(legal.species).flatMap((each) => each.ability_ids);
+  const abilityNames = [
+    ...new Set([
+      ...Object.values(species).flatMap((each) => each.abilities),
+      ...legalAbilityIds.map((abilityId) => regulation.dex.abilities.get(abilityId).name),
+    ]),
+  ];
+  const abilityTexts = await pool(abilityNames, abilityText);
+  const abilities = Object.fromEntries(
+    abilityNames.map((name, index) => [name, abilityTexts[index]]),
+  );
+  const ability_names = Object.fromEntries(abilityNames.map((name) => [toID(name), name]));
   const items = {};
+  const item_names = {};
   for (const item of dex.items.all()) {
-    if (item.exists && item.shortDesc && !item.megaStone && !item.zMove) {
-      items[item.id] = item.shortDesc;
+    const text = texts.Items[item.id]?.shortDesc;
+    if (item.exists && text && !item.zMove) {
+      items[item.id] = text;
+      item_names[item.id] = item.name;
     }
   }
 
   fs.writeFileSync(
     OUTPUT,
-    JSON.stringify({ species, moves, abilities, items, type_chart: typeChart() }) + "\n",
+    JSON.stringify({
+      species,
+      moves,
+      abilities,
+      ability_names,
+      items,
+      item_names,
+      type_chart: typeChart(),
+    }) + "\n",
   );
   console.log(
-    `species ${all.length} moves ${Object.keys(moves).length} tms ${machineIds.size} fallback ${fallback} abilities ${abilityNames.length} items ${Object.keys(items).length}`,
+    `species ${all.length} champions formes ${formes.length} moves ${Object.keys(moves).length} tms ${machineIds.size} fallback ${fallback} abilities ${abilityNames.length} items ${Object.keys(items).length}`,
   );
 }
 

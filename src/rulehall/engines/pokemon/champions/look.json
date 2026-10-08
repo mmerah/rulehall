@@ -1,0 +1,19 @@
+{
+  "tagline": "A circuit season of VGC doubles: Swiss rounds, top cuts, and a team of six to perfect.",
+  "die_faces": 20,
+  "pattern": "grid",
+  "palette": {
+    "game-bg": "#14172a",
+    "game-surface": "#1e2340",
+    "game-surface-raised": "#283056",
+    "game-text": "#f2f4fa",
+    "game-muted": "#b4bcd8",
+    "game-border": "#39426e",
+    "game-accent": "#3fd0ff",
+    "game-wash": "rgba(63, 208, 255, .08)",
+    "game-radius": "14px",
+    "game-die-body": "#2a5bd7",
+    "game-die-ink": "#ffffff",
+    "game-die-glow": "#3fd0ff"
+  }
+}

@@ -6,11 +6,11 @@ from pydantic import Field, model_validator
 
 from rulehall.core.stores import read_model
 from rulehall.core.validation import Frozen, Refusal, Slug, check_unique
-from rulehall.engines.pokemon.dex import NATURES, Stats
+from rulehall.engines.pokemon.battle.models import ChampionsFormatId
+from rulehall.engines.pokemon.dex import NATURES, Stats, dex
 
 DATA_FILE = Path(__file__).parent / "data.json"
 PRESETS_MAX = 3
-FORMAT_ID_PATTERN = r"^gen9championsvgc[a-z0-9]+$"
 
 type Nature = Annotated[str, Field(pattern=f"^({'|'.join(NATURES)})$")]
 type Percent = Annotated[float, Field(ge=0, le=100)]
@@ -41,7 +41,7 @@ class RealTeam(CompetitiveTeam):
     team_id: Slug
     label: str = Field(min_length=1)
     credit: str = Field(min_length=1)
-    regulation: str = Field(pattern=FORMAT_ID_PATTERN)
+    regulation: ChampionsFormatId
     date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
     players: int = Field(gt=0)
     placing: int = Field(gt=0)
@@ -49,7 +49,7 @@ class RealTeam(CompetitiveTeam):
 
 
 class UsageSource(Frozen):
-    format_id: str = Field(pattern=FORMAT_ID_PATTERN)
+    format_id: ChampionsFormatId
     month: str = Field(pattern=r"^\d{4}-\d{2}$")
     cutoff: int = Field(ge=0)
     battles: int = Field(gt=0)
@@ -207,6 +207,12 @@ class ChampionsData(Frozen):
 
     def _check_set(self, competitive_set: CompetitiveSet) -> None:
         self.legal.check_set(competitive_set)
+        pokedex = dex()
+        where = pokedex.require_species(competitive_set.species_id).name
+        if unknown := set(competitive_set.move_ids) - set(pokedex.moves):
+            raise Refusal(f"{where} has moves the dex lacks: {sorted(unknown)}")
+        if competitive_set.ability_id not in pokedex.ability_names:
+            raise Refusal(f"{where} has an ability the dex lacks: {competitive_set.ability_id!r}")
         if competitive_set.species_id not in self.assumed:
             raise Refusal(f"{competitive_set.species_id} has no assumed spread")
         if competitive_set.species_id not in self.usage:

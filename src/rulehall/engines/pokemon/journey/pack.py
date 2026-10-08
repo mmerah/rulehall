@@ -18,8 +18,13 @@ class PokemonPack(Pack):
     def _species_of_the_dex(self) -> Self:
         check_unique("species_ids", self.species_ids)
         check_unique("starters", self.starters)
-        if strays := sorted(set(self.species_ids) - set(dex().species)):
+        pokedex = dex()
+        if strays := sorted(set(self.species_ids) - set(pokedex.species)):
             raise ValueError(f"species the dex lacks: {strays}")
+        if strays := sorted(
+            species_id for species_id in self.species_ids if pokedex.species[species_id].forme_only
+        ):
+            raise ValueError(f"forme-only species, not for a journey: {strays}")
         if strays := sorted(set(self.starters) - set(self.species_ids)):
             raise ValueError(f"starters that are not in species_ids: {strays}")
         return self

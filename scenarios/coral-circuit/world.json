@@ -1,0 +1,102 @@
+{
+  "description": {
+    "title": "The Coral Circuit",
+    "premise": "A new player signs up for the Coral City Locals, the first event of a circuit season that ends at Worlds.",
+    "backdrop": "The Champions Circuit runs a season of official VGC doubles events, from small Locals in game shops to Worlds. Players bring six Pokemon at level 50 and pick four for each match. Championship Points from good placings open the bigger events.",
+    "scope": "Play runs event by event, from the Coral City Locals until Worlds is played."
+  },
+  "engine_id": "pokemon-champions",
+  "pack_id": "srd",
+  "source": "",
+  "opening": {
+    "places": {
+      "prism-games": {
+        "id": "prism-games",
+        "name": "Prism Games",
+        "brief": "The game shop that hosts the Coral City Locals",
+        "known": true,
+        "description": "A bright game shop near the harbour. Its back room holds long tables, a registration desk and a screen for the standings."
+      },
+      "coral-station": {
+        "id": "coral-station",
+        "name": "Coral Station",
+        "brief": "The station square of Coral City",
+        "known": true,
+        "description": "A busy square in front of the train station, with the harbour wind blowing through it."
+      },
+      "tidewater-cafe": {
+        "id": "tidewater-cafe",
+        "name": "Tidewater Cafe",
+        "brief": "A cafe where players test their teams",
+        "known": false,
+        "description": "A small cafe with board games on the shelves, where players test their teams over coffee."
+      }
+    },
+    "ways": {
+      "prism-games": [
+        {
+          "to_id": "coral-station"
+        }
+      ],
+      "coral-station": [
+        {
+          "to_id": "prism-games"
+        },
+        {
+          "to_id": "tidewater-cafe"
+        }
+      ],
+      "tidewater-cafe": [
+        {
+          "to_id": "coral-station"
+        }
+      ]
+    },
+    "npcs": {
+      "sable": {
+        "id": "sable",
+        "name": "Sable",
+        "brief": "A sharp young player who started the circuit the same week as the player.",
+        "voice": "feminine",
+        "known": true,
+        "place_id": "prism-games",
+        "avatar_id": "marnie",
+        "rival": true,
+        "style": "reads the board fast and switches with a grin",
+        "win_line": "Good game. Bring something better to the next one.",
+        "lose_line": "Fine. I'll see you at the next event, and I won't lose twice."
+      },
+      "ada": {
+        "id": "ada",
+        "name": "Ada",
+        "brief": "The judge who runs the event from the registration desk.",
+        "voice": "feminine",
+        "known": true,
+        "place_id": "prism-games",
+        "avatar_id": "clerk"
+      },
+      "tomas": {
+        "id": "tomas",
+        "name": "Tomas",
+        "brief": "A patient veteran of the shop's weekly events.",
+        "voice": "masculine",
+        "known": false,
+        "place_id": "tidewater-cafe",
+        "avatar_id": "veteran",
+        "archetype_id": "trickroom",
+        "style": "sets Trick Room behind Fake Out, then hits hard",
+        "win_line": "Slow and steady. Turn order is everything.",
+        "lose_line": "You broke the room. Well played."
+      }
+    },
+    "items": {},
+    "arc": "Sable wants to beat the player at every event of the season. Tomas tests his Trick Room team at the Tidewater Cafe before the Locals.",
+    "event": {
+      "tier": "locals",
+      "name": "Coral City Locals",
+      "venue_id": "prism-games",
+      "battle_background": "gen4-indoors"
+    },
+    "start_id": "prism-games"
+  }
+}

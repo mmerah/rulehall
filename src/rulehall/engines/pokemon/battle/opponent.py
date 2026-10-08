@@ -17,7 +17,7 @@ from rulehall.engines.pokemon.battle.assessment import (
     SeenMove,
     StatLine,
 )
-from rulehall.engines.pokemon.battle.choices import Hand
+from rulehall.engines.pokemon.battle.choices import MEGA_SUFFIX, Hand
 from rulehall.engines.pokemon.battle.history import (
     FIELD_WORDS,
     STAT_WORDS,
@@ -26,7 +26,7 @@ from rulehall.engines.pokemon.battle.history import (
     recent_turns,
 )
 from rulehall.engines.pokemon.battle.models import Battler, BattleSetup, RoleSeat
-from rulehall.engines.pokemon.dex import ITEMS, Move, dex
+from rulehall.engines.pokemon.dex import Move, dex
 
 FOE_ROLE = "You are {name}, a Pokemon trainer, in a battle against {foes}."
 ALLY_ROLE = "You are {name}, a Pokemon trainer. You fight beside {player} against {foe}."
@@ -166,12 +166,20 @@ VOLATILE_WORDS = {
 }
 OWN_VOLATILE_WORDS = {"choicelock": "locked into one move by its choice item"}
 TRICK_ROOM = "trickroom"
+MEGA_EVOLUTION = (
+    "One of your Pokemon can Mega Evolve this turn: add ` mega` to the end of its move command, "
+    "as in `move 1 2 mega`. It Mega Evolves before it moves, which changes its stats, ability "
+    "and maybe its types, and it stays Mega Evolved for the rest of the battle. Your team can Mega "
+    "Evolve only once per battle, so pick the moment. The damage and Speed shown are from before "
+    "it Mega Evolves."
+)
 
 
 class Offer(Frozen):
     slot: int
     mon_name: str
     choices: tuple[BattleChoice, ...]
+    can_mega: bool
 
 
 class OpponentAnswer(Frozen):
@@ -255,6 +263,9 @@ def render_opponent(
         ("DAMAGE YOU TAKE", _damage_taken(own)),
         ("SPEED ORDER", _speed_order(assessment, own, partner, foes)),
         ("SUGGESTION", _suggestion(assessment, offers)),
+        *section_if(
+            "MEGA EVOLUTION", MEGA_EVOLUTION if any(offer.can_mega for offer in offers) else ""
+        ),
         ("THE CHOICES", _choices(assessment, offers, doubles=doubles)),
         ("ANSWER WITH", render_schema(OpponentAnswer)),
     )
@@ -265,16 +276,25 @@ def check_commands(offers: Sequence[Offer], answer: OpponentAnswer) -> None:
     if len(answer.commands) != len(offers):
         names = ", ".join(offer.mon_name for offer in offers)
         raise Refusal(f"give {len(offers)} commands, one for each of: {names}")
+    if sum(command.endswith(MEGA_SUFFIX) for command in answer.commands) > 1:
+        raise Refusal("only one of your Pokemon can Mega Evolve")
     for offer, command in zip(offers, answer.commands, strict=True):
         offered = [choice.command for choice in offer.choices]
-        if command not in offered:
+        base = command.removesuffix(MEGA_SUFFIX)
+        if base != command and not (offer.can_mega and base.startswith("move ")):
+            raise Refusal(f"{offer.mon_name} cannot Mega Evolve with {command!r}")
+        if base not in offered:
             raise Refusal(
                 f"{command!r} is not a choice for {offer.mon_name}; pick one of: "
                 f"{', '.join(offered)}"
             )
-    switches = [command for command in answer.commands if command.startswith("switch ")]
-    if len(set(switches)) < len(switches):
-        raise Refusal("two of your Pokemon cannot switch to the same Pokemon")
+    for verb, refusal in (
+        ("switch ", "two of your Pokemon cannot switch to the same Pokemon"),
+        ("team ", "you cannot pick the same Pokemon twice"),
+    ):
+        picked = [command for command in answer.commands if command.startswith(verb)]
+        if len(set(picked)) < len(picked):
+            raise Refusal(refusal)
 
 
 def greedy_choice(assessment: Assessment, choices: Sequence[BattleChoice], slot: int) -> str:
@@ -357,8 +377,7 @@ def _glossary(battlers: Sequence[Battler]) -> str:
             ),
             *(f"- {name} (ability): {known.abilities.get(name, '')}" for name in abilities),
             *(
-                f"- {ITEMS[item_id].name if item_id in ITEMS else item_id} (held item): "
-                f"{known.items.get(item_id.replace('-', ''), '')}"
+                f"- {known.item_name(item_id)} (held item): {known.item_text(item_id)}"
                 for item_id in items
             ),
         )
@@ -631,7 +650,8 @@ def _choices(assessment: Assessment, offers: Sequence[Offer], *, doubles: bool) 
     blocks: list[str] = []
     for offer in offers:
         where = f" at position {offer.slot + 1}" if doubles else ""
-        lines = [f"For {offer.mon_name}{where}:"]
+        mega = " (can Mega Evolve: add ` mega` to its move command)" if offer.can_mega else ""
+        lines = [f"For {offer.mon_name}{where}{mega}:"]
         lines.extend(
             f"- {choice.command}: {choice.name}{_choice_facts(choice.command, offer.slot, team)}"
             for choice in offer.choices

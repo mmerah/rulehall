@@ -1,5 +1,5 @@
 from collections import Counter
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
 
@@ -75,6 +75,10 @@ type BattleMusic = Literal["bw-trainer", "bw-rival", "bw2-kanto-gym-leader", "sp
 type BattleFormat = Literal["singles", "doubles"]
 
 STATUSES: tuple[Status, ...] = ("brn", "frz", "par", "psn", "tox", "slp")
+CHAMPIONS_FORMAT_PATTERN = r"^gen9championsvgc[a-z0-9]+$"
+# Open Team Sheets would print a sheet request no seat answers: the battle drops it.
+CHAMPIONS_FORMAT_RULES = "@@@!Open Team Sheets"
+type ChampionsFormatId = Annotated[str, Field(pattern=CHAMPIONS_FORMAT_PATTERN)]
 TEAM_MAX = 6
 DOUBLE_TEAM_MIN = 2
 MOVES_MAX = 4
@@ -125,6 +129,8 @@ TERRAINS: dict[Terrain, FieldCondition] = {
 class FormatSpec(Frozen):
     showdown_id: str
     active_slots: int
+    stat_points: bool = False
+    carry_over: bool = True
 
 
 FORMATS: dict[BattleFormat, FormatSpec] = {
@@ -191,7 +197,7 @@ class BattleSetup(Frozen):
     edge: Edge | None = None
     weather: Weather | None = None
     terrain: Terrain | None = None
-    format_id: BattleFormat
+    format_id: BattleFormat | ChampionsFormatId
     ally: Ally | None = None
 
     @model_validator(mode="after")
@@ -220,7 +226,19 @@ class BattleSetup(Frozen):
 
     @property
     def double(self) -> bool:
-        return FORMATS[self.format_id].active_slots == 2
+        return self.format_spec().active_slots == 2
+
+    def format_spec(self) -> FormatSpec:
+        match self.format_id:
+            case "singles" | "doubles" as journey:
+                return FORMATS[journey]
+            case champions:
+                return FormatSpec(
+                    showdown_id=f"{champions}{CHAMPIONS_FORMAT_RULES}",
+                    active_slots=2,
+                    stat_points=True,
+                    carry_over=False,
+                )
 
     def player_side(self) -> tuple[Battler, ...]:
         return self.team if self.ally is None else (*self.team, *self.ally.team)

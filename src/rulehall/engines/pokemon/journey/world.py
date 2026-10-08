@@ -34,7 +34,6 @@ from rulehall.engines.pokemon.journey.rules import (
     BOSS_RISE,
     PRIZE_PER_LEVEL,
     RIVAL_IV,
-    SEED_LIMIT,
     SPECIES_ID,
     STARTER_LEVEL,
     RosterSlot,
@@ -55,7 +54,7 @@ from rulehall.engines.pokemon.journey.scheme import (
     SchemeDue,
 )
 from rulehall.engines.pokemon.journey.sheet import Mon, Trainer, TrainerSheet, built_team
-from rulehall.engines.pokemon.rules import check_species, is_legendary
+from rulehall.engines.pokemon.rules import battle_seed, check_species, is_legendary
 from rulehall.engines.rooms.world import OFF_MAP_ID, MapProposal, RegionProposal, RoomWorld
 
 WILD = "The wild table of each new place, keyed by place id. A town or a building has no table."
@@ -393,12 +392,7 @@ class PokemonWorld(RoomWorld[Trainer]):
             foe_name=f"Wild {foes[0].name}" if trainer is None else trainer.name,
             player_avatar_id=player.avatar_id,
             foe_avatar_id=None if trainer is None else trainer.avatar_id,
-            seed=(
-                rng.randrange(SEED_LIMIT),
-                rng.randrange(SEED_LIMIT),
-                rng.randrange(SEED_LIMIT),
-                rng.randrange(SEED_LIMIT),
-            ),
+            seed=battle_seed(rng),
             battle_background=self.battle_background_of(here),
             battle_music=self._battle_music_of(trainer),
             team=tuple(mon.battler() for mon in able),

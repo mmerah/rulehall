@@ -12,7 +12,7 @@ from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.core.views import Panel, Sprite
 from rulehall.engines.engine import Joining
 from rulehall.engines.pokemon.battle.battling import ShowdownBattling
-from rulehall.engines.pokemon.dex import ITEMS, avatars, dex
+from rulehall.engines.pokemon.dex import ITEMS, dex
 from rulehall.engines.pokemon.journey.args import (
     DIFFICULTY,
     ChosenMon,
@@ -77,7 +77,7 @@ from rulehall.engines.pokemon.journey.worldsmith import (
     check_opening,
 )
 from rulehall.engines.pokemon.rules import TIMES
-from rulehall.engines.pokemon.sprites import mon_sprite, trainer_sprite
+from rulehall.engines.pokemon.sprites import AVATAR, look_step, mon_sprite, trainer_sprite
 from rulehall.engines.rooms.args import MoveTo
 from rulehall.engines.rooms.engine import RoomEngine
 from rulehall.engines.sheet import PLAYER_ID
@@ -85,7 +85,6 @@ from rulehall.engines.sheet import PLAYER_ID
 SCHEME = "THE SCHEME"
 STARTER = "starter"
 CHALLENGE = "challenge"
-AVATAR = "avatar"
 FIRST_MET = "your first Pokemon"
 TEAM_FALLEN = "Your whole team has fallen. The journey ends."
 TEAM_BEATEN = "The team is beaten. Your journey is complete."
@@ -138,12 +137,6 @@ class PokemonEngine(
             DecisionOption(id=challenge, name=challenge.title(), brief=brief)
             for challenge, brief in CHALLENGES.items()
         )
-        looks = tuple(
-            DecisionOption(
-                id=avatar_id, name=avatar_id.title(), sprite=str(trainer_sprite(avatar_id).path)
-            )
-            for avatar_id in avatars().player
-        )
         return (
             *rank_steps,
             CreationStep(
@@ -158,7 +151,7 @@ class PokemonEngine(
                 options=challenges,
                 help="How hard the journey is; it holds for the whole game.",
             ),
-            CreationStep(id=AVATAR, name="Look", options=looks),
+            look_step(),
         )
 
     def build_character(

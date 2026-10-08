@@ -148,6 +148,7 @@ class BattlePanel:
     def draw_choices(self, choices: tuple[BattleChoice, ...]) -> None:
         group = _group(choices)
         moves = [choice for choice in choices if choice.kind == "move"]
+        megas = [choice for choice in choices if choice.kind == "mega"]
         foot = [choice for choice in choices if choice.kind in FOOT_KINDS]
         if moves and any(choice.kind == "switch" for choice in choices):
             with ui.element("div").classes("game-battle-tabs"):
@@ -165,6 +166,8 @@ class BattlePanel:
             with ui.element("div").classes("game-battle-moves"):
                 if group:
                     heading(group)
+                for choice in megas:
+                    self._draw_choice(choice)
                 for choice in moves:
                     self._draw_move(choice)
         if foot:
