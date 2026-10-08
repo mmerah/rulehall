@@ -13,8 +13,8 @@ from rulehall.core.prompt import Prompt
 from rulehall.engines.pokemon.battle.models import Battle, BattleMusic, BattleResult, BattleSetup
 from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.dex import dex
-from rulehall.engines.pokemon.sheet import Mon, Trainer
-from rulehall.engines.pokemon.world import PokemonGame
+from rulehall.engines.pokemon.journey.sheet import Mon, Trainer
+from rulehall.engines.pokemon.journey.world import PokemonGame
 from rulehall.engines.rooms.world import OFF_MAP_ID
 from rulehall.engines.sheet import Gauge
 

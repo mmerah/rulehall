@@ -143,6 +143,14 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         self.character_model = Character[self.person_model]
         self.scenario_model = Scenario[self.opening_model]
 
+    @property
+    def door_id(self) -> EngineId:
+        return self.id
+
+    @property
+    def mode_name(self) -> str:
+        return self.title
+
     @tool
     def kill(self, draft: Game[W], args: Kill, _rng: Random) -> list[Fact]:
         """Kill someone here."""

@@ -8,7 +8,8 @@ from rulehall.core.validation import Loose
 from rulehall.core.views import BattleChoice, Tag
 from rulehall.engines.pokemon.battle.models import Battler
 from rulehall.engines.pokemon.dex import dex
-from rulehall.engines.pokemon.panels import (
+from rulehall.engines.pokemon.rules import max_hp
+from rulehall.engines.pokemon.sprites import (
     category_tag,
     hp_meter,
     mon_sprite,
@@ -18,7 +19,6 @@ from rulehall.engines.pokemon.panels import (
     status_tag,
     type_tag,
 )
-from rulehall.engines.pokemon.rules import max_hp
 
 # The positions, in a side request, of one trainer's own Pokemon.
 type Hand = frozenset[int]

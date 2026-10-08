@@ -3,17 +3,16 @@ from collections.abc import Collection
 from rulehall.core.validation import Refusal, Slug, check_unique
 from rulehall.engines.pokemon.battle.models import DOUBLE_TEAM_MIN
 from rulehall.engines.pokemon.dex import dex
-from rulehall.engines.pokemon.rules import (
+from rulehall.engines.pokemon.journey.rules import (
     BADGE_LEVELS,
     LEVEL_SPREAD,
     REGULAR_TRAINERS_MAX,
     WILD_BELOW_ACE,
-    is_legendary,
     level_for,
 )
-from rulehall.engines.pokemon.scheme import Operation, Scheme, SchemeDue
-from rulehall.engines.pokemon.sheet import KEY_TRAINER, Trainer
-from rulehall.engines.pokemon.world import (
+from rulehall.engines.pokemon.journey.scheme import Operation, Scheme, SchemeDue
+from rulehall.engines.pokemon.journey.sheet import KEY_TRAINER, Trainer
+from rulehall.engines.pokemon.journey.world import (
     PokemonMapProposal,
     PokemonOpeningProposal,
     PokemonRegionProposal,
@@ -21,6 +20,7 @@ from rulehall.engines.pokemon.world import (
     legendary_ids,
     unknown_place_ids,
 )
+from rulehall.engines.pokemon.rules import is_legendary
 from rulehall.engines.rooms.worldsmith import check_next as check_room_map_next
 from rulehall.engines.rooms.worldsmith import check_opening as check_room_map_opening
 

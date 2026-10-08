@@ -5,8 +5,8 @@ from pydantic import Field, model_validator
 
 from rulehall.core.validation import Frozen, Mutable, Slug
 from rulehall.engines.pokemon.battle.models import LEVEL_MAX, TEAM_MAX
-from rulehall.engines.pokemon.rules import BOSS_RISE, LEGENDARY_AT, RosterSlot, rescaled
-from rulehall.engines.pokemon.sheet import Trainer
+from rulehall.engines.pokemon.journey.rules import BOSS_RISE, LEGENDARY_AT, RosterSlot, rescaled
+from rulehall.engines.pokemon.journey.sheet import Trainer
 
 type SchemeDue = Literal["operation", "lair"]
 type Outcome = Literal["foiled", "succeeded"]

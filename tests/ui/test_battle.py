@@ -10,7 +10,7 @@ from support.table import POKEMON, narrated, open_table, play_turn, tool_call
 
 from rulehall.app.game_session import SessionSnapshot
 from rulehall.engines.battles import Battling
-from rulehall.engines.pokemon.world import PokemonGame
+from rulehall.engines.pokemon.journey.world import PokemonGame
 from rulehall.ui.battle import BattlePanel
 from rulehall.ui.widgets import Sounds
 

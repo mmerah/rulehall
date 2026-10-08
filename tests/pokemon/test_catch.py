@@ -6,13 +6,9 @@ from support.table import change
 
 from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.battle.models import Status
-from rulehall.engines.pokemon.dex import (
-    ITEMS,
-)
-from rulehall.engines.pokemon.rules import (
-    catch_rate,
-)
-from rulehall.engines.pokemon.sheet import Mon
+from rulehall.engines.pokemon.dex import ITEMS
+from rulehall.engines.pokemon.journey.rules import catch_rate
+from rulehall.engines.pokemon.journey.sheet import Mon
 
 
 @pytest.mark.parametrize(("hp", "status", "rate"), [(16, "", 54), (16, "par", 64), (1, "", 114)])

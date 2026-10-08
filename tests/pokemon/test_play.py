@@ -10,9 +10,9 @@ from rulehall.core.facts import Fact
 from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.battle.models import BattleResult
 from rulehall.engines.pokemon.battle.simulator import end_battle
-from rulehall.engines.pokemon.panels import wild_panel
-from rulehall.engines.pokemon.sheet import Evolving, Learning
-from rulehall.engines.pokemon.world import PokemonGame
+from rulehall.engines.pokemon.journey.panels import wild_panel
+from rulehall.engines.pokemon.journey.sheet import Evolving, Learning
+from rulehall.engines.pokemon.journey.world import PokemonGame
 from rulehall.engines.rooms.world import OFF_MAP_ID
 
 

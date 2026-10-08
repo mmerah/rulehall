@@ -16,12 +16,7 @@ from rulehall.core.views import BattleChoice, BattleHeader
 from rulehall.engines.battles import Transport
 from rulehall.engines.engine import Resolution
 from rulehall.engines.pokemon.battle.assessment import Assessment
-from rulehall.engines.pokemon.battle.choices import (
-    Hand,
-    SeatRequest,
-    SideRequest,
-    opponent_choice,
-)
+from rulehall.engines.pokemon.battle.choices import Hand, SeatRequest, SideRequest, opponent_choice
 from rulehall.engines.pokemon.battle.header import battle_header
 from rulehall.engines.pokemon.battle.highlights import battle_highlights
 from rulehall.engines.pokemon.battle.models import (
@@ -47,9 +42,9 @@ from rulehall.engines.pokemon.battle.opponent import (
     greedy_choice,
     render_opponent,
 )
-from rulehall.engines.pokemon.panels import item_sprite
+from rulehall.engines.pokemon.battle.world import BattleGame
 from rulehall.engines.pokemon.rules import TIMES
-from rulehall.engines.pokemon.world import PokemonGame
+from rulehall.engines.pokemon.sprites import item_sprite
 
 type SideId = Literal["p1", "p2"]
 
@@ -58,15 +53,6 @@ SINGLES_FORMAT = "gen9customgame@@@Terastal Clause"
 DOUBLES_FORMAT = "gen9doublescustomgame@@@Terastal Clause"
 SHOWDOWN = Path(__file__).parents[1] / "showdown"
 ASSESS_JS = SHOWDOWN / "assess.js"
-BOSS_BEATEN = (
-    "The boss is beaten. Tell how it ended from WHAT HAPPENED, then close the story in a short "
-    "epilogue."
-)
-BATTLE_OVER = (
-    "The battle is over. Tell how it ended from WHAT HAPPENED, in a few sentences. The player "
-    "watched every move, so do not tell the fight again; you may give one short nod to a "
-    "highlight. Settle nothing else."
-)
 SIDES: tuple[SideId, ...] = ("p1", "p2")
 SIDE_OF: dict[RoleSeat, SideId] = {"foe": "p2", "ally": "p1"}
 TURN_ENDS = ("|upkeep", "|turn|", "|win|", "|tie")
@@ -147,7 +133,7 @@ class ShowdownRun:
     @classmethod
     async def start(
         cls,
-        draft: PokemonGame,
+        draft: BattleGame,
         transport: Transport,
         opponent: RoleAnswer | None = None,
     ) -> Self:
@@ -162,7 +148,7 @@ class ShowdownRun:
             policy=policy,
             opponent=opponent if policy == "model" or battle.setup.ally is not None else None,
             facts=[
-                *(draft.world.player.card_fact(text) for text in battle.setup.condition_texts()),
+                *(draft.world.player_card_fact(text) for text in battle.setup.condition_texts()),
                 *(throw.fact for throw in battle.throws),
             ],
         )
@@ -209,7 +195,7 @@ class ShowdownRun:
             "battleMusic": self.setup.battle_music,
         }
 
-    async def choose(self, draft: PokemonGame, command: str, rng: Random) -> None:
+    async def choose(self, draft: BattleGame, command: str, rng: Random) -> None:
         draft.world.battle = self.battle
         if command == LEAVE:
             await self._end("fled" if self.setup.wild else "lost")
@@ -291,7 +277,7 @@ class ShowdownRun:
         while self.result is None:
             self._read(await self._block())
 
-    def _settle(self, draft: PokemonGame) -> None:
+    def _settle(self, draft: BattleGame) -> None:
         self.battle.inputs = list(self.inputs)
         draft.world.battle = self.battle
         if self.result is not None:
@@ -568,10 +554,8 @@ def _first_foe(setup: BattleSetup, dump: Dump) -> Battler:
     return as_dumped(setup.foes[0], next(mon for mon in dump.p2 if mon.slot == 0))
 
 
-def end_battle(draft: PokemonGame, result: BattleResult) -> Resolution:
-    facts, notes = draft.world.settle_battle(result)
+def end_battle(draft: BattleGame, result: BattleResult) -> Resolution:
+    resolution, notes = draft.world.settle_battle(result)
     for note in notes:
         draft.note(note)
-    return Resolution(
-        tuple(facts), BOSS_BEATEN if draft.world.evil_team.boss_beaten else BATTLE_OVER
-    )
+    return resolution

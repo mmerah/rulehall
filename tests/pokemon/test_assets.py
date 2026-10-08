@@ -4,8 +4,8 @@ import pytest
 from support.pokemon import ENGINE
 
 from rulehall.core.validation import Refusal
-from rulehall.engines.pokemon import engine as pokemon_engine
-from rulehall.engines.pokemon.engine import ASSETS_HINT, ASSETS_VERSION
+from rulehall.engines.pokemon.battle import battling
+from rulehall.engines.pokemon.battle.battling import ASSETS_HINT, ASSETS_VERSION
 
 
 def test_a_marker_with_an_old_assets_version_refuses_a_battle_with_the_hint(
@@ -13,9 +13,9 @@ def test_a_marker_with_an_old_assets_version_refuses_a_battle_with_the_hint(
 ) -> None:
     simulator = tmp_path / "pokemon-showdown"
     simulator.touch()
-    monkeypatch.setattr(pokemon_engine, "SIMULATOR", simulator)
+    monkeypatch.setattr(battling, "SIMULATOR", simulator)
     marker = tmp_path / "complete"
-    monkeypatch.setattr(pokemon_engine, "ASSETS_COMPLETE", marker)
+    monkeypatch.setattr(battling, "ASSETS_COMPLETE", marker)
 
     with pytest.raises(Refusal, match="not fetched") as missing:
         ENGINE.simulator_argv()

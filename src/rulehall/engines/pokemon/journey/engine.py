@@ -4,15 +4,16 @@ from random import Random
 from rulehall.core.creation import CreationStep, Picks
 from rulehall.core.decisions import DecisionOption
 from rulehall.core.facts import Fact, roll
-from rulehall.core.game import AnyCharacter, AnyScenario, Character, RoleAnswer
+from rulehall.core.game import AnyCharacter, AnyScenario, Character
 from rulehall.core.log import Voice
 from rulehall.core.prompt import Sections, lines_of, ref_of, section_if, sentence
 from rulehall.core.tools import NoArgs, action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.core.views import Panel, Sprite
-from rulehall.engines.battles import Battling, Transport
 from rulehall.engines.engine import Joining
-from rulehall.engines.pokemon.args import (
+from rulehall.engines.pokemon.battle.battling import ShowdownBattling
+from rulehall.engines.pokemon.dex import ITEMS, avatars, dex
+from rulehall.engines.pokemon.journey.args import (
     DIFFICULTY,
     ChosenMon,
     EvolveInto,
@@ -31,23 +32,19 @@ from rulehall.engines.pokemon.args import (
     UseItem,
     WildPick,
 )
-from rulehall.engines.pokemon.battle.simulator import SHOWDOWN, ShowdownRun
-from rulehall.engines.pokemon.dex import ITEMS, avatars, dex
-from rulehall.engines.pokemon.pack import PokemonHead, PokemonPack
-from rulehall.engines.pokemon.panels import (
+from rulehall.engines.pokemon.journey.pack import PokemonHead, PokemonPack
+from rulehall.engines.pokemon.journey.panels import (
     SHEET_HELP,
     WILD_ICON_PREFIX,
     bag_panel,
+    bag_sprite,
     box_panel,
-    item_sprite,
-    mon_sprite,
     pending_decision,
     scheme_panel,
     team_panel,
-    trainer_sprite,
     wild_panel,
 )
-from rulehall.engines.pokemon.rules import (
+from rulehall.engines.pokemon.journey.rules import (
     CHALLENGES,
     FRIENDSHIP_PER_HELP,
     RANKS_AT_CREATION,
@@ -58,7 +55,6 @@ from rulehall.engines.pokemon.rules import (
     START_BAG,
     START_MONEY,
     STARTER_LEVEL,
-    TIMES,
     Challenge,
     Skill,
     counter_pick,
@@ -66,38 +62,26 @@ from rulehall.engines.pokemon.rules import (
     item_of,
     succeeds,
 )
-from rulehall.engines.pokemon.sheet import Mon, Trainer, TrainerSheet
-from rulehall.engines.pokemon.world import (
+from rulehall.engines.pokemon.journey.sheet import Mon, Trainer, TrainerSheet
+from rulehall.engines.pokemon.journey.world import (
     PokemonGame,
     PokemonOpeningProposal,
     PokemonRegionProposal,
     PokemonWorld,
     challenge_line,
 )
-from rulehall.engines.pokemon.worldsmith import (
+from rulehall.engines.pokemon.journey.worldsmith import (
     DUE_ASKS,
     WORLDSMITH_GUIDANCE,
     check_next,
     check_opening,
 )
+from rulehall.engines.pokemon.rules import TIMES
+from rulehall.engines.pokemon.sprites import mon_sprite, trainer_sprite
 from rulehall.engines.rooms.args import MoveTo
 from rulehall.engines.rooms.engine import RoomEngine
 from rulehall.engines.sheet import PLAYER_ID
 
-SIMULATOR = SHOWDOWN / "node_modules" / "pokemon-showdown" / "pokemon-showdown"
-ASSETS = Path(__file__).parents[4] / "vendor" / "showdown"
-ASSETS_COMPLETE = ASSETS / "complete"
-ASSETS_VERSION = SHOWDOWN / "assets-version"
-SETUP_HINT = (
-    "the battle simulator is not installed: run "
-    "`npm --prefix src/rulehall/engines/pokemon/showdown run setup`, then start the app again"
-)
-ASSETS_HINT = (
-    "the Pokemon art and sound are not fetched or are out of date: run "
-    "`npm --prefix src/rulehall/engines/pokemon/showdown run setup`, then start the app again; "
-    "in Docker, the container fetches them when it starts, so wait for "
-    "'Pokemon art and sound: ready' in its log"
-)
 SCHEME = "THE SCHEME"
 STARTER = "starter"
 CHALLENGE = "challenge"
@@ -109,7 +93,7 @@ EDGE_LINE = "{edge}: the next battle here starts with it. It is lost when the pl
 
 
 class PokemonEngine(
-    Battling,
+    ShowdownBattling,
     Joining[PokemonWorld],
     RoomEngine[Trainer, PokemonWorld, PokemonPack, PokemonRegionProposal],
 ):
@@ -119,8 +103,6 @@ class PokemonEngine(
     art_style = "Bright anime-style illustration, clean lines, soft colours, no text or lettering."
     portraits = False
     directory = Path(__file__).parent
-    assets = ASSETS
-    battle_script = SHOWDOWN / "view.js"
     pack_model = PokemonPack
     pack_head_model = PokemonHead
     world_model = PokemonWorld
@@ -128,6 +110,10 @@ class PokemonEngine(
     opening_model = PokemonOpeningProposal
     next_proposal_model = PokemonRegionProposal
     sheet_help = SHEET_HELP
+
+    @property
+    def mode_name(self) -> str:
+        return "Journey"
 
     def creation_steps(self, pack_id: Slug, picks: Picks) -> tuple[CreationStep, ...]:
         ranks = _rank_picks(picks)
@@ -246,7 +232,7 @@ class PokemonEngine(
             return trainer_sprite(found.avatar_id)
         sheet = world.player_sheet
         if entity_id in sheet.bag or entity_id in ITEMS:
-            return item_sprite(entity_id)
+            return bag_sprite(entity_id)
         mon = next((mon for mon in sheet.owned() if mon.mon_id == entity_id), None)
         return None if mon is None else mon_sprite(mon.species)
 
@@ -302,25 +288,6 @@ class PokemonEngine(
     def accept(self, draft: PokemonGame) -> PokemonGame:
         draft.pending = pending_decision(draft.world.player_sheet)
         return super().accept(draft)
-
-    def in_battle(self, state: PokemonGame) -> bool:
-        return state.world.battle is not None
-
-    def simulator_argv(self) -> tuple[str, ...]:
-        if not SIMULATOR.is_file():
-            raise Refusal(SETUP_HINT)
-        if (
-            not ASSETS_COMPLETE.is_file()
-            or ASSETS_COMPLETE.read_text() != ASSETS_VERSION.read_text()
-        ):
-            raise Refusal(ASSETS_HINT)
-        # The npm package ships built; a build run prints to stdout before the first block.
-        return ("node", str(SIMULATOR), "simulate-battle", "--skip-build")
-
-    async def open_battle(
-        self, draft: PokemonGame, transport: Transport, opponent: RoleAnswer | None
-    ) -> ShowdownRun:
-        return await ShowdownRun.start(draft, transport, opponent)
 
     @tool
     def check(self, draft: PokemonGame, args: SkillCheck, rng: Random) -> list[Fact]:

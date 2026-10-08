@@ -4,7 +4,7 @@ const { Dex } = require("pokemon-showdown");
 const { fetchJson, pool } = require("./net");
 
 const DEX = path.join(__dirname, "..", "dex.json");
-const PACKS = path.join(__dirname, "..", "packs");
+const PACKS = path.join(__dirname, "..", "journey", "packs");
 const POKEDEX_API = "https://pokeapi.co/api/v2/pokedex/";
 const REGIONS = {
   national: {},

@@ -31,7 +31,7 @@ from rulehall.core.stores import SaveStore
 from rulehall.core.validation import Refusal
 from rulehall.engines.loner4e.panels import ASK_ORACLE, TAKE_BREATHER
 from rulehall.engines.loner4e.sheet import Loner4eEntity
-from rulehall.engines.pokemon.world import PokemonGame
+from rulehall.engines.pokemon.journey.world import PokemonGame
 from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.twentyfourxx.sheet import STARTING_CREDITS
 

@@ -5,9 +5,9 @@ from support.table import change, refused
 
 from rulehall.engines.pokemon.battle.models import BattleResult
 from rulehall.engines.pokemon.battle.simulator import end_battle
-from rulehall.engines.pokemon.panels import pending_decision
-from rulehall.engines.pokemon.sheet import Mon
-from rulehall.engines.pokemon.world import PokemonGame
+from rulehall.engines.pokemon.journey.panels import pending_decision
+from rulehall.engines.pokemon.journey.sheet import Mon
+from rulehall.engines.pokemon.journey.world import PokemonGame
 
 
 def test_friendship_evolves_at_a_level_up_from_160_inside_the_region() -> None:

@@ -9,9 +9,9 @@ from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.battle.models import BattleResult
 from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.dex import dex
-from rulehall.engines.pokemon.panels import pending_decision
-from rulehall.engines.pokemon.sheet import Mon
-from rulehall.engines.pokemon.world import PokemonGame
+from rulehall.engines.pokemon.journey.panels import pending_decision
+from rulehall.engines.pokemon.journey.sheet import Mon
+from rulehall.engines.pokemon.journey.world import PokemonGame
 
 
 def test_a_new_move_is_learned_at_once_below_four_moves() -> None:

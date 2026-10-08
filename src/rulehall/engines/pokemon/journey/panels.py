@@ -1,62 +1,34 @@
-from pathlib import Path
-
 from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.validation import Slug
 from rulehall.core.views import Meter, Panel, PanelRow, Sprite, Tag
 from rulehall.engines.pokemon.battle.models import FRIENDSHIP_MAX, LEVEL_MAX
-from rulehall.engines.pokemon.dex import ITEMS, Move, Species, dex
-from rulehall.engines.pokemon.rules import (
+from rulehall.engines.pokemon.dex import ITEMS, dex
+from rulehall.engines.pokemon.journey.rules import (
     FRIENDSHIP_EVOLVE,
     HELP_BONUSES,
     SKILL_USES,
-    STAT_NAMES,
-    TIMES,
     BagId,
     help_bonus,
     item_of,
-    nature_effect,
     tm_move,
 )
-from rulehall.engines.pokemon.scheme import SCHEME_STAGES
-from rulehall.engines.pokemon.sheet import Learning, Mon, MoveSlot, TrainerSheet
-from rulehall.engines.pokemon.world import PokemonWorld
+from rulehall.engines.pokemon.journey.scheme import SCHEME_STAGES
+from rulehall.engines.pokemon.journey.sheet import Learning, Mon, MoveSlot, TrainerSheet
+from rulehall.engines.pokemon.journey.world import PokemonWorld
+from rulehall.engines.pokemon.rules import STAT_NAMES, TIMES, nature_effect
+from rulehall.engines.pokemon.sprites import (
+    ITEM_SPRITES,
+    category_tag,
+    hp_meter,
+    item_sprite,
+    move_brief,
+    move_summary,
+    pp_meter,
+    status_tag,
+    type_tag,
+)
 
 type StatLine = tuple[str, int, str]
-ICON_SHEET = Path("sprites/pokemonicons-sheet.png")
-ICON_WIDTH, ICON_HEIGHT, ICONS_PER_ROW = 40, 30, 12
-TYPE_COLOURS = {
-    "Normal": "#a8a878",
-    "Fire": "#f08030",
-    "Water": "#6890f0",
-    "Electric": "#f8d030",
-    "Grass": "#78c850",
-    "Ice": "#98d8d8",
-    "Fighting": "#c03028",
-    "Poison": "#a040a0",
-    "Ground": "#e0c068",
-    "Flying": "#a890f0",
-    "Psychic": "#f85888",
-    "Bug": "#a8b820",
-    "Rock": "#b8a038",
-    "Ghost": "#705898",
-    "Dragon": "#7038f8",
-    "Dark": "#705848",
-    "Steel": "#b8b8d0",
-    "Fairy": "#ee99ac",
-}
-STATUS_COLOURS = {
-    "psn": "#a040a0",
-    "tox": "#a040a0",
-    "brn": "#f08030",
-    "par": "#f8d030",
-    "slp": "#8c888c",
-    "frz": "#98d8d8",
-    "fnt": "#c03028",
-}
-CATEGORY_COLOURS = {"Physical": "#c92112", "Special": "#4f5870", "Status": "#8c888c"}
-LOW_COLOUR, OUT_COLOUR = "#f8d030", "#f05030"
-PP_COLOUR = "#6890f0"
-PP_LOW_SHARE = 0.25
 GENDER_SIGNS = {"M": "♂", "F": "♀", "N": ""}
 RAISED, LOWERED = " ▲", " ▼"
 ITEMS_GROUP, LEARN_GROUP, TEAM_GROUP = "Items", "Learn", "Team"
@@ -105,46 +77,6 @@ KIND_TEXT = {
     "revive": "Revives a fainted Pokemon with half its HP.",
     "candy": "Raises a Pokemon one level.",
 }
-
-
-def mon_sprite(species: Species) -> Sprite:
-    row, column = divmod(species.icon, ICONS_PER_ROW)
-    x, y = column * ICON_WIDTH, row * ICON_HEIGHT
-    return Sprite(path=ICON_SHEET, x=x, y=y, width=ICON_WIDTH, height=ICON_HEIGHT)
-
-
-def item_sprite(item_id: BagId) -> Sprite:
-    name = item_id if item_id in ITEMS else f"tm-{tm_move(item_id).type.lower()}"
-    return Sprite(path=Path(f"sprites/items/{name}.png"))
-
-
-def trainer_sprite(avatar_id: Slug) -> Sprite:
-    return Sprite(path=Path(f"sprites/trainers/{avatar_id}.png"))
-
-
-def type_tag(kind: str) -> Tag:
-    return Tag(name=kind, colour=TYPE_COLOURS[kind])
-
-
-def status_tag(status: str) -> Tag:
-    return Tag(name=status.upper(), colour=STATUS_COLOURS[status])
-
-
-def category_tag(category: str) -> Tag:
-    return Tag(name=category, colour=CATEGORY_COLOURS[category])
-
-
-def hp_meter(current: int, maximum: int) -> Meter:
-    share = current / maximum
-    colour = "#48d040" if share > 0.5 else LOW_COLOUR if share > 0.2 else OUT_COLOUR
-    return Meter(name="HP", current=current, maximum=maximum, colour=colour)
-
-
-def pp_meter(current: int, maximum: int) -> Meter:
-    colour = (
-        PP_COLOUR if current > maximum * PP_LOW_SHARE else LOW_COLOUR if current else OUT_COLOUR
-    )
-    return Meter(name="PP", current=current, maximum=maximum, colour=colour)
 
 
 def team_panel(world: PokemonWorld) -> Panel:
@@ -294,20 +226,6 @@ def move_row(slot: MoveSlot) -> PanelRow:
     )
 
 
-def move_stats(move: Move) -> str:
-    accuracy = "sure hit" if move.accuracy is None else f"{move.accuracy}%"
-    return " · ".join((*((f"{move.power} BP",) if move.power else ()), accuracy))
-
-
-def move_brief(move: Move, pp: int | None = None) -> str:
-    left = f"PP {move.pp}" if pp is None else f"PP {pp}/{move.pp}"
-    return " · ".join((move.type, move.category, move_stats(move), left))
-
-
-def move_summary(move: Move) -> str:
-    return f"{move_stats(move)} · {move.text}" if move.text else move_stats(move)
-
-
 def bag_row(item_id: BagId, world: PokemonWorld) -> PanelRow:
     sheet = world.player_sheet
     item = item_of(item_id)
@@ -320,6 +238,12 @@ def bag_row(item_id: BagId, world: PokemonWorld) -> PanelRow:
         if item.kind == "ball"
         else tuple(item_option(mon, item_id, world) for mon in sheet.team),
     )
+
+
+def bag_sprite(item_id: BagId) -> Sprite:
+    if item_id in ITEMS:
+        return item_sprite(item_id)
+    return Sprite(path=ITEM_SPRITES / f"tm-{tm_move(item_id).type.lower()}.png")
 
 
 def item_text(item_id: BagId) -> str:

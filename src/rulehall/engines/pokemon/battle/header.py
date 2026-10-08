@@ -10,7 +10,8 @@ from rulehall.engines.pokemon.battle.models import (
     FieldCondition,
 )
 from rulehall.engines.pokemon.dex import dex
-from rulehall.engines.pokemon.panels import (
+from rulehall.engines.pokemon.rules import max_hp
+from rulehall.engines.pokemon.sprites import (
     STATUS_COLOURS,
     TYPE_COLOURS,
     hp_meter,
@@ -18,7 +19,6 @@ from rulehall.engines.pokemon.panels import (
     status_tag,
     trainer_sprite,
 )
-from rulehall.engines.pokemon.rules import max_hp
 
 BOOST_NAMES = {
     "atk": "Atk",

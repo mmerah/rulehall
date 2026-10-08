@@ -7,17 +7,13 @@ from support.pokemon import ENGINE, started
 
 from rulehall.core.views import Sprite
 from rulehall.engines.pokemon.battle.models import LEVEL_MAX
-from rulehall.engines.pokemon.dex import (
-    ITEMS,
-    dex,
-)
-from rulehall.engines.pokemon.panels import ICON_SHEET, item_text, mon_row
-from rulehall.engines.pokemon.rules import (
-    TIMES,
-    RosterSlot,
-)
-from rulehall.engines.pokemon.sheet import Mon, Trainer
-from rulehall.engines.pokemon.world import PokemonWorld
+from rulehall.engines.pokemon.dex import ITEMS, dex
+from rulehall.engines.pokemon.journey.panels import item_text, mon_row
+from rulehall.engines.pokemon.journey.rules import RosterSlot
+from rulehall.engines.pokemon.journey.sheet import Mon, Trainer
+from rulehall.engines.pokemon.journey.world import PokemonWorld
+from rulehall.engines.pokemon.rules import TIMES
+from rulehall.engines.pokemon.sprites import ICON_SHEET
 
 
 def test_people_and_pokemon_name_their_showdown_sprites() -> None:

@@ -6,7 +6,7 @@ from support.table import POKEMON, narrated, open_table, play_turn, tool_call
 
 from rulehall.app.turn import BATTLE_WAIT
 from rulehall.engines.battles import Battling
-from rulehall.engines.pokemon.world import PokemonGame
+from rulehall.engines.pokemon.journey.world import PokemonGame
 
 
 class LowRandom(Random):

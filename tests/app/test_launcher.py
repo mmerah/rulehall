@@ -46,6 +46,12 @@ KAEL_FOR_EACH = [
 ]
 
 
+class _PokemonModeEngine(Loner4eEngine):
+    @property
+    def door_id(self) -> EngineId:
+        return POKEMON
+
+
 def _catalog(settings: Settings, engines: Mapping[EngineId, AnyEngine]) -> LauncherCatalog:
     library = Library(settings.scenarios_dir, settings.characters_dir, NO_SHIPPED)
     return LauncherCatalog.read(
@@ -331,3 +337,12 @@ async def test_a_scenario_written_from_a_document_carries_its_text(tmp_path: Pat
     assert state.source.startswith("SOURCE DOCUMENT:")
     # The premise the player never wrote is the scene's own words.
     assert state.scenario_description.premise == _OPENING["situation"]
+
+
+def test_a_door_holds_its_engines_in_registry_order(tmp_path: Path) -> None:
+    runtime = Runtime(offline_settings(tmp_path), roles=ScriptedRoles())
+    mode = _PokemonModeEngine(NO_PACKS)
+    mode.id = MIRROR
+    runtime.engines[MIRROR] = mode
+
+    assert runtime.door_engines(POKEMON) == (runtime.engines[POKEMON], mode)

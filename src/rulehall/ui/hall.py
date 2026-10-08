@@ -15,6 +15,7 @@ from rulehall.ui.routes import (
     PACKS,
     engine_path,
     game_path,
+    hall_path,
 )
 from rulehall.ui.widgets import (
     BROKEN_ICON,
@@ -50,6 +51,7 @@ class Hall:
     def __init__(self, runtime: Runtime, engine_id: EngineId, chosen_id: str | None) -> None:
         self.runtime = runtime
         self.engine = runtime.require_engine(engine_id)
+        self.modes = runtime.door_engines(self.engine.door_id)
         self.catalog = runtime.catalog()
         self.characters = self.catalog.characters_for(engine_id)
         written = [character.id for character in self.characters]
@@ -69,11 +71,24 @@ class Hall:
                     )
                     ui.label(engine.look.tagline).classes("game-lead")
                 die_glyph(engine.look)
+            if len(self.modes) > 1:
+                self.draw_modes()
             self.draw()
             with ui.row().classes("game-hall-foot items-center game-gap-md"):
                 packs = len(self.catalog.packs_for(engine.id))
                 _small_link(f"Packs · {packs}", PACK_ICON, engine_path(PACKS, engine.id))
                 _small_link("New pack", NEW_PACK_ICON, engine_path(NEW_PACK, engine.id))
+
+    def draw_modes(self) -> None:
+        with ui.element("div").classes("game-chips"):
+            for mode in self.modes:
+                chosen = mode.id == self.engine.id
+                with link_box(
+                    hall_path(mode.id), "game-chip game-chip-on" if chosen else "game-chip"
+                ) as link:
+                    ui.label(mode.mode_name)
+                if chosen:
+                    link.props('aria-current="page"')
 
     def choose(self, character_id: Slug) -> None:
         self.character_id = character_id

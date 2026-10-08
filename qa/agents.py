@@ -24,18 +24,22 @@ from dataclasses import dataclass, field
 from itertools import count
 from typing import Literal
 
-from pydantic import JsonValue
+from pydantic import BaseModel, JsonValue
 
 from rulehall.app.runtime import Runtime
+from rulehall.app.submission import SUBMIT, Submission
 from rulehall.app.turn import Turn
 from rulehall.config import Role
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal
-from rulehall.engines.pokemon.rules import level_for
+from rulehall.engines.pokemon.journey.rules import level_for
 
 LOGGER = logging.getLogger("qa.agents")
 
 type Fault = Literal["fail", "bad", "hold"]
+
+# A `bad` fault spends one attempt on garbage; the second lands, as the real worldsmith retries.
+SUBMIT_ATTEMPTS = 2
 
 DEFAULT_ROLLS: dict[str, tuple[str, dict[str, JsonValue]]] = {
     "loner4e": ("ask", {"question": "Does the player get what they want?"}),
@@ -73,6 +77,18 @@ class ScriptedAgents:
     async def play_master_turn(self, prompt: Prompt, turn: Turn) -> None:
         del turn
         _ = await self._spoken("master", prompt.text)
+
+    async def submit_answer[T: BaseModel](
+        self, role: Role, prompt: Prompt, submission: Submission[T]
+    ) -> None:
+        for _ in range(SUBMIT_ATTEMPTS):
+            if submission.must_stop:
+                return
+            answer = (await self._spoken(role, prompt.text)).answer
+            try:
+                submission.call_tool(SUBMIT, answer)
+            except Refusal:
+                continue
 
     def arm(self, role: str, fault: str) -> None:
         self.faults.setdefault(_role(role), []).append(_fault(fault))

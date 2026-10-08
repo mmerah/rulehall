@@ -87,4 +87,4 @@ Left out: a post-game after the boss falls, the race to catch the legendary, Ter
 
 ## Where the rules live
 
-`src/rulehall/engines/pokemon/`: the master's instructions in `rules.md`, the numbers in `rules.py`, the battle module in `battle/`, and the Node side in `showdown/`. The map machinery is `RoomEngine` in `src/rulehall/engines/rooms/`.
+`src/rulehall/engines/pokemon/journey/`: the master's instructions in `rules.md`, the journey numbers in `rules.py` and the packs in `packs/`. The shared base is `src/rulehall/engines/pokemon/`: the stat, type, nature and item rules in `rules.py`, the battle module in `battle/`, and the Node side in `showdown/`. The map machinery is `RoomEngine` in `src/rulehall/engines/rooms/`.

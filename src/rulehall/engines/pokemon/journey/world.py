@@ -8,6 +8,7 @@ from rulehall.core.facts import Fact, roll
 from rulehall.core.game import Game
 from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, check_unique, refuse
 from rulehall.core.views import Rows
+from rulehall.engines.engine import Resolution
 from rulehall.engines.pokemon.battle.models import (
     DOUBLE_TEAM_MIN,
     LEVEL_MAX,
@@ -25,8 +26,9 @@ from rulehall.engines.pokemon.battle.models import (
     Throw,
     Weather,
 )
+from rulehall.engines.pokemon.battle.world import BATTLE_OVER
 from rulehall.engines.pokemon.dex import ITEMS, dex
-from rulehall.engines.pokemon.rules import (
+from rulehall.engines.pokemon.journey.rules import (
     ACE_BELOW_TABLE,
     BELOW_ACE,
     BOSS_RISE,
@@ -39,14 +41,12 @@ from rulehall.engines.pokemon.rules import (
     built_ev,
     built_iv,
     catch_rate,
-    check_species,
     evolved,
-    is_legendary,
     item_of,
     rescaled,
     rival_ev,
 )
-from rulehall.engines.pokemon.scheme import (
+from rulehall.engines.pokemon.journey.scheme import (
     SCHEME_STAGES,
     EvilTeam,
     Operation,
@@ -54,7 +54,8 @@ from rulehall.engines.pokemon.scheme import (
     Scheme,
     SchemeDue,
 )
-from rulehall.engines.pokemon.sheet import Mon, Trainer, TrainerSheet, built_team
+from rulehall.engines.pokemon.journey.sheet import Mon, Trainer, TrainerSheet, built_team
+from rulehall.engines.pokemon.rules import check_species, is_legendary
 from rulehall.engines.rooms.world import OFF_MAP_ID, MapProposal, RegionProposal, RoomWorld
 
 WILD = "The wild table of each new place, keyed by place id. A town or a building has no table."
@@ -88,6 +89,10 @@ SCHEME_TRIGGER = (
 RUMOUR = "RUMOUR, to tell: the team is at {place}: {goal}"
 FOILED = "The team's operation at {place} is foiled."
 SUCCEEDED = "The team's operation at {place} succeeded; its boss grows stronger."
+BOSS_BEATEN = (
+    "The boss is beaten. Tell how it ended from WHAT HAPPENED, then close the story in a short "
+    "epilogue."
+)
 
 
 class WildSlot(Frozen):
@@ -457,6 +462,9 @@ class PokemonWorld(RoomWorld[Trainer]):
             raise Refusal("no party member has a team to fight beside the player")
         return companion
 
+    def player_card_fact(self, line: str) -> Fact:
+        return self.player.card_fact(line)
+
     def throw_ball(self, ball_id: Slug, foe: Battler, rng: Random) -> Throw:
         battle = self.battle
         if battle is None or not battle.can_throw():
@@ -583,7 +591,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         self.rival_record.due = False
         return [rival.card_fact(f"{rival.name} is here")], [RIVAL_WAITS.format(name=rival.name)]
 
-    def settle_battle(self, result: BattleResult) -> tuple[list[Fact], list[str]]:
+    def settle_battle(self, result: BattleResult) -> tuple[Resolution, list[str]]:
         battle = self.battle
         assert battle is not None
         setup = battle.setup
@@ -635,7 +643,8 @@ class PokemonWorld(RoomWorld[Trainer]):
             sheet.heal_team()
             facts.append(player.card_fact(f"You blacked out. -₽{lost}. Your team is healed."))
         self.battle = None
-        return facts, notes
+        cue = BOSS_BEATEN if self.evil_team.boss_beaten else BATTLE_OVER
+        return Resolution(tuple(facts), cue), notes
 
     def _settle_trainer(
         self, trainer: Trainer, setup: BattleSetup, result: BattleResult
