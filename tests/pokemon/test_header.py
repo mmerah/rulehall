@@ -43,7 +43,7 @@ def test_the_header_follows_the_log_for_conditions_and_lines() -> None:
 
 def test_a_tag_header_splits_the_pips_and_shows_the_fielded_pokemon() -> None:
     ally = Ally(name="Mira", style="", avatar_id="lass", team=(CHARMANDER,))
-    setup = TRAINER_SETUP.model_copy(update={"double": True, "ally": ally})
+    setup = TRAINER_SETUP.model_copy(update={"format_id": "doubles", "ally": ally})
     raised = {"atk": 2, "def": 0, "spe": -1}
     p1 = (
         DumpMon(

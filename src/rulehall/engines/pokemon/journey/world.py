@@ -407,7 +407,9 @@ class PokemonWorld(RoomWorld[Trainer]):
             edge=None if trainer is not None and edge == "bait" else edge,
             weather=weather,
             terrain=terrain,
-            double=trainer is not None and (trainer.double or companion is not None),
+            format_id="doubles"
+            if trainer is not None and (trainer.double or companion is not None)
+            else "singles",
             ally=None
             if companion is None
             else Ally(

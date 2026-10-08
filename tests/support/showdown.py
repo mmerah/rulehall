@@ -56,6 +56,7 @@ WILD_SETUP = BattleSetup(
     battle_music="bw-trainer",
     team=(PIKACHU,),
     foes=(RATTATA,),
+    format_id="singles",
 )
 CHARMANDER = Battler(
     mon_id="charmander",
@@ -101,7 +102,7 @@ DOUBLES_SETUP = BattleSetup(
     battle_music="bw-trainer",
     team=(PIKACHU, CHARMANDER),
     foes=(RATTATA, PIDGEY),
-    double=True,
+    format_id="doubles",
 )
 
 

@@ -20,6 +20,7 @@ from rulehall.engines.pokemon.battle.choices import Hand, SeatRequest, SideReque
 from rulehall.engines.pokemon.battle.header import battle_header
 from rulehall.engines.pokemon.battle.highlights import battle_highlights
 from rulehall.engines.pokemon.battle.models import (
+    FORMATS,
     STATUSES,
     TERRAINS,
     WEATHERS,
@@ -49,8 +50,6 @@ from rulehall.engines.pokemon.sprites import item_sprite
 type SideId = Literal["p1", "p2"]
 
 LOGGER = logging.getLogger(__name__)
-SINGLES_FORMAT = "gen9customgame@@@Terastal Clause"
-DOUBLES_FORMAT = "gen9doublescustomgame@@@Terastal Clause"
 SHOWDOWN = Path(__file__).parents[1] / "showdown"
 ASSESS_JS = SHOWDOWN / "assess.js"
 SIDES: tuple[SideId, ...] = ("p1", "p2")
@@ -69,10 +68,13 @@ SNAPSHOT = (
     "boosts: mon.boosts}))]))"
 )
 DUMP = f">eval JSON.stringify({SNAPSHOT})"
+# setStatus refuses a Pokemon that is not active, and RESTORE runs at team preview.
 RESTORE = (
     ">eval const states = STATES; [battle.p1, battle.p2].forEach((side, number) => "
     "states[number].forEach(([hp, status, pp], index) => { const mon = side.pokemon[index]; "
-    "mon.sethp(hp); if (status) mon.setStatus(status, null, null, true); "
+    "mon.sethp(hp); if (status) { mon.status = status; "
+    "mon.statusState = battle.initEffectState({id: status, target: mon, source: mon}); "
+    "battle.singleEvent('Start', battle.dex.conditions.get(status), mon.statusState, mon); } "
     "mon.baseMoveSlots.forEach((slot, move) => { slot.pp = pp[move]; }); }))"
 )
 # A duration of 0 never runs out: story weather and terrain last until a move changes them.
@@ -457,7 +459,7 @@ def start_lines(setup: BattleSetup) -> tuple[str, ...]:
         [[battler.hp, battler.status, [move.pp for move in battler.moves]] for battler in side]
         for side in (setup.player_side(), setup.foes)
     ]
-    format_id = DOUBLES_FORMAT if setup.double else SINGLES_FORMAT
+    showdown_id = FORMATS[setup.format_id].showdown_id
     p1 = {
         "name": setup.player_name,
         "avatar": setup.player_avatar_id,
@@ -469,7 +471,7 @@ def start_lines(setup: BattleSetup) -> tuple[str, ...]:
         "team": _packed_team(setup.foes),
     }
     return (
-        f">start {json.dumps({'formatid': format_id, 'seed': list(setup.seed)})}",
+        f">start {json.dumps({'formatid': showdown_id, 'seed': list(setup.seed)})}",
         f">player p1 {json.dumps(p1)}",
         f">player p2 {json.dumps(p2)}",
         RESTORE.replace("STATES", json.dumps(states)),

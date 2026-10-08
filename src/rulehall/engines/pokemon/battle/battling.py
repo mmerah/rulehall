@@ -37,7 +37,7 @@ class ShowdownBattling(Battling):
             or ASSETS_COMPLETE.read_text() != ASSETS_VERSION.read_text()
         ):
             raise Refusal(ASSETS_HINT)
-        # The npm package ships built; a build run prints to stdout before the first block.
+        # The postinstall builds the simulator; a build run prints to stdout before the first block.
         return ("node", str(SIMULATOR), "simulate-battle", "--skip-build")
 
     async def open_battle(

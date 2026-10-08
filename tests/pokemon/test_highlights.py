@@ -60,7 +60,7 @@ def test_a_clutch_win_and_a_critical_knockout_lead_the_highlights() -> None:
 
 def test_an_ally_knockout_names_the_ally() -> None:
     ally = Ally(name="Mira", style="", avatar_id="lass", team=(CHARMANDER,))
-    setup = TRAINER_SETUP.model_copy(update={"double": True, "ally": ally})
+    setup = TRAINER_SETUP.model_copy(update={"format_id": "doubles", "ally": ally})
     log = [
         "|move|p1b: Charmander|Scratch|p2a: Rattata",
         "|-damage|p2a: Rattata|0 fnt",

@@ -134,6 +134,10 @@ def _event(kind: str, fields: Sequence[str], owners: Mapping[str, str]) -> str:
             return f"it was not very effective on {who(0)}"
         case "-immune":
             return f"{who(0)} was not affected{source}"
+        case "-fail" if len(fields) >= 2 and fields[1] == "unboost":
+            named = len(fields) >= 3 and not fields[2].startswith("[")
+            stat = f"{STAT_WORDS.get(fields[2], fields[2])} did" if named else "stats did"
+            return f"{who(0)}'s {stat} not fall{source}"
         case "-fail":
             return f"{who(0)}'s move failed"
         case "-enditem" if len(fields) >= 2:

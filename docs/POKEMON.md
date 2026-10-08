@@ -4,7 +4,7 @@ A Pokemon journey played as a tabletop RPG. No official Pokemon tabletop game ex
 
 ## Sources
 
-- **Pokemon Showdown**, the simulator: <https://github.com/smogon/pokemon-showdown>. The npm package `pokemon-showdown` is pinned at 0.11.11 in `showdown/package.json`. It runs every battle and supplies the species, moves, learnsets, abilities and items of the dex.
+- **Pokemon Showdown**, the simulator: <https://github.com/smogon/pokemon-showdown>. `showdown/package.json` pins `pokemon-showdown` to the tarball of commit `51ad80fa5b264a28416b0d78667519a97ba2d2ee` of its `master` branch, and its `postinstall` builds the simulator. It runs every battle and supplies the species, moves, learnsets, abilities and items of the dex.
 - **Pokemon Showdown client**, the battle view: <https://github.com/smogon/pokemon-showdown-client>. The setup fetches its built battle files and styles from <https://play.pokemonshowdown.com/>.
 - **PokeAPI**: <https://pokeapi.co/>. The regional dexes of the packs, EV yields, ability texts and Pokedex entries. Item icons come from <https://github.com/PokeAPI/sprites>.
 - **Pokemon Tabletop United** (PTU), a fan-made tabletop game. The catch roll follows its rule: a d100 against a rate built from level, HP, status and evolution stage. The d20 skill checks take after PTU and its older sibling PTA, in a much lighter form.

@@ -72,6 +72,7 @@ type BattleBackground = Literal[
     "gen3-sand",
 ]
 type BattleMusic = Literal["bw-trainer", "bw-rival", "bw2-kanto-gym-leader", "spl-elite4"]
+type BattleFormat = Literal["singles", "doubles"]
 
 STATUSES: tuple[Status, ...] = ("brn", "frz", "par", "psn", "tox", "slp")
 TEAM_MAX = 6
@@ -118,6 +119,17 @@ TERRAINS: dict[Terrain, FieldCondition] = {
     "psychic": FieldCondition(
         text="The field turns strange", showdown_id="psychicterrain", colour_type="Psychic"
     ),
+}
+
+
+class FormatSpec(Frozen):
+    showdown_id: str
+    active_slots: int
+
+
+FORMATS: dict[BattleFormat, FormatSpec] = {
+    "singles": FormatSpec(showdown_id="gen9customgame@@@Terastal Clause", active_slots=1),
+    "doubles": FormatSpec(showdown_id="gen9doublescustomgame@@@Terastal Clause", active_slots=2),
 }
 
 
@@ -179,7 +191,7 @@ class BattleSetup(Frozen):
     edge: Edge | None = None
     weather: Weather | None = None
     terrain: Terrain | None = None
-    double: bool = False
+    format_id: BattleFormat
     ally: Ally | None = None
 
     @model_validator(mode="after")
@@ -205,6 +217,10 @@ class BattleSetup(Frozen):
     @property
     def wild(self) -> bool:
         return self.foe_id is None
+
+    @property
+    def double(self) -> bool:
+        return FORMATS[self.format_id].active_slots == 2
 
     def player_side(self) -> tuple[Battler, ...]:
         return self.team if self.ally is None else (*self.team, *self.ally.team)

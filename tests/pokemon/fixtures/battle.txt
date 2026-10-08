@@ -1,17 +1,19 @@
 update
-|t:|1790166094
+|t:|1791451648
 |gametype|singles
-|player|p1|Kael||
+|player|p1|Kael|ethan|
 |player|p2|Wild Rattata||
 |gen|9
 |tier|[Gen 9] Custom Game
+|rule|Terastal Clause: You cannot Terastallize
+|raw|<div class="infobox"><details class="readmore" open><summary><strong>1 custom rule:</strong></summary> Terastal Clause</details></div>
 |clearpoke
 |poke|p1|Pikachu, L7, M|
 |poke|p2|Rattata, L3, F|
 |teampreview
-||>>> const states = [[[24, "", [48, 64]]], [[15, "", [56]]]]; [battle.p1, battle.p2].forEach((side, number) => states[number].forEach(([hp, status, pp], index) => { const mon = side.pokemon[index]; mon.sethp(hp); if (status) mon.setStatus(status, null, null, true); mon.baseMoveSlots.forEach((slot, move) => { slot.pp = pp[move]; }); }))
+||>>> const states = [[[24, "", [48, 64]]], [[15, "", [56]]]]; [battle.p1, battle.p2].forEach((side, number) => states[number].forEach(([hp, status, pp], index) => { const mon = side.pokemon[index]; mon.sethp(hp); if (status) { mon.status = status; mon.statusState = battle.initEffectState({id: status, target: mon, source: mon}); battle.singleEvent('Start', battle.dex.conditions.get(status), mon.statusState, mon); } mon.baseMoveSlots.forEach((slot, move) => { slot.pp = pp[move]; }); }))
 ||<<< undefined
-||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))
+||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))
 ||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":0,"held":true,"active":false,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":0,"held":true,"active":false,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}]}"
 
 sideupdate
@@ -24,7 +26,7 @@ p2
 
 update
 |
-|t:|1790166094
+|t:|1791451648
 |teamsize|p1|1
 |teamsize|p2|1
 |start
@@ -35,20 +37,20 @@ update
 |switch|p2a: Rattata|Rattata, L3, F|15/15
 |switch|p2a: Rattata|Rattata, L3, F|15/15
 |turn|1
-||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))
+||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))
 ||<<< "{"p1":[{"slot":0,"hp":24,"status":"","pp":[48,64],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":15,"status":"","pp":[56],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}]}"
 
 sideupdate
 p1
-|request|{"active":[{"moves":[{"move":"Thunder Shock","id":"thundershock","pp":48,"maxpp":48,"target":"normal","disabled":false},{"move":"Growl","id":"growl","pp":64,"maxpp":64,"target":"allAdjacentFoes","disabled":false}],"canTerastallize":"Electric"}],"side":{"name":"Kael","id":"p1","pokemon":[{"ident":"p1: Pikachu","details":"Pikachu, L7, M","condition":"24/24","active":true,"stats":{"atk":14,"def":12,"spa":14,"spd":14,"spe":19},"moves":["thundershock","growl"],"baseAbility":"static","item":"","pokeball":"pokeball","ability":"static","commanding":false,"reviving":false,"teraType":"Electric","terastallized":""}]}}
+|request|{"active":[{"moves":[{"move":"Thunder Shock","id":"thundershock","pp":48,"maxpp":48,"target":"normal","disabled":false},{"move":"Growl","id":"growl","pp":64,"maxpp":64,"target":"allAdjacentFoes","disabled":false}]}],"side":{"name":"Kael","id":"p1","pokemon":[{"ident":"p1: Pikachu","details":"Pikachu, L7, M","condition":"24/24","active":true,"stats":{"atk":14,"def":12,"spa":14,"spd":14,"spe":19},"moves":["thundershock","growl"],"baseAbility":"static","item":"","pokeball":"pokeball","ability":"static","commanding":false,"reviving":false,"teraType":"Electric","terastallized":""}]}}
 
 sideupdate
 p2
-|request|{"active":[{"moves":[{"move":"Tackle","id":"tackle","pp":56,"maxpp":56,"target":"normal","disabled":false}],"canTerastallize":"Normal"}],"side":{"name":"Wild Rattata","id":"p2","pokemon":[{"ident":"p2: Rattata","details":"Rattata, L3, F","condition":"15/15","active":true,"stats":{"atk":9,"def":8,"spa":7,"spd":8,"spe":10},"moves":["tackle"],"baseAbility":"guts","item":"","pokeball":"pokeball","ability":"guts","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""}]}}
+|request|{"active":[{"moves":[{"move":"Tackle","id":"tackle","pp":56,"maxpp":56,"target":"normal","disabled":false}]}],"side":{"name":"Wild Rattata","id":"p2","pokemon":[{"ident":"p2: Rattata","details":"Rattata, L3, F","condition":"15/15","active":true,"stats":{"atk":9,"def":8,"spa":7,"spd":8,"spe":10},"moves":["tackle"],"baseAbility":"guts","item":"","pokeball":"pokeball","ability":"guts","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""}]}}
 
 update
 |
-|t:|1790166094
+|t:|1791451648
 |move|p1a: Pikachu|Thunder Shock|p2a: Rattata
 |split|p2
 |-damage|p2a: Rattata|6/15
@@ -60,20 +62,20 @@ update
 |
 |upkeep
 |turn|2
-||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))
+||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))
 ||<<< "{"p1":[{"slot":0,"hp":21,"status":"","pp":[47,64],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":6,"status":"","pp":[55],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}]}"
 
 sideupdate
 p1
-|request|{"active":[{"moves":[{"move":"Thunder Shock","id":"thundershock","pp":47,"maxpp":48,"target":"normal","disabled":false},{"move":"Growl","id":"growl","pp":64,"maxpp":64,"target":"allAdjacentFoes","disabled":false}],"canTerastallize":"Electric"}],"side":{"name":"Kael","id":"p1","pokemon":[{"ident":"p1: Pikachu","details":"Pikachu, L7, M","condition":"21/24","active":true,"stats":{"atk":14,"def":12,"spa":14,"spd":14,"spe":19},"moves":["thundershock","growl"],"baseAbility":"static","item":"","pokeball":"pokeball","ability":"static","commanding":false,"reviving":false,"teraType":"Electric","terastallized":""}]}}
+|request|{"active":[{"moves":[{"move":"Thunder Shock","id":"thundershock","pp":47,"maxpp":48,"target":"normal","disabled":false},{"move":"Growl","id":"growl","pp":64,"maxpp":64,"target":"allAdjacentFoes","disabled":false}]}],"side":{"name":"Kael","id":"p1","pokemon":[{"ident":"p1: Pikachu","details":"Pikachu, L7, M","condition":"21/24","active":true,"stats":{"atk":14,"def":12,"spa":14,"spd":14,"spe":19},"moves":["thundershock","growl"],"baseAbility":"static","item":"","pokeball":"pokeball","ability":"static","commanding":false,"reviving":false,"teraType":"Electric","terastallized":""}]}}
 
 sideupdate
 p2
-|request|{"active":[{"moves":[{"move":"Tackle","id":"tackle","pp":55,"maxpp":56,"target":"normal","disabled":false}],"canTerastallize":"Normal"}],"side":{"name":"Wild Rattata","id":"p2","pokemon":[{"ident":"p2: Rattata","details":"Rattata, L3, F","condition":"6/15","active":true,"stats":{"atk":9,"def":8,"spa":7,"spd":8,"spe":10},"moves":["tackle"],"baseAbility":"guts","item":"","pokeball":"pokeball","ability":"guts","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""}]}}
+|request|{"active":[{"moves":[{"move":"Tackle","id":"tackle","pp":55,"maxpp":56,"target":"normal","disabled":false}]}],"side":{"name":"Wild Rattata","id":"p2","pokemon":[{"ident":"p2: Rattata","details":"Rattata, L3, F","condition":"6/15","active":true,"stats":{"atk":9,"def":8,"spa":7,"spd":8,"spe":10},"moves":["tackle"],"baseAbility":"guts","item":"","pokeball":"pokeball","ability":"guts","commanding":false,"reviving":false,"teraType":"Normal","terastallized":""}]}}
 
 update
 |
-|t:|1790166094
+|t:|1791451648
 |move|p1a: Pikachu|Thunder Shock|p2a: Rattata
 |split|p2
 |-damage|p2a: Rattata|0 fnt
@@ -81,9 +83,9 @@ update
 |faint|p2a: Rattata
 |
 |win|Kael
-||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))
-||<<< "{"p1":[{"slot":0,"hp":21,"status":"","pp":[46,64],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":0,"status":"","pp":[55],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}]}"
+||>>> JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))
+||<<< "{"p1":[{"slot":0,"hp":21,"status":"","pp":[46,64],"out":1,"held":true,"active":true,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}],"p2":[{"slot":0,"hp":0,"status":"","pp":[55],"out":1,"held":true,"active":false,"boosts":{"atk":0,"def":0,"spa":0,"spd":0,"spe":0,"accuracy":0,"evasion":0}}]}"
 
 end
-{"winner":"Kael","seed":"1,2,3,4","turns":2,"p1":"Kael","p2":"Wild Rattata","p1team":[{"name":"Pikachu","species":"Pikachu","item":"","ability":"Static","moves":["Thunder Shock","Growl"],"nature":"Hardy","gender":"M","level":7,"evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31}}],"p2team":[{"name":"Rattata","species":"Rattata","item":"","ability":"Guts","moves":["Tackle"],"nature":"Hardy","gender":"F","level":3,"evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31}}],"score":[1,0],"inputLog":[">start {\"formatid\":\"gen9customgame\",\"seed\":\"1,2,3,4\"}",">player p1 {\"name\":\"Kael\",\"team\":\"Pikachu|pikachu||Static|thundershock,growl|Hardy||M|||7|\"}",">player p2 {\"name\":\"Wild Rattata\",\"team\":\"Rattata|rattata||Guts|tackle|Hardy||F|||3|\"}",">eval const states = [[[24, \"\", [48, 64]]], [[15, \"\", [56]]]]; [battle.p1, battle.p2].forEach((side, number) => states[number].forEach(([hp, status, pp], index) => { const mon = side.pokemon[index]; mon.sethp(hp); if (status) mon.setStatus(status, null, null, true); mon.baseMoveSlots.forEach((slot, move) => { slot.pp = pp[move]; }); }))",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))",">p1 team 1",">p2 team 1",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))",">p1 move thundershock",">p2 move tackle",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))",">p1 move thundershock",">p2 move tackle",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn}))])))"]}
+{"winner":"Kael","seed":"1,2,3,4","turns":2,"p1":"Kael","p2":"Wild Rattata","p1team":[{"name":"Pikachu","species":"Pikachu","item":"","ability":"Static","moves":["Thunder Shock","Growl"],"nature":"Hardy","evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"gender":"M","ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"level":7,"happiness":70,"hpType":"","pokeball":"","gigantamax":false,"dynamaxLevel":10}],"p2team":[{"name":"Rattata","species":"Rattata","item":"","ability":"Guts","moves":["Tackle"],"nature":"Hardy","evs":{"hp":0,"atk":0,"def":0,"spa":0,"spd":0,"spe":0},"gender":"F","ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"level":3,"happiness":70,"hpType":"","pokeball":"","gigantamax":false,"dynamaxLevel":10}],"score":[1,0],"inputLog":[">start {\"formatid\":\"gen9customgame@@@Terastal Clause\",\"seed\":\"1,2,3,4\"}",">player p1 {\"name\":\"Kael\",\"avatar\":\"ethan\",\"team\":\"Pikachu|pikachu||Static|thundershock,growl|Hardy|0,0,0,0,0,0|M|31,31,31,31,31,31||7|70\"}",">player p2 {\"name\":\"Wild Rattata\",\"avatar\":\"\",\"team\":\"Rattata|rattata||Guts|tackle|Hardy|0,0,0,0,0,0|F|31,31,31,31,31,31||3|70\"}",">eval const states = [[[24, \"\", [48, 64]]], [[15, \"\", [56]]]]; [battle.p1, battle.p2].forEach((side, number) => states[number].forEach(([hp, status, pp], index) => { const mon = side.pokemon[index]; mon.sethp(hp); if (status) { mon.status = status; mon.statusState = battle.initEffectState({id: status, target: mon, source: mon}); battle.singleEvent('Start', battle.dex.conditions.get(status), mon.statusState, mon); } mon.baseMoveSlots.forEach((slot, move) => { slot.pp = pp[move]; }); }))",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))",">p1 team 1",">p2 team 1",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))",">p1 move thundershock",">p2 move tackle",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))",">p1 move thundershock",">p2 move tackle",">eval JSON.stringify(Object.fromEntries([battle.p1, battle.p2].map((side) => [side.id, side.pokemon.map((mon) => ({slot: side.team.indexOf(mon.set), hp: mon.hp, status: mon.status, pp: mon.baseMoveSlots.map((move) => move.pp), out: mon.previouslySwitchedIn, held: !mon.lastItem, active: mon.isActive, boosts: mon.boosts}))])))"]}
 
