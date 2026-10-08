@@ -31,16 +31,20 @@ from rulehall.engines.pokemon.rules import (
     BELOW_ACE,
     BOSS_RISE,
     PRIZE_PER_LEVEL,
+    RIVAL_IV,
     SEED_LIMIT,
     SPECIES_ID,
     STARTER_LEVEL,
     RosterSlot,
+    built_ev,
+    built_iv,
     catch_rate,
     check_species,
     evolved,
     is_legendary,
     item_of,
     rescaled,
+    rival_ev,
 )
 from rulehall.engines.pokemon.scheme import (
     SCHEME_STAGES,
@@ -148,18 +152,30 @@ class RivalRecord(Mutable):
             return (RosterSlot(species_id=self.starter_id, level=STARTER_LEVEL),)
         ace_id = evolved(self.starter_id, ace_level, species_ids)
         species = dex().species
-        strongest = sorted(
-            seen_species_ids,
-            key=lambda species_id: (-sum(species[species_id].base_stats), species_id),
+        member_level = ace_level - BELOW_ACE
+        candidates = {
+            evolved(species_id, member_level, species_ids) for species_id in seen_species_ids
+        }
+        candidates -= {ace_id, evolved(self.starter_id, member_level, species_ids)}
+        others = sorted(
+            candidates, key=lambda species_id: (-sum(species[species_id].base_stats), species_id)
         )
-        others = dict.fromkeys(
-            evolved(species_id, ace_level - BELOW_ACE, species_ids) for species_id in strongest
+        count = min(badges, TEAM_MAX - 1)
+        taken_types = set(species[ace_id].types)
+        picked: list[Slug] = []
+        for species_id in others:
+            if len(picked) == count:
+                break
+            if taken_types.isdisjoint(species[species_id].types):
+                picked.append(species_id)
+                taken_types.update(species[species_id].types)
+        picked.extend(
+            [species_id for species_id in others if species_id not in picked][: count - len(picked)]
         )
-        others.pop(ace_id, None)
         return (
             *(
                 RosterSlot(species_id=species_id, level=ace_level - BELOW_ACE)
-                for species_id in list(others)[: min(badges, TEAM_MAX - 1)]
+                for species_id in picked
             ),
             RosterSlot(species_id=ace_id, level=ace_level),
         )
@@ -526,15 +542,23 @@ class PokemonWorld(RoomWorld[Trainer]):
             return built_team(
                 self.rival_record.roster(badges, ace_level, seen_species_ids, self.species_ids),
                 badges,
+                iv=RIVAL_IV,
+                ev=rival_ev(badges),
             )
+        iv, ev = built_iv(badges), built_ev(badges)
         if trainer.id == self.evil_team.boss_id:
             return built_team(
-                self.evil_team.boss_roster(trainer, sheet.table_level(), self.species_ids), badges
+                self.evil_team.boss_roster(trainer, sheet.table_level(), self.species_ids),
+                badges,
+                iv=iv,
+                ev=ev,
             )
         if trainer.id in self.evil_team.leader_ids:
-            return built_team(rescaled(trainer.roster, ace_level, self.species_ids), badges)
+            return built_team(
+                rescaled(trainer.roster, ace_level, self.species_ids), badges, iv=iv, ev=ev
+            )
         if trainer.badge:
-            return built_team(trainer.roster, badges)
+            return built_team(trainer.roster, badges, iv=iv, ev=ev)
         if not trainer.team:
             for slot in trainer.roster:
                 trainer.team.append(

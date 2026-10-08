@@ -50,6 +50,7 @@ IV_MAX = 31
 EV_STAT_MAX = 252
 EV_TOTAL_MAX = 510
 BUILT_IV_START = 15
+RIVAL_IV = BUILT_IV_START
 BUILT_IV_PER_BADGE = 2
 BUILT_EV_PER_BADGE = 32
 BUILT_ITEMS_AT = 2
@@ -178,6 +179,10 @@ def built_iv(badges: int) -> int:
 
 def built_ev(badges: int) -> int:
     return min(BUILT_EV_PER_BADGE * badges, EV_STAT_MAX)
+
+
+def rival_ev(badges: int) -> int:
+    return built_ev(badges) // 2
 
 
 def evolved(species_id: Slug, level: int, pool: Collection[Slug]) -> Slug:

@@ -11,15 +11,19 @@ from rulehall.engines.pokemon.dex import (
     dex,
 )
 from rulehall.engines.pokemon.rules import (
+    RIVAL_IV,
     STARTER_LEVEL,
+    built_ev,
+    built_iv,
     counter_pick,
     help_bonus,
+    rival_ev,
     signature_moves,
     stats,
     succeeds,
 )
 from rulehall.engines.pokemon.sheet import Mon
-from rulehall.engines.pokemon.world import WildSlot
+from rulehall.engines.pokemon.world import RivalRecord, WildSlot
 
 TWO_NATURE_RANKS = {
     "rank-1": "nature",
@@ -128,16 +132,18 @@ def test_signature_moves_take_only_tm_moves_up_to_three_times_the_level_in_power
 
 
 def test_a_species_with_only_excluded_moves_is_built_with_its_latest_level_up_move() -> None:
-    unown = Mon.built("unown", 20, "unown", ace=True, badges=0)
+    unown = Mon.built("unown", 20, "unown", ace=True, badges=0, iv=15, ev=0)
 
     assert [slot.move_id for slot in unown.moves] == ["hiddenpower"]
 
 
 def test_a_built_pokemon_grows_its_spread_and_gets_items_with_badges() -> None:
-    fresh = Mon.built("machop", 12, "machop", ace=True, badges=0)
-    first_badge = Mon.built("machop", 14, "machop", ace=False, badges=1)
-    seasoned = Mon.built("machop", 30, "machop", ace=True, badges=3)
-    champion = Mon.built("machop", 54, "machop", ace=True, badges=8)
+    fresh = Mon.built("machop", 12, "machop", ace=True, badges=0, iv=built_iv(0), ev=built_ev(0))
+    first_badge = Mon.built(
+        "machop", 14, "machop", ace=False, badges=1, iv=built_iv(1), ev=built_ev(1)
+    )
+    seasoned = Mon.built("machop", 30, "machop", ace=True, badges=3, iv=built_iv(3), ev=built_ev(3))
+    champion = Mon.built("machop", 54, "machop", ace=True, badges=8, iv=built_iv(8), ev=built_ev(8))
 
     assert (fresh.ivs, fresh.evs, fresh.item_id) == ((15,) * 6, (0,) * 6, None)
     assert (seasoned.ivs, seasoned.evs) == ((21,) * 6, (0, 96, 0, 0, 0, 96))
@@ -177,3 +183,51 @@ def test_a_revive_needs_a_fainted_pokemon() -> None:
     _ = change(ENGINE, draft, "use_item", item_id="revive", mon_id="charmander")
     assert sheet.require_mon("charmander").hp.current == 10
     assert "revive" not in sheet.bag
+
+
+def _species_ids(*, water: bool) -> list[str]:
+    line = {"squirtle", "wartortle", "blastoise"}
+    return [
+        sid
+        for sid, sp in dex().species.items()
+        if sid not in line and not sp.evolution_species_ids and (("Water" in sp.types) == water)
+    ]
+
+
+def test_the_rival_picks_extras_that_share_no_type_with_the_ace_or_each_other() -> None:
+    species = dex().species
+    pool = [*_species_ids(water=True)[:6], *_species_ids(water=False)[:12]]
+    record = RivalRecord(starter_id="squirtle")
+
+    roster = record.roster(3, 30, pool, tuple(species))
+
+    types = [t for slot in roster for t in species[slot.species_id].types]
+    assert len(roster) == 4
+    assert roster[-1].species_id == "wartortle"
+    assert len(types) == len(set(types))
+
+
+def test_the_rival_fills_remaining_slots_when_the_pool_lacks_distinct_types() -> None:
+    species = dex().species
+    water = _species_ids(water=True)[:5]
+    record = RivalRecord(starter_id="squirtle")
+
+    roster = record.roster(3, 30, water, tuple(species))
+
+    assert len(roster) == 4
+    assert all(roster_slot.species_id in water for roster_slot in roster[:-1])
+
+
+def test_rival_mons_carry_flat_ivs_and_half_the_built_evs() -> None:
+    mon = Mon.built("machop", 30, "machop", ace=True, badges=8, iv=RIVAL_IV, ev=rival_ev(8))
+
+    assert (mon.ivs, mon.evs) == ((15,) * 6, (0, 126, 0, 0, 0, 126))
+
+
+def test_the_rival_never_fields_the_ace_line_and_ranks_by_evolved_strength() -> None:
+    species = dex().species
+    record = RivalRecord(starter_id="squirtle")
+
+    roster = record.roster(1, 50, ["squirtle", "caterpie"], tuple(species))
+
+    assert [slot.species_id for slot in roster] == ["butterfree", "blastoise"]

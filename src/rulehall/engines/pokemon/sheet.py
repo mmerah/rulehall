@@ -65,8 +65,6 @@ from rulehall.engines.pokemon.rules import (
     Skill,
     TmId,
     attacks_physically,
-    built_ev,
-    built_iv,
     check_species,
     help_bonus,
     is_legendary,
@@ -217,10 +215,11 @@ class Mon(Mutable):
         )
 
     @classmethod
-    def built(cls, species_id: Slug, level: int, mon_id: Slug, *, ace: bool, badges: int) -> Self:
+    def built(
+        cls, species_id: Slug, level: int, mon_id: Slug, *, ace: bool, badges: int, iv: int, ev: int
+    ) -> Self:
         species = dex().require_species(species_id)
         physical = attacks_physically(species)
-        ev = built_ev(badges)
         item_id = None
         if badges >= BUILT_ITEMS_AT:
             item_id = TYPE_BOOSTERS[species.types[0]] if ace else "sitrus-berry"
@@ -232,7 +231,7 @@ class Mon(Mutable):
             nature="Adamant" if physical else "Modest",
             ability=species.abilities[0],
             gender=species.gender or ("M" if species.male_share >= 0.5 else "F"),
-            ivs=(built_iv(badges),) * len(STAT_NAMES),
+            ivs=(iv,) * len(STAT_NAMES),
             evs=(0, ev, 0, 0, 0, ev) if physical else (0, 0, 0, ev, 0, ev),
             move_ids=signature_moves(species, level),
             item_id=item_id,
@@ -869,11 +868,19 @@ class Trainer(Sheeted[TrainerSheet], Dweller):
         return []
 
 
-def built_team(roster: Sequence[RosterSlot], badges: int) -> list[Mon]:
+def built_team(roster: Sequence[RosterSlot], badges: int, *, iv: int, ev: int) -> list[Mon]:
     ordered = sorted(roster, key=lambda slot: slot.level)
     mon_ids = slugs(dex().require_species(slot.species_id).name for slot in ordered)
     return [
-        Mon.built(slot.species_id, slot.level, mon_id, ace=index == len(ordered), badges=badges)
+        Mon.built(
+            slot.species_id,
+            slot.level,
+            mon_id,
+            ace=index == len(ordered),
+            badges=badges,
+            iv=iv,
+            ev=ev,
+        )
         for index, (slot, mon_id) in enumerate(zip(ordered, mon_ids, strict=True), 1)
     ]
 
