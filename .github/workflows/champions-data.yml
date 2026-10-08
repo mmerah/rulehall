@@ -1,0 +1,78 @@
+name: champions data
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 3 * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    env:
+      SHOWDOWN: src/rulehall/engines/pokemon/showdown
+      BRANCH: champions-data
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+      - name: Install Showdown
+        run: npm --prefix "$SHOWDOWN" ci --omit=optional
+      - name: Move the pin when master has a new Champions VGC format
+        id: pin
+        shell: bash
+        run: |
+          old=$(grep -oE '[0-9a-f]{40}' "$SHOWDOWN/package.json")
+          new=$(git ls-remote https://github.com/smogon/pokemon-showdown refs/heads/master | cut -f1)
+          formats=$(node "$SHOWDOWN/champions-formats.js" "$old" "$new")
+          if [ -z "$formats" ]; then echo "moved=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "moved=true" >> "$GITHUB_OUTPUT"
+          sed -i "s/$old/$new/g" "$SHOWDOWN/package.json" docs/POKEMON.md
+          npm --prefix "$SHOWDOWN" install --omit=optional
+          npm --prefix "$SHOWDOWN" run export-dex
+      - name: Export
+        shell: bash
+        run: npm --prefix "$SHOWDOWN" run --silent export-champions | tee summary.txt
+      - name: Install
+        run: uv sync --all-groups --locked
+      - name: Tests
+        run: uv run pytest
+      - name: Lint
+        run: uv run ruff check
+      - name: Format
+        run: uv run ruff format --check
+      - name: Types
+        run: uv run basedpyright
+      - name: Open or update the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PIN_MOVED: ${{ steps.pin.outputs.moved }}
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$BRANCH"
+          git add "$SHOWDOWN/package.json" "$SHOWDOWN/package-lock.json" docs/POKEMON.md \
+            src/rulehall/engines/pokemon/dex.json src/rulehall/engines/pokemon/champions/data.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Refresh the Champions data"
+          git push --force origin "$BRANCH"
+          {
+            if [ "$PIN_MOVED" = true ]; then
+              echo "Simulator pin moved: play a journey and a Champions battle before merging"
+              echo
+            fi
+            echo "The monthly Champions export."; echo; echo '```'; cat summary.txt; echo '```'
+          } > body.md
+          if [ "$(gh pr view "$BRANCH" --json state --jq .state 2>/dev/null)" = OPEN ]; then
+            gh pr edit "$BRANCH" --body-file body.md
+          else
+            gh pr create --head "$BRANCH" --title "Refresh the Champions data" --body-file body.md
+          fi

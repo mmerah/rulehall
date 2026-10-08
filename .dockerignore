@@ -2,6 +2,7 @@
 .venv
 .env
 **/node_modules
+src/rulehall/engines/pokemon/showdown/.cache
 **/__pycache__
 .*_cache
 vendor

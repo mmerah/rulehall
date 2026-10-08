@@ -1,0 +1,33 @@
+[
+  { "archetype_id": "tailwind", "name": "Tailwind", "ability_ids": [], "move_ids": ["tailwind"] },
+  { "archetype_id": "trickroom", "name": "Trick Room", "ability_ids": [], "move_ids": ["trickroom"] },
+  { "archetype_id": "rain", "name": "Rain", "ability_ids": ["drizzle"], "move_ids": ["raindance"] },
+  { "archetype_id": "sun", "name": "Sun", "ability_ids": ["drought"], "move_ids": ["sunnyday"] },
+  { "archetype_id": "sand", "name": "Sand", "ability_ids": ["sandstream"], "move_ids": ["sandstorm"] },
+  { "archetype_id": "snow", "name": "Snow", "ability_ids": ["snowwarning"], "move_ids": ["snowscape"] },
+  {
+    "archetype_id": "psychicterrain",
+    "name": "Psychic Terrain",
+    "ability_ids": ["psychicsurge"],
+    "move_ids": ["psychicterrain"]
+  },
+  {
+    "archetype_id": "electricterrain",
+    "name": "Electric Terrain",
+    "ability_ids": ["electricsurge"],
+    "move_ids": ["electricterrain"]
+  },
+  {
+    "archetype_id": "grassyterrain",
+    "name": "Grassy Terrain",
+    "ability_ids": ["grassysurge"],
+    "move_ids": ["grassyterrain"]
+  },
+  {
+    "archetype_id": "mistyterrain",
+    "name": "Misty Terrain",
+    "ability_ids": ["mistysurge"],
+    "move_ids": ["mistyterrain"]
+  },
+  { "archetype_id": "goodstuffs", "name": "Goodstuffs", "ability_ids": [], "move_ids": [] }
+]

@@ -6,6 +6,7 @@
     "postinstall": "node node_modules/pokemon-showdown/build",
     "setup": "npm ci --omit=optional && node fetch-assets.js",
     "export-dex": "node export-dex.js",
-    "export-packs": "node export-packs.js"
+    "export-packs": "node export-packs.js",
+    "export-champions": "node export-champions.js"
   }
 }
