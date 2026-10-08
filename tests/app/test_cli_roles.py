@@ -19,8 +19,10 @@ class _StubDriver:
     argv: tuple[str, ...]
     secrets: tuple[str, ...] = ()
 
-    def command(self, config: RoleConfig, mcp_url: str | None) -> tuple[str, ...]:
-        del config, mcp_url
+    def command(
+        self, config: RoleConfig, mcp_url: str | None, *, mcp_token: str | None
+    ) -> tuple[str, ...]:
+        del config, mcp_url, mcp_token
         return self.argv
 
     def delta(self, line: str) -> str:
@@ -70,8 +72,8 @@ CLAUDE_OUTPUT = "\n".join(
 
 def test_no_codex_role_gets_a_shell_and_only_the_master_reaches_the_tools() -> None:
     config = RoleConfig(provider="codex", model="gpt-5", effort="low")
-    master = CodexDriver().command(config, "http://localhost:1/mcp/")
-    narrator = CodexDriver().command(config, None)
+    master = CodexDriver().command(config, "http://localhost:1/mcp/", mcp_token=None)
+    narrator = CodexDriver().command(config, None, mcp_token=None)
 
     assert "mcp_servers.rulehall.url=http://localhost:1/mcp/" in master
     assert "mcp_servers.rulehall.default_tools_approval_mode=approve" in master
@@ -91,8 +93,8 @@ def test_no_codex_role_gets_a_shell_and_only_the_master_reaches_the_tools() -> N
 
 def test_no_claude_role_keeps_a_built_in_tool_and_only_the_master_reaches_the_tools() -> None:
     config = RoleConfig(model="haiku", effort="low")
-    master = ClaudeDriver().command(config, "http://localhost:1/mcp/")
-    narrator = ClaudeDriver().command(config, None)
+    master = ClaudeDriver().command(config, "http://localhost:1/mcp/", mcp_token=None)
+    narrator = ClaudeDriver().command(config, None, mcp_token=None)
 
     assert "--mcp-config" in master and "--mcp-config" not in narrator
     for argv in (master, narrator):

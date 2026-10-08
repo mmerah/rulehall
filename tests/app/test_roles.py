@@ -2,11 +2,15 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import pytest
+from pydantic import BaseModel, JsonValue
+from support.table import offline_settings
 
+from rulehall.app.cli_roles import Driver
 from rulehall.app.role_prompts import Debrief
-from rulehall.app.roles import ask
+from rulehall.app.roles import ProviderRoleRunner, ask
+from rulehall.app.submission import SUBMIT, UNSUBMITTED, Submission, Submissions
 from rulehall.app.turn import Turn
-from rulehall.config import Role
+from rulehall.config import LiveSettings, Role, RoleConfig
 from rulehall.core.log import Narration
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal
@@ -34,6 +38,12 @@ class _Replies:
     async def play_master_turn(self, prompt: Prompt, turn: Turn) -> None:
         del prompt, turn
         raise AssertionError("no master turn is asked here")
+
+    async def submit_answer[T: BaseModel](
+        self, role: Role, prompt: Prompt, submission: Submission[T]
+    ) -> None:
+        del role, prompt, submission
+        raise AssertionError("no submission is asked here")
 
 
 async def test_a_retry_resends_the_whole_prompt_with_the_error() -> None:
@@ -83,3 +93,61 @@ def test_a_debrief_with_a_blank_field_is_refused() -> None:
 
     with pytest.raises(Refusal, match="current_aim, last_beats"):
         debrief.check()
+
+
+def test_a_refused_submission_stays_open_and_a_valid_one_is_accepted() -> None:
+    submission = Submission(Debrief, Debrief.check)
+    blank: dict[str, JsonValue] = {
+        "story_so_far": "You reached the vault.",
+        "current_aim": " ",
+        "open_threads": ["You could open the door."],
+        "last_beats": ["You lit a torch."],
+    }
+
+    with pytest.raises(Refusal, match="current_aim"):
+        _ = submission.call_tool(SUBMIT, blank)
+    assert not submission.must_stop
+    answered = submission.call_tool(SUBMIT, blank | {"current_aim": "Open the vault."})
+
+    assert "accepted" in answered
+    assert submission.accepted is not None
+    assert submission.accepted.current_aim == "Open the vault."
+    assert submission.must_stop
+
+
+async def test_a_cli_worldsmith_that_ends_unsubmitted_is_run_once_more_with_the_nudge(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    submissions = Submissions()
+    prompts: list[str] = []
+    debrief: dict[str, JsonValue] = {
+        "story_so_far": "You reached the vault.",
+        "current_aim": "Open the vault.",
+        "open_threads": ["You could open the door."],
+        "last_beats": ["You lit a torch."],
+    }
+
+    async def run_cli(
+        role: Role,
+        config: RoleConfig,
+        driver: Driver,
+        prompt: Prompt,
+        *,
+        mcp_url: str | None,
+        mcp_token: str | None,
+    ) -> str:
+        del role, config, driver, mcp_url
+        prompts.append(prompt.user)
+        if len(prompts) == 2 and mcp_token is not None:
+            _ = submissions.require(mcp_token).call_tool(SUBMIT, debrief)
+        return "done"
+
+    monkeypatch.setattr("rulehall.app.roles.run_cli", run_cli)
+    runner = ProviderRoleRunner(LiveSettings(offline_settings()), submissions)
+
+    answer = await ask(
+        runner, "worldsmith", Prompt(system="", user="WRITE"), Debrief, Debrief.check
+    )
+
+    assert answer.current_aim == "Open the vault."
+    assert prompts == ["WRITE", f"WRITE\n\n{UNSUBMITTED}"]

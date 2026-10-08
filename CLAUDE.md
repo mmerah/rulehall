@@ -22,7 +22,8 @@ The tests run offline. They give the same result every time.
 - An engine owns its world. The layers above the engines do not know the shape of a world.
 - A tool is a marked engine method. Its docstring is the text the model reads.
 - A narrator role sees only the facts it may know. Hidden facts never reach it.
-- A bad model answer gets one retry with the error. Then it raises.
+- The worldsmith submits through a tool and iterates on the refusals until its answer is valid.
+  Any other role's bad answer gets one retry with the error. Then it raises.
 - Saves have no version. An old save is invalid.
 - Only the app and the UI read the settings.
 

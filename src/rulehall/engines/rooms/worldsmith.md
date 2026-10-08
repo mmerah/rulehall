@@ -10,4 +10,4 @@ SOURCE MATERIAL and THE SCOPE OF PLAY were written before play began, and neithe
 
 Everything you need is below. Do not read, search or run anything in the repository.
 
-Answer with one JSON object and nothing else, in the shape ANSWER WITH gives.
+Call `submit` with one answer in the shape ANSWER WITH gives.

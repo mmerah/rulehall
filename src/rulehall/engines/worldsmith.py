@@ -6,6 +6,10 @@ from rulehall.core.tools import render_schema
 SOURCELESS = "(none — write from what is below)"
 SCOPELESS = "(none — this is a pack, not a scenario: a genre kit, not one adventure)"
 PACK_SO_FAR = "THE PACK SO FAR"
+SUBMIT_ASK = (
+    "Call the `submit` tool with your answer. It must match this schema. A refused answer "
+    "comes back with what is wrong: fix it and submit again."
+)
 SOURCE_BOUND = (
     "Take everything from SOURCE MATERIAL: its premise and, when it has one, its document. "
     "Use nothing from outside it."
@@ -51,7 +55,7 @@ def render_worldsmith(
                 *world_sections,
                 ("WHAT COMES NEXT", intent),
                 ("ENGINE GUIDANCE", guidance),
-                ("ANSWER WITH", render_schema(answer_model)),
+                ("ANSWER WITH", f"{SUBMIT_ASK}\n{render_schema(answer_model)}"),
             )
         ),
     )

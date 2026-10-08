@@ -120,7 +120,11 @@ class Turn:
         return bool(self.told) or (draft.request is None and not in_battle(self.engine, draft))
 
     @property
-    def master_must_stop(self) -> bool:
+    def nudge(self) -> str:
+        return UNDIRECTED
+
+    @property
+    def must_stop(self) -> bool:
         draft, engine = self.draft, self.engine
         return (
             self.direct_fact is not None

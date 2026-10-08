@@ -10,13 +10,15 @@ from typing import Protocol
 
 from pydantic import BaseModel
 
-from rulehall.app.api_roles import converse_master, stream_answer
+from rulehall.app.api_roles import converse, stream_answer
 from rulehall.app.cli_roles import DRIVERS, run_cli
+from rulehall.app.submission import Submission, Submissions
 from rulehall.app.turn import Turn
 from rulehall.config import LiveSettings, Role, RoleConfig
 from rulehall.core.answer_repair import parse_with_repairs
 from rulehall.core.game import Check, RoleAnswer
 from rulehall.core.prompt import Prompt
+from rulehall.core.tools import ToolSurface
 from rulehall.core.validation import Refusal, decode
 
 LOGGER = logging.getLogger(__name__)
@@ -33,11 +35,15 @@ class RoleRunner(Protocol):
         heard: Callable[[str], None] | None = None,
     ) -> str: ...
     async def play_master_turn(self, prompt: Prompt, turn: Turn) -> None: ...
+    async def submit_answer[T: BaseModel](
+        self, role: Role, prompt: Prompt, submission: Submission[T]
+    ) -> None: ...
 
 
 @dataclass(slots=True)
 class ProviderRoleRunner:
     live_settings: LiveSettings
+    submissions: Submissions
 
     async def answer(
         self,
@@ -59,18 +65,40 @@ class ProviderRoleRunner:
                 return await _within_budget(role, config, running, detail="over the API")
 
     async def play_master_turn(self, prompt: Prompt, turn: Turn) -> None:
+        await self._play_tools("master", prompt, turn, mcp_token=None)
+
+    async def submit_answer[T: BaseModel](
+        self, role: Role, prompt: Prompt, submission: Submission[T]
+    ) -> None:
+        over_cli = self.live_settings.current.roles.for_name(role).provider in DRIVERS
+        with self.submissions.open(submission) as token:
+            await self._play_tools(role, prompt, submission, mcp_token=token)
+            if submission.accepted is None and over_cli:
+                nudged = replace(prompt, user=f"{prompt.user}\n\n{submission.nudge}")
+                await self._play_tools(role, nudged, submission, mcp_token=token)
+
+    async def _play_tools(
+        self,
+        role: Role,
+        prompt: Prompt,
+        surface: ToolSurface,
+        *,
+        mcp_token: str | None,
+    ) -> None:
         settings = self.live_settings.current
-        config = settings.roles.for_name("master")
+        config = settings.roles.for_name(role)
         match config.provider:
             case "claude" | "codex":
                 mcp_url = f"http://localhost:{settings.server.port}/mcp/"
                 driver = DRIVERS[config.provider]
-                running = run_cli("master", config, driver, prompt, mcp_url=mcp_url)
-                await _within_budget("master", config, running, detail="over the CLI")
+                running = run_cli(
+                    role, config, driver, prompt, mcp_url=mcp_url, mcp_token=mcp_token
+                )
+                await _within_budget(role, config, running, detail="over the CLI")
             case "openrouter" | "local":
                 provider = settings.providers.for_name(config.provider)
-                running = converse_master(config, provider, prompt, turn)
-                await _within_budget("master", config, running, detail="over the API")
+                running = converse(role, config, provider, prompt, surface)
+                await _within_budget(role, config, running, detail="over the API")
 
 
 async def ask[T: BaseModel](
@@ -81,6 +109,12 @@ async def ask[T: BaseModel](
     check: Check[T],
     heard: Callable[[str], None] | None = None,
 ) -> T:
+    if role == "worldsmith":
+        submission = Submission(model, check)
+        await runner.submit_answer(role, prompt, submission)
+        if submission.accepted is None:
+            raise Refusal(f"the {role} answered nothing usable")
+        return submission.accepted
     asked, refused = prompt, ""
     for _ in range(RETRIES + 1):
         reply = await runner.answer(role, asked, heard=heard)

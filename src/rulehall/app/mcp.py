@@ -6,9 +6,11 @@ import mcp_types as types
 from mcp.server import Server, ServerRequestContext
 from mcp.server.streamable_http_manager import StreamableHTTPASGIApp, StreamableHTTPSessionManager
 from mcp.server.transport_security import TransportSecuritySettings
+from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
+from rulehall.app.cli_roles import SUBMISSION_HEADER
 from rulehall.app.game_session import Gate
 from rulehall.core.validation import Refusal
 
@@ -79,10 +81,11 @@ def endpoint(gate: Gate) -> tuple[LoopbackOnly, StreamableHTTPSessionManager]:
 
 def _build_server(gate: Gate) -> Server[dict[str, object]]:
     async def on_list_tools(
-        _ctx: ServerRequestContext[dict[str, object]],
+        ctx: ServerRequestContext[dict[str, object], Request],
         _params: types.PaginatedRequestParams | None,
     ) -> types.ListToolsResult:
-        turn = gate.turn
+        token = _submission_token(ctx)
+        surface = gate.turn if token is None else gate.submissions.find(token)
         return types.ListToolsResult(
             tools=[
                 types.Tool(
@@ -90,15 +93,18 @@ def _build_server(gate: Gate) -> Server[dict[str, object]]:
                     description=tool.description,
                     input_schema=tool.schema,
                 )
-                for tool in (() if turn is None else turn.published_tools())
+                for tool in (() if surface is None else surface.published_tools())
             ]
         )
 
     async def on_call_tool(
-        _ctx: ServerRequestContext[dict[str, object]], params: types.CallToolRequestParams
+        ctx: ServerRequestContext[dict[str, object], Request],
+        params: types.CallToolRequestParams,
     ) -> types.CallToolResult:
+        token = _submission_token(ctx)
         try:
-            answered = gate.require_turn().call_tool(params.name, params.arguments or {})
+            surface = gate.require_turn() if token is None else gate.submissions.require(token)
+            answered = surface.call_tool(params.name, params.arguments or {})
         except Refusal as refused:
             return _content(str(refused), error=True)
         except Exception:
@@ -108,6 +114,10 @@ def _build_server(gate: Gate) -> Server[dict[str, object]]:
         return _content(answered)
 
     return Server(SERVER_NAME, on_list_tools=on_list_tools, on_call_tool=on_call_tool)
+
+
+def _submission_token(ctx: ServerRequestContext[dict[str, object], Request]) -> str | None:
+    return None if ctx.request is None else ctx.request.headers.get(SUBMISSION_HEADER)
 
 
 def _content(body: str, *, error: bool = False) -> types.CallToolResult:

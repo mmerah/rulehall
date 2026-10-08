@@ -12,6 +12,7 @@ from pydantic_settings import SettingsConfigDict
 from rulehall.app.catalog import SavedGameKey
 from rulehall.app.game_session import GameSession
 from rulehall.app.runtime import Runtime
+from rulehall.app.submission import SUBMIT, Submission
 from rulehall.app.turn import Turn
 from rulehall.config import ProviderConfig, Providers, Role, Settings
 from rulehall.core.decisions import ActionOption, PlayerInput
@@ -122,6 +123,7 @@ class ScriptedRoles:
     turns: list[Callable[[], None]] = field(default_factory=list)
     answers: dict[Role, list[str]] = field(default_factory=dict)
     prompts: list[tuple[Role, str]] = field(default_factory=list)
+    submitted: list[tuple[Role, str]] = field(default_factory=list)
     hooks: list[Callable[[Role, str], Awaitable[None]]] = field(default_factory=list)
 
     async def answer(
@@ -145,6 +147,18 @@ class ScriptedRoles:
         await self._record("master", prompt)
         if self.turns:
             self.turns.pop(0)()
+
+    async def submit_answer[T: BaseModel](
+        self, role: Role, prompt: Prompt, submission: Submission[T]
+    ) -> None:
+        await self._record(role, prompt)
+        answers = self.answers.get(role, [])
+        while answers and not submission.must_stop:
+            try:
+                result = submission.call_tool(SUBMIT, answers.pop(0))
+            except Refusal as refused:
+                result = str(refused)
+            self.submitted.append((role, result))
 
     def prompt(self, role: Role, nth: int = 0) -> str:
         """The nth prompt the role was given; the golden prompts come from here."""

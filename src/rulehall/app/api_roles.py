@@ -6,10 +6,9 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, JsonValue
 
 from rulehall.app.http_client import post, stream_chat_completion
-from rulehall.app.turn import UNDIRECTED, Turn
 from rulehall.config import ProviderConfig, Role, RoleConfig
 from rulehall.core.prompt import Prompt
-from rulehall.core.tools import MasterTool
+from rulehall.core.tools import MasterTool, ToolSurface
 from rulehall.core.validation import Loose, Refusal, parse_json
 
 LOGGER = logging.getLogger(__name__)
@@ -94,41 +93,46 @@ async def stream_answer(
     return said
 
 
-async def converse_master(
-    config: RoleConfig, provider: ProviderConfig, prompt: Prompt, turn: Turn
+async def converse(
+    role: Role,
+    config: RoleConfig,
+    provider: ProviderConfig,
+    prompt: Prompt,
+    surface: ToolSurface,
 ) -> None:
     messages = _opening_messages(prompt)
-    published: list[JsonValue] = [_declared(tool) for tool in turn.published_tools()]
+    published: list[JsonValue] = [_declared(tool) for tool in surface.published_tools()]
     retried = False
     for rounds in range(1, config.max_rounds + 1):
-        said = await _round(config, provider, messages, published)
+        said = await _round(role, config, provider, messages, published)
         messages.append(said.model_dump(mode="json", exclude_none=True))
         messages.extend(
-            {"role": "tool", "tool_call_id": call.id, "content": _answer(turn, call)}
+            {"role": "tool", "tool_call_id": call.id, "content": _answer(surface, call)}
             for call in said.tool_calls or ()
         )
-        if turn.master_must_stop:
-            LOGGER.info("the master ended its turn after %d rounds", rounds)
+        if surface.must_stop:
+            LOGGER.info("the %s ended its work after %d rounds", role, rounds)
             return
         if not said.tool_calls:
             if retried:
-                raise Refusal("the master stopped with no `direct`, twice")
+                raise Refusal(f"the {role} stopped without ending its work, twice")
             retried = True
-            messages.append({"role": "user", "content": UNDIRECTED})
+            messages.append({"role": "user", "content": surface.nudge})
     raise Refusal(
-        f"the master made {config.max_rounds} rounds of tool calls without ending the turn"
+        f"the {role} made {config.max_rounds} rounds of tool calls without ending its work"
     )
 
 
-def _answer(turn: Turn, call: _ToolCall) -> str:
+def _answer(surface: ToolSurface, call: _ToolCall) -> str:
     """A refusal is a result the model reads and continues from, not an error."""
     try:
-        return turn.call_tool(call.function.name, call.function.arguments)
+        return surface.call_tool(call.function.name, call.function.arguments)
     except Refusal as refused:
         return str(refused)
 
 
 async def _round(
+    role: Role,
     config: RoleConfig,
     provider: ProviderConfig,
     messages: list[JsonValue],
@@ -139,8 +143,8 @@ async def _round(
             async with timeout(config.timeout / ROUND_SHARE):
                 return await _complete(config, provider, messages, tools)
         except TimeoutError:
-            LOGGER.warning("the master stalled on a round, attempt %d", attempt + 1)
-    raise Refusal("the master stalled on one round twice")
+            LOGGER.warning("the %s stalled on a round, attempt %d", role, attempt + 1)
+    raise Refusal(f"the {role} stalled on one round twice")
 
 
 async def _complete(

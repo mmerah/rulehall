@@ -23,8 +23,10 @@ LOGGER = logging.getLogger(__name__)
 class Runtime:
     def __init__(self, settings: Settings, roles: RoleRunner | None = None) -> None:
         self.live_settings = LiveSettings(settings)
-        self.roles: RoleRunner = roles or ProviderRoleRunner(self.live_settings)
         self.gate = Gate()
+        self.roles: RoleRunner = roles or ProviderRoleRunner(
+            self.live_settings, self.gate.submissions
+        )
         self.engines = build_engines(settings.packs_dir)
         self.scenario_models = scenario_models(self.engines)
         self.library = Library(settings.scenarios_dir, settings.characters_dir)

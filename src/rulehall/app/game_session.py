@@ -20,6 +20,7 @@ from rulehall.app.role_prompts import (
 )
 from rulehall.app.roles import RoleRunner, ask, role_answer
 from rulehall.app.speech import Speaker
+from rulehall.app.submission import Submissions
 from rulehall.app.turn import Turn
 from rulehall.config import LiveSettings, Role
 from rulehall.core.creation import find_option
@@ -489,6 +490,7 @@ class Busy(Refusal):
 @dataclass(slots=True)
 class Gate:
     admitted: GameSession | None = field(default=None, repr=False)
+    submissions: Submissions = field(default_factory=Submissions)
     creating: int = 0
     active_at: float = field(default_factory=monotonic)
 

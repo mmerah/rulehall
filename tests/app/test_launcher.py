@@ -259,8 +259,8 @@ async def test_a_written_opening_becomes_a_playable_scenario(tmp_path: Path) -> 
     )
     scenario_id = await runtime.new_scenario(LONER4E, description, None, "srd", (), "kael")
 
-    # The scene bar refuses the first answer, and the reason goes back with the re-prompt.
-    assert "these name nobody" in roles.prompts[1][1]
+    # The scene bar refuses the first answer, and the reason goes back as the submit's result.
+    assert "these name nobody" in roles.submitted[0][1]
     # The selected pack is the setting's vocabulary, so the worldsmith is given its tables.
     assert "Quiet Hands" in roles.prompt("worldsmith")
     catalog = _catalog(settings, runtime.engines)

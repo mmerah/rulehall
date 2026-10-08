@@ -96,7 +96,7 @@ async def test_a_head_whose_label_makes_no_id_is_re_prompted_with_the_reason(
 
     pack_id = await runtime.new_pack(LONER4E, "Salt and Ash", PREMISE, None, "")
 
-    assert "makes no id" in roles.prompts[1][1]
+    assert "makes no id" in roles.submitted[0][1]
     assert pack_id in runtime.engines[LONER4E].packs.written_ids
 
 

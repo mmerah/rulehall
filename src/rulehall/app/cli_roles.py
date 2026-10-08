@@ -15,13 +15,16 @@ from rulehall.core.validation import Loose, Refusal, parse_json
 LOGGER = logging.getLogger(__name__)
 
 OUTPUT_MAX_BYTES = 4_194_304
+SUBMISSION_HEADER = "X-Rulehall-Submission"
 
 
 class Driver(Protocol):
     @property
     def secrets(self) -> tuple[str, ...]: ...
 
-    def command(self, config: RoleConfig, mcp_url: str | None) -> Sequence[str]: ...
+    def command(
+        self, config: RoleConfig, mcp_url: str | None, *, mcp_token: str | None
+    ) -> Sequence[str]: ...
     def delta(self, line: str) -> str: ...
     def read_result(self, output: str) -> str: ...
 
@@ -60,7 +63,9 @@ class _CodexEvent(Loose):
 class ClaudeDriver:
     secrets: tuple[str, ...] = ("ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN")
 
-    def command(self, config: RoleConfig, mcp_url: str | None) -> Sequence[str]:
+    def command(
+        self, config: RoleConfig, mcp_url: str | None, *, mcp_token: str | None
+    ) -> Sequence[str]:
         argv = [
             "claude",
             "-p",
@@ -77,7 +82,8 @@ class ClaudeDriver:
             "",
         ]
         if mcp_url is not None:
-            argv += ["--allowed-tools", "mcp__rulehall", "--mcp-config", _claude_mcp(mcp_url)]
+            mcp = _claude_mcp(mcp_url, mcp_token)
+            argv += ["--allowed-tools", "mcp__rulehall", "--mcp-config", mcp]
         return (*argv, "--strict-mcp-config")
 
     def delta(self, line: str) -> str:
@@ -105,7 +111,9 @@ class ClaudeDriver:
 class CodexDriver:
     secrets: tuple[str, ...] = ("OPENAI_API_KEY",)
 
-    def command(self, config: RoleConfig, mcp_url: str | None) -> Sequence[str]:
+    def command(
+        self, config: RoleConfig, mcp_url: str | None, *, mcp_token: str | None
+    ) -> Sequence[str]:
         argv = [
             "codex",
             "exec",
@@ -139,6 +147,9 @@ class CodexDriver:
             # Measured: under `approval_policy=never` an MCP call is refused without this.
             argv += ["-c", "mcp_servers.rulehall.default_tools_approval_mode=approve"]
             argv += ["-c", f"mcp_servers.rulehall.url={mcp_url}"]
+            if mcp_token is not None:
+                headers = f'{{ "{SUBMISSION_HEADER}" = "{mcp_token}" }}'
+                argv += ["-c", f"mcp_servers.rulehall.http_headers={headers}"]
         return [*argv, "-"]
 
     def delta(self, line: str) -> str:
@@ -159,9 +170,10 @@ async def run_cli(
     prompt: Prompt,
     *,
     mcp_url: str | None = None,
+    mcp_token: str | None = None,
     heard: Callable[[str], None] | None = None,
 ) -> str:
-    argv = driver.command(config, mcp_url)
+    argv = driver.command(config, mcp_url, mcp_token=mcp_token)
     said = ""
 
     def heard_line(line: str) -> None:
@@ -202,8 +214,11 @@ async def _spawn(
     return output
 
 
-def _claude_mcp(url: str) -> str:
-    return json.dumps({"mcpServers": {"rulehall": {"type": "http", "url": url}}})
+def _claude_mcp(url: str, token: str | None) -> str:
+    server: dict[str, object] = {"type": "http", "url": url}
+    if token is not None:
+        server["headers"] = {SUBMISSION_HEADER: token}
+    return json.dumps({"mcpServers": {"rulehall": server}})
 
 
 def _codex_events(output: str) -> list[_CodexEvent]:

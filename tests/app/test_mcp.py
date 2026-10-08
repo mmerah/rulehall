@@ -6,11 +6,15 @@ from pathlib import Path
 from typing import TypedDict
 
 from httpx import ASGITransport, AsyncClient
+from pydantic import BaseModel
 from support.table import NO_PACKS, narrated, offline_settings
 
 from rulehall.app.catalog import SavedGameKey
+from rulehall.app.cli_roles import SUBMISSION_HEADER
 from rulehall.app.mcp import MountedLifespan, endpoint
+from rulehall.app.role_prompts import Debrief
 from rulehall.app.runtime import Runtime
+from rulehall.app.submission import SUBMIT, Submission
 from rulehall.app.turn import Turn
 from rulehall.config import Role
 from rulehall.core.decisions import PlayerInput
@@ -66,14 +70,24 @@ class HttpMaster:
         called = await rpc(self.client, "tools/call", ENTER_TOMAS)
         self.change_result = called.get("result")
 
+    async def submit_answer[T: BaseModel](
+        self, role: Role, prompt: Prompt, submission: Submission[T]
+    ) -> None:
+        del role, prompt, submission
+        raise AssertionError("no submission is asked here")
 
-async def rpc(client: AsyncClient, method: str, params: dict[str, object]) -> Reply:
+
+async def rpc(
+    client: AsyncClient, method: str, params: dict[str, object], token: str | None = None
+) -> Reply:
+    routed = {} if token is None else {SUBMISSION_HEADER: token}
     reply = await client.post(
         "/mcp/",
         json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params},
         headers={
             "Content-Type": "application/json",
             "Accept": "application/json, text/event-stream",
+            **routed,
         },
     )
     return reply.json()
@@ -128,3 +142,34 @@ async def test_a_lan_client_is_refused_at_the_mcp_endpoint(tmp_path: Path) -> No
     async with AsyncClient(transport=lan, base_url=BASE_URL) as client:
         reply = await client.post("/mcp/", json={})
     assert reply.status_code == 403
+
+
+async def test_a_submission_token_routes_to_submit_alone(tmp_path: Path) -> None:
+    runtime = Runtime(offline_settings(tmp_path), roles=HttpMaster())
+    asgi, manager = endpoint(runtime.gate)
+    lifespan = MountedLifespan(manager)
+    submission = Submission(Debrief, Debrief.check)
+    debrief = {
+        "story_so_far": "You reached the vault.",
+        "current_aim": "Open the vault.",
+        "open_threads": ["You could open the door."],
+        "last_beats": ["You lit a torch."],
+    }
+    await lifespan.start()
+    try:
+        async with AsyncClient(transport=ASGITransport(app=asgi), base_url=BASE_URL) as client:
+            with runtime.gate.submissions.open(submission) as token:
+                routed = await rpc(client, "tools/list", {}, token)
+                unrouted = await rpc(client, "tools/list", {})
+                called = await rpc(
+                    client, "tools/call", {"name": SUBMIT, "arguments": debrief}, token
+                )
+            closed = await rpc(client, "tools/list", {}, token)
+    finally:
+        await lifespan.stop()
+
+    assert [tool["name"] for tool in routed.get("result", {}).get("tools", [])] == [SUBMIT]
+    assert unrouted.get("result", {}).get("tools") == []
+    assert called.get("result", {}).get("isError") is not True
+    assert submission.accepted is not None
+    assert closed.get("result", {}).get("tools") == []

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from functools import cache
 from inspect import cleandoc, signature
 from types import FunctionType, UnionType
-from typing import Annotated, Literal, Union, cast, get_args, get_origin
+from typing import Annotated, Literal, Protocol, Union, cast, get_args, get_origin
 
 from pydantic import BaseModel, JsonValue
 
@@ -36,6 +36,16 @@ class MasterTool:
     @property
     def schema(self) -> dict[str, JsonValue]:
         return deepcopy(tool_schema(self.args))
+
+
+class ToolSurface(Protocol):
+    @property
+    def must_stop(self) -> bool: ...
+    @property
+    def nudge(self) -> str: ...
+
+    def published_tools(self) -> tuple[MasterTool, ...]: ...
+    def call_tool(self, name: str, arguments: str | dict[str, JsonValue]) -> str: ...
 
 
 def tool[F: Callable[..., Sequence[Fact]]](method: F) -> F:
