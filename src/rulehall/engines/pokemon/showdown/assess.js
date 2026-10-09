@@ -1,11 +1,15 @@
-((me, foe) => {
+((me, foe, sheetOpen, estimates) => {
   const saved = battle.prng.clone();
   const randomizer = battle.randomizer;
   const AVERAGE_IV = 16;
+  const IV_MAX = 31;
+  const STAT_IDS = ["hp", "atk", "def", "spa", "spd", "spe"];
   const ABSORBS = { waterabsorb: "Water", stormdrain: "Water", dryskin: "Water", voltabsorb: "Electric", lightningrod: "Electric", motordrive: "Electric", flashfire: "Fire", wellbakedbody: "Fire", sapsipper: "Grass", eartheater: "Ground" };
   const SHIELDS = { bulletproof: "bullet", soundproof: "sound", windrider: "wind" };
   const PRIORITY_SHIELDS = ["dazzling", "queenlymajesty", "armortail"];
   const RULE_BREAKERS = ["moldbreaker", "teravolt", "turboblaze"];
+  const SLOT_LETTERS = "abcdef";
+  const REVEALED_BY = { choicelock: ({ item }) => Boolean(item && battle.dex.items.get(item).isChoice), metronome: ({ item }) => Boolean(item), unburden: ({ ability }) => ability };
   const lines = battle.log.filter((line) => !line.startsWith("||"));
   const holderOf = (ident) => ident.replace(/^(p\d)[a-z]?: /, "$1: ");
   const shownAbilities = new Map();
@@ -25,27 +29,75 @@
       if (effect.startsWith("item: ")) note(shownItems, holder, effect.slice("item: ".length));
     }
   }
-  const faceOf = (mon) => (mon.side === foe ? mon.illusion ?? mon : mon);
+  const nameOf = (ident) => ident.slice(ident.indexOf(": ") + 2);
+  const slotOf = (ident) => ident.slice(0, ident.indexOf(":"));
+  const faces = new Map();
+  const seen = new Map();
+  const onField = new Map();
+  const fallen = new Set();
+  const entrant = (ident, health) => {
+    const fielded = [...onField.values()];
+    const candidates = foe.pokemon.filter((mon) => !fielded.includes(mon) && !fallen.has(mon) && (mon.name === nameOf(ident) || mon.baseAbility === "illusion"));
+    // The secret half of a switch line holds the real HP, which tells a disguised Pokemon from its face.
+    const maxhp = Number(health.split(" ")[0].split("/")[1]);
+    const fitting = candidates.filter((mon) => mon.maxhp === maxhp);
+    const pool = fitting.length ? fitting : candidates;
+    return pool.find((mon) => mon.name === nameOf(ident)) ?? pool[0];
+  };
+  lines.forEach((line, at) => {
+    const [, kind, ident = "", detail = "", health = ""] = line.split("|");
+    if (!ident.startsWith(foe.id)) return;
+    const slot = slotOf(ident);
+    const here = onField.get(slot);
+    const sharedHalf = lines[at - 2] === `|split|${foe.id}`;
+    if ((kind === "switch" || kind === "drag") && !sharedHalf) {
+      const mon = entrant(ident, health);
+      if (!mon) return;
+      onField.set(slot, mon);
+      faces.set(mon, foe.pokemon.find((each) => each.name === nameOf(ident)) ?? mon);
+      seen.set(mon, at);
+    }
+    if (kind === "replace" && here) {
+      faces.set(here, here);
+      seen.set(here, at);
+    }
+    if (kind === "faint" && here) fallen.add(here);
+    if (kind === "swap") {
+      const other = `${foe.id}${SLOT_LETTERS[Number(detail)]}`;
+      const there = onField.get(other);
+      onField.set(other, here);
+      onField.set(slot, there);
+    }
+  });
+  const statsOf = (values) => Object.fromEntries(STAT_IDS.map((statId, index) => [statId, values[index]]));
+  const even = (value) => statsOf(STAT_IDS.map(() => value));
+  const faceOf = (mon) => (mon.side === foe ? faces.get(mon) ?? mon : mon);
   const shownFor = (shown, mon) => shown.get(`${mon.side.id}: ${faceOf(mon).name}`) ?? [];
   const revealed = (mon) => {
-    const items = shownFor(shownItems, mon);
-    const item = mon.item ? (items.includes(mon.getItem().name) ? mon.getItem().name : null) : items.length ? "" : null;
-    return { ability: shownFor(shownAbilities, mon).includes(mon.getAbility().name), item };
+    const face = faceOf(mon);
+    if (sheetOpen) return { ability: true, item: face.item ? face.getItem().name : "" };
+    const items = shownFor(shownItems, face);
+    const item = face.item ? (items.includes(face.getItem().name) ? face.getItem().name : null) : items.length ? "" : null;
+    return { ability: shownFor(shownAbilities, face).includes(face.getAbility().name), item };
   };
   const estimated = (mon) => {
-    const spread = { level: mon.level, nature: "Hardy", evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, ivs: { hp: AVERAGE_IV, atk: AVERAGE_IV, def: AVERAGE_IV, spa: AVERAGE_IV, spd: AVERAGE_IV, spe: AVERAGE_IV } };
-    return battle.spreadModify(mon.species.baseStats, spread);
+    const face = faceOf(mon);
+    const estimate = estimates[foe.team.indexOf(face.set)];
+    const spread = estimate ? { level: mon.level, nature: estimate.nature, evs: statsOf(estimate.sp), ivs: even(IV_MAX) } : { level: mon.level, nature: "Hardy", evs: even(0), ivs: even(AVERAGE_IV) };
+    return battle.spreadModify(face.species.baseStats, spread);
   };
   const disguise = (mon) => {
     if (mon.side !== foe) return () => {};
-    const kept = { storedStats: mon.storedStats, ability: mon.ability, item: mon.item, hp: mon.hp, maxhp: mon.maxhp };
+    const face = faceOf(mon);
+    const kept = { storedStats: mon.storedStats, ability: mon.ability, item: mon.item, hp: mon.hp, maxhp: mon.maxhp, species: mon.species, baseSpecies: mon.baseSpecies, types: mon.types, weighthg: mon.weighthg };
     const { hp, ...stats } = estimated(mon);
     mon.storedStats = stats;
     mon.maxhp = hp;
     mon.hp = kept.hp && Math.max(1, Math.round((hp * kept.hp) / kept.maxhp));
     const { ability, item } = revealed(mon);
-    if (!ability) mon.ability = "noability";
-    if (item === null) mon.item = "";
+    mon.ability = ability ? face.ability : "noability";
+    mon.item = item === null ? "" : face.item;
+    Object.assign(mon, { species: face.species, baseSpecies: face.baseSpecies, types: face.types, weighthg: face.weighthg });
     return () => Object.assign(mon, kept);
   };
   const breaksRules = (mon) => RULE_BREAKERS.includes(mon.getAbility().id);
@@ -134,8 +186,9 @@
   };
   const effect = (id, state) => ({ id, name: battle.dex.conditions.get(id).name || id, turns: state.duration || 0, layers: state.layers || 0 });
   const conditions = (side) => Object.entries(side.sideConditions).map(([id, state]) => effect(id, state));
-  const volatiles = (mon) => Object.keys(mon.volatiles);
-  const seenMoves = (mon) => mon.moveSlots.filter((slot) => slot.used).map((slot) => battle.dex.moves.get(slot.id));
+  const hides = (mon, id) => mon.side === foe && Object.hasOwn(REVEALED_BY, id) && !REVEALED_BY[id](revealed(mon));
+  const volatiles = (mon) => Object.keys(mon.volatiles).filter((id) => !hides(mon, id));
+  const seenMoves = (mon) => faceOf(mon).moveSlots.filter((slot) => sheetOpen || slot.used).map((slot) => battle.dex.moves.get(slot.id));
   const place = (mon) => (mon.isActive ? mon.position + 1 : 0);
   const team = me.pokemon.map((mon, index) => ({
     slot: index + 1,
@@ -167,11 +220,14 @@
       return dealt ? [{ user: faceOf(attacker).name, name: move.name, type: move.type, ...dealt }] : [];
     })),
   }));
-  const shown = foe.pokemon.filter((mon) => mon.previouslySwitchedIn > 0);
+  const appeared = foe.pokemon.filter((mon) => mon.previouslySwitchedIn > 0);
+  // The player sees one Pokemon per face: a disguised foe merges with its face, the one seen last first.
+  const rank = (mon) => (mon.isActive ? Infinity : seen.get(mon) ?? -1);
+  const shown = appeared.filter((mon) => !appeared.some((other) => faceOf(other) === faceOf(mon) && rank(other) > rank(mon)));
   const foes = shown.map((mon) => {
     const { ability: shownAbility, item } = revealed(mon);
-    const ability = shownAbility ? mon.getAbility().name : null;
     const face = faceOf(mon);
+    const ability = shownAbility ? face.getAbility().name : null;
     return {
       name: face.name,
       species: face.species.name,
@@ -206,4 +262,4 @@
     foes,
     unseen: foe.pokemon.length - shown.length,
   };
-})(SIDES)
+})(ARGUMENTS)

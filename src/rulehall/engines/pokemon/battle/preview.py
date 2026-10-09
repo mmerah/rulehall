@@ -7,26 +7,34 @@ from rulehall.engines.pokemon.battle.choices import Hand
 from rulehall.engines.pokemon.battle.models import Battler, BattleSetup, RoleSeat
 from rulehall.engines.pokemon.battle.opponent import Offer, OpponentAnswer, opponent_system
 from rulehall.engines.pokemon.dex import Species, dex
-from rulehall.engines.pokemon.rules import STAT_NAMES, effectiveness
+from rulehall.engines.pokemon.rules import SPEED, effectiveness
 
 STAB = 1.5
 SPEED_EDGE = 0.5
 LEAD_BONUS = 2.0
 LEAD_MOVE_IDS = frozenset({"fakeout", "tailwind", "trickroom"})
-SPEED_INDEX = STAT_NAMES.index("Spe")
+LEAD_ABILITY = "Intimidate"
 TEAM_PREVIEW = (
     "The battle has not started: both trainers see each other's team. Bring {size} of your "
     "Pokemon. The first {leads} you pick lead, the others wait on the bench; the rest sit this "
     "battle out. Give one `team N` command for each pick in THE CHOICES, in their order: N is "
-    "the number of a Pokemon in YOUR POKEMON, and each Pokemon can be picked once. A Pokemon "
-    "that holds its Mega Stone can Mega Evolve in battle, and your team can Mega Evolve only "
-    "once per battle."
+    "the number of a Pokemon in YOUR POKEMON, and each Pokemon can be picked once.{mega} Leads "
+    "with Fake Out, Tailwind, Trick Room or Intimidate are often strong."
+)
+TEAM_PREVIEW_MEGA = (
+    " A Pokemon that holds its Mega Stone can Mega Evolve in battle, and your team can Mega "
+    "Evolve only once per battle: bring one Pokemon that holds its Mega Stone."
 )
 MATCHUPS = (
     "How each of your Pokemon fares against each foe: its best damaging move's effectiveness x "
     "power / 100 (x1.5 when the move is of its own type), minus the foe's best type "
     "effectiveness against it x1.5, plus 0.5 when its base Speed is higher. Higher is better."
 )
+BY_MATCHUP = (
+    "Picks by the MATCHUPS totals, with Fake Out, Tailwind, Trick Room or Intimidate users "
+    "leading{mega}:"
+)
+BY_MATCHUP_MEGA = ", and they bring one Pokemon that holds its Mega Stone"
 
 
 def matchup_score(own: Battler, foe: Species) -> float:
@@ -44,17 +52,27 @@ def matchup_score(own: Battler, foe: Species) -> float:
         default=0.0,
     )
     threat = max(effectiveness(kind, species.types) * STAB for kind in foe.types)
-    faster = SPEED_EDGE if species.base_stats[SPEED_INDEX] > foe.base_stats[SPEED_INDEX] else 0.0
+    faster = SPEED_EDGE if species.base_stats[SPEED] > foe.base_stats[SPEED] else 0.0
     return attack - threat + faster
+
+
+def preview_picks(
+    own: Sequence[Battler], foes: Sequence[Species], hand: Hand, size: int, leads: int
+) -> tuple[int, ...]:
+    scores = {at: sum(matchup_score(own[at], foe) for foe in foes) for at in sorted(hand)}
+    ranked = sorted(scores, key=lambda at: -scores[at])
+    brought = ranked[:size]
+    holder = next((at for at in ranked if own[at].holds_mega_stone), None)
+    if holder is not None and holder not in brought:
+        brought = [*ranked[: size - 1], holder]
+    led = sorted(brought, key=lambda at: -scores[at] - _lead_bonus(own[at]))[:leads]
+    return (*led, *(at for at in brought if at not in led))
 
 
 def scripted_preview(
     own: Sequence[Battler], foes: Sequence[Species], hand: Hand, size: int, leads: int
 ) -> tuple[str, ...]:
-    scores = {at: sum(matchup_score(own[at], foe) for foe in foes) for at in sorted(hand)}
-    brought = sorted(scores, key=lambda at: -scores[at])[:size]
-    led = sorted(brought, key=lambda at: -scores[at] - _lead_bonus(own[at]))[:leads]
-    return tuple(f"team {at + 1}" for at in (*led, *(at for at in brought if at not in led)))
+    return tuple(f"team {at + 1}" for at in preview_picks(own, foes, hand, size, leads))
 
 
 def render_preview(
@@ -68,16 +86,25 @@ def render_preview(
     leads = setup.format_spec().active_slots
     picks = scripted_preview(own, foes, hand, len(offers), leads)
     names = {f"team {at + 1}": own[at].name for at in hand}
+    mega = any(own[at].holds_mega_stone for at in hand)
+    team_preview = TEAM_PREVIEW.format(
+        size=len(offers), leads=leads, mega=TEAM_PREVIEW_MEGA if mega else ""
+    )
     parts = (
-        ("TEAM PREVIEW", TEAM_PREVIEW.format(size=len(offers), leads=leads)),
+        ("TEAM PREVIEW", team_preview),
         ("YOUR POKEMON", "\n".join(_own_block(at, own[at]) for at in sorted(hand))),
         ("FOE TEAM", lines_of(f"- {foe.name}: {foe.types_text()}" for foe in foes)),
         ("MATCHUPS", "\n".join((MATCHUPS, *(_matchup_line(own[at], foes) for at in sorted(hand))))),
         (
-            "SUGGESTION",
+            "BY MATCHUP",
             "\n".join(
-                f"- {offer.mon_name}: {pick} ({names[pick]})"
-                for offer, pick in zip(offers, picks, strict=True)
+                (
+                    BY_MATCHUP.format(mega=BY_MATCHUP_MEGA if mega else ""),
+                    *(
+                        f"- {offer.mon_name}: {pick} ({names[pick]})"
+                        for offer, pick in zip(offers, picks, strict=True)
+                    ),
+                )
             ),
         ),
         ("THE CHOICES", "\n\n".join(_offer_block(offer) for offer in offers)),
@@ -87,7 +114,10 @@ def render_preview(
 
 
 def _lead_bonus(battler: Battler) -> float:
-    return LEAD_BONUS if any(move.move_id in LEAD_MOVE_IDS for move in battler.moves) else 0.0
+    leads = battler.ability == LEAD_ABILITY or any(
+        move.move_id in LEAD_MOVE_IDS for move in battler.moves
+    )
+    return LEAD_BONUS if leads else 0.0
 
 
 def _own_block(at: int, battler: Battler) -> str:

@@ -6,13 +6,12 @@ from pydantic import Field, model_validator
 
 from rulehall.core.stores import read_model
 from rulehall.core.validation import Frozen, Refusal, Slug, check_unique
-from rulehall.engines.pokemon.battle.models import ChampionsFormatId
-from rulehall.engines.pokemon.dex import NATURES, Stats, dex
+from rulehall.engines.pokemon.battle.models import ChampionsFormatId, Nature, Spread
+from rulehall.engines.pokemon.dex import Stats, dex
 
 DATA_FILE = Path(__file__).parent / "data.json"
 PRESETS_MAX = 3
 
-type Nature = Annotated[str, Field(pattern=f"^({'|'.join(NATURES)})$")]
 type Percent = Annotated[float, Field(ge=0, le=100)]
 type Share = Annotated[float, Field(ge=0, le=1)]
 type Pool = Literal["finalist", "top4", "top8"]
@@ -84,6 +83,11 @@ class Legality(Frozen):
                     raise Refusal(f"{forme_id!r} is no Mega forme of {holder_id}")
         return self
 
+    def find_mega_forme_id(self, item_id: Slug | None, species_id: Slug) -> Slug | None:
+        if item_id is None:
+            return None
+        return self.mega_formes.get(item_id, {}).get(species_id)
+
     def require_species(self, species_id: str) -> LegalSpecies:
         found = self.species.get(species_id)
         if found is None:
@@ -105,11 +109,6 @@ class Legality(Frozen):
             raise Refusal(f"{where} has a stat outside 0 to {self.sp_max} stat points")
         if sum(competitive_set.sp) > self.sp_total:
             raise Refusal(f"{where} has more than {self.sp_total} stat points")
-
-
-class AssumedSpread(Frozen):
-    nature: Nature
-    sp: Stats
 
 
 class SpeciesShare(Frozen):
@@ -185,7 +184,7 @@ class ChampionsData(Frozen):
     presets: dict[
         Slug, Annotated[tuple[CompetitiveSet, ...], Field(min_length=1, max_length=PRESETS_MAX)]
     ]
-    assumed: dict[Slug, tuple[AssumedSpread, ...]]
+    assumed: dict[Slug, tuple[Spread, ...]]
     usage: dict[Slug, UsageCard]
     teammates: dict[Slug, dict[Slug, Share]]
     pool: SpeciesPool

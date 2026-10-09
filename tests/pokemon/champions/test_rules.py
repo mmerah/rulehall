@@ -13,7 +13,9 @@ from rulehall.engines.pokemon.champions.rules import (
     build_rival,
     check_team,
     draw_field,
+    estimated_spread,
     field_id,
+    standard_spread,
 )
 from rulehall.engines.pokemon.champions.sheet import ChampionsSheet
 from rulehall.engines.pokemon.champions.world import ChampionsWorld
@@ -84,6 +86,35 @@ def test_a_set_battles_at_level_50_with_full_ivs_and_its_stat_points() -> None:
         )[0]
     )
     assert battler.ability == "Intimidate"
+    assert not battler.holds_mega_stone
+    stone_set = competitive_set.model_copy(
+        update={"species_id": "venusaur", "item_id": "venusaurite"}
+    )
+    assert battler_of_set(stone_set, "venusaur").holds_mega_stone
+
+
+@pytest.mark.parametrize(
+    ("species_id", "nature", "spread"),
+    [
+        ("garchomp", "Modest", (2, 0, 0, 32, 0, 32)),
+        ("indeedeef", "Relaxed", (32, 0, 32, 0, 2, 0)),
+        ("torkoal", "Quiet", (32, 0, 2, 32, 0, 0)),
+    ],
+)
+def test_a_standard_spread_maxes_the_main_stats_and_puts_the_rest_in_bulk(
+    species_id: str, nature: str, spread: tuple[int, ...]
+) -> None:
+    assert standard_spread(species_id, nature) == spread
+
+
+def test_the_estimate_comes_from_the_species_never_from_the_real_set() -> None:
+    preset = champions_data().presets["incineroar"][0]
+    other = preset.model_copy(update={"nature": "Hasty", "sp": (0, 32, 0, 0, 2, 32)})
+
+    estimates = [battler_of_set(each, "incineroar").estimate for each in (preset, other)]
+
+    assert estimates == [estimated_spread("incineroar")] * 2
+    assert estimated_spread("alakazam").nature == "Hardy"
 
 
 def test_a_key_team_gets_its_ace() -> None:

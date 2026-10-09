@@ -14,6 +14,7 @@ IV_MAX = 31
 EV_STAT_MAX = 252
 EV_TOTAL_MAX = 510
 STAT_NAMES = ("HP", "Atk", "Def", "SpA", "SpD", "Spe")
+HP, ATTACK, DEFENSE, SP_ATTACK, SP_DEFENSE, SPEED = range(len(STAT_NAMES))
 LEGENDARY_TAGS = frozenset(("Sub-Legendary", "Restricted Legendary", "Mythical"))
 TIMES = "×"  # noqa: RUF001
 SEED_LIMIT = 0x10000
@@ -61,6 +62,10 @@ def battle_seed(rng: Random) -> tuple[int, int, int, int]:
         rng.randrange(SEED_LIMIT),
         rng.randrange(SEED_LIMIT),
     )
+
+
+def succeeds(face: int, total: int, dc: int) -> bool:
+    return face == 20 or (face != 1 and total >= dc)
 
 
 def is_legendary(species: Species) -> bool:

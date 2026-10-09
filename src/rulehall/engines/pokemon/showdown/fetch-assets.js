@@ -78,6 +78,8 @@ const ITEM_IDS = [
   "razor-claw",
   "razor-fang",
 ];
+// The tooltips' type and move category icons, from Dex.getTypeIcon and Dex.getCategoryIcon in js/battledata.js.
+const MOVE_CATEGORIES = ["Physical", "Special", "Status"];
 const TM_TYPES = new Set(
   Object.values(moves)
     .filter((move) => move.tm)
@@ -225,6 +227,13 @@ function soundFiles() {
   ];
 }
 
+function iconFiles() {
+  return [
+    ...Dex.types.names().map((type) => `sprites/types/${type}.png`),
+    ...MOVE_CATEGORIES.map((category) => `sprites/categories/${category}.png`),
+  ];
+}
+
 function itemFiles() {
   return [
     ...ITEM_IDS.map((id) => `sprites/items/${id}.png`),
@@ -238,7 +247,7 @@ async function main() {
   const { BattlePokemonSprites } = require(path.join(VENDOR, "data", "pokedex-mini.js"));
   const graphics = fs.readFileSync(path.join(VENDOR, "data", "graphics.js"), "utf8");
   const [plainSprites, spritesWithFallback] = spriteFiles(BattlePokemonSprites);
-  const plain = new Set([...effectFiles(graphics), ...plainSprites, ...soundFiles()]);
+  const plain = new Set([...effectFiles(graphics), ...plainSprites, ...iconFiles(), ...soundFiles()]);
   fetched += sum(await pool([...plain], (file) => fetchFile(file)));
   fetched += sum(
     await pool(spritesWithFallback, ([file, fallback]) =>

@@ -182,6 +182,14 @@
   .game-battle-cards .game-die { zoom: .7 }
   /* Open, the log is a sheet over the scene; the choices stay where they are. */
   .game-battle-journal:has(.game-showdown-journal-open) { grid-row: scene-start / journal-end; z-index: 3; box-shadow: var(--game-shadow-lg) }
+  /* Collapsed, the log is one whole line, not a faded strip. */
+  .game-showdown-journal:not(.game-showdown-journal-open) .game-showdown-log { -webkit-mask-image: none; mask-image: none }
+  .game-showdown-journal:not(.game-showdown-journal-open) .inner > :not(:last-child) { display: none }
+  .game-showdown-journal:not(.game-showdown-journal-open) .inner > :last-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
+  .game-showdown-journal:not(.game-showdown-journal-open) .inner > :last-child > * { display: inline !important }
+  /* An ability line is "[Ability]<br><small>effect</small><br>": two lines in a one-line strip. */
+  .game-showdown-journal:not(.game-showdown-journal-open) .inner > :last-child br { display: none !important }
+  .game-showdown-journal:not(.game-showdown-journal-open) .inner > :last-child br + :before { content: ' ' }
   .game-battle-team .game-choice-head { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: .45rem; row-gap: .15rem }
   .game-battle-team .game-choice-head .game-sprite-frame { grid-row: span 2 }
   .game-battle-team .game-choice-head > * { justify-self: start; text-align: left }

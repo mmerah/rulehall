@@ -3,6 +3,7 @@ from functools import cache
 
 from rulehall.core.validation import Refusal, Slug
 from rulehall.core.views import Surface
+from rulehall.engines.pokemon.battle.models import Nature
 from rulehall.engines.pokemon.champions.advice import (
     battle_species,
     speed_hint,
@@ -12,7 +13,6 @@ from rulehall.engines.pokemon.champions.advice import (
 from rulehall.engines.pokemon.champions.args import ChoiceEdit, TemplateEdit
 from rulehall.engines.pokemon.champions.data import (
     CompetitiveSet,
-    Nature,
     UsageCard,
     champions_data,
     move_shares,

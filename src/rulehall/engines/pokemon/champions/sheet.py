@@ -7,7 +7,7 @@ from pydantic.json_schema import SkipJsonSchema
 from rulehall.core.validation import Mutable, Refusal, Slug
 from rulehall.core.views import Rows
 from rulehall.engines.pokemon.champions.data import CompetitiveSet, champions_data
-from rulehall.engines.pokemon.champions.rules import check_team, require_archetype
+from rulehall.engines.pokemon.champions.rules import RECRUIT_CAP, check_team, require_archetype
 from rulehall.engines.pokemon.champions.season import (
     TIERS,
     Finish,
@@ -39,7 +39,8 @@ class ChampionsSheet(Mutable):
     registered: tuple[CompetitiveSet, ...] | None = None
     owned_species_ids: list[Slug] = Field(min_length=1)
     finishes: list[Finish] = Field(default_factory=list)
-    recruits_left: int = Field(ge=0)
+    recruits_left: int = Field(ge=0, le=RECRUIT_CAP)
+    prize_species_ids: list[Slug] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _a_legal_team(self) -> Self:

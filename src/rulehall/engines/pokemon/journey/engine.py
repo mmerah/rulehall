@@ -61,7 +61,6 @@ from rulehall.engines.pokemon.journey.rules import (
     counter_pick,
     help_bonus,
     item_of,
-    succeeds,
 )
 from rulehall.engines.pokemon.journey.sheet import JourneySheet, JourneyTrainer, Mon
 from rulehall.engines.pokemon.journey.world import (
@@ -77,7 +76,7 @@ from rulehall.engines.pokemon.journey.worldsmith import (
     check_next,
     check_opening,
 )
-from rulehall.engines.pokemon.rules import TIMES
+from rulehall.engines.pokemon.rules import TIMES, succeeds
 from rulehall.engines.pokemon.sprites import AVATAR, look_step, mon_sprite, trainer_sprite
 from rulehall.engines.rooms.args import MoveTo
 from rulehall.engines.rooms.engine import RoomEngine

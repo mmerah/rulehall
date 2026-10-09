@@ -32,6 +32,10 @@ class Recruit(Frozen):
     )
 
 
+class PrizePick(Frozen):
+    species_id: Slug
+
+
 class SlotEdit(Frozen):
     slot: int = Field(ge=1)
 

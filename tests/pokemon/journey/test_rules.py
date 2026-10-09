@@ -15,11 +15,10 @@ from rulehall.engines.pokemon.journey.rules import (
     help_bonus,
     rival_ev,
     signature_moves,
-    succeeds,
 )
 from rulehall.engines.pokemon.journey.sheet import Mon
 from rulehall.engines.pokemon.journey.world import RivalTeam, WildSlot
-from rulehall.engines.pokemon.rules import stats
+from rulehall.engines.pokemon.rules import stats, succeeds
 
 TWO_NATURE_RANKS = {
     "rank-1": "nature",

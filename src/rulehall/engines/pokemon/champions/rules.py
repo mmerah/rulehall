@@ -2,7 +2,16 @@ from collections.abc import Collection, Iterable, Sequence
 from random import Random
 
 from rulehall.core.validation import Refusal, Slug
-from rulehall.engines.pokemon.battle.models import FRIENDSHIP_MAX, BattleMove, Battler, Gender
+from rulehall.engines.pokemon.battle.models import (
+    FRIENDSHIP_MAX,
+    BattleMove,
+    Battler,
+    Gender,
+    Nature,
+    Spread,
+    champions_format_spec,
+)
+from rulehall.engines.pokemon.battle.preview import preview_picks
 from rulehall.engines.pokemon.champions.data import (
     Archetype,
     CompetitiveSet,
@@ -11,14 +20,31 @@ from rulehall.engines.pokemon.champions.data import (
     champions_data,
 )
 from rulehall.engines.pokemon.champions.season import TIERS, Tier
-from rulehall.engines.pokemon.dex import dex
-from rulehall.engines.pokemon.rules import IV_MAX, STAT_NAMES, stats
+from rulehall.engines.pokemon.dex import Stats, dex
+from rulehall.engines.pokemon.rules import (
+    ATTACK,
+    DEFENSE,
+    HP,
+    IV_MAX,
+    SP_ATTACK,
+    SP_DEFENSE,
+    SPEED,
+    STAT_NAMES,
+    nature_effect,
+    stats,
+)
 
 TEAM_SLOT_PREFIX = "team-"
 RECRUITS_PER_EVENT = 1
+RECRUIT_CAP = 3
+PRIZE_CHOICES = 3
+# Showdown's Champions VGC format brings 4 of 6 at team preview.
+BROUGHT = 4
 KEY_TRAINERS_MAX = 3
 PRESET_LETTERS = "abc"
 RIVAL_CORE = 2
+BULK = (HP, DEFENSE, SP_DEFENSE)
+UNKNOWN_NATURE = "Hardy"
 
 
 def require_preset(chosen_id: Slug) -> CompetitiveSet:
@@ -57,6 +83,9 @@ def battler_of_set(competitive_set: CompetitiveSet, mon_id: Slug) -> Battler:
     level = champions_data().legal.level
     ivs = (IV_MAX,) * len(STAT_NAMES)
     gender: Gender = species.gender or ("M" if species.male_share >= 0.5 else "F")
+    mega_forme_id = champions_data().legal.find_mega_forme_id(
+        competitive_set.item_id, competitive_set.species_id
+    )
     return Battler(
         mon_id=mon_id,
         species_id=competitive_set.species_id,
@@ -69,6 +98,8 @@ def battler_of_set(competitive_set: CompetitiveSet, mon_id: Slug) -> Battler:
         evs=competitive_set.sp,
         friendship=FRIENDSHIP_MAX,
         item_id=competitive_set.item_id,
+        holds_mega_stone=mega_forme_id is not None,
+        estimate=estimated_spread(competitive_set.species_id),
         moves=tuple(
             BattleMove(
                 move_id=move_id,
@@ -81,6 +112,27 @@ def battler_of_set(competitive_set: CompetitiveSet, mon_id: Slug) -> Battler:
         hp=stats(species, level, competitive_set.nature, ivs, competitive_set.sp, stat_points=True)[
             0
         ],
+    )
+
+
+def estimated_spread(species_id: Slug) -> Spread:
+    assumed = champions_data().assumed.get(species_id)
+    if assumed:
+        return assumed[0]
+    return Spread(nature=UNKNOWN_NATURE, sp=standard_spread(species_id, UNKNOWN_NATURE))
+
+
+def standard_spread(species_id: Slug, nature: Nature) -> Stats:
+    legal = champions_data().legal
+    main = _main_stats(species_id, nature)
+    rest = next(stat for stat in BULK if stat not in main)
+    return tuple(
+        legal.sp_max
+        if stat in main
+        else legal.sp_total - len(main) * legal.sp_max
+        if stat == rest
+        else 0
+        for stat in range(len(STAT_NAMES))
     )
 
 
@@ -203,6 +255,33 @@ def key_team_pools(tier: Tier) -> tuple[Pool, ...]:
 
 def field_id(drawn: RealTeam | Archetype) -> Slug:
     return drawn.team_id if isinstance(drawn, RealTeam) else drawn.archetype_id
+
+
+def prize_species_ids(sets: Iterable[CompetitiveSet], owned_ids: Collection[Slug]) -> list[Slug]:
+    data = champions_data()
+    unowned = {each.species_id for each in sets if each.species_id not in owned_ids}
+    by_use = sorted(
+        unowned, key=lambda species_id: (-data.usage[species_id].usage_percent, species_id)
+    )
+    return by_use[:PRIZE_CHOICES]
+
+
+def likely_leads(foes: Sequence[Battler], player: Sequence[Battler]) -> tuple[Battler, ...]:
+    species = tuple(dex().species[battler.species_id] for battler in player)
+    leads = champions_format_spec(champions_data().source.format_id).active_slots
+    picks = preview_picks(foes, species, frozenset(range(len(foes))), BROUGHT, leads)
+    return tuple(foes[at] for at in picks[:leads])
+
+
+def _main_stats(species_id: Slug, nature: Nature) -> tuple[int, int]:
+    raised, lowered = nature_effect(nature) or (None, None)
+    if raised in (DEFENSE, SP_DEFENSE):
+        return HP, raised
+    base = dex().require_species(species_id).base_stats
+    higher = ATTACK if base[ATTACK] >= base[SP_ATTACK] else SP_ATTACK
+    other = SP_ATTACK if lowered == ATTACK else ATTACK if lowered == SP_ATTACK else higher
+    attack = raised if raised in (ATTACK, SP_ATTACK) else other
+    return attack, HP if lowered == SPEED else SPEED
 
 
 def _by_recency(teams: Iterable[RealTeam]) -> list[RealTeam]:

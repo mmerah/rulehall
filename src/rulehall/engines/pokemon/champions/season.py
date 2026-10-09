@@ -24,6 +24,8 @@ class TierRule(Frozen):
     pools: tuple[Pool | Literal["archetype"], ...] = Field(min_length=1)
     cp: dict[int, int]
     unlock_cp: int = Field(ge=0)
+    open_sheets: bool
+    scout_dc: int = Field(gt=0)
 
     @property
     def field_size(self) -> int:
@@ -42,6 +44,8 @@ TIERS: dict[Tier, TierRule] = {
         pools=("archetype", "top8"),
         cp={1: 50, 2: 40, 4: 25},
         unlock_cp=0,
+        open_sheets=False,
+        scout_dc=10,
     ),
     "regionals": TierRule(
         name="Regionals",
@@ -50,6 +54,8 @@ TIERS: dict[Tier, TierRule] = {
         pools=("top8",),
         cp={1: 200, 2: 160, 4: 130, 8: 100},
         unlock_cp=50,
+        open_sheets=True,
+        scout_dc=12,
     ),
     "internationals": TierRule(
         name="Internationals",
@@ -58,6 +64,8 @@ TIERS: dict[Tier, TierRule] = {
         pools=("top4", "top8"),
         cp={1: 500, 2: 400, 4: 320, 8: 250},
         unlock_cp=250,
+        open_sheets=True,
+        scout_dc=15,
     ),
     "worlds": TierRule(
         name="Worlds",
@@ -66,6 +74,8 @@ TIERS: dict[Tier, TierRule] = {
         pools=("finalist", "top4"),
         cp={},
         unlock_cp=600,
+        open_sheets=True,
+        scout_dc=18,
     ),
 }
 
@@ -109,6 +119,9 @@ class Event(Mutable):
     cut_wins: dict[Slug, int] = Field(default_factory=dict)
     placing: int | None = None
     winner_id: Slug | None = None
+    beaten_ids: list[Slug] = Field(default_factory=list)
+    scout_attempt_ids: list[Slug] = Field(default_factory=list)
+    scouted_ids: list[Slug] = Field(default_factory=list)
 
     def register(self, entrants: list[Entrant], seed: int) -> None:
         field_size = TIERS[self.tier].field_size
@@ -164,6 +177,8 @@ class Event(Mutable):
         player = self.require_entrant(PLAYER_ID)
         rng = Random(f"{self.seed} {self.stage} {self.round}")
         lines = [f"{player.name} {'beat' if won else 'lost to'} {opponent.name}"]
+        if won:
+            self.beaten_ids.append(opponent.entrant_id)
         winners: list[Slug] = []
         for first, second in self.pairings:
             if PLAYER_ID in (first, second):

@@ -4,7 +4,8 @@ from typing import Self
 from pydantic import Field, model_validator
 
 from rulehall.core.validation import Mutable, Refusal, Slug, check_unique, refuse
-from rulehall.engines.pokemon.champions.data import CompetitiveSet, Nature, champions_data
+from rulehall.engines.pokemon.battle.models import Nature
+from rulehall.engines.pokemon.champions.data import CompetitiveSet, champions_data
 from rulehall.engines.pokemon.dex import NATURES, dex, species_name
 from rulehall.engines.pokemon.rules import STAT_NAMES
 

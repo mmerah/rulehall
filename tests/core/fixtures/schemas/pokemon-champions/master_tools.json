@@ -242,8 +242,25 @@
     }
   },
   {
+    "name": "scout",
+    "description": "Scout the player's next opponent at the venue, when the player watches their games or asks around. The engine rolls d20 against the tier's DC, with no bonus. One try per opponent per event. A success at Locals shows the foe's team and items, and the match opens their team sheet. A success at a higher tier shows the foe's likely leads. You tell what a failure costs.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "what": {
+          "description": "The attempt, in a few words the player reads.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "what"
+      ],
+      "type": "object"
+    }
+  },
+  {
     "name": "recruit",
-    "description": "Give the player a new Pokemon species in story mode, when the story brings one, such as a trade or a gift. One per event, never while the team is registered.",
+    "description": "Give the player a new Pokemon species in story mode, when the story brings one, such as a trade or a gift. Each event end gives one recruit, and they add up to three. Never while the team is registered.",
     "parameters": {
       "additionalProperties": false,
       "properties": {

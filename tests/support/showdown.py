@@ -18,6 +18,7 @@ from rulehall.engines.pokemon.battle.models import (
 )
 from rulehall.engines.pokemon.battle.simulator import DUMPED
 from rulehall.engines.pokemon.champions.data import champions_data
+from rulehall.engines.pokemon.champions.rules import estimated_spread
 from rulehall.engines.pokemon.dex import Stats, dex
 from rulehall.engines.pokemon.rules import stats
 
@@ -144,6 +145,8 @@ def champion(
         evs=stat_points,
         friendship=255,
         item_id=item_id,
+        holds_mega_stone=champions_data().legal.find_mega_forme_id(item_id, species_id) is not None,
+        estimate=estimated_spread(species_id),
         moves=tuple(
             BattleMove(
                 move_id=move_id,
@@ -178,6 +181,8 @@ VENUSAUR = champion(
 CHAMPIONS_SETUP = DOUBLES_SETUP.model_copy(
     update={
         "format_id": champions_data().source.format_id,
+        "foe_sheet_open": True,
+        "player_sheet_open": True,
         "team": (
             CHARIZARD,
             champion(

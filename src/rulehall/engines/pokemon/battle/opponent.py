@@ -66,11 +66,20 @@ HOW_A_BATTLE_WORKS = (
     "- Short effects such as confusion, Leech Seed, Taunt or a Substitute end when the Pokemon "
     "leaves the field. Hazards such as Stealth Rock or Spikes stay on a side and hurt each of "
     "its Pokemon that comes in.",
+)
+ABILITIES_AND_ITEMS = (
     "- Each Pokemon has one ability and may hold one item; both can change damage, Speed or "
-    "give effects. You know your own. A foe's ability and item show only once revealed in the "
-    "battle.",
+    "give effects. You know your own. {foes}"
+)
+FOES_HIDDEN = "A foe's ability and item show only once revealed in the battle."
+FOES_OPEN = "The open team sheets show each foe's ability, item and moves."
+SWITCHING = (
     "- Switching costs the turn of the Pokemon that switches. The Pokemon that comes in takes "
-    "the moves aimed at the one that left.",
+    "the moves aimed at the one that left."
+)
+OPEN_TEAM_SHEETS = (
+    "The foe's team sheet, shown before the battle: the item, ability and moves of each of its "
+    "Pokemon. Its stats stay hidden."
 )
 DOUBLES_RULES = (
     "- Two Pokemon a side are on the field at once, at positions 1 and 2.",
@@ -79,8 +88,8 @@ DOUBLES_RULES = (
     "- Some moves hit several Pokemon at once: both foes, or everyone else on the field, your "
     "partner included. A move that hits more than one Pokemon does 0.75x to each; the damage "
     "numbers already count this.",
-    "- Two attacks on one foe can knock it out when one cannot. Protect blocks moves aimed at "
-    "the user for one turn, but it often fails when used two turns in a row.",
+    "- Protect blocks moves aimed at the user for one turn, but it often fails when used two "
+    "turns in a row.",
 )
 COMMANDS = (
     "Copy each command exactly as THE CHOICES write it. `move N` uses move N of that Pokemon; "
@@ -88,21 +97,36 @@ COMMANDS = (
     "POKEMON. Give one command for each Pokemon in THE CHOICES, in their order. Two of your "
     "Pokemon cannot switch to the same Pokemon."
 )
-READING_THE_STATE = (
+DAMAGE_READING = (
     "- Damage is a percent of the target's current HP, from the lowest to the highest damage "
     "roll, with no critical hit, if the move hits. KO: even the lowest roll knocks it out. KO on "
-    "a high roll: only some rolls do. Protect, a Substitute, or a foe's ability or item not "
-    "revealed yet can change it.",
+    "a high roll: only some rolls do. {changes}"
+)
+CHANGES_HIDDEN = "Protect, a Substitute, or a foe's ability or item not revealed yet can change it."
+CHANGES_OPEN = "Protect or a Substitute can change it."
+CHOICES_READING = (
     "- THE CHOICES give the damage of each move of your Pokemon on the field. YOUR BENCH DAMAGE "
-    "gives what your bench Pokemon would deal if they came in.",
+    "gives what your bench Pokemon would deal if they came in."
+)
+TAKEN_HIDDEN = (
     "- DAMAGE YOU TAKE gives what each foe move seen so far would do to your Pokemon. A foe may "
-    "have moves not seen yet.",
-    "- Foe stats are estimates from species and level; the real ones can differ a little.",
+    "have moves not seen yet."
+)
+TAKEN_OPEN = "- DAMAGE YOU TAKE gives what each foe move would do to your Pokemon."
+ESTIMATES_LEVEL = (
+    "- Foe stats are estimates from species and level; the real ones can differ a little."
+)
+ESTIMATES_SPREAD = (
+    "- Foe stats are estimates from each species' most common spread, or a standard one; the "
+    "real ones can differ."
+)
+READING_THE_REST = (
     "- SPEED ORDER lists the Pokemon on the field in the order they move this turn. Their Speed "
     "counts stat stages, paralysis, Tailwind and known items and abilities.",
-    "- SUGGESTION is what a simple rule would pick: a sure KO first, else the most damage, else "
-    "a switch to the bench Pokemon that hits hardest. It ignores Speed, status moves and what "
-    "the foe will do. Take it as a hint only.",
+    "- MOST DAMAGE is the command that deals the most damage: a sure KO first, else the most "
+    "damage without hitting your partner, else a switch to the bench Pokemon that hits hardest. "
+    "It ignores Speed, status and support moves, Protect, Fake Out and what the foe will do; "
+    "often it is not the best play.",
 )
 TACTICS = (
     "- First look for a knock-out: a move marked KO does at least the target's remaining HP. A "
@@ -116,8 +140,20 @@ TACTICS = (
     "- A Pokemon that just came in stays and fights. Do not switch it out again.",
     "- Status and stat-raising moves pay off early, while your Pokemon is healthy and safe. "
     "When it is in danger, attack.",
-    "- A foe likely has moves of its own types, even if you have not seen them yet.",
 )
+DOUBLES_TACTICS = (
+    "- Fake Out works only on a Pokemon's first turn on the field: the target flinches. It is "
+    "often worth more than damage.",
+    "- A foe that can clearly knock out one of yours will likely aim at it: Protect it or switch "
+    "it out.",
+    "- A foe at risk of a knock-out will likely use Protect. If it used Protect last turn, it "
+    "likely cannot again: hit it. Else hit the other foe with one of your attacks.",
+    "- Two attacks on one target can knock it out where one cannot; a spread move hits both foes "
+    "for less.",
+    "- Tailwind helps a faster team and Trick Room a slower one; setting the right one early "
+    "often beats one more hit.",
+)
+UNSEEN_MOVES = "- A foe likely has moves of its own types, even if you have not seen them yet."
 LINE_MAX = 120
 LINE = (
     "Something you say aloud this turn, in your style, at most one short sentence. Leave it empty "
@@ -212,14 +248,36 @@ def opponent_system(setup: BattleSetup, seat: RoleSeat) -> str:
         style, own = ally.style, ally.team
     head = f"{role} Your style: {style}" if style else role
     doubles = (*DOUBLES_RULES, *_tag_rules(setup, seat)) if setup.double else ()
+    sheet_open = setup.sheet_open_to(seat)
+    how = (
+        *HOW_A_BATTLE_WORKS,
+        ABILITIES_AND_ITEMS.format(foes=FOES_OPEN if sheet_open else FOES_HIDDEN),
+        SWITCHING,
+    )
+    reading = (
+        DAMAGE_READING.format(changes=CHANGES_OPEN if sheet_open else CHANGES_HIDDEN),
+        CHOICES_READING,
+        TAKEN_OPEN if sheet_open else TAKEN_HIDDEN,
+        ESTIMATES_SPREAD if setup.format_spec().stat_points else ESTIMATES_LEVEL,
+        *READING_THE_REST,
+    )
+    tactics = (
+        *TACTICS,
+        *(DOUBLES_TACTICS if setup.double else ()),
+        *(() if sheet_open else (UNSEEN_MOVES,)),
+    )
+    sheets = (
+        "\n".join((OPEN_TEAM_SHEETS, *_sheet_lines(setup.other_side(seat)))) if sheet_open else ""
+    )
     body = sections(
         (
             ("YOUR TASK", TASK),
-            ("HOW A BATTLE WORKS", "\n".join(HOW_A_BATTLE_WORKS)),
+            ("HOW A BATTLE WORKS", "\n".join(how)),
             *section_if("DOUBLE BATTLE", "\n".join(doubles)),
             ("COMMANDS", COMMANDS),
-            ("READING THE STATE", "\n".join(READING_THE_STATE)),
-            ("TACTICS", "\n".join(TACTICS)),
+            ("READING THE STATE", "\n".join(reading)),
+            ("TACTICS", "\n".join(tactics)),
+            *section_if("OPEN TEAM SHEETS", sheets),
             ("TYPE CHART", _type_chart()),
             ("YOUR MOVES, ABILITIES AND ITEMS", _glossary(own)),
         )
@@ -236,6 +294,7 @@ def render_opponent(
     log: Sequence[str],
 ) -> Prompt:
     doubles = setup.double
+    sheet_open = setup.sheet_open_to(seat)
     own = _field_first(mon for mon in assessment.team if mon.slot - 1 in hand)
     partner = _field_first(mon for mon in assessment.team if mon.slot - 1 not in hand)
     foes = _field_first(assessment.foes)
@@ -253,7 +312,7 @@ def render_opponent(
         ),
         (
             f"FOE POKEMON ({len(foes)} seen{unseen})",
-            lines_of(_foe_block(mon, doubles=doubles) for mon in foes),
+            lines_of(_foe_block(mon, doubles=doubles, sheet_open=sheet_open) for mon in foes),
         ),
         (
             "RECENT TURNS",
@@ -262,7 +321,7 @@ def render_opponent(
         *section_if("YOUR BENCH DAMAGE", _bench_damage(own)),
         ("DAMAGE YOU TAKE", _damage_taken(own)),
         ("SPEED ORDER", _speed_order(assessment, own, partner, foes)),
-        ("SUGGESTION", _suggestion(assessment, offers)),
+        ("MOST DAMAGE", _most_damage(assessment, offers)),
         *section_if(
             "MEGA EVOLUTION", MEGA_EVOLUTION if any(offer.can_mega for offer in offers) else ""
         ),
@@ -341,6 +400,16 @@ def _tag_rules(setup: BattleSetup, seat: RoleSeat) -> tuple[str, ...]:
     return (
         f"- Your foes are two trainers: {setup.player_name} at position 1 and {ally.name} at "
         "position 2, each with their own Pokemon.",
+    )
+
+
+def _sheet_lines(battlers: Sequence[Battler]) -> tuple[str, ...]:
+    pokedex = dex()
+    return tuple(
+        f"- {battler.species_name}"
+        f"{'' if battler.item_id is None else f' @ {pokedex.item_name(battler.item_id)}'}"
+        f"; {battler.ability}; moves: {', '.join(move.name for move in battler.moves)}"
+        for battler in battlers
     )
 
 
@@ -436,7 +505,7 @@ def _own_block(mon: OwnMon, *, doubles: bool, numbered: bool) -> str:
     )
 
 
-def _foe_block(mon: SeenMon, *, doubles: bool) -> str:
+def _foe_block(mon: SeenMon, *, doubles: bool, sheet_open: bool) -> str:
     head = f"- {_named(mon.name, mon.species)}, level {mon.level}, {'/'.join(mon.types)}"
     if mon.percent == 0:
         return f"{head}: fainted"
@@ -453,7 +522,7 @@ def _foe_block(mon: SeenMon, *, doubles: bool) -> str:
             f"  HP {mon.percent}%{condition}",
             f"  Ability: {ability}. Item: {item}.",
             f"  Estimated stats: {_stats_text(mon.stats)}. Speed now: about {mon.speed}.",
-            f"  Moves seen:{'' if seen else ' none yet'}",
+            "  Moves:" if sheet_open else f"  Moves seen:{'' if seen else ' none yet'}",
             *seen,
         )
     )
@@ -636,7 +705,7 @@ def _speed_order(
     return "\n".join(lines)
 
 
-def _suggestion(assessment: Assessment, offers: Sequence[Offer]) -> str:
+def _most_damage(assessment: Assessment, offers: Sequence[Offer]) -> str:
     picks: list[str] = []
     for offer in offers:
         command = greedy_choice(assessment, offer.choices, offer.slot)

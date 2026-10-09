@@ -11,7 +11,7 @@ from rulehall.engines.pokemon.champions.pending import MOVES, PendingSet, Pendin
 from rulehall.engines.pokemon.champions.rules import PRESET_LETTERS
 from rulehall.engines.pokemon.champions.views import Advice
 from rulehall.engines.pokemon.dex import Species, dex, species_name
-from rulehall.engines.pokemon.rules import IV_MAX, STAT_NAMES, effectiveness, stats
+from rulehall.engines.pokemon.rules import IV_MAX, SPEED, STAT_NAMES, effectiveness, stats
 
 ABILITY_IMMUNITIES: dict[Slug, str] = {
     "levitate": "Ground",
@@ -30,7 +30,6 @@ WEAK_SHARE = 0.02
 WEAK_MEMBERS = 3
 THREATS_SHOWN = 5
 SPEED_TIER_SPECIES = 20
-SPEED_INDEX = STAT_NAMES.index("Spe")
 ROLE_TIPS = {
     "speed-control": (
         "Nothing on your team controls speed. Tailwind or Icy Wind helps your slower Pokemon "
@@ -133,8 +132,8 @@ def speed_tiers() -> tuple[SpeedTier, ...]:
     for species_id in top_ids[:SPEED_TIER_SPECIES]:
         card = data.usage[species_id]
         forme_ids = [species_id]
-        mega_formes = data.legal.mega_formes
-        if card.items and (forme_id := mega_formes.get(card.items[0].item_id, {}).get(species_id)):
+        item_id = card.items[0].item_id if card.items else None
+        if forme_id := data.legal.find_mega_forme_id(item_id, species_id):
             forme_ids.append(forme_id)
         for forme_id in forme_ids:
             species = pokedex.species[forme_id]
@@ -145,7 +144,10 @@ def speed_tiers() -> tuple[SpeedTier, ...]:
 
 
 def battle_species(pending_set: PendingSet) -> Species:
-    return dex().species[_mega_forme_id(pending_set) or pending_set.species_id]
+    return dex().species[
+        champions_data().legal.find_mega_forme_id(pending_set.item_id, pending_set.species_id)
+        or pending_set.species_id
+    ]
 
 
 def primary_archetype(sets: Sequence[PendingSet]) -> Archetype:
@@ -326,7 +328,9 @@ def _empty_slots_advice(
 
 
 def _damage_factor(attack: str, pending_set: PendingSet) -> float:
-    forme_id = _mega_forme_id(pending_set)
+    forme_id = champions_data().legal.find_mega_forme_id(
+        pending_set.item_id, pending_set.species_id
+    )
     species = battle_species(pending_set)
     ability_ids = (pending_set.ability_id,) if forme_id is None else _ability_ids(species)
     if any(each is not None and ABILITY_IMMUNITIES.get(each) == attack for each in ability_ids):
@@ -362,16 +366,10 @@ def _has_mechanic(archetype: Archetype) -> bool:
 
 def _battle_ability_ids(pending_set: PendingSet) -> tuple[Slug, ...]:
     own = () if pending_set.ability_id is None else (pending_set.ability_id,)
-    forme_id = _mega_forme_id(pending_set)
-    return own if forme_id is None else (*own, *_ability_ids(dex().species[forme_id]))
-
-
-def _mega_forme_id(pending_set: PendingSet) -> Slug | None:
-    if pending_set.item_id is None:
-        return None
-    return (
-        champions_data().legal.mega_formes.get(pending_set.item_id, {}).get(pending_set.species_id)
+    forme_id = champions_data().legal.find_mega_forme_id(
+        pending_set.item_id, pending_set.species_id
     )
+    return own if forme_id is None else (*own, *_ability_ids(dex().species[forme_id]))
 
 
 def _ability_ids(species: Species) -> tuple[Slug, ...]:
@@ -387,7 +385,7 @@ def _ability_ids_by_name() -> dict[str, Slug]:
 def _speed_of(species: Species, nature: str, sp: tuple[int, ...]) -> int:
     level = champions_data().legal.level
     ivs = (IV_MAX,) * len(STAT_NAMES)
-    return stats(species, level, nature, ivs, sp, stat_points=True)[SPEED_INDEX]
+    return stats(species, level, nature, ivs, sp, stat_points=True)[SPEED]
 
 
 def _tier_text(tier: SpeedTier) -> str:

@@ -4,7 +4,7 @@ from typing import Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.facts import Fact
+from rulehall.core.facts import Fact, roll
 from rulehall.core.game import Game
 from rulehall.core.validation import Frozen, Refusal, Slug, refuse
 from rulehall.engines.engine import Resolution
@@ -31,12 +31,15 @@ from rulehall.engines.pokemon.champions.pending import (
     unowned_refusal,
 )
 from rulehall.engines.pokemon.champions.rules import (
+    RECRUIT_CAP,
     RECRUITS_PER_EVENT,
     battler_of_set,
     build_key_team,
     draw_field,
     field_id,
     key_team_pools,
+    likely_leads,
+    prize_species_ids,
     require_archetype,
 )
 from rulehall.engines.pokemon.champions.season import (
@@ -48,7 +51,7 @@ from rulehall.engines.pokemon.champions.season import (
 )
 from rulehall.engines.pokemon.champions.sheet import LOCKED, ChampionsSheet, ChampionsTrainer
 from rulehall.engines.pokemon.dex import avatars, dex, species_name
-from rulehall.engines.pokemon.rules import SEED_LIMIT, battle_seed
+from rulehall.engines.pokemon.rules import SEED_LIMIT, battle_seed, succeeds
 from rulehall.engines.pokemon.trainers import RivalLedger, check_one_rival, find_rival
 from rulehall.engines.rooms.world import MapProposal, RegionProposal, RoomWorld
 from rulehall.engines.sheet import PLAYER_ID
@@ -231,6 +234,7 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
         assert registered is not None
         player = self.player
         opponent = event.require_player_opponent()
+        open_sheets = TIERS[event.tier].open_sheets
         setup = BattleSetup(
             policy="model",
             foe_style=opponent.style,
@@ -245,11 +249,37 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
             team=_battlers(registered),
             foes=_battlers(opponent.sets),
             format_id=champions_data().source.format_id,
+            foe_sheet_open=open_sheets or opponent.entrant_id in event.scouted_ids,
+            player_sheet_open=open_sheets,
         )
         self.battle = Battle(setup=setup)
         return [
             player.card_fact(f"{_round_name(event).capitalize()}: {player.name} vs {opponent.name}")
         ]
+
+    def scout(self, what: str, rng: Random) -> list[Fact]:
+        if self.battle is not None:
+            raise Refusal("a match is on; scout between matches")
+        event = self.require_event()
+        if event.stage not in ("swiss", "cut"):
+            raise Refusal(f"{event.name} has no match to play now")
+        if self.current.id != event.venue_id:
+            raise Refusal(f"scouting is done at {self.places[event.venue_id].name}, the venue")
+        opponent = event.require_player_opponent()
+        if opponent.entrant_id in event.scout_attempt_ids:
+            raise Refusal(f"the player has already scouted {opponent.name} at {event.name}")
+        event.scout_attempt_ids.append(opponent.entrant_id)
+        dc = TIERS[event.tier].scout_dc
+        rolled = roll((20,), f"{what} — scouting", rng)
+        success = succeeds(rolled.total, rolled.total, dc)
+        if success:
+            event.scouted_ids.append(opponent.entrant_id)
+        line = f"{what} — Scouting {rolled.total} vs DC {dc} → " + (
+            f"success; {opponent.name}: {self._scouted_text(event, opponent)}"
+            if success
+            else "failure"
+        )
+        return [rolled.fact, self.player.card_fact(line, (rolled.event,))]
 
     def player_card_fact(self, line: str) -> Fact:
         return self.player.card_fact(line)
@@ -302,7 +332,7 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
             raise Refusal("in an open roster every legal species is already the player's")
         sheet.refuse_while_registered()
         if not sheet.recruits_left:
-            raise Refusal("the player has recruited since the last event; wait for the next")
+            raise Refusal("the player has no recruit left; each event end gives one more")
         _ = champions_data().legal.require_species(species_id)
         if species_id in sheet.owned_species_ids:
             raise Refusal(f"the player already has {species_name(species_id)}")
@@ -310,6 +340,15 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
         sheet.recruits_left -= 1
         name = species_name(species_id)
         return [self.player.card_fact(f"{name} joins the player: {how}")]
+
+    def claim_prize(self, species_id: Slug) -> list[Fact]:
+        sheet = self.player_sheet
+        if species_id not in sheet.prize_species_ids:
+            raise Refusal(f"{species_id!r} is not on offer as a prize")
+        sheet.owned_species_ids.append(species_id)
+        sheet.prize_species_ids = []
+        name = species_name(species_id)
+        return [self.player.card_fact(f"{name} joins the player: the prize of the top cut")]
 
     def team_lock(self) -> str:
         if self.player_sheet.registered is not None:
@@ -428,6 +467,8 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
         else:
             npc = self.npcs[opponent.npc_id]
             lines.append(f"next opponent: {npc.ref}; {opponent.style}")
+        if opponent.entrant_id in event.scouted_ids:
+            lines.append(f"scouted: {self._scouted_text(event, opponent)}")
         return "\n".join(lines)
 
     def season_over(self) -> bool:
@@ -439,7 +480,7 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
         finish = event.finish()
         sheet.finishes.append(finish)
         sheet.registered = None
-        sheet.recruits_left = RECRUITS_PER_EVENT
+        sheet.recruits_left = min(sheet.recruits_left + RECRUITS_PER_EVENT, RECRUIT_CAP)
         assert event.winner_id is not None
         winner = event.require_entrant(event.winner_id).name
         facts = [
@@ -453,7 +494,32 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
             for tier in sheet.unlocked_tiers()
             if tier not in unlocked
         ]
+        sheet.prize_species_ids = []
+        if sheet.roster == "story" and finish.placing <= TIERS[event.tier].cut_size:
+            beaten = [
+                each
+                for entrant_id in event.beaten_ids
+                for each in event.require_entrant(entrant_id).sets
+            ]
+            sheet.prize_species_ids = prize_species_ids(beaten, sheet.owned_species_ids)
+            if sheet.prize_species_ids:
+                names = ", ".join(species_name(each) for each in sheet.prize_species_ids)
+                facts.append(
+                    player.card_fact(f"Prize for the top cut: {player.name} picks one of {names}")
+                )
         return facts
+
+    def _scouted_text(self, event: Event, opponent: Entrant) -> str:
+        if TIERS[event.tier].open_sheets:
+            registered = self.player_sheet.registered
+            assert registered is not None
+            leads = likely_leads(_battlers(opponent.sets), _battlers(registered))
+            return "likely leads " + " and ".join(each.species_name for each in leads)
+        pokedex = dex()
+        return "team " + ", ".join(
+            f"{species_name(each.species_id)} @ {pokedex.item_name(each.item_id)}"
+            for each in opponent.sets
+        )
 
     def _next_match_line(self, event: Event) -> str:
         opponent = event.require_player_opponent()

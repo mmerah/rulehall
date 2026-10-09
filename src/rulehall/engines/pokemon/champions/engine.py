@@ -10,7 +10,7 @@ from rulehall.core.prompt import Sections, lines_of, section_if
 from rulehall.core.tools import NoArgs, action, edit, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.core.views import Panel, Sprite, Surface
-from rulehall.engines.args import Words
+from rulehall.engines.args import Attempt, Words
 from rulehall.engines.engine import Joining
 from rulehall.engines.pokemon.battle.battling import ShowdownBattling
 from rulehall.engines.pokemon.champions.advice import suggested_species
@@ -21,13 +21,19 @@ from rulehall.engines.pokemon.champions.args import (
     PickEdit,
     PointsEdit,
     PresetEdit,
+    PrizePick,
     Recruit,
     SlotEdit,
     TemplateEdit,
 )
 from rulehall.engines.pokemon.champions.data import champions_data
 from rulehall.engines.pokemon.champions.pack import ChampionsPack
-from rulehall.engines.pokemon.champions.panels import SHEET_HELP, season_panel, team_panel
+from rulehall.engines.pokemon.champions.panels import (
+    SHEET_HELP,
+    prize_decision,
+    season_panel,
+    team_panel,
+)
 from rulehall.engines.pokemon.champions.paste import parse_paste
 from rulehall.engines.pokemon.champions.pending import SP, SPECIES, PendingSet
 from rulehall.engines.pokemon.champions.rules import (
@@ -239,6 +245,10 @@ class ChampionsEngine(
     def ending(self, state: ChampionsGame) -> str | None:
         return SEASON_ENDED if state.world.season_over() else super().ending(state)
 
+    def accept(self, draft: ChampionsGame) -> ChampionsGame:
+        draft.pending = prize_decision(draft.world.player_sheet)
+        return super().accept(draft)
+
     @tool
     def register_team(self, draft: ChampionsGame, _args: NoArgs, rng: Random) -> list[Fact]:
         """Register the player's team for this map's event, at its venue, when the player signs
@@ -254,9 +264,19 @@ class ChampionsEngine(
         return draft.world.start_match(rng)
 
     @tool
+    def scout(self, draft: ChampionsGame, args: Attempt, rng: Random) -> list[Fact]:
+        """Scout the player's next opponent at the venue, when the player watches their games or
+        asks around. The engine rolls d20 against the tier's DC, with no bonus. One try per
+        opponent per event. A success at Locals shows the foe's team and items, and the match
+        opens their team sheet. A success at a higher tier shows the foe's likely leads. You
+        tell what a failure costs."""
+        return draft.world.scout(args.what, rng)
+
+    @tool
     def recruit(self, draft: ChampionsGame, args: Recruit, _rng: Random) -> list[Fact]:
         """Give the player a new Pokemon species in story mode, when the story brings one, such
-        as a trade or a gift. One per event, never while the team is registered."""
+        as a trade or a gift. Each event end gives one recruit, and they add up to three. Never
+        while the team is registered."""
         return draft.world.recruit(args.species_id, args.how)
 
     @tool
@@ -266,6 +286,10 @@ class ChampionsEngine(
         is under way. Call it last: it ends your turn."""
         draft.world.require_event_idle()
         return super().extend_map(draft, args, rng)
+
+    @action
+    def claim_prize(self, draft: ChampionsGame, args: PrizePick, _rng: Random) -> list[Fact]:
+        return draft.world.claim_prize(args.species_id)
 
     @action
     def extend(self, draft: ChampionsGame, args: Words, rng: Random) -> list[Fact]:

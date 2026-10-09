@@ -26,7 +26,7 @@ Copy each command exactly as THE CHOICES write it. `move N` uses move N of that 
 - DAMAGE YOU TAKE gives what each foe move seen so far would do to your Pokemon. A foe may have moves not seen yet.
 - Foe stats are estimates from species and level; the real ones can differ a little.
 - SPEED ORDER lists the Pokemon on the field in the order they move this turn. Their Speed counts stat stages, paralysis, Tailwind and known items and abilities.
-- SUGGESTION is what a simple rule would pick: a sure KO first, else the most damage, else a switch to the bench Pokemon that hits hardest. It ignores Speed, status moves and what the foe will do. Take it as a hint only.
+- MOST DAMAGE is the command that deals the most damage: a sure KO first, else the most damage without hitting your partner, else a switch to the bench Pokemon that hits hardest. It ignores Speed, status and support moves, Protect, Fake Out and what the foe will do; often it is not the best play.
 
 # TACTICS
 - First look for a knock-out: a move marked KO does at least the target's remaining HP. A sure KO is better than a stronger move that needs a high roll.
@@ -113,7 +113,7 @@ Fastest first.
 1. the foe's Charmander: Speed about 22
 2. your Bulbasaur: Speed 19
 
-# SUGGESTION
+# MOST DAMAGE
 - For Bulbasaur: move 2 (Tackle)
 
 # THE CHOICES

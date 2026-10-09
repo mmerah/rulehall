@@ -1,6 +1,7 @@
 const SOUND_KEY = "rulehall.dice.sound";
 const SOUND_EVENT = "rulehall-sound";
 const BGM_VOLUME = 30;
+const QUIET_AUDIO_ERRORS = ["AbortError", "NotAllowedError"];
 // The setBgm numbers of BattleScene in data/graphics.js.
 const BATTLE_MUSIC = { "bw-trainer": 5, "bw-rival": 6, "bw2-kanto-gym-leader": 8, "spl-elite4": -101 };
 // The image files of each Showdown battle background generation, under the client root.
@@ -44,6 +45,7 @@ const STYLE = `
 .game-showdown-journal .inner-preempt { padding: 0 2rem .35rem .7rem }
 .game-showdown-journal .battle-history { margin: 0; padding: .05rem 0 }
 .game-showdown-journal .inner > :last-child { color: var(--game-text) }
+.game-showdown-journal .game-showdown-log.battle-log .chat > em { color: inherit !important }
 .game-showdown-journal .game-showdown-log.battle-log h2 {
   margin: .5rem 0 .15rem; padding: 0; border: 0; background: none; color: var(--game-accent);
   font: 700 .62rem/1.4 var(--game-body); letter-spacing: .08em; text-transform: uppercase;
@@ -99,6 +101,8 @@ export default {
   unmounted() {
     window.removeEventListener(SOUND_EVENT, this.sound);
     this.resizer?.disconnect();
+    // destroy() nulls the scene while a message animation is in flight; pause finishes it.
+    this.battle?.pause();
     this.battle?.destroy();
   },
   methods: {
@@ -132,7 +136,7 @@ export default {
       );
       for (const path of SCRIPTS) await attach("script", { src: url(path) });
       // The client asks for each sound over https, which this server does not speak.
-      BattleSound.getSound = (path) => (BattleSound.soundCache[path] ??= new Audio(url(path)));
+      BattleSound.getSound = (path) => (BattleSound.soundCache[path] ??= quietAudio(url(path)));
       // Showdown's music drowns the speech at its default volume.
       BattleSound.setBgmVolume(BGM_VOLUME);
     },
@@ -155,4 +159,15 @@ function attach(tag, attributes) {
     element.onerror = () => reject(new Error(`${tag} ${attributes.href ?? attributes.src}`));
     document.head.append(element);
   });
+}
+
+function quietAudio(src) {
+  const audio = new Audio(src);
+  const play = audio.play.bind(audio);
+  // The client drops the play() promise, and a pause before the start or a blocked autoplay rejects it.
+  audio.play = () =>
+    play().catch((error) => {
+      if (!QUIET_AUDIO_ERRORS.includes(error.name)) throw error;
+    });
+  return audio;
 }

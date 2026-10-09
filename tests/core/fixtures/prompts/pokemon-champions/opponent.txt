@@ -14,25 +14,25 @@ Each turn you get the state of the battle and pick one command for each of your 
 - Stat stages: some moves raise or lower Attack, Defense, Sp. Atk, Sp. Def, Speed, accuracy or evasion by stages, from -6 to +6. +1 is 1.5x, +2 is 2x, -1 is 2/3x. Stages reset when the Pokemon leaves the field.
 - Status (one at a time, it stays after a switch): burned (loses 1/16 HP each turn, its physical moves do half damage), poisoned (loses 1/8 HP each turn), badly poisoned (loses more each turn), paralysed (Speed halved, 25% chance to lose its turn), asleep (cannot move for 1 to 3 turns), frozen (cannot move until it thaws, 20% chance each turn).
 - Short effects such as confusion, Leech Seed, Taunt or a Substitute end when the Pokemon leaves the field. Hazards such as Stealth Rock or Spikes stay on a side and hurt each of its Pokemon that comes in.
-- Each Pokemon has one ability and may hold one item; both can change damage, Speed or give effects. You know your own. A foe's ability and item show only once revealed in the battle.
+- Each Pokemon has one ability and may hold one item; both can change damage, Speed or give effects. You know your own. The open team sheets show each foe's ability, item and moves.
 - Switching costs the turn of the Pokemon that switches. The Pokemon that comes in takes the moves aimed at the one that left.
 
 # DOUBLE BATTLE
 - Two Pokemon a side are on the field at once, at positions 1 and 2.
 - A move aimed at one Pokemon needs a target number in its command: 1 and 2 are the foes at positions 1 and 2; -1 and -2 are your side's positions (to aim a move at your partner).
 - Some moves hit several Pokemon at once: both foes, or everyone else on the field, your partner included. A move that hits more than one Pokemon does 0.75x to each; the damage numbers already count this.
-- Two attacks on one foe can knock it out when one cannot. Protect blocks moves aimed at the user for one turn, but it often fails when used two turns in a row.
+- Protect blocks moves aimed at the user for one turn, but it often fails when used two turns in a row.
 
 # COMMANDS
 Copy each command exactly as THE CHOICES write it. `move N` uses move N of that Pokemon; `move N T` uses move N at target T; `switch N` sends in your Pokemon number N from YOUR POKEMON. Give one command for each Pokemon in THE CHOICES, in their order. Two of your Pokemon cannot switch to the same Pokemon.
 
 # READING THE STATE
-- Damage is a percent of the target's current HP, from the lowest to the highest damage roll, with no critical hit, if the move hits. KO: even the lowest roll knocks it out. KO on a high roll: only some rolls do. Protect, a Substitute, or a foe's ability or item not revealed yet can change it.
+- Damage is a percent of the target's current HP, from the lowest to the highest damage roll, with no critical hit, if the move hits. KO: even the lowest roll knocks it out. KO on a high roll: only some rolls do. Protect or a Substitute can change it.
 - THE CHOICES give the damage of each move of your Pokemon on the field. YOUR BENCH DAMAGE gives what your bench Pokemon would deal if they came in.
-- DAMAGE YOU TAKE gives what each foe move seen so far would do to your Pokemon. A foe may have moves not seen yet.
-- Foe stats are estimates from species and level; the real ones can differ a little.
+- DAMAGE YOU TAKE gives what each foe move would do to your Pokemon.
+- Foe stats are estimates from each species' most common spread, or a standard one; the real ones can differ.
 - SPEED ORDER lists the Pokemon on the field in the order they move this turn. Their Speed counts stat stages, paralysis, Tailwind and known items and abilities.
-- SUGGESTION is what a simple rule would pick: a sure KO first, else the most damage, else a switch to the bench Pokemon that hits hardest. It ignores Speed, status moves and what the foe will do. Take it as a hint only.
+- MOST DAMAGE is the command that deals the most damage: a sure KO first, else the most damage without hitting your partner, else a switch to the bench Pokemon that hits hardest. It ignores Speed, status and support moves, Protect, Fake Out and what the foe will do; often it is not the best play.
 
 # TACTICS
 - First look for a knock-out: a move marked KO does at least the target's remaining HP. A sure KO is better than a stronger move that needs a high roll.
@@ -41,7 +41,20 @@ Copy each command exactly as THE CHOICES write it. `move N` uses move N of that 
 - Staying in and attacking is the default. Switch only to dodge a sure knock-out, and only when a bench Pokemon takes clearly less damage; DAMAGE YOU TAKE shows how your bench Pokemon would fare. A switch costs the turn.
 - A Pokemon that just came in stays and fights. Do not switch it out again.
 - Status and stat-raising moves pay off early, while your Pokemon is healthy and safe. When it is in danger, attack.
-- A foe likely has moves of its own types, even if you have not seen them yet.
+- Fake Out works only on a Pokemon's first turn on the field: the target flinches. It is often worth more than damage.
+- A foe that can clearly knock out one of yours will likely aim at it: Protect it or switch it out.
+- A foe at risk of a knock-out will likely use Protect. If it used Protect last turn, it likely cannot again: hit it. Else hit the other foe with one of your attacks.
+- Two attacks on one target can knock it out where one cannot; a spread move hits both foes for less.
+- Tailwind helps a faster team and Trick Room a slower one; setting the right one early often beats one more hit.
+
+# OPEN TEAM SHEETS
+The foe's team sheet, shown before the battle: the item, ability and moves of each of its Pokemon. Its stats stay hidden.
+- Charizard @ Charizardite Y; Blaze; moves: Heat Wave, Air Slash, Solar Beam, Protect
+- Garchomp @ Life Orb; Rough Skin; moves: Dragon Claw, Earthquake, Rock Slide, Protect
+- Incineroar @ Sitrus Berry; Intimidate; moves: Knock Off, Flare Blitz, Fake Out, Parting Shot
+- Pelipper @ Focus Sash; Drizzle; moves: Hurricane, Weather Ball, Tailwind, Protect
+- Kingambit @ Black Glasses; Defiant; moves: Kowtow Cleave, Iron Head, Sucker Punch, Protect
+- Whimsicott @ Light Clay; Prankster; moves: Moonblast, Tailwind, Encore, Protect
 
 # TYPE CHART
 How much each attacking type does to each defending type. Any pair not listed does 1x. For a Pokemon with two types, multiply both values.
@@ -128,62 +141,90 @@ Foe side: nothing.
 # FOE POKEMON (2 seen, 2 more not seen yet)
 - Incineroar, level 50, Fire/Dark: on the field at position 1 (target 1)
   HP 100%
-  Ability: Intimidate. Item: not revealed yet.
-  Estimated stats: Attack 135, Defense 110, Sp. Atk 100, Sp. Def 110, Speed 80. Speed now: about 80.
-  Moves seen: none yet
+  Ability: Intimidate. Item: Sitrus Berry.
+  Estimated stats: Attack 135, Defense 132, Sp. Atk 90, Sp. Def 111, Speed 103. Speed now: about 103.
+  Moves:
+    - Knock Off: Dark, physical, power 65, 100% accuracy. 1.5× damage if foe holds an item. Removes item.
+    - Flare Blitz: Fire, physical, power 120, 100% accuracy. Has 33% recoil. 10% chance to burn. Thaws user.
+    - Fake Out (priority +3): Normal, physical, power 40, 100% accuracy. Hits first. First turn out only. 100% flinch chance.
+    - Parting Shot: Dark, status, 100% accuracy. Lowers target's Atk, Sp. Atk by 1. User switches.
 - Charizard, level 50, Fire/Flying: on the field at position 2 (target 2)
   HP 100%
-  Ability: not revealed yet (it can be Blaze or Solar Power). Item: not revealed yet.
-  Estimated stats: Attack 104, Defense 98, Sp. Atk 129, Sp. Def 105, Speed 120. Speed now: about 120.
-  Moves seen: none yet
+  Ability: Blaze. Item: Charizardite Y.
+  Estimated stats: Attack 93, Defense 111, Sp. Atk 143, Sp. Def 105, Speed 144. Speed now: about 144.
+  Moves:
+    - Heat Wave: Fire, special, power 95, 90% accuracy. 10% chance to burn the foe(s).
+    - Air Slash: Flying, special, power 75, 95% accuracy. 30% chance to make the target flinch.
+    - Solar Beam: Grass, special, power 120, 100% accuracy. Charges turn 1. Hits turn 2. No charge in sunlight.
+    - Protect (priority +4): Normal, status, never misses. Prevents moves from affecting the user this turn.
 
 # RECENT TURNS
 Start: The foe's Incineroar came in. The foe's Charizard came in. Your Rotom came in. Your Venusaur came in. The foe's Incineroar's ability Intimidate acted. Your Rotom's Attack fell by 1. Your Venusaur's Attack fell by 1.
 
 # YOUR BENCH DAMAGE
 Dragonite (if it came in):
-- Extreme Speed on Incineroar: 32-39%
-- Extreme Speed on Charizard: 41-49%
-- Dragon Claw on Incineroar: 49-58%
-- Dragon Claw on Charizard: 61-73%
-- Earthquake on Incineroar: 61-72%, 2x super effective
+- Extreme Speed on Incineroar: 23-27%
+- Extreme Speed on Charizard: 30-36%
+- Dragon Claw on Incineroar: 34-41%
+- Dragon Claw on Charizard: 46-54%
+- Earthquake on Incineroar: 43-51%, 2x super effective
 - Earthquake on Charizard: no effect
 - Earthquake on your partner Rotom: no effect
 - Earthquake on your partner Venusaur: 29-34%
-- Iron Head on Incineroar: 16-19%, 0.5x not very effective
-- Iron Head on Charizard: 20-24%, 0.5x not very effective
+- Iron Head on Incineroar: 11-13%, 0.5x not very effective
+- Iron Head on Charizard: 15-18%, 0.5x not very effective
 
 Tyranitar (if it came in):
-- Rock Slide on Incineroar: 68-82%, 2x super effective
+- Rock Slide on Incineroar: 50-59%, 2x super effective
 - Rock Slide on Charizard: KO, 4x super effective
 - Knock Off on Incineroar: 20-24%, 0.5x not very effective
-- Knock Off on Charizard: 49-59%
-- Iron Head on Incineroar: 16-19%, 0.5x not very effective
-- Iron Head on Charizard: 20-24%, 0.5x not very effective
+- Knock Off on Charizard: 37-44%
+- Iron Head on Incineroar: 11-13%, 0.5x not very effective
+- Iron Head on Charizard: 15-18%, 0.5x not very effective
 
 # DAMAGE YOU TAKE
 Rotom (on the field):
-- no foe move seen yet
+- the foe's Incineroar's Knock Off: 36-43%
+- the foe's Incineroar's Flare Blitz: 22-26%, 0.5x not very effective
+- the foe's Incineroar's Fake Out: 10-12%
+- the foe's Charizard's Heat Wave: 19-22%, 0.5x not very effective
+- the foe's Charizard's Air Slash: 15-18%, 0.5x not very effective
+- the foe's Charizard's Solar Beam: 64-77%, 2x super effective
 
 Venusaur (on the field):
-- no foe move seen yet
+- the foe's Incineroar's Knock Off: 25-30%
+- the foe's Incineroar's Flare Blitz: 93-110%, KO on a high roll, 2x super effective
+- the foe's Incineroar's Fake Out: 10-12%
+- the foe's Charizard's Heat Wave: 68-81%, 2x super effective
+- the foe's Charizard's Air Slash: 54-65%, 2x super effective
+- the foe's Charizard's Solar Beam: 6-8%, 0.25x not very effective
 
 Dragonite (if it came in):
-- no foe move seen yet
+- the foe's Incineroar's Knock Off: 39-46%
+- the foe's Incineroar's Flare Blitz: 23-27%, 0.5x not very effective
+- the foe's Incineroar's Fake Out: 10-13%
+- the foe's Charizard's Heat Wave: 19-22%, 0.5x not very effective
+- the foe's Charizard's Air Slash: 30-36%
+- the foe's Charizard's Solar Beam: 7-9%, 0.25x not very effective
 
 Tyranitar (if it came in):
-- no foe move seen yet
+- the foe's Incineroar's Knock Off: 14-16%, 0.5x not very effective
+- the foe's Incineroar's Flare Blitz: 16-20%, 0.5x not very effective
+- the foe's Incineroar's Fake Out: 3-4%, 0.5x not very effective
+- the foe's Charizard's Heat Wave: 14-17%, 0.5x not very effective
+- the foe's Charizard's Air Slash: 12-14%, 0.5x not very effective
+- the foe's Charizard's Solar Beam: 51-60%, 2x super effective
 
 # SPEED ORDER
 Fastest first.
-1. the foe's Charizard: Speed about 120
+1. the foe's Charizard: Speed about 144
 2. your Rotom: Speed 106
-3. your Venusaur: Speed 100
-4. the foe's Incineroar: Speed about 80
-Moves with a priority skip this order: your Rotom's Protect (+4), your Venusaur's Protect (+4).
+3. the foe's Incineroar: Speed about 103
+4. your Venusaur: Speed 100
+Moves with a priority skip this order: your Rotom's Protect (+4), your Venusaur's Protect (+4), the foe's Incineroar's Fake Out (+3), the foe's Charizard's Protect (+4).
 
-# SUGGESTION
-- For Rotom: move 1 1 (Hydro Pump at Incineroar)
+# MOST DAMAGE
+- For Rotom: move 1 2 (Hydro Pump at Charizard)
 - For Venusaur: move 2 1 (Earth Power at Incineroar)
 
 # MEGA EVOLUTION
@@ -191,11 +232,11 @@ One of your Pokemon can Mega Evolve this turn: add ` mega` to the end of its mov
 
 # THE CHOICES
 For Rotom at position 1:
-- move 1 1: Hydro Pump at Incineroar (Water, special, 8/8 PP): KO, 2x super effective
+- move 1 1: Hydro Pump at Incineroar (Water, special, 8/8 PP): 95-112%, KO on a high roll, 2x super effective
 - move 1 2: Hydro Pump at Charizard (Water, special, 8/8 PP): KO, 2x super effective
 - move 1 -2: Hydro Pump at your ally Venusaur (Water, special, 8/8 PP)
-- move 2 1: Thunderbolt at Incineroar (Electric, special, 16/16 PP): 46-55%
-- move 2 2: Thunderbolt at Charizard (Electric, special, 16/16 PP): KO, 2x super effective
+- move 2 1: Thunderbolt at Incineroar (Electric, special, 16/16 PP): 39-46%
+- move 2 2: Thunderbolt at Charizard (Electric, special, 16/16 PP): 92-109%, KO on a high roll, 2x super effective
 - move 2 -2: Thunderbolt at your ally Venusaur (Electric, special, 16/16 PP)
 - move 3 1: Will-O-Wisp at Incineroar (Fire, status, 16/16 PP)
 - move 3 2: Will-O-Wisp at Charizard (Fire, status, 16/16 PP)
@@ -205,14 +246,14 @@ For Rotom at position 1:
 - switch 4: Tyranitar (207/207 HP)
 
 For Venusaur at position 2 (can Mega Evolve: add ` mega` to its move command):
-- move 1 1: Sludge Bomb at Incineroar (Poison, special, 12/12 PP): 45-54%
-- move 1 2: Sludge Bomb at Charizard (Poison, special, 12/12 PP): 52-62%
+- move 1 1: Sludge Bomb at Incineroar (Poison, special, 12/12 PP): 37-45%
+- move 1 2: Sludge Bomb at Charizard (Poison, special, 12/12 PP): 44-53%
 - move 1 -1: Sludge Bomb at your ally Rotom (Poison, special, 12/12 PP)
-- move 2 1: Earth Power at Incineroar (Ground, special, 12/12 PP): 61-72%, 2x super effective
+- move 2 1: Earth Power at Incineroar (Ground, special, 12/12 PP): 50-60%, 2x super effective
 - move 2 2: Earth Power at Charizard (Ground, special, 12/12 PP): no effect
 - move 2 -1: Earth Power at your ally Rotom (Ground, special, 12/12 PP)
-- move 3 1: Giga Drain at Incineroar (Grass, special, 12/12 PP): 19-22%, 0.5x not very effective
-- move 3 2: Giga Drain at Charizard (Grass, special, 12/12 PP): 10-13%, 0.25x not very effective
+- move 3 1: Giga Drain at Incineroar (Grass, special, 12/12 PP): 15-18%, 0.5x not very effective
+- move 3 2: Giga Drain at Charizard (Grass, special, 12/12 PP): 8-11%, 0.25x not very effective
 - move 3 -1: Giga Drain at your ally Rotom (Grass, special, 12/12 PP)
 - move 4: Protect (Normal, status, 8/8 PP, priority +4)
 - switch 3: Dragonite (168/168 HP)

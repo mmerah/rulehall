@@ -63,6 +63,9 @@ ASSESS_JS = SHOWDOWN / "assess.js"
 SIDES: tuple[SideId, ...] = ("p1", "p2")
 SIDE_OF: dict[RoleSeat, SideId] = {"foe": "p2", "ally": "p1"}
 TURN_ENDS = ("|upkeep", "|turn|", "|win|", "|tie")
+TEAM_PREVIEW_LINE = "|teampreview"
+# A Showdown sheet shows natures; only our own sheet line, added after, reaches the view.
+SHOWDOWN_SHEET = "|showteam|"
 BACK = "back"
 NEXT = "next"
 MEGA = "mega"
@@ -81,6 +84,9 @@ SNAPSHOT = (
     "boosts: mon.boosts}))]))"
 )
 DUMP = f">eval JSON.stringify({SNAPSHOT})"
+# Open Team Sheets asks each seat in split lines whose blank half ends a block early: the
+# battle drops the rule before team preview, and code shows its own sheet.
+NO_SHEET_REQUEST = ">eval battle.ruleTable.delete('openteamsheets')"
 # setStatus refuses a Pokemon that is not active, and RESTORE runs at team preview.
 RESTORE = (
     ">eval const states = STATES; [battle.p1, battle.p2].forEach((side, number) => "
@@ -360,8 +366,7 @@ class ShowdownRun:
 
     def _foe_species(self, seat: RoleSeat) -> tuple[Species, ...]:
         # Team preview shows each side the other's species, and nothing more.
-        foes = self.setup.player_side() if seat == "foe" else self.setup.foes
-        return tuple(dex().species[battler.species_id] for battler in foes)
+        return tuple(dex().species[battler.species_id] for battler in self.setup.other_side(seat))
 
     def _ally(self) -> Ally:
         assert self.setup.ally is not None
@@ -393,7 +398,7 @@ class ShowdownRun:
             own, hand, foes = seated.battlers, seated.hand, self._foe_species(seat)
             prompt = render_preview(self.setup, seat, offers, own, hand, foes)
         else:
-            assessment = await self._assess(SIDE_OF[seat])
+            assessment = await self._assess(seat)
             prompt = render_opponent(self.setup, seat, assessment, offers, seated.hand, self.log)
         return create_task(role(prompt, OpponentAnswer, partial(check_commands, offers)))
 
@@ -423,7 +428,7 @@ class ShowdownRun:
         if self.policy == "random":
             rng = Random(f"{self.setup.seed} {len(self.inputs)}")
             return {slot: opponent_choice(ask, rng) for slot in slots}
-        assessment = await self._assess(SIDE_OF[seat])
+        assessment = await self._assess(seat)
         picks: list[str] = []
         for slot in slots:
             pick = greedy_choice(assessment, seated.aimed_choices(slot, picks), slot)
@@ -431,8 +436,8 @@ class ShowdownRun:
             picks.append(f"{pick}{MEGA_SUFFIX}" if mega else pick)
         return dict(zip(slots, picks, strict=True))
 
-    async def _assess(self, side: SideId) -> Assessment:
-        await self.transport.send([assess_line(side)])
+    async def _assess(self, seat: RoleSeat) -> Assessment:
+        await self.transport.send([assess_line(self.setup, seat)])
         self._read(await self._block())
         assert self.dump is not None and self.dump.assessment is not None
         return self.dump.assessment
@@ -476,6 +481,8 @@ class ShowdownRun:
         match block.kind:
             case "update":
                 view, dump = read_update(block.lines, opening=not self.log)
+                if self.setup.foe_sheet_open:
+                    view = _with_open_sheet(view, self.setup.foes)
                 # Chat lines go before the turn's end marker so they show inside the turn they
                 # were chosen for.
                 if self.said and view:
@@ -499,14 +506,21 @@ class ShowdownRun:
                 self.result = battle_result(self.setup, self.dump, self.outcome, highlights)
 
 
-def packed(battler: Battler) -> str:
+def packed(battler: Battler, *, open_sheet: bool = False) -> str:
     moves = ",".join(move.move_id for move in battler.moves)
     gender = "" if battler.gender == "N" else battler.gender
-    evs, ivs = (",".join(map(str, stats)) for stats in (battler.evs, battler.ivs))
+    evs, ivs = (
+        "" if open_sheet else ",".join(map(str, stats)) for stats in (battler.evs, battler.ivs)
+    )
+    nature, friendship = ("", "") if open_sheet else (battler.nature, battler.friendship)
     return (
         f"{battler.name}|{battler.species_id}|{battler.item_id or ''}|{battler.ability}|{moves}"
-        f"|{battler.nature}|{evs}|{gender}|{ivs}||{battler.level}|{battler.friendship}"
+        f"|{nature}|{evs}|{gender}|{ivs}||{battler.level}|{friendship}"
     )
+
+
+def open_sheet_line(battlers: Sequence[Battler]) -> str:
+    return f"|showteam|p2|{']'.join(packed(battler, open_sheet=True) for battler in battlers)}"
 
 
 def start_lines(setup: BattleSetup) -> tuple[str, ...]:
@@ -523,6 +537,7 @@ def start_lines(setup: BattleSetup) -> tuple[str, ...]:
     }
     return (
         f">start {json.dumps({'formatid': spec.showdown_id, 'seed': list(setup.seed)})}",
+        *((NO_SHEET_REQUEST,) if spec.open_team_sheets else ()),
         f">player p1 {json.dumps(p1)}",
         f">player p2 {json.dumps(p2)}",
         *(_restore_lines(setup) if spec.carry_over else ()),
@@ -553,16 +568,26 @@ def read_update(lines: Sequence[str], *, opening: bool) -> tuple[tuple[str, ...]
             dump = parse_json(Dump, line.removeprefix(DUMPED).removesuffix('"'))
         elif line.startswith("||<<< error"):
             raise ValueError(line)
-        elif not line.startswith(("||", "|debug|")) and not (opening and line.startswith("|-")):
+        elif not line.startswith(("||", "|debug|", SHOWDOWN_SHEET)) and not (
+            opening and line.startswith("|-")
+        ):
             view.append(line)
     return tuple(view), dump
 
 
-def assess_line(side: SideId) -> str:
+def assess_line(setup: BattleSetup, seat: RoleSeat) -> str:
     # `>eval` turns each form feed back into a newline, so the file goes as one input line.
     code = "\f".join(line for line in read_cached_text(ASSESS_JS).splitlines() if line)
+    side = SIDE_OF[seat]
     opposite = "p2" if side == "p1" else "p1"
-    code = code.replace("SIDES", f"battle.{side}, battle.{opposite}")
+    estimates = json.dumps(
+        [
+            None if battler.estimate is None else battler.estimate.model_dump()
+            for battler in setup.other_side(seat)
+        ]
+    )
+    sheet_open = json.dumps(setup.sheet_open_to(seat))
+    code = code.replace("ARGUMENTS", f"battle.{side}, battle.{opposite}, {sheet_open}, {estimates}")
     return f">eval JSON.stringify({{...{SNAPSHOT}, assessment: {code}}})"
 
 
@@ -572,9 +597,17 @@ def as_dumped(battler: Battler, dumped: DumpMon) -> Battler:
         for move, pp in zip(battler.moves, dumped.pp, strict=True)
     )
     status = dumped.status if dumped.status in STATUSES else ""
-    item_id = battler.item_id if dumped.held else None
+    item_id, holds_mega_stone = (
+        (battler.item_id, battler.holds_mega_stone) if dumped.held else (None, False)
+    )
     return battler.model_copy(
-        update={"hp": dumped.hp, "status": status, "moves": moves, "item_id": item_id}
+        update={
+            "hp": dumped.hp,
+            "status": status,
+            "moves": moves,
+            "item_id": item_id,
+            "holds_mega_stone": holds_mega_stone,
+        }
     )
 
 
@@ -605,6 +638,13 @@ def _restore_lines(setup: BattleSetup) -> tuple[str]:
         for side in (setup.player_side(), setup.foes)
     ]
     return (RESTORE.replace("STATES", json.dumps(states)),)
+
+
+def _with_open_sheet(view: tuple[str, ...], foes: Sequence[Battler]) -> tuple[str, ...]:
+    at = next((at for at, line in enumerate(view) if line.startswith(TEAM_PREVIEW_LINE)), None)
+    if at is None:
+        return view
+    return (*view[: at + 1], open_sheet_line(foes), *view[at + 1 :])
 
 
 def _packed_team(battlers: Sequence[Battler]) -> str:

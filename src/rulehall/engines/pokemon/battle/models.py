@@ -6,7 +6,7 @@ from pydantic import Field, model_validator
 from rulehall.core.facts import Fact
 from rulehall.core.validation import Frozen, Loose, Mutable, Slug
 from rulehall.engines.pokemon.battle.views import Pip
-from rulehall.engines.pokemon.dex import Stats, dex
+from rulehall.engines.pokemon.dex import NATURES, Stats, dex
 
 type Policy = Literal["random", "scripted", "model"]
 type Outcome = Literal["won", "lost", "fled", "caught"]
@@ -73,11 +73,10 @@ type BattleBackground = Literal[
 ]
 type BattleMusic = Literal["bw-trainer", "bw-rival", "bw2-kanto-gym-leader", "spl-elite4"]
 type BattleFormat = Literal["singles", "doubles"]
+type Nature = Annotated[str, Field(pattern=f"^({'|'.join(NATURES)})$")]
 
 STATUSES: tuple[Status, ...] = ("brn", "frz", "par", "psn", "tox", "slp")
 CHAMPIONS_FORMAT_PATTERN = r"^gen9championsvgc[a-z0-9]+$"
-# Open Team Sheets would print a sheet request no seat answers: the battle drops it.
-CHAMPIONS_FORMAT_RULES = "@@@!Open Team Sheets"
 type ChampionsFormatId = Annotated[str, Field(pattern=CHAMPIONS_FORMAT_PATTERN)]
 TEAM_MAX = 6
 DOUBLE_TEAM_MIN = 2
@@ -131,6 +130,7 @@ class FormatSpec(Frozen):
     active_slots: int
     stat_points: bool = False
     carry_over: bool = True
+    open_team_sheets: bool = False
 
 
 FORMATS: dict[BattleFormat, FormatSpec] = {
@@ -146,6 +146,11 @@ class BattleMove(Frozen):
     pp: int = Field(ge=0)
 
 
+class Spread(Frozen):
+    nature: Nature
+    sp: Stats
+
+
 class Battler(Frozen):
     mon_id: Slug
     species_id: Slug
@@ -158,9 +163,11 @@ class Battler(Frozen):
     evs: Stats
     friendship: int = Field(ge=0, le=FRIENDSHIP_MAX)
     item_id: Slug | None = None
+    holds_mega_stone: bool = False
     moves: tuple[BattleMove, ...] = Field(min_length=1, max_length=MOVES_MAX)
     hp: int = Field(ge=0)
     status: Status = ""
+    estimate: Spread | None = None
 
     @property
     def species_name(self) -> str:
@@ -199,6 +206,8 @@ class BattleSetup(Frozen):
     terrain: Terrain | None = None
     format_id: BattleFormat | ChampionsFormatId
     ally: Ally | None = None
+    foe_sheet_open: bool = False
+    player_sheet_open: bool = False
 
     @model_validator(mode="after")
     def _can_start(self) -> Self:
@@ -211,6 +220,8 @@ class BattleSetup(Frozen):
             raise ValueError("bait works only in a wild battle")
         if self.wild and len(self.foes) > 1:
             raise ValueError("a wild battle has one foe")
+        if self.wild and (self.foe_sheet_open or self.player_sheet_open):
+            raise ValueError("a wild battle has no team sheets")
         if self.wild != (self.foe_avatar_id is None):
             raise ValueError("a trainer battle, and only a trainer battle, has a foe_avatar_id")
         if self.wild != (self.policy == "random"):
@@ -233,15 +244,16 @@ class BattleSetup(Frozen):
             case "singles" | "doubles" as journey:
                 return FORMATS[journey]
             case champions:
-                return FormatSpec(
-                    showdown_id=f"{champions}{CHAMPIONS_FORMAT_RULES}",
-                    active_slots=2,
-                    stat_points=True,
-                    carry_over=False,
-                )
+                return champions_format_spec(champions)
 
     def player_side(self) -> tuple[Battler, ...]:
         return self.team if self.ally is None else (*self.team, *self.ally.team)
+
+    def other_side(self, seat: Seat) -> tuple[Battler, ...]:
+        return self.player_side() if seat == "foe" else self.foes
+
+    def sheet_open_to(self, seat: Seat) -> bool:
+        return self.player_sheet_open if seat == "foe" else self.foe_sheet_open
 
     def condition_texts(self) -> tuple[str, ...]:
         lead = self.foes[0].name
@@ -316,3 +328,13 @@ class Battle(Mutable):
             and all(throw.input_index != len(self.inputs) for throw in self.throws)
             and bool(self.balls_left())
         )
+
+
+def champions_format_spec(format_id: ChampionsFormatId) -> FormatSpec:
+    return FormatSpec(
+        showdown_id=format_id,
+        active_slots=2,
+        stat_points=True,
+        carry_over=False,
+        open_team_sheets=True,
+    )

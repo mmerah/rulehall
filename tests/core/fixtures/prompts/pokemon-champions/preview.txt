@@ -14,25 +14,25 @@ Each turn you get the state of the battle and pick one command for each of your 
 - Stat stages: some moves raise or lower Attack, Defense, Sp. Atk, Sp. Def, Speed, accuracy or evasion by stages, from -6 to +6. +1 is 1.5x, +2 is 2x, -1 is 2/3x. Stages reset when the Pokemon leaves the field.
 - Status (one at a time, it stays after a switch): burned (loses 1/16 HP each turn, its physical moves do half damage), poisoned (loses 1/8 HP each turn), badly poisoned (loses more each turn), paralysed (Speed halved, 25% chance to lose its turn), asleep (cannot move for 1 to 3 turns), frozen (cannot move until it thaws, 20% chance each turn).
 - Short effects such as confusion, Leech Seed, Taunt or a Substitute end when the Pokemon leaves the field. Hazards such as Stealth Rock or Spikes stay on a side and hurt each of its Pokemon that comes in.
-- Each Pokemon has one ability and may hold one item; both can change damage, Speed or give effects. You know your own. A foe's ability and item show only once revealed in the battle.
+- Each Pokemon has one ability and may hold one item; both can change damage, Speed or give effects. You know your own. The open team sheets show each foe's ability, item and moves.
 - Switching costs the turn of the Pokemon that switches. The Pokemon that comes in takes the moves aimed at the one that left.
 
 # DOUBLE BATTLE
 - Two Pokemon a side are on the field at once, at positions 1 and 2.
 - A move aimed at one Pokemon needs a target number in its command: 1 and 2 are the foes at positions 1 and 2; -1 and -2 are your side's positions (to aim a move at your partner).
 - Some moves hit several Pokemon at once: both foes, or everyone else on the field, your partner included. A move that hits more than one Pokemon does 0.75x to each; the damage numbers already count this.
-- Two attacks on one foe can knock it out when one cannot. Protect blocks moves aimed at the user for one turn, but it often fails when used two turns in a row.
+- Protect blocks moves aimed at the user for one turn, but it often fails when used two turns in a row.
 
 # COMMANDS
 Copy each command exactly as THE CHOICES write it. `move N` uses move N of that Pokemon; `move N T` uses move N at target T; `switch N` sends in your Pokemon number N from YOUR POKEMON. Give one command for each Pokemon in THE CHOICES, in their order. Two of your Pokemon cannot switch to the same Pokemon.
 
 # READING THE STATE
-- Damage is a percent of the target's current HP, from the lowest to the highest damage roll, with no critical hit, if the move hits. KO: even the lowest roll knocks it out. KO on a high roll: only some rolls do. Protect, a Substitute, or a foe's ability or item not revealed yet can change it.
+- Damage is a percent of the target's current HP, from the lowest to the highest damage roll, with no critical hit, if the move hits. KO: even the lowest roll knocks it out. KO on a high roll: only some rolls do. Protect or a Substitute can change it.
 - THE CHOICES give the damage of each move of your Pokemon on the field. YOUR BENCH DAMAGE gives what your bench Pokemon would deal if they came in.
-- DAMAGE YOU TAKE gives what each foe move seen so far would do to your Pokemon. A foe may have moves not seen yet.
-- Foe stats are estimates from species and level; the real ones can differ a little.
+- DAMAGE YOU TAKE gives what each foe move would do to your Pokemon.
+- Foe stats are estimates from each species' most common spread, or a standard one; the real ones can differ.
 - SPEED ORDER lists the Pokemon on the field in the order they move this turn. Their Speed counts stat stages, paralysis, Tailwind and known items and abilities.
-- SUGGESTION is what a simple rule would pick: a sure KO first, else the most damage, else a switch to the bench Pokemon that hits hardest. It ignores Speed, status moves and what the foe will do. Take it as a hint only.
+- MOST DAMAGE is the command that deals the most damage: a sure KO first, else the most damage without hitting your partner, else a switch to the bench Pokemon that hits hardest. It ignores Speed, status and support moves, Protect, Fake Out and what the foe will do; often it is not the best play.
 
 # TACTICS
 - First look for a knock-out: a move marked KO does at least the target's remaining HP. A sure KO is better than a stronger move that needs a high roll.
@@ -41,7 +41,20 @@ Copy each command exactly as THE CHOICES write it. `move N` uses move N of that 
 - Staying in and attacking is the default. Switch only to dodge a sure knock-out, and only when a bench Pokemon takes clearly less damage; DAMAGE YOU TAKE shows how your bench Pokemon would fare. A switch costs the turn.
 - A Pokemon that just came in stays and fights. Do not switch it out again.
 - Status and stat-raising moves pay off early, while your Pokemon is healthy and safe. When it is in danger, attack.
-- A foe likely has moves of its own types, even if you have not seen them yet.
+- Fake Out works only on a Pokemon's first turn on the field: the target flinches. It is often worth more than damage.
+- A foe that can clearly knock out one of yours will likely aim at it: Protect it or switch it out.
+- A foe at risk of a knock-out will likely use Protect. If it used Protect last turn, it likely cannot again: hit it. Else hit the other foe with one of your attacks.
+- Two attacks on one target can knock it out where one cannot; a spread move hits both foes for less.
+- Tailwind helps a faster team and Trick Room a slower one; setting the right one early often beats one more hit.
+
+# OPEN TEAM SHEETS
+The foe's team sheet, shown before the battle: the item, ability and moves of each of its Pokemon. Its stats stay hidden.
+- Charizard @ Charizardite Y; Blaze; moves: Heat Wave, Air Slash, Solar Beam, Protect
+- Garchomp @ Life Orb; Rough Skin; moves: Dragon Claw, Earthquake, Rock Slide, Protect
+- Incineroar @ Sitrus Berry; Intimidate; moves: Knock Off, Flare Blitz, Fake Out, Parting Shot
+- Pelipper @ Focus Sash; Drizzle; moves: Hurricane, Weather Ball, Tailwind, Protect
+- Kingambit @ Black Glasses; Defiant; moves: Kowtow Cleave, Iron Head, Sucker Punch, Protect
+- Whimsicott @ Light Clay; Prankster; moves: Moonblast, Tailwind, Encore, Protect
 
 # TYPE CHART
 How much each attacking type does to each defending type. Any pair not listed does 1x. For a Pokemon with two types, multiply both values.
@@ -99,7 +112,7 @@ How much each attacking type does to each defending type. Any pair not listed do
 - Rocky Helmet (held item): If holder is hit by a contact move, the attacker loses 1/6 of its max HP.
 
 # TEAM PREVIEW
-The battle has not started: both trainers see each other's team. Bring 4 of your Pokemon. The first 2 you pick lead, the others wait on the bench; the rest sit this battle out. Give one `team N` command for each pick in THE CHOICES, in their order: N is the number of a Pokemon in YOUR POKEMON, and each Pokemon can be picked once. A Pokemon that holds its Mega Stone can Mega Evolve in battle, and your team can Mega Evolve only once per battle.
+The battle has not started: both trainers see each other's team. Bring 4 of your Pokemon. The first 2 you pick lead, the others wait on the bench; the rest sit this battle out. Give one `team N` command for each pick in THE CHOICES, in their order: N is the number of a Pokemon in YOUR POKEMON, and each Pokemon can be picked once. A Pokemon that holds its Mega Stone can Mega Evolve in battle, and your team can Mega Evolve only once per battle: bring one Pokemon that holds its Mega Stone. Leads with Fake Out, Tailwind, Trick Room or Intimidate are often strong.
 
 # YOUR POKEMON
 - 1. Venusaur, level 50, Grass/Poison
@@ -138,7 +151,8 @@ How each of your Pokemon fares against each foe: its best damaging move's effect
 - Sinistcha: Charizard -2.7, Garchomp -0.3, Incineroar -1.9, Pelipper -1.3, Kingambit -1.9, Whimsicott -0.9; total -9.0
 - Rotom-Wash: Charizard +2.5, Garchomp -1.4, Incineroar +2.3, Pelipper +5.2, Kingambit +0.6, Whimsicott -2.2; total +7.1
 
-# SUGGESTION
+# BY MATCHUP
+Picks by the MATCHUPS totals, with Fake Out, Tailwind, Trick Room or Intimidate users leading, and they bring one Pokemon that holds its Mega Stone:
 - Lead 1: team 6 (Rotom-Wash)
 - Lead 2: team 1 (Venusaur)
 - Back 1: team 3 (Dragonite)

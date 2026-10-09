@@ -50,10 +50,13 @@ from rulehall.engines.pokemon.battle.simulator import (
     assess_line,
     battle_result,
     condition_lines,
+    open_sheet_line,
     packed,
+    read_update,
     start_lines,
 )
 from rulehall.engines.pokemon.battle.views import BattleChoice
+from rulehall.engines.pokemon.champions.data import champions_data
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.journey.sheet import Mon
 from rulehall.engines.pokemon.journey.world import JourneyGame
@@ -150,7 +153,9 @@ async def test_a_saved_doubles_battle_replays_its_inputs() -> None:
 
     assert resumed.inputs == run.inputs
     assert resumed.side_request == run.side_request
-    assert replayed.sent == [line for line in played.sent if line != assess_line("p2")]
+    assert replayed.sent == [
+        line for line in played.sent if line != assess_line(DOUBLES_SETUP, "foe")
+    ]
 
 
 async def test_the_conditions_go_in_once_the_leads_are_out_and_replay_the_same() -> None:
@@ -214,7 +219,7 @@ async def test_the_model_opponent_thinks_at_the_request_and_its_choice_is_record
     run = await ShowdownRun.start(draft, simulator, opponent)
     await sleep(0)
     assert len(asked) == 1
-    assert simulator.sent[-1] == assess_line("p2")
+    assert simulator.sent[-1] == assess_line(setup, "foe")
     await run.choose(draft, "move 1", Random(0))
 
     assert len(asked) == 1
@@ -254,7 +259,7 @@ async def test_a_refused_model_opponent_falls_back_to_the_scripted_choice() -> N
     await sleep(0)
     await run.choose(draft, "move 1", Random(0))
 
-    assert simulator.sent.count(assess_line("p2")) == 2
+    assert simulator.sent.count(assess_line(setup, "foe")) == 2
     assert run.inputs[-2:] == [">p1 move 1", ">p2 move 1"]
     assert run.result is not None and run.result.outcome == "won"
     assert not any(line.startswith("|c|Rook|") for line in run.log)
@@ -538,6 +543,11 @@ async def test_a_champions_battle_brings_four_of_six_and_each_side_mega_evolves_
     for command in ("team 3", "team 1", "team 5", "team 2"):
         await run.choose(draft, command, Random(0))
     assert run.inputs[0] == ">p1 team 3, 1, 5, 2"
+    sheet = open_sheet_line(CHAMPIONS_SETUP.foes)
+    assert run.log.count(sheet) == 1
+    assert run.log[run.log.index(sheet) - 1].startswith("|teampreview")
+    assert [line for line in run.log if line.startswith("|showteam|")] == [sheet]
+    assert not [line for line in run.log if "otsrequest" in line or "custom rule" in line]
     assert run.dump is not None and (len(run.dump.p1), len(run.dump.p2)) == (4, 4)
 
     await run.choose(draft, "move 1", Random(0))
@@ -591,11 +601,45 @@ async def test_the_model_opponent_picks_its_four_and_mega_evolves() -> None:
     golden(FIXTURES / "prompts" / CHAMPIONS / "opponent.txt", masked(asked[1].text))
 
 
+def test_an_open_sheet_shows_no_nature_and_no_stat_points() -> None:
+    sheet = open_sheet_line(CHAMPIONS_SETUP.foes)
+
+    mons = [mon.split("|") for mon in sheet.removeprefix("|showteam|p2|").split("]")]
+    assert [mon[1] for mon in mons] == [foe.species_id for foe in CHAMPIONS_SETUP.foes]
+    assert [mon[2] for mon in mons] == [foe.item_id for foe in CHAMPIONS_SETUP.foes]
+    assert {(mon[5], mon[6], mon[8]) for mon in mons} == {("", "", "")}
+
+
+def test_a_team_sheet_from_showdown_never_reaches_the_view() -> None:
+    showdown_sheet = (
+        "|showteam|p2|Venusaur|venusaur|venusaurite|Chlorophyll|sludgebomb|Modest"
+        "|32,0,2,32,0,0|M|31,31,31,31,31,31||50|255"
+    )
+
+    view, _ = read_update(("|teampreview|4", showdown_sheet, "|start"), opening=False)
+
+    assert view == ("|teampreview|4", "|start")
+
+
+def test_the_foe_estimates_take_the_assumed_spread_not_the_real_one() -> None:
+    update = next(block for block in recorded(RECORDED_CHAMPIONS) if '"assessment"' in block[-1])
+    _, dump = read_update(update[1:], opening=False)
+    assert dump is not None and dump.assessment is not None
+    assert dump.assessment.foes
+    for foe in dump.assessment.foes:
+        battler = next(each for each in CHAMPIONS_SETUP.team if each.name == foe.name)
+        estimate = battler.estimate
+        assert estimate is not None and estimate.nature != battler.nature
+        species = dex().species[battler.species_id]
+        expected = stats(species, 50, estimate.nature, (31,) * 6, estimate.sp, stat_points=True)
+        assert foe.stats == expected[1:]
+
+
 def test_a_champions_battle_names_its_format_and_restores_nothing() -> None:
     lines = start_lines(CHAMPIONS_SETUP)
 
     assert json.loads(lines[0].removeprefix(">start "))["formatid"] == (
-        f"{CHAMPIONS_SETUP.format_id}@@@!Open Team Sheets"
+        champions_data().source.format_id
     )
     assert not [line for line in lines if line.startswith(">eval const states")]
     with pytest.raises(ValidationError, match="format_id"):

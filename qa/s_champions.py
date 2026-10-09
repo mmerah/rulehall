@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-from playwright.sync_api import Locator, Page
+from playwright.sync_api import Locator, Page, Request, Response
 
 sys.path.insert(0, str(Path(__file__).parent))
 from drive import (
@@ -23,10 +23,32 @@ TEAM_SIZE = 6
 PICKED_FOR_BATTLE = 4
 LEADS_ON_FIELD = 4
 # The Showdown scene draws its sprites with scripts, not CSS animations, so `still` misses them.
-PREVIEW_SHOWN = """count => [...document.querySelectorAll(".game-battle-scene img")]
-  .filter(sprite => sprite.offsetParent !== null).length >= count"""
-FIELD_SHOWN = """count => [...document.querySelectorAll(".game-battle-scene img")]
-  .filter(sprite => sprite.style.display === "block").length >= count"""
+# An <img> has its box before its pixels, so each shown sprite must also have loaded.
+PREVIEW_SHOWN = """count => {
+  const shown = [...document.querySelectorAll(".game-battle-scene img")]
+    .filter(sprite => sprite.offsetParent !== null);
+  return shown.length >= count && shown.every(sprite => sprite.complete && sprite.naturalWidth > 0);
+}"""
+FIELD_SHOWN = """count => {
+  const shown = [...document.querySelectorAll(".game-battle-scene img")]
+    .filter(sprite => sprite.style.display === "block");
+  return shown.length >= count && shown.every(sprite => sprite.complete && sprite.naturalWidth > 0);
+}"""
+BROKEN_SPRITES = """() => [...document.querySelectorAll(".game-battle-scene img")]
+  .filter(sprite => sprite.offsetParent !== null && !(sprite.complete && sprite.naturalWidth > 0))
+  .map(sprite => sprite.src)"""
+FOE_ON_FIELD = '.game-battle-scene [data-tooltip="activepokemon|1|0"]'
+TOOLTIP_LOADED = """() => {
+  const icons = [...document.querySelectorAll("#tooltipwrapper img")];
+  return icons.length > 0 && icons.every(icon => icon.complete);
+}"""
+ASSETS = "/assets/"
+LOG_LAST_CUT = """() => {
+  const log = document.querySelector(".game-showdown-log").getBoundingClientRect();
+  const last = document.querySelector(".game-showdown-log .inner > :last-child")
+    .getBoundingClientRect();
+  return last.top < log.top - 1 || last.bottom > log.bottom + 1;
+}"""
 
 
 def body(s: Session) -> None:
@@ -145,6 +167,7 @@ def champions_battle(s: Session) -> None:
         s.check(fits_width(page), f"{name} champions team preview scrolls sideways")
         cut = cut_names(page)
         s.check(not cut, f"{name} team preview cuts names: {cut}")
+        check_sprites_and_log(s, page, name, "team preview")
     unpicked = player.locator(".game-battle .game-choice-switch:visible:enabled")
     picked = player.locator(".game-battle .game-choice-switch:visible", has_text="Picked:")
     for count in range(1, PICKED_FOR_BATTLE + 1):
@@ -160,7 +183,37 @@ def champions_battle(s: Session) -> None:
         s.check(fits_width(page), f"{name} champions battle scrolls sideways")
         cut = cut_names(page)
         s.check(not cut, f"{name} battle cuts names: {cut}")
+        check_sprites_and_log(s, page, name, "battle")
+        if page is player:
+            check_foe_tooltip(s, page, name)
         page.context.close()
+
+
+def check_sprites_and_log(s: Session, page: Page, name: str, stage: str) -> None:
+    broken = page.evaluate(BROKEN_SPRITES)
+    s.check(not broken, f"{name} {stage} has sprites that did not load: {broken}")
+    if name in ("tablet", "phone"):
+        s.check(not page.evaluate(LOG_LAST_CUT), f"{name} {stage} cuts the last log line")
+
+
+def check_foe_tooltip(s: Session, page: Page, name: str) -> None:
+    failed: list[str] = []
+
+    def on_failure(request: Request) -> None:
+        if ASSETS in request.url:
+            failed.append(request.url)
+
+    def on_response(response: Response) -> None:
+        if ASSETS in response.url and response.status >= 400:
+            failed.append(f"{response.status} {response.url}")
+
+    page.on("requestfailed", on_failure)
+    page.on("response", on_response)
+    page.locator(FOE_ON_FIELD).hover()
+    page.locator("#tooltipwrapper .tooltip").wait_for()
+    page.wait_for_function(TOOLTIP_LOADED)
+    s.shot(page, f"{name}-champions-foe-tooltip")
+    s.check(not failed, f"{name} foe tooltip asks for assets that fail: {failed}")
 
 
 def open_battle(page: Page) -> None:

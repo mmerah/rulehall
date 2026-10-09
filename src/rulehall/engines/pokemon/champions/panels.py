@@ -1,10 +1,11 @@
-from rulehall.core.decisions import ActionOption
+from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.validation import Frozen, Slug
 from rulehall.core.views import Meter, Panel, PanelRow, Tag
 from rulehall.engines.pokemon.champions.args import PresetEdit, TeamEdit
 from rulehall.engines.pokemon.champions.data import CompetitiveSet, champions_data
 from rulehall.engines.pokemon.champions.rules import TEAM_SLOT_PREFIX
 from rulehall.engines.pokemon.champions.season import TIERS, Event, Finish
+from rulehall.engines.pokemon.champions.sheet import ChampionsSheet
 from rulehall.engines.pokemon.champions.world import ChampionsWorld
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.rules import STAT_NAMES
@@ -99,6 +100,25 @@ def season_panel(world: ChampionsWorld) -> Panel:
         rows=(*rows, *standings),
         help="The circuit season: events, placings and Championship Points.",
         tab=TEAM_TAB,
+    )
+
+
+def prize_decision(sheet: ChampionsSheet) -> Decision | None:
+    if not sheet.prize_species_ids:
+        return None
+    return Decision(
+        kind="prize",
+        prompt="A prize for the top cut: which Pokemon joins your roster?",
+        options=tuple(
+            ActionOption(
+                id=species_id,
+                name=dex().species[species_id].name,
+                action_name="claim_prize",
+                args={"species_id": species_id},
+            )
+            for species_id in sheet.prize_species_ids
+        ),
+        allows_text=False,
     )
 
 

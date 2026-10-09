@@ -241,10 +241,6 @@ def counter_pick(pool: Iterable[Slug], target_types: Sequence[str], level: int) 
     return min(candidates, key=rank)
 
 
-def succeeds(face: int, total: int, dc: int) -> bool:
-    return face == 20 or (face != 1 and total >= dc)
-
-
 def _hp_bonus(hp: int, maximum: int) -> int:
     if hp == 1:
         return 30
