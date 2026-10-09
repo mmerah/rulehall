@@ -54,7 +54,7 @@ def body(s: Session) -> None:
             submit(page, f"I cross the fire again ({attempt}).\n{CROSSING}")
             wait_idle(page)
         choose(page, "Commit")
-        if "Break an item" in decision_text(page):
+        if "Break gear" in decision_text(page):
             if not defended:
                 s.shot(page, "defence")
                 defended = True

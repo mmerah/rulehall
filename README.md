@@ -22,7 +22,7 @@ Four rule sets ship with the app:
 - **Loner 4e** plays in scenes. An oracle answers yes or no, sometimes with a twist, and you decide where the story goes next.
 - **Tunnel Goons** is a dungeon crawl on a map. You walk, fight and rest, and the map grows whenever you reach its edge.
 - **24XX** is science fiction in scenes: one skill die, three outcome bands, and gear that breaks to soften a hit.
-- **Pokemon** is a whole region on a map. Skill checks roll a d20, and battles play out in the Pokemon Showdown simulator and its battle view.
+- **Pokemon** has two modes. **Journey** is a whole region on a map: skill checks roll a d20, and battles play out in the Pokemon Showdown simulator and its battle view. **Champions** is a season of VGC doubles events, with a team builder and the current Champions format.
 
 A scenario is a backdrop, a premise, a scope and an opening scene. The worldsmith writes one from your prompt, or from a document you drop in (Markdown, text or PDF). A character is one sheet per rule set. Some of both come with the game, and you can make your own in the app. Each rule set plays from a pack, which is either its own tables or a full kit with a backdrop, names, traits and adventure seeds. Loner ships with twelve genre packs, and you can write a pack of your own on the **New pack** page.
 
@@ -93,7 +93,7 @@ The Pokemon rule set runs its battles in Pokemon Showdown, a Node program, so it
    npm --prefix src/rulehall/engines/pokemon/showdown run setup
    ```
 
-The setup downloads about 220 MB and takes a few minutes. The sprites cover every species in the dex, and once the setup is done the game needs no network. The dex export (`npm --prefix src/rulehall/engines/pokemon/showdown run export-dex`) and the pack export (`npm --prefix src/rulehall/engines/pokemon/showdown run export-packs`) do need the network, and they're only for maintainers.
+The setup downloads about 220 MB and takes a few minutes. The sprites cover every species in the dex, and once the setup is done the game needs no network. The dex export (`npm --prefix src/rulehall/engines/pokemon/showdown run export-dex`) the pack export (`npm --prefix src/rulehall/engines/pokemon/showdown run export-packs`) and the Champions data export (`npm --prefix src/rulehall/engines/pokemon/showdown run export-champions`, also run monthly by a workflow) do need the network, and they're only for maintainers.
 
 Rulehall is a free fan project, not affiliated with Nintendo, Creatures Inc., Game Freak or The Pokemon Company. The sprites, music and Pokedex entries belong to them. [docs/POKEMON.md](docs/POKEMON.md#licence-and-attribution) lists what comes from where.
 

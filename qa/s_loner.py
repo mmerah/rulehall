@@ -7,8 +7,6 @@ import sys
 import time
 from pathlib import Path
 
-from playwright.sync_api import Locator, Page
-
 sys.path.insert(0, str(Path(__file__).parent))
 from drive import (
     BASE,
@@ -25,7 +23,6 @@ from drive import (
     held,
     log,
     move,
-    open_drawer,
     placeholder,
     reach_breather,
     run,
@@ -80,7 +77,7 @@ def body(s: Session) -> None:
     page.locator(".game-drawer .game-stat-label.game-help", has_text="Luck").first.hover()
     tip = page.locator(".game-help-tip")
     tip.first.wait_for()
-    s.check(tip.count() == 1 and "fight" in tip.inner_text(), "no help tooltip on Luck")
+    s.check(tip.count() == 1 and "conflict" in tip.inner_text(), "no help tooltip on Luck")
     s.shot(page, "luck-help")
     page.mouse.move(640, 300)
 
@@ -243,22 +240,7 @@ def body(s: Session) -> None:
     wait_idle(page)
     s.check("line one\nline two" in "\n".join(bubbles(page)), "multi-line prompt not shown whole")
 
-    # 9. The journal and the scene tab.
-    open_drawer(page)
-    page.get_by_role("tab", name="journal").click()
-    journal_heading(page).wait_for()
-    s.shot(page, "journal")
-    journal = clean(drawer_text(page))
-    s.check(
-        "chronicle" in journal.lower() and "turn 1:" in journal,
-        f"journal missing turns: {journal[:200]}",
-    )
-    page.locator(".q-expansion-item").first.click()
-    page.locator(".q-expansion-item--expanded").first.wait_for()
-    s.shot(page, "journal-open")
-    page.get_by_role("tab", name="scene").click()
-
-    # 9b. A defeat ends the conflict and opens no pick: the story tells what it means.
+    # 9. A defeat ends the conflict and opens no pick: the story tells what it means.
     ended = False
     for attempt in range(30):
         submit(
@@ -273,7 +255,7 @@ def body(s: Session) -> None:
             break
     s.check(ended, "no defeat in 30 exchanges")
 
-    # 9c. Move on: the player leaves the scene with a move; the transition rolls.
+    # 9b. Move on: the player leaves the scene with a move; the transition rolls.
     use_move(page, "Move on")
     s.shot(page, "moved-on")
     s.check(
@@ -507,25 +489,18 @@ def body(s: Session) -> None:
     wait_idle(page, timeout=30)
     s.check(not composer(page).is_disabled(), "composer closed after a restart from death")
 
-    # 20. Prose with markdown and html: the chat shows it verbatim, the journal renders markdown.
+    # 20. Prose with markdown and html: the narrator's bubble shows it verbatim, never as markup.
     submit(page, "I say **bold** and *soft* and <b>tag</b> and <script>alert(1)</script>.\n!none")
     wait_idle(page)
     chat = bubbles(page)[-2]
     s.note(f"chat bubble: {chat!r}")
     s.check("**bold**" in chat and "<b>tag</b>" in chat, "chat did not show the text verbatim")
-    open_drawer(page)
-    open_journal(page)
-    s.shot(page, "journal-markdown")
-    journal_html = page.locator(".q-expansion-item").first.inner_html()
-    s.note(
-        f"journal html sample: {journal_html[journal_html.find('bold') - 60 : journal_html.find('bold') + 60]!r}"  # noqa: E501
-    )
+    echo_html = page.locator(".game-transcript .q-message-text-content").nth(-2).inner_html()
     s.check(
-        "<strong>bold</strong>" not in journal_html,
-        "the journal renders the narrator's text as markdown",
+        "<strong>" not in echo_html and "<b>" not in echo_html,
+        "the narrator's text renders as markup",
     )
-    s.check("<script>" not in journal_html, "the journal lets script tags through")
-    page.get_by_role("tab", name="scene").click()
+    s.check("<script>" not in echo_html, "the narrator's bubble lets script tags through")
 
     # 21. A long unbroken word: the bubble must not overflow the page.
     long_word = "x" * 300
@@ -606,17 +581,6 @@ def body(s: Session) -> None:
         "# WHAT THE PROTAGONIST CARRIES FORWARD" in carried,
         "the next game's worldsmith does not see the Living World",
     )
-
-
-def journal_heading(page: Page) -> Locator:
-    return page.locator(".game-drawer").get_by_text(re.compile("chronicle", re.I)).first
-
-
-def open_journal(page: Page) -> None:
-    page.get_by_role("tab", name="journal").click()
-    journal_heading(page).wait_for()
-    page.locator(".q-expansion-item").first.click()
-    page.locator(".q-expansion-item--expanded").first.wait_for()
 
 
 run("loner", body)
