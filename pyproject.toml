@@ -9,10 +9,10 @@ dependencies = [
     "nicegui==3.17.1",
     "pydantic==2.13.5",
     "pydantic-settings==2.15.0",
-    "python-dotenv==1.2.3",
+    "python-dotenv==1.2.4",
     "httpx==0.28.1",
     "pypdf==6.19.0",
-    "mcp==2.2.0",
+    "mcp==2.3.0",
 ]
 
 [project.scripts]
@@ -27,10 +27,10 @@ packages = ["src/rulehall"]
 
 [dependency-groups]
 dev = [
-    "basedpyright==1.40.1",
+    "basedpyright==1.40.2",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
-    "ruff==0.16.9",
+    "ruff==0.16.10",
 ]
 qa = [
     "playwright==1.63.0",
