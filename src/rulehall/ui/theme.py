@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from nicegui import ui
@@ -83,7 +83,7 @@ def fit_to_viewport() -> None:
     ui.add_body_html(KEYBOARD_FIT)
 
 
-def install() -> None:
+def install(styles: Sequence[Path]) -> None:
     ui.add_head_html(FONTS, shared=True)
     ui.add_head_html(HOME_SCREEN_ICON, shared=True)
     ui.button.default_props("no-caps unelevated")
@@ -101,5 +101,7 @@ def install() -> None:
     ui.card.default_classes("game-card")
     # A layer before Quasar's own outranks it; `:root` keeps the first paint dark before `body`.
     root = "".join(f"--{key}: {value};" for key, value in NEUTRAL_PALETTE.items())
-    css = read_cached_text(Path(__file__).parent / "theme.css")
+    css = "\n".join(
+        read_cached_text(path) for path in (Path(__file__).parent / "theme.css", *styles)
+    )
     ui.add_css(f":root {{{root}}}@layer overrides {{{css}}}", shared=True)

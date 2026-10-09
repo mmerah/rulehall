@@ -6,7 +6,7 @@ from pydantic import Field, model_validator
 from rulehall.core.validation import Frozen, Mutable, Slug
 from rulehall.engines.pokemon.battle.models import LEVEL_MAX, TEAM_MAX
 from rulehall.engines.pokemon.journey.rules import BOSS_RISE, LEGENDARY_AT, RosterSlot, rescaled
-from rulehall.engines.pokemon.journey.sheet import Trainer
+from rulehall.engines.pokemon.journey.sheet import JourneyTrainer
 
 type SchemeDue = Literal["operation", "lair"]
 type Outcome = Literal["foiled", "succeeded"]
@@ -122,7 +122,7 @@ class EvilTeam(Mutable):
         return self.require_scheme().stages[self.stage() - 1].text_for(outcome)
 
     def boss_roster(
-        self, boss: Trainer, table_level: int, species_ids: Collection[Slug]
+        self, boss: JourneyTrainer, table_level: int, species_ids: Collection[Slug]
     ) -> tuple[RosterSlot, ...]:
         ace_level = min(table_level + BOSS_RISE * self.succeeded(), LEVEL_MAX)
         roster = rescaled(boss.roster, ace_level, species_ids)

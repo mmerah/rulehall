@@ -1,6 +1,7 @@
 {
  "archetypes": [
   {
+   "ability_ids": [],
    "archetype_id": "tailwind",
    "core_ids": [
     "sneasler",
@@ -9,6 +10,9 @@
    "leads": [
     "salamence",
     "sneasler"
+   ],
+   "move_ids": [
+    "tailwind"
    ],
    "name": "Tailwind",
    "setter_id": "salamence",
@@ -141,6 +145,7 @@
    }
   },
   {
+   "ability_ids": [],
    "archetype_id": "trickroom",
    "core_ids": [
     "sneasler",
@@ -149,6 +154,9 @@
    "leads": [
     "indeedeef",
     "sneasler"
+   ],
+   "move_ids": [
+    "trickroom"
    ],
    "name": "Trick Room",
    "setter_id": "indeedeef",
@@ -282,6 +290,9 @@
    }
   },
   {
+   "ability_ids": [
+    "drizzle"
+   ],
    "archetype_id": "rain",
    "core_ids": [
     "archaludon",
@@ -290,6 +301,9 @@
    "leads": [
     "pelipper",
     "archaludon"
+   ],
+   "move_ids": [
+    "raindance"
    ],
    "name": "Rain",
    "setter_id": "pelipper",
@@ -423,6 +437,9 @@
    }
   },
   {
+   "ability_ids": [
+    "drought"
+   ],
    "archetype_id": "sun",
    "core_ids": [
     "garchomp",
@@ -431,6 +448,9 @@
    "leads": [
     "charizard",
     "garchomp"
+   ],
+   "move_ids": [
+    "sunnyday"
    ],
    "name": "Sun",
    "setter_id": "charizard",
@@ -563,6 +583,9 @@
    }
   },
   {
+   "ability_ids": [
+    "sandstream"
+   ],
    "archetype_id": "sand",
    "core_ids": [
     "excadrill",
@@ -571,6 +594,9 @@
    "leads": [
     "tyranitar",
     "excadrill"
+   ],
+   "move_ids": [
+    "sandstorm"
    ],
    "name": "Sand",
    "setter_id": "tyranitar",
@@ -703,6 +729,9 @@
    }
   },
   {
+   "ability_ids": [
+    "snowwarning"
+   ],
    "archetype_id": "snow",
    "core_ids": [
     "sneasler",
@@ -711,6 +740,9 @@
    "leads": [
     "froslass",
     "sneasler"
+   ],
+   "move_ids": [
+    "snowscape"
    ],
    "name": "Snow",
    "setter_id": "froslass",
@@ -843,6 +875,9 @@
    }
   },
   {
+   "ability_ids": [
+    "psychicsurge"
+   ],
    "archetype_id": "psychicterrain",
    "core_ids": [
     "sneasler",
@@ -851,6 +886,9 @@
    "leads": [
     "indeedee",
     "sneasler"
+   ],
+   "move_ids": [
+    "psychicterrain"
    ],
    "name": "Psychic Terrain",
    "setter_id": "indeedee",
@@ -983,6 +1021,9 @@
    }
   },
   {
+   "ability_ids": [
+    "grassysurge"
+   ],
    "archetype_id": "grassyterrain",
    "core_ids": [
     "incineroar",
@@ -991,6 +1032,9 @@
    "leads": [
     "rillaboom",
     "incineroar"
+   ],
+   "move_ids": [
+    "grassyterrain"
    ],
    "name": "Grassy Terrain",
    "setter_id": "rillaboom",
@@ -1123,6 +1167,7 @@
    }
   },
   {
+   "ability_ids": [],
    "archetype_id": "goodstuffs",
    "core_ids": [
     "kingambit",
@@ -1132,6 +1177,7 @@
     "sneasler",
     "kingambit"
    ],
+   "move_ids": [],
    "name": "Goodstuffs",
    "setter_id": "sneasler",
    "team": {
@@ -7270,251 +7316,251 @@
    "zoomlens"
   ],
   "level": 50,
-  "mega_stones": {
-   "abomasite": [
-    "abomasnow"
-   ],
-   "absolite": [
-    "absol"
-   ],
-   "absolitez": [
-    "absol"
-   ],
-   "aerodactylite": [
-    "aerodactyl"
-   ],
-   "aggronite": [
-    "aggron"
-   ],
-   "alakazite": [
-    "alakazam"
-   ],
-   "altarianite": [
-    "altaria"
-   ],
-   "ampharosite": [
-    "ampharos"
-   ],
-   "audinite": [
-    "audino"
-   ],
-   "banettite": [
-    "banette"
-   ],
-   "barbaracite": [
-    "barbaracle"
-   ],
-   "baxcalibrite": [
-    "baxcalibur"
-   ],
-   "beedrillite": [
-    "beedrill"
-   ],
-   "blastoisinite": [
-    "blastoise"
-   ],
-   "blazikenite": [
-    "blaziken"
-   ],
-   "cameruptite": [
-    "camerupt"
-   ],
-   "chandelurite": [
-    "chandelure"
-   ],
-   "charizarditex": [
-    "charizard"
-   ],
-   "charizarditey": [
-    "charizard"
-   ],
-   "chesnaughtite": [
-    "chesnaught"
-   ],
-   "chimechite": [
-    "chimecho"
-   ],
-   "clefablite": [
-    "clefable"
-   ],
-   "crabominite": [
-    "crabominable"
-   ],
-   "delphoxite": [
-    "delphox"
-   ],
-   "dragalgite": [
-    "dragalge"
-   ],
-   "dragoninite": [
-    "dragonite"
-   ],
-   "drampanite": [
-    "drampa"
-   ],
-   "eelektrossite": [
-    "eelektross"
-   ],
-   "emboarite": [
-    "emboar"
-   ],
-   "excadrite": [
-    "excadrill"
-   ],
-   "falinksite": [
-    "falinks"
-   ],
-   "feraligite": [
-    "feraligatr"
-   ],
-   "floettite": [
-    "floetteeternal"
-   ],
-   "froslassite": [
-    "froslass"
-   ],
-   "galladite": [
-    "gallade"
-   ],
-   "garchompite": [
-    "garchomp"
-   ],
-   "garchompitez": [
-    "garchomp"
-   ],
-   "gardevoirite": [
-    "gardevoir"
-   ],
-   "gengarite": [
-    "gengar"
-   ],
-   "glalitite": [
-    "glalie"
-   ],
-   "glimmoranite": [
-    "glimmora"
-   ],
-   "golisopite": [
-    "golisopod"
-   ],
-   "golurkite": [
-    "golurk"
-   ],
-   "greninjite": [
-    "greninja"
-   ],
-   "gyaradosite": [
-    "gyarados"
-   ],
-   "hawluchanite": [
-    "hawlucha"
-   ],
-   "heracronite": [
-    "heracross"
-   ],
-   "houndoominite": [
-    "houndoom"
-   ],
-   "kangaskhanite": [
-    "kangaskhan"
-   ],
-   "lopunnite": [
-    "lopunny"
-   ],
-   "lucarionite": [
-    "lucario"
-   ],
-   "lucarionitez": [
-    "lucario"
-   ],
-   "malamarite": [
-    "malamar"
-   ],
-   "manectite": [
-    "manectric"
-   ],
-   "mawilite": [
-    "mawile"
-   ],
-   "medichamite": [
-    "medicham"
-   ],
-   "meganiumite": [
-    "meganium"
-   ],
-   "meowsticite": [
-    "meowstic",
-    "meowsticf"
-   ],
-   "metagrossite": [
-    "metagross"
-   ],
-   "pidgeotite": [
-    "pidgeot"
-   ],
-   "pinsirite": [
-    "pinsir"
-   ],
-   "pyroarite": [
-    "pyroar"
-   ],
-   "raichunitex": [
-    "raichu"
-   ],
-   "raichunitey": [
-    "raichu"
-   ],
-   "sablenite": [
-    "sableye"
-   ],
-   "salamencite": [
-    "salamence"
-   ],
-   "sceptilite": [
-    "sceptile"
-   ],
-   "scizorite": [
-    "scizor"
-   ],
-   "scolipite": [
-    "scolipede"
-   ],
-   "scovillainite": [
-    "scovillain"
-   ],
-   "scraftinite": [
-    "scrafty"
-   ],
-   "sharpedonite": [
-    "sharpedo"
-   ],
-   "skarmorite": [
-    "skarmory"
-   ],
-   "slowbronite": [
-    "slowbro"
-   ],
-   "staraptite": [
-    "staraptor"
-   ],
-   "starminite": [
-    "starmie"
-   ],
-   "steelixite": [
-    "steelix"
-   ],
-   "swampertite": [
-    "swampert"
-   ],
-   "tyranitarite": [
-    "tyranitar"
-   ],
-   "venusaurite": [
-    "venusaur"
-   ],
-   "victreebelite": [
-    "victreebel"
-   ]
+  "mega_formes": {
+   "abomasite": {
+    "abomasnow": "abomasnowmega"
+   },
+   "absolite": {
+    "absol": "absolmega"
+   },
+   "absolitez": {
+    "absol": "absolmegaz"
+   },
+   "aerodactylite": {
+    "aerodactyl": "aerodactylmega"
+   },
+   "aggronite": {
+    "aggron": "aggronmega"
+   },
+   "alakazite": {
+    "alakazam": "alakazammega"
+   },
+   "altarianite": {
+    "altaria": "altariamega"
+   },
+   "ampharosite": {
+    "ampharos": "ampharosmega"
+   },
+   "audinite": {
+    "audino": "audinomega"
+   },
+   "banettite": {
+    "banette": "banettemega"
+   },
+   "barbaracite": {
+    "barbaracle": "barbaraclemega"
+   },
+   "baxcalibrite": {
+    "baxcalibur": "baxcaliburmega"
+   },
+   "beedrillite": {
+    "beedrill": "beedrillmega"
+   },
+   "blastoisinite": {
+    "blastoise": "blastoisemega"
+   },
+   "blazikenite": {
+    "blaziken": "blazikenmega"
+   },
+   "cameruptite": {
+    "camerupt": "cameruptmega"
+   },
+   "chandelurite": {
+    "chandelure": "chandeluremega"
+   },
+   "charizarditex": {
+    "charizard": "charizardmegax"
+   },
+   "charizarditey": {
+    "charizard": "charizardmegay"
+   },
+   "chesnaughtite": {
+    "chesnaught": "chesnaughtmega"
+   },
+   "chimechite": {
+    "chimecho": "chimechomega"
+   },
+   "clefablite": {
+    "clefable": "clefablemega"
+   },
+   "crabominite": {
+    "crabominable": "crabominablemega"
+   },
+   "delphoxite": {
+    "delphox": "delphoxmega"
+   },
+   "dragalgite": {
+    "dragalge": "dragalgemega"
+   },
+   "dragoninite": {
+    "dragonite": "dragonitemega"
+   },
+   "drampanite": {
+    "drampa": "drampamega"
+   },
+   "eelektrossite": {
+    "eelektross": "eelektrossmega"
+   },
+   "emboarite": {
+    "emboar": "emboarmega"
+   },
+   "excadrite": {
+    "excadrill": "excadrillmega"
+   },
+   "falinksite": {
+    "falinks": "falinksmega"
+   },
+   "feraligite": {
+    "feraligatr": "feraligatrmega"
+   },
+   "floettite": {
+    "floetteeternal": "floettemega"
+   },
+   "froslassite": {
+    "froslass": "froslassmega"
+   },
+   "galladite": {
+    "gallade": "gallademega"
+   },
+   "garchompite": {
+    "garchomp": "garchompmega"
+   },
+   "garchompitez": {
+    "garchomp": "garchompmegaz"
+   },
+   "gardevoirite": {
+    "gardevoir": "gardevoirmega"
+   },
+   "gengarite": {
+    "gengar": "gengarmega"
+   },
+   "glalitite": {
+    "glalie": "glaliemega"
+   },
+   "glimmoranite": {
+    "glimmora": "glimmoramega"
+   },
+   "golisopite": {
+    "golisopod": "golisopodmega"
+   },
+   "golurkite": {
+    "golurk": "golurkmega"
+   },
+   "greninjite": {
+    "greninja": "greninjamega"
+   },
+   "gyaradosite": {
+    "gyarados": "gyaradosmega"
+   },
+   "hawluchanite": {
+    "hawlucha": "hawluchamega"
+   },
+   "heracronite": {
+    "heracross": "heracrossmega"
+   },
+   "houndoominite": {
+    "houndoom": "houndoommega"
+   },
+   "kangaskhanite": {
+    "kangaskhan": "kangaskhanmega"
+   },
+   "lopunnite": {
+    "lopunny": "lopunnymega"
+   },
+   "lucarionite": {
+    "lucario": "lucariomega"
+   },
+   "lucarionitez": {
+    "lucario": "lucariomegaz"
+   },
+   "malamarite": {
+    "malamar": "malamarmega"
+   },
+   "manectite": {
+    "manectric": "manectricmega"
+   },
+   "mawilite": {
+    "mawile": "mawilemega"
+   },
+   "medichamite": {
+    "medicham": "medichammega"
+   },
+   "meganiumite": {
+    "meganium": "meganiummega"
+   },
+   "meowsticite": {
+    "meowstic": "meowsticmmega",
+    "meowsticf": "meowsticfmega"
+   },
+   "metagrossite": {
+    "metagross": "metagrossmega"
+   },
+   "pidgeotite": {
+    "pidgeot": "pidgeotmega"
+   },
+   "pinsirite": {
+    "pinsir": "pinsirmega"
+   },
+   "pyroarite": {
+    "pyroar": "pyroarmega"
+   },
+   "raichunitex": {
+    "raichu": "raichumegax"
+   },
+   "raichunitey": {
+    "raichu": "raichumegay"
+   },
+   "sablenite": {
+    "sableye": "sableyemega"
+   },
+   "salamencite": {
+    "salamence": "salamencemega"
+   },
+   "sceptilite": {
+    "sceptile": "sceptilemega"
+   },
+   "scizorite": {
+    "scizor": "scizormega"
+   },
+   "scolipite": {
+    "scolipede": "scolipedemega"
+   },
+   "scovillainite": {
+    "scovillain": "scovillainmega"
+   },
+   "scraftinite": {
+    "scrafty": "scraftymega"
+   },
+   "sharpedonite": {
+    "sharpedo": "sharpedomega"
+   },
+   "skarmorite": {
+    "skarmory": "skarmorymega"
+   },
+   "slowbronite": {
+    "slowbro": "slowbromega"
+   },
+   "staraptite": {
+    "staraptor": "staraptormega"
+   },
+   "starminite": {
+    "starmie": "starmiemega"
+   },
+   "steelixite": {
+    "steelix": "steelixmega"
+   },
+   "swampertite": {
+    "swampert": "swampertmega"
+   },
+   "tyranitarite": {
+    "tyranitar": "tyranitarmega"
+   },
+   "venusaurite": {
+    "venusaur": "venusaurmega"
+   },
+   "victreebelite": {
+    "victreebel": "victreebelmega"
+   }
   },
   "moves_max": 4,
   "sp_max": 32,
@@ -209297,6 +209343,71 @@
    "team_id": "limitless-6a37eb4faf50e12308407acc-8"
   }
  ],
+ "roles": {
+  "fake-out": {
+   "ability_ids": [],
+   "move_ids": [
+    "fakeout"
+   ],
+   "name": "Fake Out"
+  },
+  "intimidate": {
+   "ability_ids": [
+    "intimidate"
+   ],
+   "move_ids": [],
+   "name": "Intimidate"
+  },
+  "redirect": {
+   "ability_ids": [],
+   "move_ids": [
+    "followme",
+    "ragepowder"
+   ],
+   "name": "Redirection"
+  },
+  "screens": {
+   "ability_ids": [],
+   "move_ids": [
+    "auroraveil",
+    "lightscreen",
+    "reflect"
+   ],
+   "name": "Screens"
+  },
+  "speed-control": {
+   "ability_ids": [],
+   "move_ids": [
+    "bulldoze",
+    "cottonspore",
+    "drumbeating",
+    "electroweb",
+    "glare",
+    "icywind",
+    "lowsweep",
+    "mudshot",
+    "nuzzle",
+    "pounce",
+    "rocktomb",
+    "scaryface",
+    "stringshot",
+    "stunspore",
+    "tailwind",
+    "thunderwave",
+    "toxicthread",
+    "trickroom",
+    "zapcannon"
+   ],
+   "name": "Speed control"
+  },
+  "wide-guard": {
+   "ability_ids": [],
+   "move_ids": [
+    "wideguard"
+   ],
+   "name": "Wide Guard"
+  }
+ },
  "source": {
   "battles": 223477,
   "cutoff": 1760,
@@ -213261,6 +213372,7 @@
  },
  "usage": {
   "abomasnow": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -213394,6 +213506,7 @@
    "usage_percent": 0.1
   },
   "absol": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -213527,6 +213640,12 @@
    "usage_percent": 0.7
   },
   "aegislash": {
+   "abilities": [
+    {
+     "ability_id": "stancechange",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -213676,6 +213795,20 @@
    "usage_percent": 0.4
   },
   "aerodactyl": {
+   "abilities": [
+    {
+     "ability_id": "unnerve",
+     "percent": 8.8
+    },
+    {
+     "ability_id": "pressure",
+     "percent": 1.4
+    },
+    {
+     "ability_id": "rockhead",
+     "percent": 1
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -213805,6 +213938,7 @@
    "usage_percent": 4.6
   },
   "aggron": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -213926,6 +214060,16 @@
    "usage_percent": 0
   },
   "altaria": {
+   "abilities": [
+    {
+     "ability_id": "cloudnine",
+     "percent": 83.8
+    },
+    {
+     "ability_id": "naturalcure",
+     "percent": 2
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -214071,6 +214215,7 @@
    "usage_percent": 0.2
   },
   "ampharos": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -214204,6 +214349,12 @@
    "usage_percent": 0
   },
   "annihilape": {
+   "abilities": [
+    {
+     "ability_id": "defiant",
+     "percent": 99.7
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -214353,6 +214504,12 @@
    "usage_percent": 2.2
   },
   "appletun": {
+   "abilities": [
+    {
+     "ability_id": "thickfat",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -214405,6 +214562,12 @@
    "usage_percent": 0.1
   },
   "araquanid": {
+   "abilities": [
+    {
+     "ability_id": "waterbubble",
+     "percent": 99.9
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -214554,6 +214717,12 @@
    "usage_percent": 0.1
   },
   "arcanine": {
+   "abilities": [
+    {
+     "ability_id": "intimidate",
+     "percent": 99.8
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -214695,6 +214864,16 @@
    "usage_percent": 0.1
   },
   "arcaninehisui": {
+   "abilities": [
+    {
+     "ability_id": "rockhead",
+     "percent": 97.4
+    },
+    {
+     "ability_id": "intimidate",
+     "percent": 2.5
+    }
+   ],
    "checks": [
     {
      "percent": 34.3,
@@ -214829,6 +215008,12 @@
    "usage_percent": 15.4
   },
   "archaludon": {
+   "abilities": [
+    {
+     "ability_id": "stamina",
+     "percent": 99.4
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -214958,6 +215143,12 @@
    "usage_percent": 15
   },
   "ariados": {
+   "abilities": [
+    {
+     "ability_id": "insomnia",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -215026,6 +215217,16 @@
    "usage_percent": 0.2
   },
   "armarouge": {
+   "abilities": [
+    {
+     "ability_id": "flashfire",
+     "percent": 87.3
+    },
+    {
+     "ability_id": "weakarmor",
+     "percent": 12.7
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -215171,6 +215372,12 @@
    "usage_percent": 4
   },
   "aromatisse": {
+   "abilities": [
+    {
+     "ability_id": "aromaveil",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -215223,6 +215430,12 @@
    "usage_percent": 0.1
   },
   "audino": {
+   "abilities": [
+    {
+     "ability_id": "regenerator",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -215295,6 +215508,12 @@
    "usage_percent": 0.2
   },
   "aurorus": {
+   "abilities": [
+    {
+     "ability_id": "snowwarning",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -215347,6 +215566,12 @@
    "usage_percent": 0.1
   },
   "azumarill": {
+   "abilities": [
+    {
+     "ability_id": "hugepower",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -215472,6 +215697,16 @@
    "usage_percent": 0.1
   },
   "basculegion": {
+   "abilities": [
+    {
+     "ability_id": "adaptability",
+     "percent": 96.8
+    },
+    {
+     "ability_id": "swiftswim",
+     "percent": 3.2
+    }
+   ],
    "checks": [
     {
      "percent": 54.5,
@@ -215626,6 +215861,16 @@
    "usage_percent": 18.4
   },
   "basculegionf": {
+   "abilities": [
+    {
+     "ability_id": "swiftswim",
+     "percent": 84
+    },
+    {
+     "ability_id": "adaptability",
+     "percent": 16
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -215767,6 +216012,12 @@
    "usage_percent": 0.1
   },
   "baxcalibur": {
+   "abilities": [
+    {
+     "ability_id": "thermalexchange",
+     "percent": 31.6
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -215908,6 +216159,7 @@
    "usage_percent": 1.4
   },
   "beedrill": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -216017,6 +216269,7 @@
    "usage_percent": 0
   },
   "blastoise": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -216150,6 +216403,12 @@
    "usage_percent": 1.6
   },
   "blaziken": {
+   "abilities": [
+    {
+     "ability_id": "speedboost",
+     "percent": 14.8
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -216291,6 +216550,7 @@
    "usage_percent": 1
   },
   "camerupt": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -216416,6 +216676,12 @@
    "usage_percent": 1.5
   },
   "castform": {
+   "abilities": [
+    {
+     "ability_id": "forecast",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -216468,6 +216734,12 @@
    "usage_percent": 0.1
   },
   "ceruledge": {
+   "abilities": [
+    {
+     "ability_id": "flashfire",
+     "percent": 99.9
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -216609,6 +216881,12 @@
    "usage_percent": 1.8
   },
   "chandelure": {
+   "abilities": [
+    {
+     "ability_id": "flashfire",
+     "percent": 23.2
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -216754,6 +217032,7 @@
    "usage_percent": 0.1
   },
   "charizard": {
+   "abilities": [],
    "checks": [
     {
      "percent": 50.3,
@@ -216896,6 +217175,12 @@
    "usage_percent": 21.2
   },
   "chesnaught": {
+   "abilities": [
+    {
+     "ability_id": "bulletproof",
+     "percent": 49.9
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -217041,6 +217326,20 @@
    "usage_percent": 0
   },
   "clefable": {
+   "abilities": [
+    {
+     "ability_id": "unaware",
+     "percent": 92.5
+    },
+    {
+     "ability_id": "magicguard",
+     "percent": 5.8
+    },
+    {
+     "ability_id": "cutecharm",
+     "percent": 1.7
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -217186,6 +217485,12 @@
    "usage_percent": 0.4
   },
   "cofagrigus": {
+   "abilities": [
+    {
+     "ability_id": "mummy",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -217238,6 +217543,12 @@
    "usage_percent": 0.1
   },
   "corviknight": {
+   "abilities": [
+    {
+     "ability_id": "mirrorarmor",
+     "percent": 99
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -217387,6 +217698,7 @@
    "usage_percent": 1.2
   },
   "crabominable": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -217520,6 +217832,12 @@
    "usage_percent": 0.1
   },
   "decidueye": {
+   "abilities": [
+    {
+     "ability_id": "overgrow",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -217572,6 +217890,12 @@
    "usage_percent": 0.1
   },
   "decidueyehisui": {
+   "abilities": [
+    {
+     "ability_id": "scrappy",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -217709,6 +218033,7 @@
    "usage_percent": 0
   },
   "delphox": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -217842,6 +218167,12 @@
    "usage_percent": 5.8
   },
   "diggersby": {
+   "abilities": [
+    {
+     "ability_id": "hugepower",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -217894,6 +218225,16 @@
    "usage_percent": 0.1
   },
   "ditto": {
+   "abilities": [
+    {
+     "ability_id": "imposter",
+     "percent": 95.3
+    },
+    {
+     "ability_id": "limber",
+     "percent": 4.7
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -218011,6 +218352,12 @@
    "usage_percent": 0
   },
   "dragalge": {
+   "abilities": [
+    {
+     "ability_id": "adaptability",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -218083,6 +218430,20 @@
    "usage_percent": 0.3
   },
   "dragapult": {
+   "abilities": [
+    {
+     "ability_id": "infiltrator",
+     "percent": 66
+    },
+    {
+     "ability_id": "clearbody",
+     "percent": 27.6
+    },
+    {
+     "ability_id": "cursedbody",
+     "percent": 6.4
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -218224,6 +218585,16 @@
    "usage_percent": 2.2
   },
   "dragonite": {
+   "abilities": [
+    {
+     "ability_id": "innerfocus",
+     "percent": 8
+    },
+    {
+     "ability_id": "multiscale",
+     "percent": 3.8
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -218365,6 +218736,16 @@
    "usage_percent": 5.3
   },
   "drampa": {
+   "abilities": [
+    {
+     "ability_id": "cloudnine",
+     "percent": 93.5
+    },
+    {
+     "ability_id": "berserk",
+     "percent": 6.5
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -218502,6 +218883,12 @@
    "usage_percent": 0
   },
   "eelektross": {
+   "abilities": [
+    {
+     "ability_id": "levitate",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -218554,6 +218941,12 @@
    "usage_percent": 0.1
   },
   "empoleon": {
+   "abilities": [
+    {
+     "ability_id": "competitive",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -218703,6 +219096,12 @@
    "usage_percent": 0.1
   },
   "espathra": {
+   "abilities": [
+    {
+     "ability_id": "speedboost",
+     "percent": 99.9
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -218852,6 +219251,12 @@
    "usage_percent": 0.8
   },
   "excadrill": {
+   "abilities": [
+    {
+     "ability_id": "sandrush",
+     "percent": 99.1
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -218981,6 +219386,12 @@
    "usage_percent": 4.4
   },
   "farigiraf": {
+   "abilities": [
+    {
+     "ability_id": "armortail",
+     "percent": 99.8
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -219126,6 +219537,7 @@
    "usage_percent": 12.5
   },
   "feraligatr": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -219259,6 +219671,12 @@
    "usage_percent": 0
   },
   "flapple": {
+   "abilities": [
+    {
+     "ability_id": "hustle",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -219311,6 +219729,7 @@
    "usage_percent": 0.1
   },
   "floetteeternal": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -219436,6 +219855,12 @@
    "usage_percent": 19
   },
   "florges": {
+   "abilities": [
+    {
+     "ability_id": "flowerveil",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -219488,6 +219913,7 @@
    "usage_percent": 0.1
   },
   "froslass": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -219617,6 +220043,12 @@
    "usage_percent": 5.9
   },
   "gallade": {
+   "abilities": [
+    {
+     "ability_id": "sharpness",
+     "percent": 99.1
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -219766,6 +220198,12 @@
    "usage_percent": 0.2
   },
   "garchomp": {
+   "abilities": [
+    {
+     "ability_id": "roughskin",
+     "percent": 53.4
+    }
+   ],
    "checks": [
     {
      "percent": 30.1,
@@ -219920,6 +220358,7 @@
    "usage_percent": 25.2
   },
   "gardevoir": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -220053,6 +220492,7 @@
    "usage_percent": 4.9
   },
   "gengar": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -220186,6 +220626,12 @@
    "usage_percent": 9.5
   },
   "gholdengo": {
+   "abilities": [
+    {
+     "ability_id": "goodasgold",
+     "percent": 100
+    }
+   ],
    "checks": [
     {
      "percent": 44.4,
@@ -220336,6 +220782,12 @@
    "usage_percent": 23.9
   },
   "glaceon": {
+   "abilities": [
+    {
+     "ability_id": "snowcloak",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -220388,6 +220840,16 @@
    "usage_percent": 0.1
   },
   "glalie": {
+   "abilities": [
+    {
+     "ability_id": "innerfocus",
+     "percent": 50
+    },
+    {
+     "ability_id": "moody",
+     "percent": 50
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -220448,6 +220910,12 @@
    "usage_percent": 0.2
   },
   "glimmora": {
+   "abilities": [
+    {
+     "ability_id": "toxicdebris",
+     "percent": 27
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -220581,6 +221049,12 @@
    "usage_percent": 4.8
   },
   "gliscor": {
+   "abilities": [
+    {
+     "ability_id": "hypercutter",
+     "percent": 99.5
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -220726,6 +221200,7 @@
    "usage_percent": 0.1
   },
   "golisopod": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -220859,6 +221334,7 @@
    "usage_percent": 6.9
   },
   "golurk": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -220992,6 +221468,20 @@
    "usage_percent": 0
   },
   "goodrahisui": {
+   "abilities": [
+    {
+     "ability_id": "shellarmor",
+     "percent": 70.5
+    },
+    {
+     "ability_id": "sapsipper",
+     "percent": 28.2
+    },
+    {
+     "ability_id": "gooey",
+     "percent": 1.3
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -221129,6 +221619,12 @@
    "usage_percent": 0
   },
   "grapploct": {
+   "abilities": [
+    {
+     "ability_id": "technician",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -221274,6 +221770,7 @@
    "usage_percent": 0.4
   },
   "greninja": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -221407,6 +221904,12 @@
    "usage_percent": 0.1
   },
   "grimmsnarl": {
+   "abilities": [
+    {
+     "ability_id": "prankster",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -221532,6 +222035,16 @@
    "usage_percent": 8.2
   },
   "gyarados": {
+   "abilities": [
+    {
+     "ability_id": "intimidate",
+     "percent": 31.9
+    },
+    {
+     "ability_id": "moxie",
+     "percent": 4.2
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -221681,6 +222194,16 @@
    "usage_percent": 0.1
   },
   "hatterene": {
+   "abilities": [
+    {
+     "ability_id": "magicbounce",
+     "percent": 98.4
+    },
+    {
+     "ability_id": "healer",
+     "percent": 1.6
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -221818,6 +222341,20 @@
    "usage_percent": 1
   },
   "hawlucha": {
+   "abilities": [
+    {
+     "ability_id": "limber",
+     "percent": 37.5
+    },
+    {
+     "ability_id": "unburden",
+     "percent": 37.5
+    },
+    {
+     "ability_id": "moldbreaker",
+     "percent": 25
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -221898,6 +222435,7 @@
    "usage_percent": 0.6
   },
   "heracross": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -221995,6 +222533,7 @@
    "usage_percent": 0
   },
   "houndoom": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -222128,6 +222667,16 @@
    "usage_percent": 0.1
   },
   "houndstone": {
+   "abilities": [
+    {
+     "ability_id": "sandrush",
+     "percent": 66
+    },
+    {
+     "ability_id": "fluffy",
+     "percent": 34
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -222277,6 +222826,16 @@
    "usage_percent": 0
   },
   "hydrapple": {
+   "abilities": [
+    {
+     "ability_id": "regenerator",
+     "percent": 89.3
+    },
+    {
+     "ability_id": "supersweetsyrup",
+     "percent": 10.7
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -222378,6 +222937,12 @@
    "usage_percent": 0
   },
   "hydreigon": {
+   "abilities": [
+    {
+     "ability_id": "levitate",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -222527,6 +223092,12 @@
    "usage_percent": 0.5
   },
   "incineroar": {
+   "abilities": [
+    {
+     "ability_id": "intimidate",
+     "percent": 100
+    }
+   ],
    "checks": [
     {
      "percent": 61.9,
@@ -222697,6 +223268,12 @@
    "usage_percent": 41.9
   },
   "indeedee": {
+   "abilities": [
+    {
+     "ability_id": "psychicsurge",
+     "percent": 99.9
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -222838,6 +223415,20 @@
    "usage_percent": 4.2
   },
   "indeedeef": {
+   "abilities": [
+    {
+     "ability_id": "psychicsurge",
+     "percent": 96.8
+    },
+    {
+     "ability_id": "synchronize",
+     "percent": 2.1
+    },
+    {
+     "ability_id": "owntempo",
+     "percent": 1.1
+    }
+   ],
    "checks": [
     {
      "percent": 41.9,
@@ -222996,6 +223587,16 @@
    "usage_percent": 13
   },
   "infernape": {
+   "abilities": [
+    {
+     "ability_id": "blaze",
+     "percent": 75
+    },
+    {
+     "ability_id": "ironfist",
+     "percent": 25
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -223068,6 +223669,12 @@
    "usage_percent": 0.3
   },
   "kangaskhan": {
+   "abilities": [
+    {
+     "ability_id": "scrappy",
+     "percent": 20.2
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -223213,6 +223820,12 @@
    "usage_percent": 0.7
   },
   "kingambit": {
+   "abilities": [
+    {
+     "ability_id": "defiant",
+     "percent": 100
+    }
+   ],
    "checks": [
     {
      "percent": 46,
@@ -223367,6 +223980,12 @@
    "usage_percent": 34
   },
   "kleavor": {
+   "abilities": [
+    {
+     "ability_id": "sharpness",
+     "percent": 99.4
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -223512,6 +224131,12 @@
    "usage_percent": 0.3
   },
   "klefki": {
+   "abilities": [
+    {
+     "ability_id": "prankster",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -223645,6 +224270,20 @@
    "usage_percent": 0.6
   },
   "kommoo": {
+   "abilities": [
+    {
+     "ability_id": "soundproof",
+     "percent": 94.5
+    },
+    {
+     "ability_id": "bulletproof",
+     "percent": 3.9
+    },
+    {
+     "ability_id": "overcoat",
+     "percent": 1.7
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -223774,6 +224413,16 @@
    "usage_percent": 6.7
   },
   "krookodile": {
+   "abilities": [
+    {
+     "ability_id": "intimidate",
+     "percent": 97.8
+    },
+    {
+     "ability_id": "moxie",
+     "percent": 2.2
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -223923,6 +224572,7 @@
    "usage_percent": 0
   },
   "lopunny": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -224032,6 +224682,7 @@
    "usage_percent": 0.1
   },
   "lucario": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -224165,6 +224816,12 @@
    "usage_percent": 1.8
   },
   "lycanrocdusk": {
+   "abilities": [
+    {
+     "ability_id": "toughclaws",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -224286,6 +224943,12 @@
    "usage_percent": 0.7
   },
   "machamp": {
+   "abilities": [
+    {
+     "ability_id": "guts",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -224338,6 +225001,12 @@
    "usage_percent": 0.1
   },
   "malamar": {
+   "abilities": [
+    {
+     "ability_id": "contrary",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -224414,6 +225083,12 @@
    "usage_percent": 0.5
   },
   "mamoswine": {
+   "abilities": [
+    {
+     "ability_id": "oblivious",
+     "percent": 99.1
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -224555,6 +225230,7 @@
    "usage_percent": 0.2
   },
   "manectric": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -224684,6 +225360,16 @@
    "usage_percent": 0.2
   },
   "maushold": {
+   "abilities": [
+    {
+     "ability_id": "friendguard",
+     "percent": 93.4
+    },
+    {
+     "ability_id": "technician",
+     "percent": 6.6
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -224829,6 +225515,7 @@
    "usage_percent": 1.5
   },
   "mawile": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -224962,6 +225649,7 @@
    "usage_percent": 0.5
   },
   "medicham": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -225027,6 +225715,7 @@
    "usage_percent": 0
   },
   "meganium": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -225152,6 +225841,16 @@
    "usage_percent": 0.2
   },
   "meowscarada": {
+   "abilities": [
+    {
+     "ability_id": "overgrow",
+     "percent": 51.9
+    },
+    {
+     "ability_id": "protean",
+     "percent": 48.1
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -225297,6 +225996,12 @@
    "usage_percent": 0.1
   },
   "meowstic": {
+   "abilities": [
+    {
+     "ability_id": "prankster",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -225442,6 +226147,7 @@
    "usage_percent": 0
   },
   "meowsticf": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -225563,6 +226269,7 @@
    "usage_percent": 0.4
   },
   "metagross": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -225696,6 +226403,12 @@
    "usage_percent": 4.2
   },
   "milotic": {
+   "abilities": [
+    {
+     "ability_id": "competitive",
+     "percent": 99.4
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -225845,6 +226558,12 @@
    "usage_percent": 9.1
   },
   "mimikyu": {
+   "abilities": [
+    {
+     "ability_id": "disguise",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -225994,6 +226713,12 @@
    "usage_percent": 0.1
   },
   "mudsdale": {
+   "abilities": [
+    {
+     "ability_id": "innerfocus",
+     "percent": 99
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -226127,6 +226852,12 @@
    "usage_percent": 0.3
   },
   "musharna": {
+   "abilities": [
+    {
+     "ability_id": "telepathy",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -226228,6 +226959,12 @@
    "usage_percent": 0.1
   },
   "ninetales": {
+   "abilities": [
+    {
+     "ability_id": "drought",
+     "percent": 99.6
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -226369,6 +227106,16 @@
    "usage_percent": 0
   },
   "ninetalesalola": {
+   "abilities": [
+    {
+     "ability_id": "snowwarning",
+     "percent": 98.8
+    },
+    {
+     "ability_id": "snowcloak",
+     "percent": 1.2
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -226518,6 +227265,16 @@
    "usage_percent": 1.5
   },
   "oranguru": {
+   "abilities": [
+    {
+     "ability_id": "innerfocus",
+     "percent": 96.7
+    },
+    {
+     "ability_id": "telepathy",
+     "percent": 3
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -226663,6 +227420,12 @@
    "usage_percent": 0
   },
   "orthworm": {
+   "abilities": [
+    {
+     "ability_id": "eartheater",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -226792,6 +227555,20 @@
    "usage_percent": 0.1
   },
   "overqwil": {
+   "abilities": [
+    {
+     "ability_id": "swiftswim",
+     "percent": 60
+    },
+    {
+     "ability_id": "intimidate",
+     "percent": 36.2
+    },
+    {
+     "ability_id": "poisonpoint",
+     "percent": 3.8
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -226933,6 +227710,12 @@
    "usage_percent": 0
   },
   "palafin": {
+   "abilities": [
+    {
+     "ability_id": "zerotohero",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -227078,6 +227861,20 @@
    "usage_percent": 0.1
   },
   "pawmot": {
+   "abilities": [
+    {
+     "ability_id": "ironfist",
+     "percent": 87.7
+    },
+    {
+     "ability_id": "voltabsorb",
+     "percent": 7.9
+    },
+    {
+     "ability_id": "naturalcure",
+     "percent": 4.4
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -227223,6 +228020,12 @@
    "usage_percent": 1.8
   },
   "pelipper": {
+   "abilities": [
+    {
+     "ability_id": "drizzle",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -227364,6 +228167,12 @@
    "usage_percent": 10.6
   },
   "persianalola": {
+   "abilities": [
+    {
+     "ability_id": "furcoat",
+     "percent": 99.8
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -227513,6 +228322,12 @@
    "usage_percent": 0
   },
   "pidgeot": {
+   "abilities": [
+    {
+     "ability_id": "keeneye",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -227565,6 +228380,16 @@
    "usage_percent": 0.1
   },
   "pincurchin": {
+   "abilities": [
+    {
+     "ability_id": "electricsurge",
+     "percent": 85.8
+    },
+    {
+     "ability_id": "lightningrod",
+     "percent": 14.2
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -227714,6 +228539,12 @@
    "usage_percent": 0
   },
   "pinsir": {
+   "abilities": [
+    {
+     "ability_id": "hypercutter",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -227766,6 +228597,12 @@
    "usage_percent": 0.1
   },
   "politoed": {
+   "abilities": [
+    {
+     "ability_id": "drizzle",
+     "percent": 99.9
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -227911,6 +228748,12 @@
    "usage_percent": 7.6
   },
   "primarina": {
+   "abilities": [
+    {
+     "ability_id": "liquidvoice",
+     "percent": 99.5
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -228060,6 +228903,7 @@
    "usage_percent": 2.9
   },
   "pyroar": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -228193,6 +229037,12 @@
    "usage_percent": 0.8
   },
   "quaquaval": {
+   "abilities": [
+    {
+     "ability_id": "moxie",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -228257,6 +229107,7 @@
    "usage_percent": 0.2
   },
   "raichu": {
+   "abilities": [],
    "checks": [
     {
      "percent": 47.7,
@@ -228395,6 +229246,12 @@
    "usage_percent": 20
   },
   "raichualola": {
+   "abilities": [
+    {
+     "ability_id": "surgesurfer",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -228467,6 +229324,12 @@
    "usage_percent": 0.2
   },
   "rampardos": {
+   "abilities": [
+    {
+     "ability_id": "sheerforce",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -228519,6 +229382,16 @@
    "usage_percent": 0.1
   },
   "rhyperior": {
+   "abilities": [
+    {
+     "ability_id": "solidrock",
+     "percent": 81.3
+    },
+    {
+     "ability_id": "lightningrod",
+     "percent": 18.7
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -228660,6 +229533,12 @@
    "usage_percent": 0.1
   },
   "rillaboom": {
+   "abilities": [
+    {
+     "ability_id": "grassysurge",
+     "percent": 99.9
+    }
+   ],
    "checks": [
     {
      "percent": 50.1,
@@ -228830,6 +229709,12 @@
    "usage_percent": 54.1
   },
   "rotomfrost": {
+   "abilities": [
+    {
+     "ability_id": "levitate",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -228882,6 +229767,12 @@
    "usage_percent": 0.1
   },
   "rotomheat": {
+   "abilities": [
+    {
+     "ability_id": "levitate",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -229023,6 +229914,12 @@
    "usage_percent": 0.3
   },
   "rotommow": {
+   "abilities": [
+    {
+     "ability_id": "levitate",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -229132,6 +230029,12 @@
    "usage_percent": 0
   },
   "rotomwash": {
+   "abilities": [
+    {
+     "ability_id": "levitate",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -229281,6 +230184,16 @@
    "usage_percent": 0.3
   },
   "sableye": {
+   "abilities": [
+    {
+     "ability_id": "prankster",
+     "percent": 97.8
+    },
+    {
+     "ability_id": "keeneye",
+     "percent": 2.2
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -229430,6 +230343,7 @@
    "usage_percent": 0.1
   },
   "salamence": {
+   "abilities": [],
    "checks": [
     {
      "percent": 42.3,
@@ -229572,6 +230486,16 @@
    "usage_percent": 24.6
   },
   "salazzle": {
+   "abilities": [
+    {
+     "ability_id": "corrosion",
+     "percent": 50
+    },
+    {
+     "ability_id": "oblivious",
+     "percent": 50
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -229648,6 +230572,12 @@
    "usage_percent": 0.3
   },
   "samurotthisui": {
+   "abilities": [
+    {
+     "ability_id": "sharpness",
+     "percent": 99.9
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -229797,6 +230727,7 @@
    "usage_percent": 0
   },
   "sceptile": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -229926,6 +230857,12 @@
    "usage_percent": 0.4
   },
   "scizor": {
+   "abilities": [
+    {
+     "ability_id": "technician",
+     "percent": 65.1
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -230071,6 +231008,12 @@
    "usage_percent": 0
   },
   "scolipede": {
+   "abilities": [
+    {
+     "ability_id": "speedboost",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -230135,6 +231078,7 @@
    "usage_percent": 0.2
   },
   "scovillain": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -230260,6 +231204,12 @@
    "usage_percent": 0.6
   },
   "scrafty": {
+   "abilities": [
+    {
+     "ability_id": "intimidate",
+     "percent": 37.5
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -230405,6 +231355,12 @@
    "usage_percent": 0.3
   },
   "serperior": {
+   "abilities": [
+    {
+     "ability_id": "contrary",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -230457,6 +231413,12 @@
    "usage_percent": 0.1
   },
   "sinistcha": {
+   "abilities": [
+    {
+     "ability_id": "hospitality",
+     "percent": 99.8
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -230602,6 +231564,7 @@
    "usage_percent": 6
   },
   "skarmory": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -230735,6 +231698,12 @@
    "usage_percent": 0.1
   },
   "skeledirge": {
+   "abilities": [
+    {
+     "ability_id": "unaware",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -230876,6 +231845,7 @@
    "usage_percent": 0
   },
   "slowbro": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -231009,6 +231979,12 @@
    "usage_percent": 0.1
   },
   "slowbrogalar": {
+   "abilities": [
+    {
+     "ability_id": "quickdraw",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -231061,6 +232037,12 @@
    "usage_percent": 0.1
   },
   "slowking": {
+   "abilities": [
+    {
+     "ability_id": "oblivious",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -231113,6 +232095,16 @@
    "usage_percent": 0.1
   },
   "slowkinggalar": {
+   "abilities": [
+    {
+     "ability_id": "regenerator",
+     "percent": 91.8
+    },
+    {
+     "ability_id": "curiousmedicine",
+     "percent": 8.2
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -231262,6 +232254,16 @@
    "usage_percent": 0.1
   },
   "sneasler": {
+   "abilities": [
+    {
+     "ability_id": "unburden",
+     "percent": 80.3
+    },
+    {
+     "ability_id": "poisontouch",
+     "percent": 19.3
+    }
+   ],
    "checks": [
     {
      "percent": 43.5,
@@ -231424,6 +232426,12 @@
    "usage_percent": 43.1
   },
   "snorlax": {
+   "abilities": [
+    {
+     "ability_id": "thickfat",
+     "percent": 99.8
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -231565,6 +232573,12 @@
    "usage_percent": 0.1
   },
   "spiritomb": {
+   "abilities": [
+    {
+     "ability_id": "pressure",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -231629,6 +232643,12 @@
    "usage_percent": 0.2
   },
   "staraptor": {
+   "abilities": [
+    {
+     "ability_id": "intimidate",
+     "percent": 1
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -231766,6 +232786,7 @@
    "usage_percent": 8.8
   },
   "starmie": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -231899,6 +232920,7 @@
    "usage_percent": 0.1
   },
   "steelix": {
+   "abilities": [],
    "checks": [],
    "items": [
     {
@@ -232032,6 +233054,16 @@
    "usage_percent": 0
   },
   "swalot": {
+   "abilities": [
+    {
+     "ability_id": "gluttony",
+     "percent": 83.3
+    },
+    {
+     "ability_id": "liquidooze",
+     "percent": 16.7
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -232133,6 +233165,12 @@
    "usage_percent": 0
   },
   "swampert": {
+   "abilities": [
+    {
+     "ability_id": "torrent",
+     "percent": 2.2
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -232266,6 +233304,12 @@
    "usage_percent": 5.9
   },
   "sylveon": {
+   "abilities": [
+    {
+     "ability_id": "pixilate",
+     "percent": 99.9
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -232407,6 +233451,16 @@
    "usage_percent": 14.4
   },
   "talonflame": {
+   "abilities": [
+    {
+     "ability_id": "galewings",
+     "percent": 98.9
+    },
+    {
+     "ability_id": "flamebody",
+     "percent": 1.1
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -232556,6 +233610,16 @@
    "usage_percent": 0.9
   },
   "taurospaldeaaqua": {
+   "abilities": [
+    {
+     "ability_id": "intimidate",
+     "percent": 69.4
+    },
+    {
+     "ability_id": "cudchew",
+     "percent": 30.6
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -232705,6 +233769,12 @@
    "usage_percent": 0
   },
   "taurospaldeablaze": {
+   "abilities": [
+    {
+     "ability_id": "intimidate",
+     "percent": 99.7
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -232834,6 +233904,12 @@
    "usage_percent": 0
   },
   "thievul": {
+   "abilities": [
+    {
+     "ability_id": "unburden",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -232886,6 +233962,16 @@
    "usage_percent": 0.2
   },
   "tinkaton": {
+   "abilities": [
+    {
+     "ability_id": "moldbreaker",
+     "percent": 92.9
+    },
+    {
+     "ability_id": "owntempo",
+     "percent": 7.1
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -233035,6 +234121,12 @@
    "usage_percent": 0.1
   },
   "torkoal": {
+   "abilities": [
+    {
+     "ability_id": "drought",
+     "percent": 99.9
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -233176,6 +234268,12 @@
    "usage_percent": 2.3
   },
   "torterra": {
+   "abilities": [
+    {
+     "ability_id": "shellarmor",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -233228,6 +234326,12 @@
    "usage_percent": 0.1
   },
   "toucannon": {
+   "abilities": [
+    {
+     "ability_id": "skilllink",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -233280,6 +234384,12 @@
    "usage_percent": 0.1
   },
   "toxapex": {
+   "abilities": [
+    {
+     "ability_id": "regenerator",
+     "percent": 99.7
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -233409,6 +234519,16 @@
    "usage_percent": 1.9
   },
   "toxicroak": {
+   "abilities": [
+    {
+     "ability_id": "dryskin",
+     "percent": 98
+    },
+    {
+     "ability_id": "poisontouch",
+     "percent": 2
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -233550,6 +234670,12 @@
    "usage_percent": 0
   },
   "tsareena": {
+   "abilities": [
+    {
+     "ability_id": "queenlymajesty",
+     "percent": 99.9
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -233695,6 +234821,16 @@
    "usage_percent": 0.2
   },
   "typhlosionhisui": {
+   "abilities": [
+    {
+     "ability_id": "blaze",
+     "percent": 88.2
+    },
+    {
+     "ability_id": "frisk",
+     "percent": 11.8
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -233836,6 +234972,12 @@
    "usage_percent": 0.2
   },
   "tyranitar": {
+   "abilities": [
+    {
+     "ability_id": "sandstream",
+     "percent": 15.2
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -233977,6 +235119,16 @@
    "usage_percent": 5.1
   },
   "umbreon": {
+   "abilities": [
+    {
+     "ability_id": "innerfocus",
+     "percent": 98
+    },
+    {
+     "ability_id": "synchronize",
+     "percent": 2
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -234118,6 +235270,12 @@
    "usage_percent": 0.1
   },
   "vanilluxe": {
+   "abilities": [
+    {
+     "ability_id": "snowwarning",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -234255,6 +235413,12 @@
    "usage_percent": 0.2
   },
   "vaporeon": {
+   "abilities": [
+    {
+     "ability_id": "waterabsorb",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -234307,6 +235471,12 @@
    "usage_percent": 0.1
   },
   "venusaur": {
+   "abilities": [
+    {
+     "ability_id": "chlorophyll",
+     "percent": 97
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -234436,6 +235606,12 @@
    "usage_percent": 8.1
   },
   "victreebel": {
+   "abilities": [
+    {
+     "ability_id": "chlorophyll",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -234488,6 +235664,16 @@
    "usage_percent": 0.1
   },
   "vileplume": {
+   "abilities": [
+    {
+     "ability_id": "chlorophyll",
+     "percent": 99
+    },
+    {
+     "ability_id": "effectspore",
+     "percent": 1
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -234629,6 +235815,12 @@
    "usage_percent": 0.1
   },
   "vivillon": {
+   "abilities": [
+    {
+     "ability_id": "compoundeyes",
+     "percent": 98.4
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -234742,6 +235934,12 @@
    "usage_percent": 2.1
   },
   "volcarona": {
+   "abilities": [
+    {
+     "ability_id": "flamebody",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -234891,6 +236089,12 @@
    "usage_percent": 10.1
   },
   "watchog": {
+   "abilities": [
+    {
+     "ability_id": "analytic",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -234943,6 +236147,16 @@
    "usage_percent": 0.1
   },
   "weavile": {
+   "abilities": [
+    {
+     "ability_id": "pickpocket",
+     "percent": 90.3
+    },
+    {
+     "ability_id": "pressure",
+     "percent": 9.7
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -235084,6 +236298,12 @@
    "usage_percent": 0.2
   },
   "whimsicott": {
+   "abilities": [
+    {
+     "ability_id": "prankster",
+     "percent": 99.8
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -235233,6 +236453,12 @@
    "usage_percent": 7.4
   },
   "wigglytuff": {
+   "abilities": [
+    {
+     "ability_id": "competitive",
+     "percent": 99.4
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -235382,6 +236608,12 @@
    "usage_percent": 0
   },
   "wyrdeer": {
+   "abilities": [
+    {
+     "ability_id": "intimidate",
+     "percent": 99.9
+    }
+   ],
    "checks": [],
    "items": [
     {
@@ -235511,6 +236743,12 @@
    "usage_percent": 0
   },
   "zoroarkhisui": {
+   "abilities": [
+    {
+     "ability_id": "illusion",
+     "percent": 100
+    }
+   ],
    "checks": [],
    "items": [
     {

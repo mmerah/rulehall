@@ -46,6 +46,7 @@ LONER4E = EngineId("loner4e")
 TUNNELGOONS = EngineId("tunnelgoons")
 TWENTYFOURXX = EngineId("twentyfourxx")
 POKEMON = EngineId("pokemon")
+CHAMPIONS = EngineId("pokemon-champions")
 ENGINES_BUILT = build_engines(NO_PACKS)
 ENGINE_IDS = tuple(ENGINES_BUILT)
 SCENARIO_MODELS = {engine_id: engine.scenario_model for engine_id, engine in ENGINES_BUILT.items()}
@@ -85,6 +86,11 @@ def change(engine: AnyEngine, draft: AnyGame, name: str, /, **args: JsonValue) -
 def run_action(engine: AnyEngine, draft: AnyGame, name: str, /, **args: JsonValue) -> list[Fact]:
     option = ActionOption(id="chosen", name=name, action_name=name, args=args)
     return list(engine.play_option(draft, option, Random(0)))
+
+
+def run_edit(engine: AnyEngine, draft: AnyGame, name: str, /, **args: JsonValue) -> None:
+    option = ActionOption(id="chosen", name=name, action_name=name, args=args)
+    engine.play_edit(draft, option, Random(0))
 
 
 def refused(engine: AnyEngine, draft: AnyGame, name: str, /, **args: JsonValue) -> str:

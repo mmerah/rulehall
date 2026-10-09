@@ -3,12 +3,16 @@ from collections.abc import Callable, Sequence
 from dataclasses import replace
 from pathlib import Path
 from random import Random
+from typing import cast
 
 import pytest
-from nicegui import Client, ui
+from nicegui import Client, events, ui
 from support.game import open_game
 from support.table import (
+    LONER4E,
+    NO_PACKS,
     Table,
+    open_table,
     play_turn,
 )
 
@@ -18,15 +22,20 @@ from rulehall.core.decisions import ActionOption, Decision, PlayerInput
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyGame
 from rulehall.core.log import LogEntry, SpokenLine
-from rulehall.core.views import SCENE_TAB, Panel, PanelRow, PlayerView, Subject
+from rulehall.core.validation import Slug
+from rulehall.core.views import SCENE_TAB, Panel, PanelRow, PlayerView, Subject, Surface
+from rulehall.engines.loner4e.engine import Loner4eEngine
+from rulehall.engines.loner4e.world import Loner4eGame
 from rulehall.ui.composer import Composer, composer_lock
 from rulehall.ui.drawer import DrawerTab, choosing
 from rulehall.ui.game import GamePage, game_page
+from rulehall.ui.surfaces import ScreenHost
 from rulehall.ui.transcript import Transcript
 from rulehall.ui.voice import VoicePlayer
 from rulehall.ui.widgets import Sounds, Speech
 
 WREN = Subject(id="player", name="Wren", brief="A quiet scout", voice="feminine")
+NOTES_SURFACE_ID: Slug = "notes"
 
 
 class HeardSpeech(Speech):
@@ -48,6 +57,42 @@ class HeardSpeech(Speech):
 
     def stop(self) -> None:
         self.stopped += 1
+
+
+class _NotesEngine(Loner4eEngine):
+    def surfaces(self, _state: Loner4eGame, /) -> tuple[Surface, ...]:
+        return (Surface(surface_id=NOTES_SURFACE_ID, live=True, tab=SCENE_TAB),)
+
+
+class _NotesScreen:
+    opener_label = "Open notes"
+    opener_icon = "sym_r_note"
+
+    def __init__(self, host: ScreenHost) -> None:
+        self.host = host
+        self.shown = False
+
+    def build_banner(self) -> None:
+        pass
+
+    def build(self, now: SessionSnapshot) -> None:
+        pass
+
+    def show(self) -> None:
+        self.shown = True
+        self.host.on_toggle()
+
+    def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
+        pass
+
+
+def _click(button: ui.button) -> None:
+    for listener in button._event_listeners.values():  # pyright: ignore[reportPrivateUsage]
+        if listener.type == "click":
+            handler = cast("Callable[[events.ClickEventArguments], None]", listener.handler)
+            events.handle_event(
+                handler, events.ClickEventArguments(sender=button, client=button.client)
+            )
 
 
 def _view(decision: Decision | None = None, ending: str | None = None) -> PlayerView:
@@ -114,7 +159,7 @@ async def test_a_tick_follows_only_on_the_readers_own_move(
     table = open_game(tmp_path)
     _ = await play_turn(table, "I wait.", narration="Nothing stirs.")
     page()
-    screen = GamePage(table.session)
+    screen = GamePage(table.session, {})
     screen.build()
     screen.at_end = False
     screen.own_move = True
@@ -127,6 +172,25 @@ async def test_a_tick_follows_only_on_the_readers_own_move(
     table.session.working_role = "narrator"
     screen.tick()
     assert screen.unseen_activity is True
+
+
+async def test_the_page_hosts_a_screen_for_each_surface_and_hides_the_story_while_one_shows(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, page: Callable[[], Client]
+) -> None:
+    monkeypatch.setattr("nicegui.storage.Storage.tab", property(lambda _storage: {}))
+    table = open_table(
+        tmp_path, engine_id=LONER4E, state_type=Loner4eGame, engine=_NotesEngine(NO_PACKS)
+    )
+    page()
+    with pytest.raises(ValueError, match="no registered screen"):
+        GamePage(table.session, {}).build()
+    screen = GamePage(table.session, {NOTES_SURFACE_ID: _NotesScreen})
+    screen.build()
+    assert screen.story.visible
+
+    _click(screen.drawer.openers[NOTES_SURFACE_ID])
+    assert screen.screens[NOTES_SURFACE_ID].shown
+    assert not screen.story.visible
 
 
 async def test_the_live_turn_draws_each_fact_card_once_and_the_narration_heard_so_far(
@@ -184,7 +248,7 @@ async def test_a_page_is_not_built_for_a_client_deleted_before_the_handshake(
     built: list[object] = []
 
     class _Recorder:
-        def __init__(self, session: object) -> None:
+        def __init__(self, session: object, _screens: object) -> None:
             built.append(session)
 
         def build(self) -> None:
@@ -195,7 +259,7 @@ async def test_a_page_is_not_built_for_a_client_deleted_before_the_handshake(
     client.delete()
 
     key = table.session.key
-    await game_page(table.runtime, key.scenario_id, key.character_id)
+    await game_page(table.runtime, {}, key.scenario_id, key.character_id)
 
     assert built == []
 

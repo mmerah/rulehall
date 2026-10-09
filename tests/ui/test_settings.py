@@ -49,3 +49,12 @@ def test_a_stored_secret_is_never_read_back_into_the_page(
     assert stored.value in (None, "")
     assert stored.props["placeholder"] == "set — type to replace"
     assert blank.props["placeholder"] == "not set"
+
+
+def test_a_nested_section_renders_each_key_under_its_own_path(
+    tmp_path: Path, page: Callable[[], Client]
+) -> None:
+    page()
+    form = SettingsForm(Runtime(offline_settings(tmp_path), roles=ScriptedRoles()))
+    assert ("roles", "narrator", "timeout") in form.boxes
+    assert ("media", "enabled") in form.boxes

@@ -16,8 +16,7 @@ from roles import DemoRoles, DemoScript
 
 from rulehall.app.runtime import Runtime
 from rulehall.config import LOOPBACK_HOST, ServerConfig, read_settings
-from rulehall.ui import theme
-from rulehall.ui.app import mount
+from rulehall.main import mount
 
 PORT = 8190
 
@@ -41,11 +40,10 @@ def main() -> None:
             "characters_dir": work / "characters",
             "packs_dir": work / "packs",
             "server": ServerConfig(port=PORT),
-            "battle": read.battle.model_copy(update={"opponent": "scripted"}),
+            "pokemon": read.pokemon.model_copy(update={"opponent": "scripted"}),
         }
     )
     mount(Runtime(settings, roles=None if parsed.live else DemoRoles(DemoScript.read())))
-    theme.install()
     ui.run(  # pyright: ignore[reportUnknownMemberType]
         title="Rulehall",
         host=LOOPBACK_HOST,

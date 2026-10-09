@@ -20,6 +20,7 @@ _PLAYER_FACING = object()
 PlayerFacing = Annotated[str, _PLAYER_FACING]
 _TOOLS: Marks = {}
 _ACTIONS: Marks = {}
+_EDITS: Marks = {}
 
 
 # No docstring: pydantic would publish it as the schema's `description`.
@@ -65,8 +66,15 @@ def action[F: Callable[..., Sequence[Fact]]](method: F) -> F:
     return method
 
 
-def marked_methods(engine: object, mark: Literal["tool", "action"]) -> dict[str, MasterTool]:
-    marks = _TOOLS if mark == "tool" else _ACTIONS
+def edit[F: Callable[..., None]](method: F) -> F:
+    _EDITS[method] = _args_of(method)
+    return method
+
+
+def marked_methods(
+    engine: object, mark: Literal["tool", "action", "edit"]
+) -> dict[str, MasterTool]:
+    marks = {"tool": _TOOLS, "action": _ACTIONS, "edit": _EDITS}[mark]
     return {
         name: MasterTool(
             name,

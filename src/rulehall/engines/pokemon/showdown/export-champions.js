@@ -22,6 +22,7 @@ const {
   selectTeams,
 } = require("./champions-limitless");
 const { archetypeIdsOf, deriveArchetypes } = require("./champions-archetypes");
+const { deriveRoles } = require("./champions-roles");
 
 const OUTPUT = path.join(__dirname, "..", "champions", "data.json");
 const CACHE_DIR = path.join(__dirname, ".cache");
@@ -63,9 +64,11 @@ async function main() {
   ];
   const archetypes = deriveArchetypes(regulation, kept, presets);
   const archetypeIds = archetypes.map((archetype) => archetype.archetype_id);
+  const legal = regulation.legalData();
   const data = {
     source,
-    legal: regulation.legalData(),
+    legal,
+    roles: deriveRoles(regulation, legal),
     presets,
     assumed: Object.fromEntries(knownIds.map((id) => [id, assumedSpreads(entryOf(id))])),
     usage: Object.fromEntries(
@@ -92,6 +95,9 @@ async function main() {
   console.log(`${kept.length} species with presets (${keptFill.length} from real teams)`);
   console.log(`${presetCount} presets, ${knownIds.length} usage cards`);
   console.log(`${archetypes.length} archetypes with a template team`);
+  for (const [roleId, role] of Object.entries(data.roles)) {
+    console.log(`${roleId}: ${[...role.move_ids, ...role.ability_ids].join(", ")}`);
+  }
   console.log(`${realTeams.length} real teams`);
   for (const pool of POOLS) {
     console.log(`  ${pool}: ${realTeams.filter((team) => team.pool === pool).length}`);

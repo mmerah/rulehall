@@ -1,7 +1,7 @@
 import json
 import logging
 from asyncio import Task, create_task, gather
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
@@ -12,7 +12,7 @@ from rulehall.core.facts import Fact
 from rulehall.core.game import RoleAnswer
 from rulehall.core.stores import read_cached_text
 from rulehall.core.validation import Loose, Refusal, parse_json
-from rulehall.core.views import BattleChoice, BattleHeader, Tag
+from rulehall.core.views import Tag
 from rulehall.engines.battles import Transport
 from rulehall.engines.engine import Resolution
 from rulehall.engines.pokemon.battle.assessment import Assessment
@@ -49,6 +49,7 @@ from rulehall.engines.pokemon.battle.opponent import (
     render_opponent,
 )
 from rulehall.engines.pokemon.battle.preview import render_preview, scripted_preview
+from rulehall.engines.pokemon.battle.views import BattleChoice, BattleHeader, BattleView
 from rulehall.engines.pokemon.battle.world import BattleGame
 from rulehall.engines.pokemon.dex import Species, dex
 from rulehall.engines.pokemon.rules import TIMES
@@ -178,37 +179,17 @@ class ShowdownRun:
     def setup(self) -> BattleSetup:
         return self.battle.setup
 
-    def header(self) -> BattleHeader:
-        assert self.dump is not None
-        return battle_header(
-            self.setup, self.dump.p1, self.dump.p2, self.log, self._deciding_slot()
+    def view(self) -> BattleView:
+        return BattleView(
+            header=self._header(),
+            choices=self._choices(),
+            background=self.setup.battle_background,
+            music=self.setup.battle_music,
         )
 
-    def choices(self) -> tuple[BattleChoice, ...]:
-        request = self.side_request
-        if request is None:
-            return ()
-        refusal = self._ball_refusal(request)
-        balls = tuple(
-            BattleChoice(
-                command=f"{BALL}{ball.item_id}",
-                kind="item",
-                name=f"{ball.name} {TIMES}{ball.count}",
-                refusal=refusal,
-                sprite=item_sprite(ball.item_id),
-            )
-            for ball in self.battle.balls_left()
-        )
-        leave = BattleChoice(
-            command=LEAVE, kind="leave", name="Run" if self.setup.wild else "Forfeit"
-        )
-        return (*self._slot_choices(request), *balls, leave)
-
-    def view_props(self) -> Mapping[str, str]:
-        return {
-            "battleBackground": self.setup.battle_background,
-            "battleMusic": self.setup.battle_music,
-        }
+    def require_command(self, command: str) -> None:
+        if command not in (choice.command for choice in self._choices() if not choice.refusal):
+            raise Refusal(f"{command!r} is not a choice now")
 
     async def choose(self, draft: BattleGame, command: str, rng: Random) -> None:
         draft.world.battle = self.battle
@@ -236,6 +217,32 @@ class ShowdownRun:
             thinking.cancel()
         await gather(*self.thinking.values(), return_exceptions=True)
         await self.transport.close()
+
+    def _header(self) -> BattleHeader:
+        assert self.dump is not None
+        return battle_header(
+            self.setup, self.dump.p1, self.dump.p2, self.log, self._deciding_slot()
+        )
+
+    def _choices(self) -> tuple[BattleChoice, ...]:
+        request = self.side_request
+        if request is None:
+            return ()
+        refusal = self._ball_refusal(request)
+        balls = tuple(
+            BattleChoice(
+                command=f"{BALL}{ball.item_id}",
+                kind="item",
+                name=f"{ball.name} {TIMES}{ball.count}",
+                refusal=refusal,
+                sprite=item_sprite(ball.item_id),
+            )
+            for ball in self.battle.balls_left()
+        )
+        leave = BattleChoice(
+            command=LEAVE, kind="leave", name="Run" if self.setup.wild else "Forfeit"
+        )
+        return (*self._slot_choices(request), *balls, leave)
 
     def _deciding_slot(self) -> int | None:
         request = self.side_request

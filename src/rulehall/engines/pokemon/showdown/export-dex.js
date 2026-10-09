@@ -145,11 +145,7 @@ async function evYieldOf(s, varieties) {
 
 // The species of the newest Champions VGC format and the Mega formes of its stones, by id.
 function championsFormes(regulation, legal) {
-  const megaIds = Object.entries(legal.mega_stones).flatMap(([stoneId, holderIds]) =>
-    holderIds.map((holderId) =>
-      toID(regulation.dex.items.get(stoneId).megaStone[regulation.dex.species.get(holderId).name]),
-    ),
-  );
+  const megaIds = Object.values(legal.mega_formes).flatMap((formes) => Object.values(formes));
   return [...Object.keys(legal.species), ...megaIds].map((id) => regulation.dex.species.get(id));
 }
 
@@ -238,6 +234,7 @@ async function main() {
       name: move.name,
       type: move.type,
       category: move.category,
+      target: move.target,
       power: move.basePower,
       // Showdown writes `true` for a move that never misses.
       accuracy: move.accuracy === true ? null : move.accuracy,

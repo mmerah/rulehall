@@ -7,7 +7,7 @@ from rulehall.core.log import Chapter, LogEntry, SpokenLine
 from rulehall.core.validation import EngineId
 from rulehall.engines.scenes.world import Scene
 from rulehall.engines.sheet import PLAYER_ID
-from support.table import Scripted, tool_call
+from support.table import CHAMPIONS, POKEMON, Scripted, tool_call
 
 NARRATION = "The flagstone lifts. Beyond the door, something shifts its weight and waits."
 
@@ -151,7 +151,7 @@ SCRIPTS: dict[EngineId, tuple[tuple[Scripted, ...], Callable[[AnyGame], AnyGame]
             said="Vessa Rune watches you from the airlock.",
         ),
     ),
-    EngineId("pokemon"): (
+    POKEMON: (
         _POKEMON_SCRIPT,
         partial(
             _one_exchange,
@@ -159,7 +159,7 @@ SCRIPTS: dict[EngineId, tuple[tuple[Scripted, ...], Callable[[AnyGame], AnyGame]
             said="Rook waves at you from the tall grass.",
         ),
     ),
-    EngineId("pokemon-champions"): (
+    CHAMPIONS: (
         _CHAMPIONS_SCRIPT,
         partial(
             _one_exchange,

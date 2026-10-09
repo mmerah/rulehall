@@ -12,8 +12,6 @@ from rulehall.core.validation import Frozen, Refusal, Slug, check_unique, slug
 SCENE_TAB = "Scene"
 
 type Rows = tuple[tuple[str, str], ...]
-type Pip = Literal["able", "fainted", "reserve"]
-type BattleChoiceKind = Literal["move", "mega", "switch", "item", "next", "back", "leave"]
 
 
 class Tag(Frozen):
@@ -48,42 +46,6 @@ class PanelRow(Frozen):
     meters: tuple[Meter, ...] = ()
     options: tuple[ActionOption, ...] = ()
     detail: tuple["Panel", ...] = ()
-
-
-class BattleChoice(Frozen):
-    command: str
-    kind: BattleChoiceKind
-    name: str
-    brief: str = ""
-    help: str = ""
-    group: str = ""
-    refusal: str = ""
-    tags: tuple[Tag, ...] = ()
-    meters: tuple[Meter, ...] = ()
-    sprite: Sprite | None = None
-
-
-class BattleSide(Frozen):
-    name: str
-    sprite: Sprite
-    pips: tuple[Pip, ...]
-    said: str = ""
-
-
-class BattleMon(Frozen):
-    name: str
-    sprite: Sprite
-    hp: Meter
-    tags: tuple[Tag, ...] = ()
-    deciding: bool = False
-
-
-class BattleHeader(Frozen):
-    player: BattleSide
-    ally: BattleSide | None
-    foe: BattleSide
-    conditions: tuple[Tag, ...]
-    fielded: tuple[BattleMon, ...]
 
 
 class Subject(Frozen):
@@ -266,5 +228,21 @@ class Look(Frozen):
     pattern: Literal["dots", "grid", "scanlines", "rings"]
 
 
+class Surface(Frozen):
+    """A screen the engine asks the page to host. An engine lists every surface it has, in every
+    state: the page builds its screens once."""
+
+    surface_id: Slug
+    live: bool
+    tab: str = ""
+    view: Frozen | None = None
+
+
 def nonblank_rows(*pairs: tuple[str, str]) -> Rows:
     return tuple(pair for pair in pairs if pair[1])
+
+
+def require_view[V: Frozen](view: Frozen | None, model: type[V]) -> V:
+    if not isinstance(view, model):
+        raise TypeError(f"the surface shows {type(view).__name__}, not {model.__name__}")
+    return view

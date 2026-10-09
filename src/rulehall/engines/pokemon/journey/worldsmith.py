@@ -11,16 +11,17 @@ from rulehall.engines.pokemon.journey.rules import (
     level_for,
 )
 from rulehall.engines.pokemon.journey.scheme import Operation, Scheme, SchemeDue
-from rulehall.engines.pokemon.journey.sheet import KEY_TRAINER, Trainer
+from rulehall.engines.pokemon.journey.sheet import KEY_TRAINER, JourneyTrainer
 from rulehall.engines.pokemon.journey.world import (
-    PokemonMapProposal,
-    PokemonOpeningProposal,
-    PokemonRegionProposal,
-    PokemonWorld,
+    JourneyMapProposal,
+    JourneyOpeningProposal,
+    JourneyRegionProposal,
+    JourneyWorld,
     legendary_ids,
     unknown_place_ids,
 )
 from rulehall.engines.pokemon.rules import is_legendary
+from rulehall.engines.pokemon.trainers import check_key_lines, check_rivals
 from rulehall.engines.rooms.worldsmith import check_next as check_room_map_next
 from rulehall.engines.rooms.worldsmith import check_opening as check_room_map_opening
 
@@ -82,9 +83,9 @@ DUE_ASKS: dict[SchemeDue, str] = {
 }
 
 
-def check_opening(proposal: PokemonOpeningProposal, species_ids: Collection[Slug]) -> None:
+def check_opening(proposal: JourneyOpeningProposal, species_ids: Collection[Slug]) -> None:
     check_room_map_opening(proposal)
-    _check_pokemon_map(
+    _check_journey_map(
         proposal,
         species_ids,
         gyms_before=0,
@@ -95,7 +96,7 @@ def check_opening(proposal: PokemonOpeningProposal, species_ids: Collection[Slug
     _check_scheme(proposal.scheme, species_ids)
 
 
-def check_next(proposal: PokemonRegionProposal, world: PokemonWorld) -> None:
+def check_next(proposal: JourneyRegionProposal, world: JourneyWorld) -> None:
     check_room_map_next(proposal, world)
     due = world.scheme_due()
     operation_due, lair_due = due == "operation", due == "lair"
@@ -104,7 +105,7 @@ def check_next(proposal: PokemonRegionProposal, world: PokemonWorld) -> None:
     if (proposal.boss_id is not None) != lair_due:
         raise Refusal(DUE_ASKS["lair"] if lair_due else NOT_DUE.format(field="boss_id"))
     gyms = sum(1 for npc in world.npcs.values() if npc.badge)
-    _check_pokemon_map(
+    _check_journey_map(
         proposal,
         world.species_ids,
         gyms_before=gyms,
@@ -117,8 +118,8 @@ def check_next(proposal: PokemonRegionProposal, world: PokemonWorld) -> None:
     )
 
 
-def _check_pokemon_map(
-    proposal: PokemonOpeningProposal | PokemonRegionProposal,
+def _check_journey_map(
+    proposal: JourneyOpeningProposal | JourneyRegionProposal,
     species_ids: Collection[Slug],
     *,
     gyms_before: int,
@@ -126,7 +127,7 @@ def _check_pokemon_map(
     met_legendary_ids: Collection[Slug],
     scheme_legendary_id: Slug | None,
 ) -> None:
-    opening = isinstance(proposal, PokemonOpeningProposal)
+    opening = isinstance(proposal, JourneyOpeningProposal)
     operation = proposal.operation
     boss_id = None if opening else proposal.boss_id
     if strays := unknown_place_ids(proposal.wild, proposal.places):
@@ -148,12 +149,7 @@ def _check_pokemon_map(
     _check_legendaries(trainers, met_legendary_ids, scheme_legendary_id)
     leader_id = None if operation is None else operation.leader_id
     named = [key_id for key_id in (leader_id, boss_id) if key_id is not None]
-    if mute := [
-        npc.id
-        for npc in trainers
-        if npc.is_key(named) and not (npc.style and npc.win_line and npc.lose_line)
-    ]:
-        raise Refusal(f"each {KEY_TRAINER} needs a style, a win_line and a lose_line: {mute}")
+    check_key_lines([npc for npc in trainers if npc.is_key(named)], KEY_TRAINER)
     if short := [npc.id for npc in trainers if npc.double and len(npc.roster) < DOUBLE_TEAM_MIN]:
         raise Refusal(f"a `double` trainer needs a roster of at least {DOUBLE_TEAM_MIN}: {short}")
     if untried := [npc.id for npc in trainers if npc.badge and not npc.trial]:
@@ -166,12 +162,8 @@ def _check_pokemon_map(
             f"at most {REGULAR_TRAINERS_MAX} people besides the key trainers battle in one "
             f"map, not {len(regulars)}: {regulars}; give the others no roster"
         )
-    rivals = [npc for npc in trainers if npc.rival]
-    if opening and len(rivals) != 1:
-        raise Refusal(f"the opening map needs exactly one rival, not {len(rivals)}")
-    if not opening and rivals:
-        raise Refusal("the rival stands in the opening map; a new region adds no rival")
-    if any(rival.roster for rival in rivals):
+    check_rivals(trainers, opening=opening)
+    if any(npc.roster for npc in trainers if npc.rival):
         raise Refusal("the rival has no roster: code builds their team")
     if operation is not None:
         _check_operation(proposal, operation, leader_ids)
@@ -181,7 +173,7 @@ def _check_pokemon_map(
 
 
 def _check_legendaries(
-    trainers: Collection[Trainer],
+    trainers: Collection[JourneyTrainer],
     met_legendary_ids: Collection[Slug],
     scheme_legendary_id: Slug | None,
 ) -> None:
@@ -195,7 +187,7 @@ def _check_legendaries(
         )
 
 
-def _check_ace(leader: Trainer, index: int) -> None:
+def _check_ace(leader: JourneyTrainer, index: int) -> None:
     if not leader.roster:
         raise Refusal(f"{leader.name} gives a badge, so they need a roster")
     table = level_for(index)
@@ -216,7 +208,7 @@ def _check_scheme(scheme: Scheme, species_ids: Collection[Slug]) -> None:
 
 
 def _check_operation(
-    proposal: PokemonMapProposal, operation: Operation, leader_ids: Collection[Slug]
+    proposal: JourneyMapProposal, operation: Operation, leader_ids: Collection[Slug]
 ) -> None:
     start_id = operation.place_id
     if start_id not in proposal.reachable(proposal.start_id):

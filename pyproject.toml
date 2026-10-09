@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-rulehall = "rulehall.ui.app:start"
+rulehall = "rulehall.main:start"
 
 [build-system]
 requires = ["hatchling"]

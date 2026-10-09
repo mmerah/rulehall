@@ -1,3 +1,4 @@
+import re
 from functools import cache
 from pathlib import Path
 from typing import Annotated, Literal
@@ -70,6 +71,7 @@ class Move(Frozen):
     name: str
     type: str
     category: Literal["Physical", "Special", "Status"]
+    target: str
     power: int = Field(ge=0)
     accuracy: int | None
     pp: int
@@ -279,3 +281,11 @@ def dex() -> Dex:
 @cache
 def avatars() -> Avatars:
     return read_model(AVATARS_FILE, Avatars)
+
+
+def showdown_id(name: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", name.lower())
+
+
+def species_name(species_id: Slug) -> str:
+    return dex().species[species_id].name

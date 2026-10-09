@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from pathlib import Path
 from random import Random
 
@@ -8,23 +7,29 @@ from rulehall.core.facts import Fact
 from rulehall.core.game import AnyCharacter, AnyScenario, Character
 from rulehall.core.log import Voice
 from rulehall.core.prompt import Sections, lines_of, section_if
-from rulehall.core.tools import NoArgs, action, tool
-from rulehall.core.validation import EngineId, Slug
-from rulehall.core.views import Panel, Sprite
+from rulehall.core.tools import NoArgs, action, edit, tool
+from rulehall.core.validation import EngineId, Refusal, Slug
+from rulehall.core.views import Panel, Sprite, Surface
 from rulehall.engines.args import Words
 from rulehall.engines.engine import Joining
 from rulehall.engines.pokemon.battle.battling import ShowdownBattling
+from rulehall.engines.pokemon.champions.advice import suggested_species
 from rulehall.engines.pokemon.champions.args import (
-    ApplyPreset,
-    LoadTemplate,
-    MoveSlot,
+    ChoiceEdit,
+    MoveSlotEdit,
+    PasteEdit,
+    PickEdit,
+    PointsEdit,
+    PresetEdit,
     Recruit,
-    SaveTeam,
-    SetSlot,
+    SlotEdit,
+    TemplateEdit,
 )
-from rulehall.engines.pokemon.champions.data import CompetitiveSet, champions_data
+from rulehall.engines.pokemon.champions.data import champions_data
 from rulehall.engines.pokemon.champions.pack import ChampionsPack
 from rulehall.engines.pokemon.champions.panels import SHEET_HELP, season_panel, team_panel
+from rulehall.engines.pokemon.champions.paste import parse_paste
+from rulehall.engines.pokemon.champions.pending import SP, SPECIES, PendingSet
 from rulehall.engines.pokemon.champions.rules import (
     RECRUITS_PER_EVENT,
     TEAM_SLOT_PREFIX,
@@ -34,6 +39,7 @@ from rulehall.engines.pokemon.champions.rules import (
     require_template,
 )
 from rulehall.engines.pokemon.champions.sheet import ChampionsSheet, ChampionsTrainer, Roster
+from rulehall.engines.pokemon.champions.team_builder import quick_spread, team_builder_surface
 from rulehall.engines.pokemon.champions.world import (
     ChampionsGame,
     ChampionsOpeningProposal,
@@ -47,6 +53,7 @@ from rulehall.engines.pokemon.champions.worldsmith import (
     check_opening,
 )
 from rulehall.engines.pokemon.dex import dex
+from rulehall.engines.pokemon.door import ART_STYLE, DOOR_ID, TITLE
 from rulehall.engines.pokemon.rules import SEED_LIMIT
 from rulehall.engines.pokemon.sprites import AVATAR, look_step, mon_sprite, trainer_sprite
 from rulehall.engines.rooms.args import ExtendMap
@@ -63,14 +70,14 @@ SEASON_ENDED = "Worlds is played. The season is over."
 
 
 class ChampionsEngine(
-    ShowdownBattling,
+    ShowdownBattling[ChampionsTrainer, ChampionsWorld, ChampionsPack, ChampionsRegionProposal],
     Joining[ChampionsWorld],
     RoomEngine[ChampionsTrainer, ChampionsWorld, ChampionsPack, ChampionsRegionProposal],
 ):
     id = EngineId("pokemon-champions")
-    title = "POKEMON"
+    title = TITLE
     worldsmith_guidance = WORLDSMITH_GUIDANCE
-    art_style = "Bright anime-style illustration, clean lines, soft colours, no text or lettering."
+    art_style = ART_STYLE
     portraits = False
     directory = Path(__file__).parent
     pack_model = ChampionsPack
@@ -84,7 +91,7 @@ class ChampionsEngine(
 
     @property
     def door_id(self) -> EngineId:
-        return EngineId("pokemon")
+        return DOOR_ID
 
     @property
     def mode_name(self) -> str:
@@ -206,7 +213,7 @@ class ChampionsEngine(
             *section_if("EVENT", world.event_lines()),
             ("THE TEAM", lines_of(competitive_set_line(each) for each in sheet.team)),
             *section_if("OWNED", owned),
-            *_rival_section(world),
+            *world.rival_ledger.section(world.find_rival()),
             ("TYPE CHART", dex().type_chart_text()),
         )
 
@@ -222,6 +229,12 @@ class ChampionsEngine(
     def scene_panels(self, state: ChampionsGame, /) -> tuple[Panel | None, ...]:
         world = state.world
         return (*super().scene_panels(state), team_panel(world), season_panel(world))
+
+    def surfaces(self, state: ChampionsGame, /) -> tuple[Surface, ...]:
+        return (
+            *super().surfaces(state),
+            team_builder_surface(state.world, live=not self.in_battle(state)),
+        )
 
     def ending(self, state: ChampionsGame) -> str | None:
         return SEASON_ENDED if state.world.season_over() else super().ending(state)
@@ -259,43 +272,81 @@ class ChampionsEngine(
         draft.world.require_event_idle()
         return super().extend(draft, args, rng)
 
-    @action
-    def set_slot(self, draft: ChampionsGame, args: SetSlot, _rng: Random) -> list[Fact]:
-        team = list(draft.world.player_sheet.team)
-        team[args.slot - 1] = args.competitive_set
-        return self._replace_team(draft, team, f"Slot {args.slot} changed")
-
-    @action
-    def move_slot(self, draft: ChampionsGame, args: MoveSlot, _rng: Random) -> list[Fact]:
-        team = list(draft.world.player_sheet.team)
-        team.insert(args.to_slot - 1, team.pop(args.slot - 1))
-        return self._replace_team(draft, team, f"Slot {args.slot} moved to slot {args.to_slot}")
-
-    @action
-    def apply_preset(self, draft: ChampionsGame, args: ApplyPreset, _rng: Random) -> list[Fact]:
-        team = list(draft.world.player_sheet.team)
-        team[args.slot - 1] = require_preset(args.preset_id)
-        return self._replace_team(draft, team, f"Slot {args.slot} takes a preset")
-
-    @action
-    def load_template(self, draft: ChampionsGame, args: LoadTemplate, _rng: Random) -> list[Fact]:
-        return self._replace_team(draft, require_template(args.template_id), "Team loaded")
-
-    @action
-    def save_team(self, draft: ChampionsGame, args: SaveTeam, _rng: Random) -> list[Fact]:
-        return self._replace_team(draft, args.sets, "Team saved")
-
-    def _replace_team(
-        self, draft: ChampionsGame, sets: Sequence[CompetitiveSet], line: str
-    ) -> list[Fact]:
+    @edit
+    def pick(self, draft: ChampionsGame, args: PickEdit, _rng: Random) -> None:
         world = draft.world
-        world.player_sheet.replace_team(sets)
-        return [world.player.card_fact(line)]
+        team = world.editing_team()
+        allowed_species_ids = world.player_sheet.allowed_species_ids
+        team.pick(args.slot, args.field_id, args.choice_ids, allowed_species_ids)
+        if args.preset and args.field_id == SPECIES:
+            species_id = team.require_set(args.slot).species_id
+            index = team.free_preset_index(args.slot, species_id)
+            if index is not None:
+                team.place(
+                    args.slot, champions_data().presets[species_id][index], allowed_species_ids
+                )
+
+    @edit
+    def set_points(self, draft: ChampionsGame, args: PointsEdit, _rng: Random) -> None:
+        _require_points_field(args.field_id)
+        draft.world.editing_team().set_points(args.slot, args.row, args.points)
+
+    @edit
+    def apply_quick(self, draft: ChampionsGame, args: ChoiceEdit, _rng: Random) -> None:
+        _require_points_field(args.field_id)
+        team = draft.world.editing_team()
+        nature, sp = quick_spread(team.require_set(args.slot), args.choice_id)
+        team.apply_spread(args.slot, nature, sp)
+
+    @edit
+    def apply_preset(self, draft: ChampionsGame, args: PresetEdit, _rng: Random) -> None:
+        world = draft.world
+        world.editing_team().place(
+            args.slot, require_preset(args.preset_id), world.player_sheet.allowed_species_ids
+        )
+
+    @edit
+    def move_slot(self, draft: ChampionsGame, args: MoveSlotEdit, _rng: Random) -> None:
+        draft.world.editing_team().move_slot(args.slot, args.to_slot)
+
+    @edit
+    def clear_slot(self, draft: ChampionsGame, args: SlotEdit, _rng: Random) -> None:
+        draft.world.editing_team().clear_slot(args.slot)
+
+    @edit
+    def import_text(self, draft: ChampionsGame, args: PasteEdit, _rng: Random) -> None:
+        draft.world.load_pending_team([row.pending_set for row in parse_paste(args.text)])
+
+    @edit
+    def load_template(self, draft: ChampionsGame, args: TemplateEdit, _rng: Random) -> None:
+        sets = require_template(args.template_id)
+        draft.world.load_pending_team([PendingSet.of_set(each) for each in sets])
+
+    @edit
+    def copy_registered_team(self, draft: ChampionsGame, _args: NoArgs, _rng: Random) -> None:
+        draft.world.copy_registered_team()
+
+    @edit
+    def fill_empty_slots(self, draft: ChampionsGame, _args: NoArgs, _rng: Random) -> None:
+        world = draft.world
+        team = world.editing_team()
+        allowed_species_ids = world.player_sheet.allowed_species_ids
+        empty = [number for number, each in enumerate(team.slots, 1) if each is None]
+        suggested = suggested_species(team.slots, len(empty), allowed_species_ids)
+        for number, species_id in zip(empty, suggested, strict=False):
+            index = team.free_preset_index(number, species_id)
+            if index is not None:
+                team.place(number, champions_data().presets[species_id][index], allowed_species_ids)
+
+    @edit
+    def save(self, draft: ChampionsGame, _args: NoArgs, _rng: Random) -> None:
+        draft.world.save_pending_team()
+
+    @edit
+    def discard(self, draft: ChampionsGame, _args: NoArgs, _rng: Random) -> None:
+        draft.world.discard_pending_team()
 
 
-def _rival_section(world: ChampionsWorld) -> Sections:
-    rival = world.find_rival()
-    if rival is None:
-        return ()
-    ledger = (f"- {line}" for line in world.rival_ledger)
-    return (("THE RIVAL", "\n".join((f"{rival.ref}; style: {rival.style}", *ledger))),)
+def _require_points_field(field_id: Slug) -> None:
+    if field_id != SP:
+        raise Refusal(f"{field_id!r} is no field of stat points")

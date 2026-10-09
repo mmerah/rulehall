@@ -64,12 +64,25 @@ class LegalSpecies(Frozen):
 class Legality(Frozen):
     species: dict[Slug, LegalSpecies] = Field(min_length=1)
     item_ids: tuple[Slug, ...] = Field(min_length=1)
-    mega_stones: dict[Slug, tuple[Slug, ...]]
+    mega_formes: dict[Slug, dict[Slug, Slug]]
     sp_max: int = Field(gt=0)
     sp_total: int = Field(gt=0)
     team_size: int = Field(gt=0)
     level: int = Field(gt=0)
     moves_max: int = Field(gt=0)
+
+    @model_validator(mode="after")
+    def _check_mega_formes(self) -> Self:
+        pokedex = dex()
+        for stone_id, formes in self.mega_formes.items():
+            if stone_id not in self.item_ids:
+                raise Refusal(f"Mega Stone {stone_id!r} is not legal in the format")
+            for holder_id, forme_id in formes.items():
+                self.require_species(holder_id)
+                pokedex.require_species(forme_id)
+                if forme_id in self.species:
+                    raise Refusal(f"{forme_id!r} is no Mega forme of {holder_id}")
+        return self
 
     def require_species(self, species_id: str) -> LegalSpecies:
         found = self.species.get(species_id)
@@ -114,6 +127,11 @@ class MoveShare(Frozen):
     percent: Percent
 
 
+class AbilityShare(Frozen):
+    ability_id: Slug
+    percent: Percent
+
+
 class SpreadShare(Frozen):
     nature: Nature
     sp: Stats
@@ -124,6 +142,7 @@ class UsageCard(Frozen):
     source: Literal["smogon", "limitless"]
     usage_percent: Percent
     teammates: tuple[SpeciesShare, ...]
+    abilities: tuple[AbilityShare, ...]
     items: tuple[ItemShare, ...]
     moves: tuple[MoveShare, ...]
     spreads: tuple[SpreadShare, ...]
@@ -138,6 +157,8 @@ class SpeciesPool(Frozen):
 class Archetype(Frozen):
     archetype_id: Slug
     name: str = Field(min_length=1)
+    move_ids: tuple[Slug, ...]
+    ability_ids: tuple[Slug, ...]
     setter_id: Slug
     core_ids: tuple[Slug, ...]
     leads: tuple[Slug, Slug]
@@ -151,9 +172,16 @@ class Archetype(Frozen):
         return self
 
 
+class Role(Frozen):
+    name: str = Field(min_length=1)
+    move_ids: tuple[Slug, ...]
+    ability_ids: tuple[Slug, ...]
+
+
 class ChampionsData(Frozen):
     source: UsageSource
     legal: Legality
+    roles: dict[Slug, Role] = Field(min_length=1)
     presets: dict[
         Slug, Annotated[tuple[CompetitiveSet, ...], Field(min_length=1, max_length=PRESETS_MAX)]
     ]
@@ -175,6 +203,7 @@ class ChampionsData(Frozen):
             *(each.species_id for card in cards for each in (*card.teammates, *card.checks)),
         }:
             self.legal.require_species(species_id)
+        self._check_roles()
         for species_id, presets in self.presets.items():
             for preset in presets:
                 if preset.species_id != species_id:
@@ -201,9 +230,17 @@ class ChampionsData(Frozen):
             if species_id not in self.presets:
                 raise Refusal(f"pool species {species_id} has no preset")
         for stone_id in (stone for batch in self.pool.mega_batches for stone in batch):
-            if stone_id not in self.legal.mega_stones:
+            if stone_id not in self.legal.mega_formes:
                 raise Refusal(f"{stone_id!r} is no Mega Stone of the format")
         return self
+
+    def _check_roles(self) -> None:
+        species = self.legal.species.values()
+        move_ids = {move_id for each in species for move_id in each.move_ids}
+        ability_ids = {ability_id for each in species for ability_id in each.ability_ids}
+        for role_id, role in self.roles.items():
+            if unknown := (set(role.move_ids) - move_ids) | (set(role.ability_ids) - ability_ids):
+                raise Refusal(f"role {role_id} has ids not legal in the format: {sorted(unknown)}")
 
     def _check_set(self, competitive_set: CompetitiveSet) -> None:
         self.legal.check_set(competitive_set)
@@ -222,3 +259,8 @@ class ChampionsData(Frozen):
 @cache
 def champions_data() -> ChampionsData:
     return read_model(DATA_FILE, ChampionsData)
+
+
+def move_shares(species_id: Slug) -> dict[Slug, float]:
+    card = champions_data().usage.get(species_id)
+    return {} if card is None else {each.move_id: each.percent for each in card.moves}

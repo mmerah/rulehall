@@ -128,16 +128,31 @@ The player picks the mode on the Pokemon door and three things at creation: the 
 
 ### Registration and the team
 
-- `register_team` registers the player at the venue while the event is open and its tier is open to them. Code draws the field, pairs round 1 and locks the team. The locked team is the registered copy; every edit and `recruit` refuses until the event ends.
+- `register_team` registers the player at the venue while the event is open and its tier is open to them. Code draws the field, pairs round 1 and locks the team. The locked team is the registered copy; battles use it, and every edit and `recruit` refuses until the event ends. The one exception is `copy_registered_team`: outside a match it opens a pending team from the registered copy, which the player edits and discards during the event but saves only after it ends. Unsaved changes from before registration stay open as that pending team, and a second copy refuses while one is open.
 - A team is exactly six Pokemon, each a set: species, ability, item, up to four moves, a nature and Stat Points (SP).
 - Showdown's legality for the format decides the species, abilities, moves and items. Each stat has 0 to 32 SP and a Pokemon has 66 SP at most. Any of the 25 natures is allowed.
 - Stat Points take the place of EVs: the stat formula adds `2 × SP - 1` for a stat with SP, in the place of `EV / 4`. IVs are 31, friendship 255, level 50.
 - Species clause: each species once, by base species, so a Mega and its base count as one. Item clause: each item once.
 - A team may hold several Mega Stones. Only one Mega Evolution happens per battle.
 - The team is checked at creation, on every edit and when a save loads.
-- Between events the player edits the team without the master: `set_slot`, `move_slot`, `apply_preset` (a preset id such as `garchomp-a`, up to three per species from the Smogon usage), `load_template` (an archetype id or a real team id) and `save_team`. The Team page shows the six with their builds and SP; the team builder UI is not yet there.
+- Between events the player edits the team without the master, in the team builder below. The Team tab shows the six with their builds and SP.
 - The roster is a creation setting. Open: every legal species is the player's. Story: the player starts with the six of the chosen archetype team and can build only with species they own. The master calls `recruit` once per event, when the story gives a species (a trade, a gift); it refuses while the team is registered, for a species already owned, and in an open roster. The next event resets it.
 - The starting team is one of the nine archetype teams, picked at creation.
+
+### The team builder
+
+- The banner under the story and the Team tab open the team builder: a rail of the six slots, the editor of the chosen slot and an advice column. On a narrow screen the advice folds into a Tips tab, and on a phone the overview is a grid of the six and a slot opens full screen with Set, Moves, Points and Tips tabs.
+- A slot picks its species, ability, item, nature and four moves from searchable lists with filters and sort orders: usage, name, Speed and base stat total for species; type, category, common and spread moves. The lists grey out what the rules refuse, with the reason: a species already on another slot, an item another slot holds, a Mega Stone for another species, a species not owned in a story roster. A slot also offers its presets from the Smogon usage, and the most common items and moves as chips.
+- The Stat Points editor has a stepper, a slider and a number box per stat, with the final stat at level 50, the nature's mark and, for Speed, the nearest benchmarks among the most used Pokemon. Quick spreads fill all six at once: the most used spreads of the species, then common shapes such as max Attack and Speed or Trick Room.
+- Edits go to a pending team in the game state, not to the team. The pending team survives a reload and leaving the page; the banner says when it holds unsaved changes. Save team checks the whole team and saves it, or points at the first slot with a problem. Discard drops the pending team after a confirm. A quick spread, a preset, a loaded team or a fix shows an Undo.
+- While the team is registered, the builder is read-only and says why; Export still works, and Save team refuses. Copy to a new draft opens an editable pending team from the registered team; it saves once the event ends, and Discard closes it.
+- Import takes a Showdown paste in the Champions form (SP in the `EVs:` line, `Level: 50`, no Tera) and previews the six before it replaces the pending team. A set with errors still comes in and shows them on its slot; values that look like EVs, above 32 or past 66 in total, come in as 0 SP with that error. IVs and Tera are ignored with a note. Export writes the team in the same form.
+- Start from… loads one of the archetype teams or one of the real tournament teams, filtered by archetype, pool and species. In a story roster a team with species the player does not own is refused, naming them.
+- The advice reads the pending team: the clauses, empty slots, speed control, Fake Out and Intimidate, a type that hits three or more Pokemon with no answer, the Pokemon that most often beat the team, more than one Mega Stone, the team's archetype, and a slot that fits the others poorly. Some come with a Fix: fill the empty slots with suggested teammates, add a speed control move, swap in a better preset.
+- Simple or Expert is the setting Settings > pokemon > expert team builder, and the switch in the builder's head. Simple hides the sliders, number boxes and hints, and a new species takes its top preset. Expert shows everything.
+- Keys: 1 to 6 pick a slot, s, i, a, n and m open the species, item, ability, nature and move lists, Ctrl + S saves. "?" shows every key.
+
+The Pokemon settings sit in their own section, Settings > pokemon: the battle sprites, the battle music, the opponent (scripted or the model) and the expert team builder.
 
 ### The opponents
 
@@ -163,14 +178,16 @@ The player picks the mode on the Pokemon door and three things at creation: the 
 - No HP or PP carries over, and no EXP, item or ball applies: every match starts fresh. A ball throw refuses.
 - Win or lose, the result goes to the event: code records it, rolls the other tables, pairs the next round or seeds the cut. A loss in the Swiss rounds does not end the player's event.
 
-Left out, and not yet: open team sheets, scouting, foe estimates that know SP, and the team builder UI.
+Left out, and not yet: open team sheets, scouting, foe estimates that know SP, and a damage calculator.
 
 ## Where the rules live
 
-The shared base is `src/rulehall/engines/pokemon/`: the stat, type, nature and item rules in `rules.py`, the dex in `dex.py`, the battle module in `battle/` (the driver, the choices, the opponent role, team preview and Mega), and the Node side in `showdown/`.
+The shared base is `src/rulehall/engines/pokemon/`: the stat, type, nature and item rules in `rules.py`, the door's id, title and art style in `door.py`, the dex and its lookups in `dex.py`, the rival ledger with its section, the rival lookup, the rival and key-trainer checks of the worldsmith and the trainer field descriptions both modes share in `trainers.py`, the sprites and colours in `sprites.py`, the battle module in `battle/` (the driver, the choices, the opponent role, team preview and Mega, with the view models of the battle screen in `views.py`), and the Node side in `showdown/`.
 
-`src/rulehall/engines/pokemon/journey/`: the journey engine, with the master's instructions in `rules.md`, the journey numbers in `rules.py` and the packs in `packs/`.
+`src/rulehall/engines/pokemon/journey/`: the journey engine (`JourneyEngine`, `JourneyWorld`, `JourneyGame`, `JourneyPack`, `JourneyTrainer` and its `JourneySheet`), with the master's instructions in `rules.md`, the journey numbers in `rules.py` and the packs in `packs/`.
 
-`src/rulehall/engines/pokemon/champions/`: the Champions engine. `season.py` holds the tiers (`TIERS`), the CP rules and the event with its Swiss rounds and cut. `world.py` holds the world: registration, matches, results and recruiting. `rules.py` holds the team rules and the builders for key trainers, the rival and the field. `sheet.py` is the player's sheet and the trainer. `worldsmith.py` checks the worldsmith's event. `data.py` loads `data.json`, the legality, presets, usage and teams. `panels.py` builds the Team and Season panels, and `rules.md` is the master's instructions.
+`src/rulehall/engines/pokemon/champions/`: the Champions engine (`ChampionsEngine`, `ChampionsWorld`, `ChampionsGame`, `ChampionsPack`, `ChampionsTrainer` and its `ChampionsSheet`). `season.py` holds the tiers (`TIERS`), the CP rules and the event with its Swiss rounds and cut. `world.py` holds the world: registration, matches, results and recruiting. `rules.py` holds the team rules and the builders for key trainers, the rival and the field. `sheet.py` is the player's sheet and the trainer. `worldsmith.py` checks the worldsmith's event. `data.py` loads `data.json`, the legality, presets, usage and teams. `panels.py` builds the Team and Season panels and the team actions' options, and `rules.md` is the master's instructions. The team builder is `pending.py` (the pending team and its edits), `views.py` (the view models the UI draws), `team_builder.py` (builds those views and the lists), `paste.py` (import and export) and `advice.py` (the advice, teammate suggestions and speed benchmarks); the screens are in `src/rulehall/screens/pokemon/`: the battle screen (`BattleScreen`), the team builder (`TeamBuilderScreen`), the picker and the stat-point editor. The generic layers (`core/`, `app/`, `ui/`) know only a surface the engine names; `src/rulehall/screens/registry.py` collects these screens and `src/rulehall/main.py` hands them to the UI.
+
+The tests mirror this layout: `tests/pokemon/battle/` (with the recorded battles in `fixtures/`), `tests/pokemon/journey/`, `tests/pokemon/champions/` and `tests/screens/pokemon/`.
 
 The map machinery is `RoomEngine` in `src/rulehall/engines/rooms/`.

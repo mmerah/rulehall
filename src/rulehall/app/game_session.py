@@ -35,8 +35,8 @@ from rulehall.core.log import (
     partial_lines,
 )
 from rulehall.core.stores import Library, SaveStore
-from rulehall.core.validation import Refusal, Slug
-from rulehall.core.views import BattleChoice, BattleHeader, NarratorView, PlayerView, Sprite
+from rulehall.core.validation import Frozen, Refusal, Slug
+from rulehall.core.views import NarratorView, PlayerView, Sprite, Surface
 from rulehall.engines.battles import BattleRun, Battling, Transport, in_battle
 from rulehall.engines.engine import AnyEngine, Resolution
 
@@ -48,6 +48,8 @@ NOTHING_TO_REWIND = "there is no turn to rewind"
 NO_TURN = "no turn is open: the player starts a turn from the page, so wait until you start again"
 NO_WORDS_NOW = "the page takes one of its options now, not words"
 BATTLE_ON = "a battle is on: finish it on the battle screen"
+NOTHING_TO_UNDO = "there is no edit to undo"
+NOT_AN_EDIT = "{name} is not an edit now"
 GAME_OVER = "the game is over ({ending}): it continues only after a restart"
 
 
@@ -55,6 +57,12 @@ GAME_OVER = "the game is over ({ending}): it continues only after a restart"
 class Rewind:
     state: AnyGame
     words: str
+
+
+@dataclass(frozen=True, slots=True)
+class EditUndo:
+    before: AnyGame
+    produced: AnyGame
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
@@ -71,8 +79,14 @@ class SessionSnapshot:
     battle_run: BattleRun[AnyGame] | None = field(compare=False)
     battle_log: tuple[str, ...]
     battle_facts: tuple[Fact, ...]
-    battle_choices: tuple[BattleChoice, ...]
-    battle_header: BattleHeader | None
+    battle_view: Frozen | None
+    surfaces: tuple[Surface, ...]
+
+    def require_surface(self, surface_id: Slug) -> Surface:
+        found = next((each for each in self.surfaces if each.surface_id == surface_id), None)
+        if found is None:
+            raise ValueError(f"the engine shows no surface {surface_id!r}")
+        return found
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,6 +94,7 @@ class StateMemo:
     state: AnyGame
     view: PlayerView
     log_entries: tuple[LogEntry, ...]
+    surfaces: tuple[Surface, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,16 +125,13 @@ class GameSession:
     turn: Turn | None = None
     rewind_point: Rewind | None = None
     battle_run: BattleRun[AnyGame] | None = None
+    edit_undo: EditUndo | None = None
     memo: StateMemo | None = field(default=None, repr=False, compare=False)
     debriefed: DebriefMemo | None = field(default=None, repr=False, compare=False)
 
     @property
     def unopened(self) -> bool:
         return self.working_role is None and not self.log_entries()
-
-    @property
-    def battle_script(self) -> Path | None:
-        return self.engine.battle_script if isinstance(self.engine, Battling) else None
 
     async def open(self) -> None:
         # A second tab's timer must not run the page reset over an opening already in flight.
@@ -161,18 +173,14 @@ class GameSession:
             else:
                 await self._play_silent(option)
 
-    async def open_battle(self) -> None:
+    async def open_battle(self, *, ask_opponent: bool) -> None:
         with self.gate.admit(self):
             if self.battle_run is not None or not in_battle(self.engine, self.state):
                 return
             self.rewind_point = None
             transport = await self.start_transport(self.engine)
             draft = self.state.draft()
-            opponent = (
-                role_answer(self.roles, "opponent")
-                if self.live_settings.current.battle.opponent == "model"
-                else None
-            )
+            opponent = role_answer(self.roles, "opponent") if ask_opponent else None
             try:
                 run = self.battle_run = await self.engine.open_battle(draft, transport, opponent)
             except BaseException:
@@ -184,8 +192,7 @@ class GameSession:
         with self.gate.admit(self):
             if (run := self.battle_run) is None:
                 raise Refusal("the battle is still starting")
-            if command not in (choice.command for choice in run.choices() if not choice.refusal):
-                raise Refusal(f"{command!r} is not a choice now")
+            run.require_command(command)
             draft = self.state.draft()
             try:
                 await run.choose(draft, command, self.rng)
@@ -246,9 +253,32 @@ class GameSession:
             battle_run=run,
             battle_log=() if run is None else tuple(run.log),
             battle_facts=() if run is None else tuple(run.facts),
-            battle_choices=() if run is None else run.choices(),
-            battle_header=None if run is None else run.header(),
+            battle_view=None if run is None else run.view(),
+            surfaces=self.surfaces(),
         )
+
+    def edit(self, option: ActionOption) -> None:
+        if option.action_name not in self.engine.edits:
+            raise Refusal(NOT_AN_EDIT.format(name=option.action_name))
+        self._require_unoccupied()
+        before = self.state
+        draft = before.draft()
+        self.engine.play_edit(draft, option, self.rng)
+        produced = self.engine.accept(draft)
+        self.save(produced)
+        self.edit_undo = EditUndo(before, produced)
+        self.rewind_point = None
+
+    def undo_edit(self) -> None:
+        self._require_unoccupied()
+        if (undo := self.edit_undo) is None or undo.produced is not self.state:
+            raise Refusal(NOTHING_TO_UNDO)
+        self.edit_undo = None
+        self.rewind_point = None
+        self.save(undo.before)
+
+    def surfaces(self) -> tuple[Surface, ...]:
+        return self._memo().surfaces
 
     def player_view(self) -> PlayerView:
         return self._memo().view
@@ -443,10 +473,19 @@ class GameSession:
         finally:
             self.live = ()
 
+    def _require_unoccupied(self) -> None:
+        if self.gate.admitted is self or self.working_role is not None:
+            raise Busy(elsewhere=False)
+
     def _memo(self) -> StateMemo:
         state = self.state
         if self.memo is None or self.memo.state is not state:
-            self.memo = StateMemo(state, self.engine.player_view(state), state.log_entries())
+            self.memo = StateMemo(
+                state,
+                self.engine.player_view(state),
+                state.log_entries(),
+                self.engine.surfaces(state),
+            )
         return self.memo
 
     async def _play_master(self, turn: Turn) -> None:

@@ -53,8 +53,9 @@ from rulehall.engines.pokemon.journey.scheme import (
     Scheme,
     SchemeDue,
 )
-from rulehall.engines.pokemon.journey.sheet import Mon, Trainer, TrainerSheet, built_team
+from rulehall.engines.pokemon.journey.sheet import JourneySheet, JourneyTrainer, Mon, built_team
 from rulehall.engines.pokemon.rules import battle_seed, check_species, is_legendary
+from rulehall.engines.pokemon.trainers import RivalLedger, check_one_rival, find_rival
 from rulehall.engines.rooms.world import OFF_MAP_ID, MapProposal, RegionProposal, RoomWorld
 
 WILD = "The wild table of each new place, keyed by place id. A town or a building has no table."
@@ -114,7 +115,7 @@ class WildSlot(Frozen):
         return self
 
 
-class PokemonMapProposal(MapProposal[Trainer]):
+class JourneyMapProposal(MapProposal[JourneyTrainer]):
     wild: dict[Slug, tuple[WildSlot, ...]] = Field(default_factory=dict, description=WILD)
     town_place_ids: tuple[Slug, ...] = Field(default=(), description=TOWN_PLACE_IDS)
     battle_background_ids: dict[Slug, BattleBackground] = Field(
@@ -122,27 +123,19 @@ class PokemonMapProposal(MapProposal[Trainer]):
     )
 
 
-class PokemonOpeningProposal(PokemonMapProposal):
+class JourneyOpeningProposal(JourneyMapProposal):
     scheme: Scheme = Field(description="The evil team's scheme, written once for the journey.")
     operation: Operation = Field(description="The evil team's first operation, in this map.")
 
 
-class PokemonRegionProposal(PokemonMapProposal, RegionProposal[Trainer]):
+class JourneyRegionProposal(JourneyMapProposal, RegionProposal[JourneyTrainer]):
     operation: Operation | None = Field(default=None, description=OPERATION)
     boss_id: Slug | None = Field(default=None, description=BOSS_ID)
 
 
-class RivalRecord(Mutable):
+class RivalTeam(Mutable):
     starter_id: Slug | None = None
     due: bool = False
-    ledger: list[str] = Field(default_factory=list)
-
-    def record_battle(
-        self, place_name: str, badges: int, winner: str, highlights: Sequence[str]
-    ) -> None:
-        plural = "" if badges == 1 else "s"
-        best = f". {highlights[0]}" if highlights else ""
-        self.ledger.append(f"{place_name}, {badges} badge{plural}: {winner} won{best}")
 
     def roster(
         self,
@@ -185,7 +178,7 @@ class RivalRecord(Mutable):
         )
 
 
-class PokemonWorld(RoomWorld[Trainer]):
+class JourneyWorld(RoomWorld[JourneyTrainer]):
     species_ids: tuple[Slug, ...] = Field(min_length=1)
     wild: dict[Slug, tuple[WildSlot, ...]] = Field(default_factory=dict)
     battle: Battle | None = None
@@ -193,7 +186,8 @@ class PokemonWorld(RoomWorld[Trainer]):
     town_place_ids: list[Slug] = Field(default_factory=list)
     battle_background_ids: dict[Slug, BattleBackground] = Field(default_factory=dict)
     encountered_place_ids: list[Slug] = Field(default_factory=list)
-    rival_record: RivalRecord = Field(default_factory=RivalRecord)
+    rival_team: RivalTeam = Field(default_factory=RivalTeam)
+    rival_ledger: RivalLedger = Field(default_factory=RivalLedger)
     evil_team: EvilTeam = Field(default_factory=EvilTeam)
 
     @model_validator(mode="after")
@@ -209,8 +203,7 @@ class PokemonWorld(RoomWorld[Trainer]):
             raise ValueError(f"towns that are no place: {strays}")
         if strays := unknown_place_ids(self.battle_background_ids, self.places):
             raise ValueError(f"battle backgrounds for places that do not exist: {strays}")
-        if len([npc for npc in self.npcs.values() if npc.rival]) > 1:
-            raise ValueError("a world has one rival at most")
+        check_one_rival(self.npcs.values())
         if strays := sorted(set(self.evil_team.key_ids()) - set(self.npcs)):
             raise ValueError(f"leaders or a boss who are no npc: {strays}")
         operation = self.evil_team.operation
@@ -223,14 +216,14 @@ class PokemonWorld(RoomWorld[Trainer]):
         return self
 
     @property
-    def player_sheet(self) -> TrainerSheet:
+    def player_sheet(self) -> JourneySheet:
         return self.player.require_sheet()
 
     def kill(self, entity_id: Slug) -> list[Fact]:
         self._refuse_key(entity_id)
         return super().kill(entity_id)
 
-    def join(self, person: Trainer) -> list[Fact]:
+    def join(self, person: JourneyTrainer) -> list[Fact]:
         self._refuse_key(person.id)
         return super().join(person)
 
@@ -306,27 +299,27 @@ class PokemonWorld(RoomWorld[Trainer]):
             TOWN_BATTLE_BACKGROUND if place_id in self.town_place_ids else ROUTE_BATTLE_BACKGROUND,
         )
 
-    def find_rival(self) -> Trainer | None:
-        return next((npc for npc in self.npcs.values() if npc.rival), None)
+    def find_rival(self) -> JourneyTrainer | None:
+        return find_rival(self.npcs.values())
 
     def sheet_rows(self) -> Rows:
         rows = super().sheet_rows()
-        ledger = self.rival_record.ledger
-        return (*rows, ("Rival", "; ".join(ledger))) if ledger else rows
+        lines = self.rival_ledger.lines
+        return (*rows, ("Rival", "; ".join(lines))) if lines else rows
 
-    def apply_opening_extras(self, opening: PokemonOpeningProposal) -> None:
+    def apply_opening_extras(self, opening: JourneyOpeningProposal) -> None:
         self._add_map_extras(opening)
         self.evil_team.scheme = opening.scheme
         self.open_operation(opening.operation)
 
-    def apply_region_extras(self, region: PokemonRegionProposal) -> None:
+    def apply_region_extras(self, region: JourneyRegionProposal) -> None:
         self._add_map_extras(region)
         if region.boss_id is not None:
             self.evil_team.boss_id = region.boss_id
         if region.operation is not None:
             self.open_operation(region.operation)
 
-    def _add_map_extras(self, proposal: PokemonMapProposal) -> None:
+    def _add_map_extras(self, proposal: JourneyMapProposal) -> None:
         self.wild.update(proposal.wild)
         self.town_place_ids.extend(proposal.town_place_ids)
         self.battle_background_ids.update(proposal.battle_background_ids)
@@ -339,13 +332,13 @@ class PokemonWorld(RoomWorld[Trainer]):
 
     def setup_battle(
         self,
-        trainer: Trainer | None,
+        trainer: JourneyTrainer | None,
         foes: tuple[Battler, ...],
         rng: Random,
         *,
         weather: Weather | None,
         terrain: Terrain | None,
-        companion: Trainer | None,
+        companion: JourneyTrainer | None,
         legendary_id: Slug | None,
     ) -> None:
         player = self.player
@@ -415,7 +408,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         )
         self.battle = Battle(setup=setup, legendary_id=legendary_id)
 
-    def _battle_music_of(self, trainer: Trainer | None) -> BattleMusic:
+    def _battle_music_of(self, trainer: JourneyTrainer | None) -> BattleMusic:
         if trainer is None:
             return "bw-trainer"
         if trainer.rival:
@@ -449,7 +442,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         )
         return [self.player.card_fact(f"A wild {foe.species_name} appears")]
 
-    def require_companion(self, foe: Trainer) -> Trainer:
+    def require_companion(self, foe: JourneyTrainer) -> JourneyTrainer:
         companion = next(
             (member for member in self.party_members() if member.roster and member.id != foe.id),
             None,
@@ -533,7 +526,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         self.player_sheet.heal_team()
         return [self.player.card_fact("Team healed")]
 
-    def trainer_team(self, trainer: Trainer, rng: Random) -> list[Mon]:
+    def trainer_team(self, trainer: JourneyTrainer, rng: Random) -> list[Mon]:
         sheet = self.player_sheet
         badges = len(sheet.badges)
         ace_level = sheet.table_level() - ACE_BELOW_TABLE
@@ -544,7 +537,7 @@ class PokemonWorld(RoomWorld[Trainer]):
                 for slot in self.wild.get(place_id, ())
             }
             return built_team(
-                self.rival_record.roster(badges, ace_level, seen_species_ids, self.species_ids),
+                self.rival_team.roster(badges, ace_level, seen_species_ids, self.species_ids),
                 badges,
                 iv=RIVAL_IV,
                 ev=rival_ev(badges),
@@ -576,7 +569,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         operation = self.evil_team.operation
         operation_here = operation is not None and operation.place_id == here
         if (
-            not self.rival_record.due
+            not self.rival_team.due
             or rival is None
             or operation_here
             or any(npc.badge for npc in self.at(here))
@@ -584,7 +577,7 @@ class PokemonWorld(RoomWorld[Trainer]):
             return [], []
         rival.place_id = here
         rival.known = True
-        self.rival_record.due = False
+        self.rival_team.due = False
         return [rival.card_fact(f"{rival.name} is here")], [RIVAL_WAITS.format(name=rival.name)]
 
     def settle_battle(self, result: BattleResult) -> tuple[Resolution, list[str]]:
@@ -643,7 +636,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         return Resolution(tuple(facts), cue), notes
 
     def _settle_trainer(
-        self, trainer: Trainer, setup: BattleSetup, result: BattleResult
+        self, trainer: JourneyTrainer, setup: BattleSetup, result: BattleResult
     ) -> list[Fact]:
         player = self.player
         sheet = self.player_sheet
@@ -665,7 +658,7 @@ class PokemonWorld(RoomWorld[Trainer]):
             if trainer.badge and trainer.badge not in sheet.badges:
                 sheet.badges.append(trainer.badge)
                 facts.append(player.card_fact(f"You earned the {trainer.badge}"))
-                self.rival_record.due = True
+                self.rival_team.due = True
                 if sheet.rankable():
                     sheet.ranks_due += 1
         if key and (line := trainer.lose_line if won else trainer.win_line):
@@ -674,7 +667,7 @@ class PokemonWorld(RoomWorld[Trainer]):
             facts += self._rival_leaves(trainer, result.highlights, won=won)
         return facts
 
-    def _settle_legendary(self, legendary: Trainer, result: BattleResult) -> list[Fact]:
+    def _settle_legendary(self, legendary: JourneyTrainer, result: BattleResult) -> list[Fact]:
         if result.outcome not in ("won", "caught"):
             legendary.last_battle_visit = len(self.visited_place_ids)
             return []
@@ -685,7 +678,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         return [legendary.card_fact(f"{legendary.name} is gone")]
 
     def _move_scheme(
-        self, trainer: Trainer, result: BattleResult, *, badged: bool
+        self, trainer: JourneyTrainer, result: BattleResult, *, badged: bool
     ) -> tuple[list[Fact], list[str]]:
         operation = self.evil_team.operation
         if operation is None:
@@ -711,11 +704,14 @@ class PokemonWorld(RoomWorld[Trainer]):
         leader.place_id = OFF_MAP_ID
         return facts, [headline]
 
-    def _rival_leaves(self, rival: Trainer, highlights: Sequence[str], *, won: bool) -> list[Fact]:
+    def _rival_leaves(
+        self, rival: JourneyTrainer, highlights: Sequence[str], *, won: bool
+    ) -> list[Fact]:
         badges = len(self.player_sheet.badges)
         here = self.current
         winner = self.player.name if won else rival.name
-        self.rival_record.record_battle(here.name, badges, winner, highlights)
+        plural = "" if badges == 1 else "s"
+        self.rival_ledger.record_battle(f"{here.name}, {badges} badge{plural}", winner, highlights)
         rival.place_id = OFF_MAP_ID
         return [rival.card_fact(f"{rival.name} leaves")]
 
@@ -739,7 +735,7 @@ class PokemonWorld(RoomWorld[Trainer]):
         return [self.player.card_fact(f"{mon.name} has fallen") for mon in fallen]
 
 
-PokemonGame = Game[PokemonWorld]
+JourneyGame = Game[JourneyWorld]
 
 
 def challenge_line(trainer_name: str, foes: Sequence[Battler]) -> str:
@@ -748,7 +744,7 @@ def challenge_line(trainer_name: str, foes: Sequence[Battler]) -> str:
     return f"{trainer_name} challenges you to a battle with {team}; {foes[0].species_name} leads"
 
 
-def legendary_ids(npcs: Iterable[Trainer]) -> list[Slug]:
+def legendary_ids(npcs: Iterable[JourneyTrainer]) -> list[Slug]:
     return [npc.legendary_id for npc in npcs if npc.legendary_id]
 
 

@@ -25,8 +25,7 @@ from rulehall.app.game_session import GameSession
 from rulehall.app.illustration import Illustrator
 from rulehall.app.runtime import Runtime
 from rulehall.config import LOOPBACK_HOST, MediaConfig, ServerConfig, Settings
-from rulehall.ui import theme
-from rulehall.ui.app import mount
+from rulehall.main import mount
 from rulehall.ui.widgets import ICONS_DIR
 
 REPOSITORY_ROOT = Path(__file__).parents[1]
@@ -94,7 +93,6 @@ def main() -> None:
     async def _release(role: str | None = None) -> None:  # pyright: ignore[reportUnusedFunction]
         agents.release(role)
 
-    theme.install()
     ui.run(  # pyright: ignore[reportUnknownMemberType]
         title="Rulehall (QA)",
         favicon=ICONS_DIR / "favicon.svg",

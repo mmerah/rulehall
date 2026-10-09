@@ -15,6 +15,7 @@ from rulehall.engines.pokemon.champions.world import (
     ChampionsRegionProposal,
     ChampionsWorld,
 )
+from rulehall.engines.pokemon.trainers import check_key_lines, check_rivals
 from rulehall.engines.rooms.worldsmith import check_next as check_room_map_next
 from rulehall.engines.rooms.worldsmith import check_opening as check_room_map_opening
 
@@ -73,14 +74,9 @@ def _check_champions_map(
     trainers = list(proposal.npcs.values())
     if written := [npc.id for npc in trainers if npc.team]:
         raise Refusal(f"never write `team`; code writes it: {written}")
-    rivals = [npc for npc in trainers if npc.rival]
-    if opening and len(rivals) != 1:
-        raise Refusal(f"the opening map needs exactly one rival, not {len(rivals)}")
-    if not opening and rivals:
-        raise Refusal("the rival stands in the opening map; a new map adds no rival")
+    check_rivals(trainers, opening=opening)
     keys = [npc for npc in trainers if npc.is_key()]
-    if mute := [npc.id for npc in keys if not (npc.style and npc.win_line and npc.lose_line)]:
-        raise Refusal(f"each {KEY_TRAINER} needs a style, a win_line and a lose_line: {mute}")
+    check_key_lines(keys, KEY_TRAINER)
     players = [npc for npc in keys if npc.archetype_id is not None]
     if len(players) > KEY_TRAINERS_MAX:
         raise Refusal(f"at most {KEY_TRAINERS_MAX} key trainers play in one event")

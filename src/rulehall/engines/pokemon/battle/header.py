@@ -1,7 +1,6 @@
-import re
 from collections.abc import Mapping, Sequence
 
-from rulehall.core.views import BattleHeader, BattleMon, BattleSide, Tag
+from rulehall.core.views import Tag
 from rulehall.engines.pokemon.battle.models import (
     TERRAINS,
     WEATHERS,
@@ -11,7 +10,8 @@ from rulehall.engines.pokemon.battle.models import (
     FieldCondition,
     FormatSpec,
 )
-from rulehall.engines.pokemon.dex import dex
+from rulehall.engines.pokemon.battle.views import BattleHeader, BattleMon, BattleSide
+from rulehall.engines.pokemon.dex import dex, showdown_id
 from rulehall.engines.pokemon.rules import max_hp
 from rulehall.engines.pokemon.sprites import (
     MEGA_COLOUR,
@@ -58,7 +58,7 @@ def battle_header(
                 said[fields[0]] = fields[1]
             case "detailschange" if fields[0].startswith("p1"):
                 forme = fields[1].partition(",")[0]
-                formes[fields[0].partition(": ")[2]] = re.sub(r"[^a-z0-9]", "", forme.lower())
+                formes[fields[0].partition(": ")[2]] = showdown_id(forme)
             case "-mega" if fields[0].startswith("p1"):
                 name = fields[0].partition(": ")[2]
                 megas[name] = (fields[1].rpartition("|")[2], formes.get(name, ""))

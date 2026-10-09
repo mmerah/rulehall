@@ -5,8 +5,9 @@ from random import Random
 from pydantic import Field
 
 from rulehall.core.validation import Loose
-from rulehall.core.views import BattleChoice, Tag
+from rulehall.core.views import Tag
 from rulehall.engines.pokemon.battle.models import Battler, FormatSpec
+from rulehall.engines.pokemon.battle.views import BattleChoice
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.rules import max_hp
 from rulehall.engines.pokemon.sprites import (

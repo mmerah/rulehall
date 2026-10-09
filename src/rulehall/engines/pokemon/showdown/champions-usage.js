@@ -11,6 +11,7 @@ const BULK_IDS = ["hp", "def", "spd"];
 const WEIGHT_DIGITS = 4;
 const PERCENT_DIGITS = 1;
 const CARD_TEAMMATES = 6;
+const CARD_ABILITIES = 3;
 const CARD_ITEMS = 5;
 const CARD_MOVES = 8;
 const CARD_SPREADS = 5;
@@ -160,6 +161,10 @@ function usageCard(entry, source) {
     usage_percent: percent(entry.usage),
     teammates: listed(teammates, CARD_TEAMMATES).map(([species_id, share]) => ({
       species_id,
+      percent: share,
+    })),
+    abilities: listed(entry.abilities, CARD_ABILITIES).map(([ability_id, share]) => ({
+      ability_id,
       percent: share,
     })),
     items: listed(entry.items, CARD_ITEMS).map(([item_id, share]) => ({ item_id, percent: share })),

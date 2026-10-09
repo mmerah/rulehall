@@ -7,9 +7,12 @@ from random import Random
 import pytest
 from support.game import KEY, open_game, session, with_entity
 from support.table import (
+    LONER4E,
+    NO_PACKS,
     POKEMON,
     TWENTYFOURXX,
     ScriptedRoles,
+    Table,
     narrated,
     offline_settings,
     open_table,
@@ -21,19 +24,25 @@ from support.table import (
 from support.twentyfourxx import TROUBLE_SEED, open_crew
 
 from rulehall.app.catalog import SavedGameKey
-from rulehall.app.game_session import IN_FLIGHT_ELSEWHERE, NOTHING_TO_REWIND
+from rulehall.app.game_session import IN_FLIGHT_ELSEWHERE, NOTHING_TO_REWIND, Busy
 from rulehall.app.runtime import Runtime
 from rulehall.config import Role
-from rulehall.core.decisions import PlayerInput
+from rulehall.core.decisions import ActionOption, PlayerInput
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyGame, ScenarioDescription, WorldsmithRequest
 from rulehall.core.stores import SaveStore
-from rulehall.core.validation import Refusal
+from rulehall.core.tools import edit
+from rulehall.core.validation import Frozen, Refusal
+from rulehall.core.views import Surface, require_view
+from rulehall.engines.loner4e.engine import Loner4eEngine
 from rulehall.engines.loner4e.panels import ASK_ORACLE, TAKE_BREATHER
 from rulehall.engines.loner4e.sheet import Loner4eEntity
-from rulehall.engines.pokemon.journey.world import PokemonGame
+from rulehall.engines.loner4e.world import Loner4eGame
+from rulehall.engines.pokemon.journey.world import JourneyGame
 from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.twentyfourxx.sheet import STARTING_CREDITS
+
+NOTES_SURFACE_ID = "notes"
 
 
 class _UnsavableStore(SaveStore):
@@ -41,6 +50,52 @@ class _UnsavableStore(SaveStore):
 
     def write(self, _save_id: str, _state: AnyGame, /) -> None:
         raise OSError("disk is gone")
+
+
+class _NotesView(Frozen):
+    dirty: bool
+
+
+class _SlotEdit(Frozen):
+    slot: int
+
+
+class _EditingEngine(Loner4eEngine):
+    def surfaces(self, state: Loner4eGame, /) -> tuple[Surface, ...]:
+        return (
+            Surface(
+                surface_id=NOTES_SURFACE_ID, live=True, view=_NotesView(dirty=bool(state.notes))
+            ),
+        )
+
+    @edit
+    def clear_slot(self, draft: Loner4eGame, args: _SlotEdit, _rng: Random) -> None:
+        draft.note(f"cleared {args.slot}")
+
+
+def _clear_slot(slot: int, *, refusal: str = "") -> ActionOption:
+    return ActionOption(
+        id="clear-slot",
+        name="Clear slot",
+        action_name="clear_slot",
+        args=_SlotEdit(slot=slot).model_dump(mode="json"),
+        refusal=refusal,
+    )
+
+
+def _notes_dirty(table: Table[Loner4eGame]) -> bool:
+    return require_view(
+        table.session.snapshot().require_surface(NOTES_SURFACE_ID).view, _NotesView
+    ).dirty
+
+
+def _editing_table(directory: Path) -> Table[Loner4eGame]:
+    return open_table(
+        directory,
+        engine_id=LONER4E,
+        state_type=Loner4eGame,
+        engine=_EditingEngine(NO_PACKS),
+    )
 
 
 async def test_opening_does_not_save_and_restart_discards_durable_state(tmp_path: Path) -> None:
@@ -341,7 +396,7 @@ async def test_a_failed_turn_after_a_worded_move_saves_nothing(tmp_path: Path) -
 
 
 async def test_a_team_page_option_applies_at_once_with_no_turn(tmp_path: Path) -> None:
-    table = open_table(tmp_path, engine_id=POKEMON, state_type=PokemonGame)
+    table = open_table(tmp_path, engine_id=POKEMON, state_type=JourneyGame)
     draft = table.state.draft()
     draft.world.player.require_sheet().add("oran-berry", 1)
     table.session.save(draft.validated())
@@ -364,7 +419,7 @@ async def test_a_team_page_option_applies_at_once_with_no_turn(tmp_path: Path) -
 
 
 async def test_a_team_page_option_that_opens_a_decision_records_it(tmp_path: Path) -> None:
-    table = open_table(tmp_path, engine_id=POKEMON, state_type=PokemonGame)
+    table = open_table(tmp_path, engine_id=POKEMON, state_type=JourneyGame)
     draft = table.state.draft()
     charmander = draft.world.player.require_sheet().require_mon("charmander")
     charmander.level = 12
@@ -389,7 +444,7 @@ async def test_a_team_page_option_that_opens_a_decision_records_it(tmp_path: Pat
 
 
 async def test_an_option_with_a_refusal_is_shown_but_never_runs(tmp_path: Path) -> None:
-    table = open_table(tmp_path, engine_id=POKEMON, state_type=PokemonGame)
+    table = open_table(tmp_path, engine_id=POKEMON, state_type=JourneyGame)
     panels = table.session.player_view().panels
     option = next(
         option
@@ -433,3 +488,55 @@ async def test_the_debrief_prompt_holds_no_hidden_entity_and_no_untold_fact(
     assert "The Lurker" not in prompt
     assert "A trap arms below." not in prompt
     assert debrief.current_aim == "Find the relic."
+
+
+def test_an_edit_saves_the_state_without_a_log_entry(tmp_path: Path) -> None:
+    table = _editing_table(tmp_path)
+    entries = table.session.log_entries()
+
+    table.session.edit(_clear_slot(2))
+
+    assert _notes_dirty(table)
+    assert table.state.notes == ["cleared 2"]
+    assert table.saved().notes == ["cleared 2"]
+    assert table.session.log_entries() == entries
+    assert not table.session.snapshot().can_rewind
+
+
+def test_an_edit_is_refused_while_a_turn_runs(tmp_path: Path) -> None:
+    table = _editing_table(tmp_path)
+
+    with table.session.gate.admit(table.session), pytest.raises(Busy):
+        table.session.edit(_clear_slot(1))
+
+    assert table.state.notes == []
+
+
+def test_a_word_that_is_no_edit_is_refused(tmp_path: Path) -> None:
+    table = _editing_table(tmp_path)
+
+    with pytest.raises(Refusal):
+        table.session.edit(_clear_slot(1).model_copy(update={"action_name": "move_on"}))
+
+
+def test_an_edit_option_that_carries_a_refusal_is_refused(tmp_path: Path) -> None:
+    table = _editing_table(tmp_path)
+
+    with pytest.raises(Refusal, match="slot is locked"):
+        table.session.edit(_clear_slot(1, refusal="slot is locked"))
+
+    assert table.state.notes == []
+
+
+def test_undo_edit_restores_the_state_before_the_edit(tmp_path: Path) -> None:
+    table = _editing_table(tmp_path)
+    before = table.state
+    table.session.edit(_clear_slot(1))
+
+    table.session.undo_edit()
+
+    assert not _notes_dirty(table)
+    assert table.state == before
+    assert table.saved() == before
+    with pytest.raises(Refusal):
+        table.session.undo_edit()

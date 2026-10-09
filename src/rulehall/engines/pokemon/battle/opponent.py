@@ -5,7 +5,6 @@ from pydantic import Field
 from rulehall.core.prompt import Prompt, lines_of, section_if, sections
 from rulehall.core.tools import render_schema
 from rulehall.core.validation import Frozen, Refusal
-from rulehall.core.views import BattleChoice
 from rulehall.engines.pokemon.battle.assessment import (
     AimedHit,
     Assessment,
@@ -26,6 +25,7 @@ from rulehall.engines.pokemon.battle.history import (
     recent_turns,
 )
 from rulehall.engines.pokemon.battle.models import Battler, BattleSetup, RoleSeat
+from rulehall.engines.pokemon.battle.views import BattleChoice
 from rulehall.engines.pokemon.dex import Move, dex
 
 FOE_ROLE = "You are {name}, a Pokemon trainer, in a battle against {foes}."

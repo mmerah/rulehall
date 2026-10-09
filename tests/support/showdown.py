@@ -21,7 +21,7 @@ from rulehall.engines.pokemon.champions.data import champions_data
 from rulehall.engines.pokemon.dex import Stats, dex
 from rulehall.engines.pokemon.rules import stats
 
-FIXTURES = Path(__file__).parents[1] / "pokemon" / "fixtures"
+FIXTURES = Path(__file__).parents[1] / "pokemon" / "battle" / "fixtures"
 RECORDED = FIXTURES / "battle.txt"
 RECORDED_DOUBLES = FIXTURES / "doubles.txt"
 RECORDED_CHAMPIONS = FIXTURES / "champions.txt"

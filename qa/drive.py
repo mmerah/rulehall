@@ -59,6 +59,33 @@ class Device(TypedDict):
     user_agent: NotRequired[str]
 
 
+DESKTOP: Device = {
+    "viewport": {"width": 1440, "height": 900},
+    "device_scale_factor": 1,
+    "is_mobile": False,
+    "has_touch": False,
+}
+TABLET: Device = {
+    "viewport": {"width": 820, "height": 1180},
+    "device_scale_factor": 2,
+    "is_mobile": True,
+    "has_touch": True,
+    "user_agent": "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+}
+PHONE: Device = {
+    "viewport": {"width": 390, "height": 844},
+    "device_scale_factor": 3,
+    "is_mobile": True,
+    "has_touch": True,
+    "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+}
+DEVICES: tuple[tuple[str, Device], ...] = (
+    ("desktop", DESKTOP),
+    ("tablet", TABLET),
+    ("phone", PHONE),
+)
+
+
 @dataclass
 class Session:
     browser: Browser
@@ -164,6 +191,13 @@ def run(name: str, body: Callable[[Session], None]) -> None:
             print(f"\n== {name}: {len(session.issues)} issues")
             for issue in session.issues:
                 print(" -", issue)
+
+
+def open_device(s: Session, device: Device) -> Page:
+    page = s.browser.new_context(**device).new_page()
+    page.set_default_timeout(15000)
+    page.on("pageerror", lambda e: s.issues.append(f"pageerror: {e}"))
+    return page
 
 
 def log() -> list[Spoken]:
@@ -274,6 +308,31 @@ def choose(page: Page, name: str) -> None:
 
 def fits_width(page: Page) -> bool:
     return page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
+
+
+def cut_names(page: Page) -> list[str]:
+    return page.evaluate(
+        """() => {
+            const selector = '.game-battle-mon-name, .game-move-name, .game-choice-name, '
+                + '.game-battle-mon-head .game-tags'
+            const cut = []
+            for (const box of document.querySelectorAll(selector)) {
+                const edge = box.getBoundingClientRect()
+                const words = document.createTreeWalker(box, NodeFilter.SHOW_TEXT)
+                for (let node = words.nextNode(); node; node = words.nextNode()) {
+                    if (node.parentElement.closest('.q-icon')) continue
+                    const range = document.createRange()
+                    range.selectNodeContents(node)
+                    const text = range.getBoundingClientRect()
+                    if (text.right > edge.right + 1 || text.bottom > edge.bottom + 1) {
+                        cut.push(node.textContent.trim())
+                        break
+                    }
+                }
+            }
+            return cut
+        }"""
+    )
 
 
 def move(page: Page, name: str) -> Locator:

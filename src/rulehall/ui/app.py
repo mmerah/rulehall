@@ -1,6 +1,7 @@
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from functools import partial
+from pathlib import Path
 
 from nicegui import app, ui
 
@@ -27,12 +28,13 @@ from rulehall.ui.routes import (
     assets_route,
 )
 from rulehall.ui.settings import SettingsForm
+from rulehall.ui.surfaces import ScreenFactories
 from rulehall.ui.widgets import ICONS_DIR, SOUNDS_DIR, refused_page
 
 type EnginePage = Callable[[Runtime, EngineId], object]
 
 
-def mount(runtime: Runtime) -> None:
+def mount(runtime: Runtime, screen_factories: ScreenFactories, styles: Sequence[Path]) -> None:
     plain_pages: tuple[tuple[str, Callable[[Runtime], object]], ...] = (
         (HOME, home_page),
         (SETTINGS, SettingsForm),
@@ -60,10 +62,11 @@ def mount(runtime: Runtime) -> None:
         ui.page(route)(partial(page, runtime))
     for route, page in engine_pages:
         ui.page(route)(partial(_engine_page, runtime, page))
-    ui.page(GAME)(partial(game_page, runtime))
+    ui.page(GAME)(partial(game_page, runtime, screen_factories))
+    theme.install(styles)
 
 
-def start() -> None:
+def start(screen_factories: ScreenFactories, styles: Sequence[Path]) -> None:
     # Without a handler the root logger drops every INFO record, spawns included.
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     try:
@@ -72,8 +75,7 @@ def start() -> None:
         raise SystemExit(
             f"settings: {broken}. Fix the key in {ENV_FILE}, then start again."
         ) from None
-    mount(Runtime(settings))
-    theme.install()
+    mount(Runtime(settings), screen_factories, styles)
     ui.run(  # pyright: ignore[reportUnknownMemberType]
         title="Rulehall",
         favicon=ICONS_DIR / "favicon.svg",

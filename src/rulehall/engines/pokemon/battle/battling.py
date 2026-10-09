@@ -1,11 +1,20 @@
 from pathlib import Path
+from typing import Any
 
-from rulehall.core.game import RoleAnswer
-from rulehall.core.validation import Refusal
+from pydantic import BaseModel
+
+from rulehall.core.game import AnyGame, RoleAnswer
+from rulehall.core.validation import Refusal, Slug
+from rulehall.core.views import Surface
 from rulehall.engines.battles import Battling, Transport
+from rulehall.engines.engine import Engine
+from rulehall.engines.packs import Pack
 from rulehall.engines.pokemon.battle.simulator import SHOWDOWN, ShowdownRun
 from rulehall.engines.pokemon.battle.world import BattleGame
+from rulehall.engines.sheet import Person
+from rulehall.engines.world import World
 
+BATTLE_SURFACE_ID: Slug = "pokemon-battle"
 SIMULATOR = SHOWDOWN / "node_modules" / "pokemon-showdown" / "pokemon-showdown"
 ASSETS = Path(__file__).parents[5] / "vendor" / "showdown"
 ASSETS_COMPLETE = ASSETS / "complete"
@@ -22,12 +31,19 @@ ASSETS_HINT = (
 )
 
 
-class ShowdownBattling(Battling):
+class ShowdownBattling[P: Person, W: World[Any], K: Pack, R: BaseModel](
+    Battling, Engine[P, W, K, R]
+):
     assets: Path | None = ASSETS
-    battle_script = SHOWDOWN / "view.js"
 
     def in_battle(self, state: BattleGame) -> bool:
         return state.world.battle is not None
+
+    def surfaces(self, state: AnyGame, /) -> tuple[Surface, ...]:
+        return (
+            *super().surfaces(state),
+            Surface(surface_id=BATTLE_SURFACE_ID, live=self.in_battle(state)),
+        )
 
     def simulator_argv(self) -> tuple[str, ...]:
         if not SIMULATOR.is_file():

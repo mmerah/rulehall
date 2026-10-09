@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PW="uv run --group qa python"
 cd "$ROOT"
 scenarios=("$@")
-[ ${#scenarios[@]} -eq 0 ] && scenarios=(home loner goons 24xx settings create mobile burst requests endure pokemon)
+[ ${#scenarios[@]} -eq 0 ] && scenarios=(home loner goons 24xx settings create mobile burst requests endure pokemon champions)
 for name in "${scenarios[@]}"; do
   qa/serve.sh > /dev/null || exit 1
   echo "### $name"

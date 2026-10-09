@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from functools import partial
 from pathlib import Path
 
@@ -17,6 +17,7 @@ from rulehall.core.views import (
 from rulehall.ui.composer import composer_lock
 from rulehall.ui.panel_parts import PickOption, panel_row
 from rulehall.ui.scene_map import SceneMap
+from rulehall.ui.surfaces import Screen
 from rulehall.ui.widgets import icon_button, section
 
 SCENE_TAB_ICON = "sym_r_map"
@@ -120,11 +121,16 @@ class Drawer:
         open_row: Callable[[PanelRow], None],
         pick: PickOption,
         prefill: Callable[[str], None],
+        open_surface: Callable[[Slug], None],
+        screens: Mapping[Slug, Screen],
     ) -> None:
         names = dict.fromkeys((SCENE_TAB, *(panel.tab for panel in view.panels)))
         self.session = session
         self.tabs = tuple(DrawerTab(session, name, open_row, pick) for name in names)
         self.prefill = prefill
+        self.open_surface = open_surface
+        self.screens = screens
+        self.openers: dict[Slug, ui.button] = {}
         self.scene_map = SceneMap(session, self.prefill_from_map)
         self.rail_buttons: dict[str, ui.button] = {}
         self.side: ui.right_drawer
@@ -163,9 +169,33 @@ class Drawer:
                     ):
                         if tab.name == SCENE_TAB:
                             self.scene_map.draw(now.view.map)
+                        for surface in now.surfaces:
+                            if surface.tab == tab.name:
+                                self.draw_opener(surface.surface_id)
                         tab.draw_panels(now.view, enabled=choosing(now))
+        self.enable_openers(now)
+
+    def draw_opener(self, surface_id: Slug) -> None:
+        screen = self.screens[surface_id]
+
+        def opened() -> None:
+            self.open_surface(surface_id)
+            self.hide_on_phone()
+
+        self.openers[surface_id] = (
+            ui.button(screen.opener_label, icon=screen.opener_icon, on_click=opened)
+            .props("outline")
+            .classes("w-full")
+        )
+
+    def enable_openers(self, now: SessionSnapshot) -> None:
+        for surface in now.surfaces:
+            opener = self.openers.get(surface.surface_id)
+            if opener is not None and opener.enabled != surface.live:
+                opener.set_enabled(surface.live)
 
     def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
+        self.enable_openers(now)
         enabled = choosing(now)
         if now.view is not drawn.view or enabled != choosing(drawn):
             self.scene_map.sync(now, drawn)
@@ -181,6 +211,9 @@ class Drawer:
 
     def prefill_from_map(self, words: str) -> None:
         self.prefill(words)
+        self.hide_on_phone()
+
+    def hide_on_phone(self) -> None:
         ui.run_javascript(f"if (innerWidth < {PHONE_WIDTH}) getElement({self.side.id}).hide()")
 
     def show_tab(self, name: str) -> None:

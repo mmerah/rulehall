@@ -1,14 +1,20 @@
+from rulehall.core.decisions import ActionOption
+from rulehall.core.validation import Frozen, Slug
 from rulehall.core.views import Meter, Panel, PanelRow, Tag
+from rulehall.engines.pokemon.champions.args import PresetEdit, TeamEdit
 from rulehall.engines.pokemon.champions.data import CompetitiveSet, champions_data
 from rulehall.engines.pokemon.champions.rules import TEAM_SLOT_PREFIX
 from rulehall.engines.pokemon.champions.season import TIERS, Event, Finish
 from rulehall.engines.pokemon.champions.world import ChampionsWorld
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.rules import STAT_NAMES
-from rulehall.engines.pokemon.sprites import nature_arrows, nature_tag, type_tag
+from rulehall.engines.pokemon.sprites import STAT_COLOUR, nature_arrows, nature_tag, type_tag
 from rulehall.engines.sheet import PLAYER_ID
 
-SP_COLOUR = "#6890f0"
+TEAM_TAB = "Team"
+UNSAVED = "Unsaved changes in the team builder"
+UNSAVED_BRIEF = "Save them there before you register the team."
+UNSAVED_REGISTERED_BRIEF = "Save them there once the event ends."
 SHEET_HELP = {
     "Team": "The six Pokemon this trainer brings to an event; each match picks four of them.",
     "Tier": "The event tiers open to this trainer.",
@@ -29,15 +35,21 @@ STAGE_NAMES = {"open": "registration", "swiss": "Swiss rounds", "cut": "top cut"
 
 
 def team_panel(world: ChampionsWorld) -> Panel:
+    registered = world.player_sheet.registered is not None
+    brief = UNSAVED_REGISTERED_BRIEF if registered else UNSAVED_BRIEF
+    unsaved = (PanelRow(name=UNSAVED, brief=brief),) if world.pending_team_dirty() else ()
     return Panel(
         title="Team",
-        rows=tuple(
-            competitive_set_row(each, number)
-            for number, each in enumerate(world.player_sheet.team, 1)
+        rows=(
+            *(
+                competitive_set_row(each, number)
+                for number, each in enumerate(world.player_sheet.team, 1)
+            ),
+            *unsaved,
         ),
         help=SHEET_HELP["Team"]
         + (" Registered: locked until the event ends." if world.player_sheet.registered else ""),
-        tab="Team",
+        tab=TEAM_TAB,
     )
 
 
@@ -61,7 +73,7 @@ def competitive_set_row(competitive_set: CompetitiveSet, number: int) -> PanelRo
                 name=f"SP {STAT_NAMES[index]}{arrows.get(index, '')}",
                 current=points,
                 maximum=sp_max,
-                colour=SP_COLOUR,
+                colour=STAT_COLOUR,
                 help="Stat Points spent on this stat.",
             )
             for index, points in enumerate(competitive_set.sp)
@@ -86,7 +98,27 @@ def season_panel(world: ChampionsWorld) -> Panel:
         title="Season",
         rows=(*rows, *standings),
         help="The circuit season: events, placings and Championship Points.",
-        tab="Team",
+        tab=TEAM_TAB,
+    )
+
+
+def team_option(
+    edit: TeamEdit, args: Frozen | None = None, *, name: str = "", option_id: str = ""
+) -> ActionOption:
+    return ActionOption(
+        id=option_id or edit.replace("_", "-"),
+        name=name or edit.replace("_", " ").capitalize(),
+        action_name=edit,
+        args={} if args is None else args.model_dump(mode="json"),
+    )
+
+
+def preset_option(slot: int, preset_id: Slug, name: str) -> ActionOption:
+    return team_option(
+        "apply_preset",
+        PresetEdit(slot=slot, preset_id=preset_id),
+        name=name,
+        option_id=f"apply-preset-{slot}-{preset_id}",
     )
 
 

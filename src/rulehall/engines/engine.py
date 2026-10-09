@@ -45,6 +45,7 @@ from rulehall.core.views import (
     PlayerView,
     Rows,
     Sprite,
+    Surface,
 )
 from rulehall.engines.args import Direct, JoinParty, Kill, LeaveParty, Reveal
 from rulehall.engines.packs import (
@@ -125,6 +126,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     look: Look
     tools: dict[str, MasterTool]
     actions: dict[str, MasterTool]
+    edits: dict[str, MasterTool]
     worldsmith_role: str
     opening_sections: Sections
     opening_intent: str
@@ -139,6 +141,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         self.look = read_model(self.directory / "look.json", Look)
         self.tools = marked_methods(self, "tool")
         self.actions = marked_methods(self, "action")
+        self.edits = marked_methods(self, "edit")
         self.worldsmith_role = read_cached_text(self.family_dir / "worldsmith.md")
         self.character_model = Character[self.person_model]
         self.scenario_model = Scenario[self.opening_model]
@@ -207,16 +210,22 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         return self._run_marked(draft, name, args, rng)
 
     def play_option(self, draft: Game[W], chosen: ActionOption, rng: Random) -> tuple[Fact, ...]:
-        if chosen.refusal:
-            raise Refusal(f"{chosen.name}: {chosen.refusal}")
-        found = self.actions[chosen.action_name]
-        return self._run_marked(draft, found.name, parse_with_repairs(found.args, chosen.args), rng)
+        name, args = self._require_offered(self.actions, chosen)
+        return self._run_marked(draft, name, args, rng)
+
+    def play_edit(self, draft: Game[W], chosen: ActionOption, rng: Random) -> None:
+        name, args = self._require_offered(self.edits, chosen)
+        method: Callable[[Game[W], BaseModel, Random], None] = getattr(self, name)
+        method(draft, args, rng)
 
     def moves(self, _state: Game[W], /) -> tuple[ActionOption, ...]:
         return ()
 
     def allows_text(self, _state: Game[W], /) -> bool:
         return True
+
+    def surfaces(self, _state: Game[W], /) -> tuple[Surface, ...]:
+        return ()
 
     def narrator_view(self, state: Game[W]) -> NarratorView:
         world = state.world
@@ -496,6 +505,14 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     ) -> tuple[Fact, ...]:
         method: Callable[[Game[W], BaseModel, Random], Sequence[Fact]] = getattr(self, name)
         return tuple(method(draft, args, rng))
+
+    def _require_offered(
+        self, marked: Mapping[str, MasterTool], chosen: ActionOption
+    ) -> tuple[str, BaseModel]:
+        if chosen.refusal:
+            raise Refusal(f"{chosen.name}: {chosen.refusal}")
+        found = marked[chosen.action_name]
+        return found.name, parse_with_repairs(found.args, chosen.args)
 
 
 def _check_all[A](answer: A, checks: Sequence[Check[A]]) -> None:

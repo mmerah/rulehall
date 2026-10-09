@@ -8,11 +8,12 @@ from rulehall.core.game import AnyCharacter, AnyScenario, Character
 from rulehall.core.log import Voice
 from rulehall.core.prompt import Sections, lines_of, ref_of, section_if, sentence
 from rulehall.core.tools import NoArgs, action, tool
-from rulehall.core.validation import EngineId, Refusal, Slug
+from rulehall.core.validation import Refusal, Slug
 from rulehall.core.views import Panel, Sprite
 from rulehall.engines.engine import Joining
 from rulehall.engines.pokemon.battle.battling import ShowdownBattling
 from rulehall.engines.pokemon.dex import ITEMS, dex
+from rulehall.engines.pokemon.door import ART_STYLE, DOOR_ID, TITLE
 from rulehall.engines.pokemon.journey.args import (
     DIFFICULTY,
     ChosenMon,
@@ -32,7 +33,7 @@ from rulehall.engines.pokemon.journey.args import (
     UseItem,
     WildPick,
 )
-from rulehall.engines.pokemon.journey.pack import PokemonHead, PokemonPack
+from rulehall.engines.pokemon.journey.pack import JourneyHead, JourneyPack
 from rulehall.engines.pokemon.journey.panels import (
     SHEET_HELP,
     WILD_ICON_PREFIX,
@@ -62,12 +63,12 @@ from rulehall.engines.pokemon.journey.rules import (
     item_of,
     succeeds,
 )
-from rulehall.engines.pokemon.journey.sheet import Mon, Trainer, TrainerSheet
+from rulehall.engines.pokemon.journey.sheet import JourneySheet, JourneyTrainer, Mon
 from rulehall.engines.pokemon.journey.world import (
-    PokemonGame,
-    PokemonOpeningProposal,
-    PokemonRegionProposal,
-    PokemonWorld,
+    JourneyGame,
+    JourneyOpeningProposal,
+    JourneyRegionProposal,
+    JourneyWorld,
     challenge_line,
 )
 from rulehall.engines.pokemon.journey.worldsmith import (
@@ -91,23 +92,23 @@ TEAM_BEATEN = "The team is beaten. Your journey is complete."
 EDGE_LINE = "{edge}: the next battle here starts with it. It is lost when the player leaves."
 
 
-class PokemonEngine(
-    ShowdownBattling,
-    Joining[PokemonWorld],
-    RoomEngine[Trainer, PokemonWorld, PokemonPack, PokemonRegionProposal],
+class JourneyEngine(
+    ShowdownBattling[JourneyTrainer, JourneyWorld, JourneyPack, JourneyRegionProposal],
+    Joining[JourneyWorld],
+    RoomEngine[JourneyTrainer, JourneyWorld, JourneyPack, JourneyRegionProposal],
 ):
-    id = EngineId("pokemon")
-    title = "POKEMON"
+    id = DOOR_ID
+    title = TITLE
     worldsmith_guidance = WORLDSMITH_GUIDANCE
-    art_style = "Bright anime-style illustration, clean lines, soft colours, no text or lettering."
+    art_style = ART_STYLE
     portraits = False
     directory = Path(__file__).parent
-    pack_model = PokemonPack
-    pack_head_model = PokemonHead
-    world_model = PokemonWorld
-    person_model = Trainer
-    opening_model = PokemonOpeningProposal
-    next_proposal_model = PokemonRegionProposal
+    pack_model = JourneyPack
+    pack_head_model = JourneyHead
+    world_model = JourneyWorld
+    person_model = JourneyTrainer
+    opening_model = JourneyOpeningProposal
+    next_proposal_model = JourneyRegionProposal
     sheet_help = SHEET_HELP
 
     @property
@@ -156,13 +157,13 @@ class PokemonEngine(
 
     def build_character(
         self, name: str, brief: str, voice: Voice, _pack_id: Slug, picks: Picks
-    ) -> Character[Trainer]:
+    ) -> Character[JourneyTrainer]:
         ranks = _rank_picks(picks)
         skills: dict[Skill, int] = {skill: ranks.count(skill) for skill in SKILLS}
         starter = Mon.new(picks.get(STARTER, ""), STARTER_LEVEL, Random(name), ())
         starter.met = FIRST_MET
         challenge: Challenge = next(key for key in CHALLENGES if key == picks.get(CHALLENGE, ""))
-        player = Trainer(
+        player = JourneyTrainer(
             id=PLAYER_ID,
             name=name,
             brief=brief,
@@ -170,7 +171,7 @@ class PokemonEngine(
             known=True,
             place_id=PLAYER_ID,
             avatar_id=picks.get(AVATAR, ""),
-            sheet=TrainerSheet(
+            sheet=JourneySheet(
                 skills=skills,
                 money=START_MONEY,
                 bag=dict(START_BAG),
@@ -181,8 +182,8 @@ class PokemonEngine(
         )
         return self.character_of(name, player)
 
-    def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> PokemonWorld:
-        opening: PokemonOpeningProposal = scenario.opening
+    def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> JourneyWorld:
+        opening: JourneyOpeningProposal = scenario.opening
         pack = self.packs.require_joined(scenario.pack_id, scenario.extra_pack_ids)
         check_opening(opening, pack.species_ids)
         world = self.world_model.opening(
@@ -191,20 +192,20 @@ class PokemonEngine(
         world.apply_opening_extras(opening)
         starter_id = world.player_sheet.caught_species_ids[0]
         others = [species_id for species_id in pack.starters if species_id != starter_id]
-        world.rival_record.starter_id = counter_pick(
+        world.rival_team.starter_id = counter_pick(
             others or pack.species_ids, dex().species[starter_id].types, STARTER_LEVEL
         )
         return world
 
-    def check_next(self, draft: PokemonGame, proposal: PokemonRegionProposal, /) -> None:
+    def check_next(self, draft: JourneyGame, proposal: JourneyRegionProposal, /) -> None:
         check_next(proposal, draft.world)
 
-    def install_next(self, draft: PokemonGame, proposal: PokemonRegionProposal, /) -> list[Fact]:
+    def install_next(self, draft: JourneyGame, proposal: JourneyRegionProposal, /) -> list[Fact]:
         facts = super().install_next(draft, proposal)
         draft.world.apply_region_extras(proposal)
         return facts
 
-    def worldsmith_sections(self, draft: PokemonGame, /) -> Sections:
+    def worldsmith_sections(self, draft: JourneyGame, /) -> Sections:
         world = draft.world
         due = world.scheme_due()
         return (
@@ -213,13 +214,13 @@ class PokemonEngine(
             *section_if("DUE", "" if due is None else f"{sentence(DUE_ASKS[due])}."),
         )
 
-    def sprite(self, state: PokemonGame, entity_id: Slug) -> Sprite | None:
+    def sprite(self, state: JourneyGame, entity_id: Slug) -> Sprite | None:
         if entity_id.startswith(WILD_ICON_PREFIX):
             species = dex().species.get(entity_id.removeprefix(WILD_ICON_PREFIX))
             return None if species is None else mon_sprite(species)
         world = state.world
         found = world.find_entity(entity_id)
-        if isinstance(found, Trainer):
+        if isinstance(found, JourneyTrainer):
             if found.legendary_id is not None:
                 return mon_sprite(dex().species[found.legendary_id])
             return trainer_sprite(found.avatar_id)
@@ -229,7 +230,7 @@ class PokemonEngine(
         mon = next((mon for mon in sheet.owned() if mon.mon_id == entity_id), None)
         return None if mon is None else mon_sprite(mon.species)
 
-    def master_sections(self, state: PokemonGame) -> Sections:
+    def master_sections(self, state: JourneyGame) -> Sections:
         world = state.world
         sheet = world.player_sheet
         pokedex = dex()
@@ -244,7 +245,7 @@ class PokemonEngine(
             ("CHALLENGE", sheet.challenge_line()),
             *section_if("EDGE", "" if edge is None else EDGE_LINE.format(edge=edge)),
             *section_if("TOWNS", world.towns_line()),
-            *_rival_section(world),
+            *world.rival_ledger.section(world.find_rival()),
             *section_if(SCHEME, world.scheme_lines(worldsmith=False)),
             ("TYPE CHART", pokedex.type_chart_text()),
             ("THE TEAM", lines_of(mon.line() for mon in sheet.team)),
@@ -259,7 +260,7 @@ class PokemonEngine(
             *section_if("WILD HERE", wild),
         )
 
-    def scene_panels(self, state: PokemonGame, /) -> tuple[Panel | None, ...]:
+    def scene_panels(self, state: JourneyGame, /) -> tuple[Panel | None, ...]:
         world = state.world
         return (
             *super().scene_panels(state),
@@ -270,7 +271,7 @@ class PokemonEngine(
             wild_panel(world),
         )
 
-    def ending(self, state: PokemonGame) -> str | None:
+    def ending(self, state: JourneyGame) -> str | None:
         if state.world.evil_team.boss_beaten:
             return TEAM_BEATEN
         sheet = state.world.player_sheet
@@ -278,12 +279,12 @@ class PokemonEngine(
             return TEAM_FALLEN
         return super().ending(state)
 
-    def accept(self, draft: PokemonGame) -> PokemonGame:
+    def accept(self, draft: JourneyGame) -> JourneyGame:
         draft.pending = pending_decision(draft.world.player_sheet)
         return super().accept(draft)
 
     @tool
-    def check(self, draft: PokemonGame, args: SkillCheck, rng: Random) -> list[Fact]:
+    def check(self, draft: JourneyGame, args: SkillCheck, rng: Random) -> list[Fact]:
         """Roll a check when the player tries something hard outside a battle. The engine rolls
         d20, adds twice the skill rank and 2 to 4 for a helping Pokemon by its friendship, and
         compares the total with the difficulty. A success earns the edge the attempt aims for.
@@ -315,36 +316,36 @@ class PokemonEngine(
         return [rolled.fact, player.card_fact(line, (rolled.event,))]
 
     @tool
-    def heal_team(self, draft: PokemonGame, _args: NoArgs, _rng: Random) -> list[Fact]:
+    def heal_team(self, draft: JourneyGame, _args: NoArgs, _rng: Random) -> list[Fact]:
         """Heal the whole team and the box: HP, PP and status. Only in a town: the engine
         refuses anywhere else."""
         return draft.world.heal_team()
 
     @tool
-    def nickname(self, draft: PokemonGame, args: Nickname, _rng: Random) -> list[Fact]:
+    def nickname(self, draft: JourneyGame, args: Nickname, _rng: Random) -> list[Fact]:
         """Name a Pokemon of the team or the box as the player chose."""
         return draft.world.player.nickname(args.mon_id, args.name)
 
     @tool
-    def buy(self, draft: PokemonGame, args: ItemCount, _rng: Random) -> list[Fact]:
+    def buy(self, draft: JourneyGame, args: ItemCount, _rng: Random) -> list[Fact]:
         """Buy items for the player at their price. Only in a town: the engine refuses anywhere
         else."""
         draft.world.require_town()
         return draft.world.player.buy(args.item_id, args.count)
 
     @tool
-    def gain_item(self, draft: PokemonGame, args: ItemCount, _rng: Random) -> list[Fact]:
+    def gain_item(self, draft: JourneyGame, args: ItemCount, _rng: Random) -> list[Fact]:
         """Give the player items they find or get for free."""
         return draft.world.player.gain_item(args.item_id, args.count)
 
     @tool
-    def gain_money(self, draft: PokemonGame, args: GainMoney, _rng: Random) -> list[Fact]:
+    def gain_money(self, draft: JourneyGame, args: GainMoney, _rng: Random) -> list[Fact]:
         """Give the player money, such as a reward."""
         return draft.world.player.gain_money(args.amount)
 
     @tool
     @action
-    def use_item(self, draft: PokemonGame, args: UseItem, _rng: Random) -> list[Fact]:
+    def use_item(self, draft: JourneyGame, args: UseItem, _rng: Random) -> list[Fact]:
         """Use a potion, a super potion, a full heal, a revive, a Rare Candy, a stone, another
         evolution item or a Linking Cord on a team Pokemon, outside a battle."""
         world = draft.world
@@ -352,37 +353,37 @@ class PokemonEngine(
 
     @tool
     @action
-    def swap_mon(self, draft: PokemonGame, args: SwapMon, _rng: Random) -> list[Fact]:
+    def swap_mon(self, draft: JourneyGame, args: SwapMon, _rng: Random) -> list[Fact]:
         """Swap a team Pokemon with one in the box. The player can do this anywhere from the Team
         page."""
         return draft.world.player.swap_mon(args.team_mon_id, args.box_mon_id)
 
     @action
-    def hold_item(self, draft: PokemonGame, args: HoldItem, _rng: Random) -> list[Fact]:
+    def hold_item(self, draft: JourneyGame, args: HoldItem, _rng: Random) -> list[Fact]:
         return draft.world.player.hold_item(args.mon_id, args.item_id)
 
     @action
-    def teach_move(self, draft: PokemonGame, args: TeachMove, _rng: Random) -> list[Fact]:
+    def teach_move(self, draft: JourneyGame, args: TeachMove, _rng: Random) -> list[Fact]:
         return draft.world.player.teach_move(args.mon_id, args.item_id)
 
     @action
-    def relearn_move(self, draft: PokemonGame, args: RelearnMove, _rng: Random) -> list[Fact]:
+    def relearn_move(self, draft: JourneyGame, args: RelearnMove, _rng: Random) -> list[Fact]:
         return draft.world.player.relearn_move(args.mon_id, args.move_id)
 
     @action
-    def store_mon(self, draft: PokemonGame, args: ChosenMon, _rng: Random) -> list[Fact]:
+    def store_mon(self, draft: JourneyGame, args: ChosenMon, _rng: Random) -> list[Fact]:
         return draft.world.player.store_mon(args.mon_id)
 
     @action
-    def withdraw_mon(self, draft: PokemonGame, args: ChosenMon, _rng: Random) -> list[Fact]:
+    def withdraw_mon(self, draft: JourneyGame, args: ChosenMon, _rng: Random) -> list[Fact]:
         return draft.world.player.withdraw_mon(args.mon_id)
 
     @action
-    def lead_mon(self, draft: PokemonGame, args: ChosenMon, _rng: Random) -> list[Fact]:
+    def lead_mon(self, draft: JourneyGame, args: ChosenMon, _rng: Random) -> list[Fact]:
         return draft.world.player.lead_mon(args.mon_id)
 
     @tool
-    def move(self, draft: PokemonGame, args: MoveTo, rng: Random) -> list[Fact]:
+    def move(self, draft: JourneyGame, args: MoveTo, rng: Random) -> list[Fact]:
         """Move the player through an unlocked way out of this place. While the rival waits here
         to battle, the engine refuses every way but the one back to the place the player came
         from; before the first move, it refuses every way."""
@@ -395,7 +396,7 @@ class PokemonEngine(
         return facts + placed
 
     @tool
-    def start_battle(self, draft: PokemonGame, args: StartBattle, rng: Random) -> list[Fact]:
+    def start_battle(self, draft: JourneyGame, args: StartBattle, rng: Random) -> list[Fact]:
         """Start a battle when a trainer here and the player agree to one. The battle screen plays
         the fight, and the engine applies the result. Call it last: it ends your turn. A trainer
         battles once per visit. A gym leader never battles again once beaten. The rival battles
@@ -443,7 +444,7 @@ class PokemonEngine(
 
     @tool
     def start_wild_battle(
-        self, draft: PokemonGame, args: StartWildBattle, rng: Random
+        self, draft: JourneyGame, args: StartWildBattle, rng: Random
     ) -> list[Fact]:
         """Start a battle when the player meets a wild Pokemon here, such as in tall grass.
         Set `species_id` to one from WILD HERE, or leave it null to roll on the table; in a
@@ -453,29 +454,21 @@ class PokemonEngine(
         )
 
     @action
-    def battle_wild(self, draft: PokemonGame, args: WildPick, rng: Random) -> list[Fact]:
+    def battle_wild(self, draft: JourneyGame, args: WildPick, rng: Random) -> list[Fact]:
         return draft.world.start_wild_battle(args.species_id, rng, weather=None, terrain=None)
 
     @action
-    def learn_move(self, draft: PokemonGame, args: LearnMove, _rng: Random) -> list[Fact]:
+    def learn_move(self, draft: JourneyGame, args: LearnMove, _rng: Random) -> list[Fact]:
         return draft.world.player.learn_move(args.mon_id, args.move_id, args.forget_id)
 
     @action
-    def evolve(self, draft: PokemonGame, args: EvolveInto, _rng: Random) -> list[Fact]:
+    def evolve(self, draft: JourneyGame, args: EvolveInto, _rng: Random) -> list[Fact]:
         world = draft.world
         return world.player.evolve(args.mon_id, args.species_id, world.species_ids)
 
     @action
-    def raise_skill(self, draft: PokemonGame, args: RaiseSkill, _rng: Random) -> list[Fact]:
+    def raise_skill(self, draft: JourneyGame, args: RaiseSkill, _rng: Random) -> list[Fact]:
         return draft.world.player.raise_skill(args.skill)
-
-
-def _rival_section(world: PokemonWorld) -> Sections:
-    rival = world.find_rival()
-    if rival is None:
-        return ()
-    ledger = (f"- {line}" for line in world.rival_record.ledger)
-    return (("THE RIVAL", "\n".join((f"{rival.ref}; style: {rival.style}", *ledger))),)
 
 
 def _rank_picks(picks: Picks) -> list[str]:

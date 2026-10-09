@@ -110,7 +110,7 @@ class SpeechConfig(Configured):
         return self.speech_choice.pool(voice, self.narrator)
 
 
-class BattleConfig(Configured):
+class PokemonSettings(Configured):
     sprites: Literal["2d", "3d"] = Field(
         default="2d",
         description="The battle sprites: 2d is the gen 5 pixel art, 3d the animated models.",
@@ -121,6 +121,10 @@ class BattleConfig(Configured):
         description="Who plays a gym leader's or the rival's side: scripted picks the move that "
         "deals the most damage, model asks the opponent role with every damage range. Other "
         "trainers always play scripted, and a wild Pokemon picks at random.",
+    )
+    expert_team_builder: bool = Field(
+        default=False,
+        description="Show the sliders, number boxes and speed hints of the team builder.",
     )
 
 
@@ -172,7 +176,7 @@ class Settings(BaseSettings):
     roles: RoleSettings = RoleSettings()
     media: MediaConfig = MediaConfig()
     speech: SpeechConfig = Field(default_factory=SpeechConfig)
-    battle: BattleConfig = BattleConfig()
+    pokemon: PokemonSettings = PokemonSettings()
     server: ServerConfig = ServerConfig()
     saves_dir: Path = Path("saves")
     scenarios_dir: Path = Path("user/scenarios")

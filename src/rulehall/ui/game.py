@@ -10,14 +10,20 @@ from rulehall.app.catalog import SavedGameKey
 from rulehall.app.game_session import Busy, GameSession, SessionSnapshot
 from rulehall.app.runtime import Runtime
 from rulehall.core.decisions import ActionOption, PlayerInput
-from rulehall.core.validation import Frozen, Refusal, content_id, parse
+from rulehall.core.validation import Frozen, Refusal, Slug, content_id, parse
 from rulehall.core.views import PanelRow, PlayerView
 from rulehall.ui import theme
-from rulehall.ui.battle import BattlePanel
 from rulehall.ui.composer import CLOSED_REASONS, Composer, composer_lock
 from rulehall.ui.drawer import Drawer
 from rulehall.ui.panel_parts import CHOICES_ROW, choice_groups, panel_row
 from rulehall.ui.routes import hall_path
+from rulehall.ui.surfaces import (
+    Screen,
+    ScreenFactories,
+    ScreenHost,
+    check_surfaces,
+    require_screens,
+)
 from rulehall.ui.transcript import Transcript
 from rulehall.ui.voice import VoicePlayer
 from rulehall.ui.widgets import (
@@ -138,14 +144,16 @@ class SceneHeaderView:
 
 
 class GamePage:
-    def __init__(self, session: GameSession) -> None:
+    def __init__(self, session: GameSession, screen_factories: ScreenFactories) -> None:
         self.session = session
+        self.screen_factories = screen_factories
+        self.screens: dict[Slug, Screen]
         self.drawn: SessionSnapshot
         self.scene: SceneHeaderView
         self.composer: Composer
         self.drawer: Drawer
-        self.battle_panel: BattlePanel | None = None
-        self.parts: tuple[SceneHeaderView | Transcript | Composer | Drawer | BattlePanel, ...]
+        self.parts: tuple[SceneHeaderView | Transcript | Composer | Drawer | Screen, ...]
+        self.story: ui.element
         self.sounds: Sounds
         self.sound: ui.button
         self.voice_player: VoicePlayer | None = None
@@ -168,22 +176,24 @@ class GamePage:
     def build(self) -> None:
         session = self.session
         now = self.drawn = session.snapshot()
+        self.sounds = Sounds()
+        self.sounds.on("sound", self.sound_state)
+        host = ScreenHost(session=session, sounds=self.sounds, on_toggle=self.surface_toggled)
+        self.screens = require_screens(self.screen_factories, host, now.surfaces)
         self.drawer = Drawer(
             session,
             now.view,
             self.open_row,
             self.pick_option,
             lambda words: self.composer.prefill(words),
+            self.open_surface,
+            self.screens,
         )
-        self.sounds = Sounds()
-        self.sounds.on("sound", self.sound_state)
         if session.live_settings.current.speech.enabled:
             player = self.voice_player = VoicePlayer(session, Speech())
             player.speech.on("auto_read", partial(self.auto_read_state, player))
             player.speech.on("speaking", partial(self.speaking_state, player))
             player.speech.on("escaped", player.stop)
-        if session.battle_script is not None:
-            self.battle_panel = BattlePanel(session, self.sounds, self.show_battle)
         opener = ui.timer(0.1, lambda: self._run(lambda: self._open_game(opener)))
         self.draw_header()
 
@@ -194,7 +204,7 @@ class GamePage:
                 .classes("self-stretch flex-grow game-panel game-main game-gap-0")
                 .style("min-width: 0")
             ):
-                with ui.element("div").style(PASS_THROUGH) as story:
+                with ui.element("div").style(PASS_THROUGH) as self.story:
                     self.scene = SceneHeaderView(session, now)
                     # No padding class: NiceGUI pads the scroll content; twice would misalign.
                     with ui.scroll_area().classes("w-full flex-grow game-transcript") as scroll:
@@ -208,24 +218,30 @@ class GamePage:
                     scroll.on_scroll(self.scrolled)
                     self.scroll_to_end()
                     self.draw_foot(now)
-                if self.battle_panel is not None:
-                    self.battle_panel.build(story, now)
+                for screen in self.screens.values():
+                    screen.build(now)
         self.drawer.build(now)
         self.restart_dialog = Confirm(keep="Keep playing", confirm="Restart")
 
-        self.parts = (self.scene, self.transcript, self.composer, self.drawer)
-        if self.battle_panel is not None:
-            self.parts += (self.battle_panel,)
+        self.parts = (
+            self.scene,
+            self.transcript,
+            self.composer,
+            self.drawer,
+            *self.screens.values(),
+        )
         self.tick()
         ui.timer(0.25, self.tick)
         ui.timer(3.0, self.sync_images)
 
     def tick(self) -> None:
         now, drawn = self.session.snapshot(), self.drawn
+        check_surfaces(self.screens, now.surfaces)
         if now.working_role != drawn.working_role:
             self.row_dialog.close()
         for part in self.parts:
             part.sync(now, drawn)
+        self.story.set_visibility(not any(screen.shown for screen in self.screens.values()))
         if (player := self.voice_player) is not None:
             if self.transcript.redrawn:
                 player.stop()
@@ -238,7 +254,10 @@ class GamePage:
             self.follow(now, drawn)
         self.drawn = now
 
-    def show_battle(self) -> None:
+    def open_surface(self, surface_id: Slug) -> None:
+        self.screens[surface_id].show()
+
+    def surface_toggled(self) -> None:
         if self.voice_player is not None:
             self.voice_player.stop()
         self.tick()
@@ -297,8 +316,8 @@ class GamePage:
         ):
             if (player := self.voice_player) is not None:
                 self.draw_speaking_pill(player)
-            if self.battle_panel is not None:
-                self.battle_panel.build_banner()
+            for screen in self.screens.values():
+                screen.build_banner()
             self.composer = Composer(
                 self.session,
                 now,
@@ -494,7 +513,9 @@ class GamePage:
             self.own_move = False
 
 
-async def game_page(runtime: Runtime, scenario: str, character: str) -> None:
+async def game_page(
+    runtime: Runtime, screen_factories: ScreenFactories, scenario: str, character: str
+) -> None:
     try:
         session = runtime.session_for(
             SavedGameKey(scenario_id=content_id(scenario), character_id=content_id(character))
@@ -509,7 +530,7 @@ async def game_page(runtime: Runtime, scenario: str, character: str) -> None:
     await ui.context.client.connected()
     if ui.context.client.is_deleted:
         return
-    GamePage(session).build()
+    GamePage(session, screen_factories).build()
 
 
 def moved_since(now: SessionSnapshot, drawn: SessionSnapshot) -> bool:

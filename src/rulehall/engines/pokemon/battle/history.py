@@ -1,7 +1,7 @@
-import re
 from collections.abc import Mapping, Sequence
 
 from rulehall.core.prompt import sentence
+from rulehall.engines.pokemon.dex import showdown_id
 
 STATUS_WORDS = {
     "brn": "burned",
@@ -192,7 +192,7 @@ def _condition_percent(condition: str) -> int:
 
 
 def _field_name(text: str) -> str:
-    words = FIELD_WORDS.get(re.sub(r"[^a-z0-9]", "", text.lower()))
+    words = FIELD_WORDS.get(showdown_id(text))
     return text if words is None else words[0]
 
 

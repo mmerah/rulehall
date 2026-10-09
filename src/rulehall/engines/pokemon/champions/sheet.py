@@ -16,22 +16,12 @@ from rulehall.engines.pokemon.champions.season import (
     unlocked_tiers,
 )
 from rulehall.engines.pokemon.dex import avatars, dex
+from rulehall.engines.pokemon.trainers import AVATAR_ID, LOSE_LINE, RIVAL, STYLE, WIN_LINE
 from rulehall.engines.rooms.world import Dweller
 from rulehall.engines.sheet import Sheeted
 
 type Roster = Literal["open", "story"]
-AVATAR_ID = "How this person looks: exact id from TRAINER LOOKS."
 KEY_TRAINER = "key trainer (a trainer with an archetype, or the rival)"
-STYLE = (
-    f"One line on how this {KEY_TRAINER} battles, such as 'sets Tailwind, then hits hard'. "
-    "Empty for anyone else."
-)
-WIN_LINE = f"What this {KEY_TRAINER} says on beating the player. Empty for anyone else."
-LOSE_LINE = f"What this {KEY_TRAINER} says when the player beats them. Empty for anyone else."
-RIVAL = (
-    "True for the one rival of the season, who stands in the opening map. Code builds the "
-    "rival's team and brings them to every event."
-)
 ARCHETYPE_ID = (
     "Exact id from ARCHETYPES for a key trainer who enters this map's event with a team of that "
     "archetype. Null for anyone else, and for the rival."
@@ -53,8 +43,12 @@ class ChampionsSheet(Mutable):
 
     @model_validator(mode="after")
     def _a_legal_team(self) -> Self:
-        check_team(self.team, self.owned_species_ids if self.roster == "story" else None)
+        check_team(self.team, self.allowed_species_ids)
         return self
+
+    @property
+    def allowed_species_ids(self) -> list[Slug] | None:
+        return self.owned_species_ids if self.roster == "story" else None
 
     def cp(self) -> int:
         return total_cp(self.finishes)
@@ -68,16 +62,23 @@ class ChampionsSheet(Mutable):
 
     def replace_team(self, sets: Sequence[CompetitiveSet]) -> None:
         self.refuse_while_registered()
-        check_team(sets, self.owned_species_ids if self.roster == "story" else None)
+        check_team(sets, self.allowed_species_ids)
         self.team = list(sets)
 
 
 class ChampionsTrainer(Sheeted[ChampionsSheet], Dweller):
-    style: str = Field(default="", description=STYLE)
-    win_line: str = Field(default="", description=WIN_LINE)
-    lose_line: str = Field(default="", description=LOSE_LINE)
+    style: str = Field(
+        default="",
+        description=STYLE.format(key_trainer=KEY_TRAINER, example="sets Tailwind, then hits hard"),
+    )
+    win_line: str = Field(default="", description=WIN_LINE.format(key_trainer=KEY_TRAINER))
+    lose_line: str = Field(default="", description=LOSE_LINE.format(key_trainer=KEY_TRAINER))
     avatar_id: Slug = Field(description=AVATAR_ID)
-    rival: bool = Field(default=False, description=RIVAL)
+    rival: bool = Field(
+        default=False,
+        description=RIVAL.format(span="season")
+        + " Code builds the rival's team and brings them to every event.",
+    )
     archetype_id: Slug | None = Field(default=None, description=ARCHETYPE_ID)
     ace_species_id: Slug | None = Field(default=None, description=ACE_SPECIES_ID)
     team: SkipJsonSchema[tuple[CompetitiveSet, ...]] = ()

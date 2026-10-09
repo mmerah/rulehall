@@ -8,6 +8,7 @@ import pytest
 from pydantic import JsonValue
 from support.game import KEY
 from support.table import (
+    CHAMPIONS,
     ENGINES_BUILT,
     LONER4E,
     NO_PACKS,
@@ -43,7 +44,7 @@ KAEL_FOR_EACH = [
     ("kael", TUNNELGOONS),
     ("kael", TWENTYFOURXX),
     ("kael", POKEMON),
-    ("kael", EngineId("pokemon-champions")),
+    ("kael", CHAMPIONS),
 ]
 
 
@@ -348,6 +349,6 @@ def test_a_door_holds_its_engines_in_registry_order(tmp_path: Path) -> None:
 
     assert runtime.door_engines(POKEMON) == (
         runtime.engines[POKEMON],
-        runtime.engines[EngineId("pokemon-champions")],
+        runtime.engines[CHAMPIONS],
         mode,
     )

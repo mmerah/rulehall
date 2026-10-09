@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from random import Random
 from typing import Self
 
@@ -5,7 +6,7 @@ from pydantic import Field, model_validator
 
 from rulehall.core.facts import Fact
 from rulehall.core.game import Game
-from rulehall.core.validation import Frozen, Refusal, Slug
+from rulehall.core.validation import Frozen, Refusal, Slug, refuse
 from rulehall.engines.engine import Resolution
 from rulehall.engines.packs import Names
 from rulehall.engines.pokemon.battle.models import (
@@ -24,6 +25,11 @@ from rulehall.engines.pokemon.champions.data import (
     RealTeam,
     champions_data,
 )
+from rulehall.engines.pokemon.champions.pending import (
+    PendingSet,
+    PendingTeam,
+    unowned_refusal,
+)
 from rulehall.engines.pokemon.champions.rules import (
     RECRUITS_PER_EVENT,
     battler_of_set,
@@ -40,9 +46,10 @@ from rulehall.engines.pokemon.champions.season import (
     Event,
     Tier,
 )
-from rulehall.engines.pokemon.champions.sheet import ChampionsSheet, ChampionsTrainer
-from rulehall.engines.pokemon.dex import avatars, dex
+from rulehall.engines.pokemon.champions.sheet import LOCKED, ChampionsSheet, ChampionsTrainer
+from rulehall.engines.pokemon.dex import avatars, dex, species_name
 from rulehall.engines.pokemon.rules import SEED_LIMIT, battle_seed
+from rulehall.engines.pokemon.trainers import RivalLedger, check_one_rival, find_rival
 from rulehall.engines.rooms.world import MapProposal, RegionProposal, RoomWorld
 from rulehall.engines.sheet import PLAYER_ID
 
@@ -60,6 +67,11 @@ SEASON_OVER = (
     "then close the story in a short epilogue."
 )
 FIELD_ID_PREFIX = "field-"
+TEAM_FINAL = "the season is over; the team is final"
+MATCH_ON = "a match is on; edit the team after it"
+NOT_LOCKED = "the team is not locked; edit it as it is"
+PENDING_OPEN = "a pending team is already open"
+NO_CHANGES = "the team has no unsaved changes"
 
 
 class EventProposal(Frozen):
@@ -94,14 +106,14 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
     event: Event | None = None
     key_trainer_ids: list[Slug] = Field(default_factory=list)
     key_team_ids: list[Slug] = Field(default_factory=list)
-    rival_ledger: list[str] = Field(default_factory=list)
+    rival_ledger: RivalLedger = Field(default_factory=RivalLedger)
     used_team_ids: list[Slug] = Field(default_factory=list)
     battle: Battle | None = None
+    pending_team: PendingTeam | None = None
 
     @model_validator(mode="after")
     def _a_season_on_a_map(self) -> Self:
-        if len([npc for npc in self.npcs.values() if npc.rival]) > 1:
-            raise ValueError("a world has one rival at most")
+        check_one_rival(self.npcs.values())
         if self.event is not None and self.event.venue_id not in self.places:
             raise ValueError(f"the event is at no place: {self.event.venue_id!r}")
         if strays := sorted(set(self.key_trainer_ids) - set(self.npcs)):
@@ -118,7 +130,7 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
         return self.event
 
     def find_rival(self) -> ChampionsTrainer | None:
-        return next((npc for npc in self.npcs.values() if npc.rival), None)
+        return find_rival(self.npcs.values())
 
     def kill(self, entity_id: Slug) -> list[Fact]:
         self._refuse_key(entity_id)
@@ -264,9 +276,10 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
         if npc is not None and (line := npc.lose_line if won else npc.win_line):
             facts.append(npc.card_fact(f'{npc.name}: "{line}"'))
         if npc is not None and npc.rival:
-            best = f". {result.highlights[0]}" if result.highlights else ""
             winner = player.name if won else npc.name
-            self.rival_ledger.append(f"{event.name}, {round_name}: {winner} won{best}")
+            self.rival_ledger.record_battle(
+                f"{event.name}, {round_name}", winner, result.highlights
+            )
         if swiss:
             record = event.require_entrant(PLAYER_ID)
             facts.append(player.card_fact(f"Record: {record.wins}-{record.losses}"))
@@ -292,11 +305,87 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
             raise Refusal("the player has recruited since the last event; wait for the next")
         _ = champions_data().legal.require_species(species_id)
         if species_id in sheet.owned_species_ids:
-            raise Refusal(f"the player already has {dex().species[species_id].name}")
+            raise Refusal(f"the player already has {species_name(species_id)}")
         sheet.owned_species_ids.append(species_id)
         sheet.recruits_left -= 1
-        name = dex().species[species_id].name
+        name = species_name(species_id)
         return [self.player.card_fact(f"{name} joins the player: {how}")]
+
+    def team_lock(self) -> str:
+        if self.player_sheet.registered is not None:
+            return LOCKED
+        if self.season_over():
+            return TEAM_FINAL
+        return MATCH_ON if self.battle is not None else ""
+
+    def pending_team_lock(self) -> str:
+        if self.season_over():
+            return TEAM_FINAL
+        if self.battle is not None:
+            return MATCH_ON
+        if self.player_sheet.registered is not None and self.pending_team is None:
+            return LOCKED
+        return ""
+
+    def require_team_editable(self) -> None:
+        refuse(self.team_lock())
+
+    def editing_team(self) -> PendingTeam:
+        refuse(self.pending_team_lock())
+        if self.pending_team is None:
+            self.pending_team = PendingTeam.of_team(self.player_sheet.team)
+        return self.pending_team
+
+    def shown_team(self) -> PendingTeam:
+        if self.season_over() or self.pending_team is None:
+            return PendingTeam.of_team(self.player_sheet.team)
+        return self.pending_team
+
+    def copy_lock(self) -> str:
+        if self.season_over():
+            return TEAM_FINAL
+        if self.player_sheet.registered is None:
+            return NOT_LOCKED
+        if self.battle is not None:
+            return MATCH_ON
+        return PENDING_OPEN if self.pending_team is not None else ""
+
+    def copy_registered_team(self) -> None:
+        refuse(self.copy_lock())
+        registered = self.player_sheet.registered
+        assert registered is not None
+        self.pending_team = PendingTeam.of_team(registered)
+
+    def load_pending_team(self, sets: Sequence[PendingSet | None]) -> None:
+        refuse(self.pending_team_lock())
+        if not any(sets):
+            raise Refusal("there is no Pokemon to load")
+        refuse(
+            unowned_refusal(
+                (each.species_id for each in sets if each), self.player_sheet.allowed_species_ids
+            )
+        )
+        size = champions_data().legal.team_size
+        self.pending_team = PendingTeam(slots=[*sets, *[None] * (size - len(sets))])
+
+    def pending_team_dirty(self) -> bool:
+        pending = self.pending_team
+        if pending is None or self.season_over():
+            return False
+        return pending != PendingTeam.of_team(self.player_sheet.team)
+
+    def save_pending_team(self) -> None:
+        self.require_team_editable()
+        if self.pending_team is None:
+            raise Refusal(NO_CHANGES)
+        self.player_sheet.replace_team(self.pending_team.completed())
+        self.pending_team = None
+
+    def discard_pending_team(self) -> None:
+        refuse(self.pending_team_lock())
+        if self.pending_team is None:
+            raise Refusal(NO_CHANGES)
+        self.pending_team = None
 
     def season_lines(self, *, worldsmith: bool) -> str:
         sheet = self.player_sheet

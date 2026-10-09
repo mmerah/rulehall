@@ -104,18 +104,22 @@ class Regulation {
       .filter((item) => item.exists && !this.#validator.checkItem(probe, item, {}))
       .map((item) => item.id)
       .sort(compare);
-    const megaStones = {};
+    const megaFormes = {};
     for (const itemId of itemIds.filter((each) => this.isMegaStone(each))) {
       const holderIds = Object.keys(this.dex.items.get(itemId).megaStone)
         .map(toID)
         .filter((speciesId) => species[speciesId] !== undefined)
         .sort(compare);
-      if (holderIds.length > 0) megaStones[itemId] = holderIds;
+      if (holderIds.length > 0) {
+        megaFormes[itemId] = Object.fromEntries(
+          holderIds.map((holderId) => [holderId, toID(this.#megaOf(itemId, holderId))]),
+        );
+      }
     }
     return {
       species,
       item_ids: itemIds,
-      mega_stones: megaStones,
+      mega_formes: megaFormes,
       sp_max: SP_MAX,
       sp_total: this.spTotal,
       team_size: this.teamSize,

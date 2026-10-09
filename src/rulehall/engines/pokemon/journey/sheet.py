@@ -78,6 +78,7 @@ from rulehall.engines.pokemon.rules import (
     max_hp,
     stats,
 )
+from rulehall.engines.pokemon.trainers import AVATAR_ID, LOSE_LINE, RIVAL, STYLE, WIN_LINE
 from rulehall.engines.rooms.world import Dweller
 from rulehall.engines.sheet import Gauge, Sheeted
 
@@ -86,21 +87,10 @@ ROSTER = (
     "not battle."
 )
 BADGE = "The badge this trainer gives when beaten, such as a gym leader's. Empty for most trainers."
-AVATAR_ID = "How this person looks: exact id from TRAINER LOOKS."
 KEY_TRAINER = "key trainer (a gym leader, the rival, an operation's leader or the team's boss)"
-STYLE = (
-    f"One line on how this {KEY_TRAINER} battles, such as 'sets up rain, then sweeps'. Empty for "
-    "anyone else."
-)
 TRIAL = (
     "One sentence, only for a gym leader: the trial the challenger meets before the leader, such "
     "as a maze, a quiz or a puzzle a Pokemon solves. Empty for anyone else."
-)
-WIN_LINE = f"What this {KEY_TRAINER} says on beating the player. Empty for anyone else."
-LOSE_LINE = f"What this {KEY_TRAINER} says when the player beats them. Empty for anyone else."
-RIVAL = (
-    "True for the one rival of the story, who stands in the opening map. A rival has no `roster`: "
-    "code builds their team at each battle."
 )
 DOUBLE = (
     "True for a trainer who always battles two-on-two, such as twins, a pair or a gym that "
@@ -489,7 +479,7 @@ class Mon(Mutable):
                 return False
 
 
-class TrainerSheet(Mutable):
+class JourneySheet(Mutable):
     skills: dict[Skill, Annotated[int, Field(ge=0, le=RANK_MAX)]]
     money: int = Field(ge=0)
     bag: dict[BagId, Annotated[int, Field(ge=1)]]
@@ -609,14 +599,21 @@ class TrainerSheet(Mutable):
         return f"{mon.name} leads the team already" if self.team[0] is mon else ""
 
 
-class Trainer(Sheeted[TrainerSheet], Dweller):
+class JourneyTrainer(Sheeted[JourneySheet], Dweller):
     roster: tuple[RosterSlot, ...] = Field(default=(), max_length=TEAM_MAX, description=ROSTER)
     badge: str = Field(default="", description=BADGE)
-    style: str = Field(default="", description=STYLE)
+    style: str = Field(
+        default="",
+        description=STYLE.format(key_trainer=KEY_TRAINER, example="sets up rain, then sweeps"),
+    )
     trial: str = Field(default="", description=TRIAL)
-    win_line: str = Field(default="", description=WIN_LINE)
-    lose_line: str = Field(default="", description=LOSE_LINE)
-    rival: bool = Field(default=False, description=RIVAL)
+    win_line: str = Field(default="", description=WIN_LINE.format(key_trainer=KEY_TRAINER))
+    lose_line: str = Field(default="", description=LOSE_LINE.format(key_trainer=KEY_TRAINER))
+    rival: bool = Field(
+        default=False,
+        description=RIVAL.format(span="story")
+        + " A rival has no `roster`: code builds their team at each battle.",
+    )
     double: bool = Field(default=False, description=DOUBLE)
     legendary_id: Slug | None = Field(default=None, description=LEGENDARY)
     avatar_id: Slug = Field(description=AVATAR_ID)

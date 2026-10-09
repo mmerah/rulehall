@@ -1,0 +1,8 @@
+[
+  { "role_id": "speed-control", "name": "Speed control", "ability_ids": [], "move_ids": [] },
+  { "role_id": "fake-out", "name": "Fake Out", "ability_ids": [], "move_ids": ["fakeout"] },
+  { "role_id": "intimidate", "name": "Intimidate", "ability_ids": ["intimidate"], "move_ids": [] },
+  { "role_id": "wide-guard", "name": "Wide Guard", "ability_ids": [], "move_ids": [] },
+  { "role_id": "screens", "name": "Screens", "ability_ids": [], "move_ids": [] },
+  { "role_id": "redirect", "name": "Redirection", "ability_ids": [], "move_ids": [] }
+]

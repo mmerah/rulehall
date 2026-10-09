@@ -5,7 +5,7 @@ from pydantic import Field, model_validator
 
 from rulehall.core.facts import Fact
 from rulehall.core.validation import Frozen, Loose, Mutable, Slug
-from rulehall.core.views import Pip
+from rulehall.engines.pokemon.battle.views import Pip
 from rulehall.engines.pokemon.dex import Stats, dex
 
 type Policy = Literal["random", "scripted", "model"]

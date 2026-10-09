@@ -57,7 +57,7 @@ def body(s: Session) -> None:
     tabs = [clean(t).lower() for t in page.locator(".q-tab").all_inner_texts()]
     s.note(f"tabs: {tabs}")
     s.check(
-        tabs == ["providers", "roles", "media", "speech", "battle", "server"],
+        tabs == ["providers", "roles", "media", "speech", "pokemon", "server"],
         f"unexpected tabs: {tabs}",
     )
     page.get_by_role("button", name="Save").click()
@@ -114,10 +114,10 @@ def body(s: Session) -> None:
     page.reload()
 
     # A real change: music off. .env holds the key; the switch still shows it clicked.
-    page.get_by_role("tab", name="battle").click()
+    page.get_by_role("tab", name="pokemon").click()
     switch(page, "music").click()
     save(page)
-    s.check("BATTLE__MUSIC='false'" in env(), f".env after save: {env()!r}")
+    s.check("POKEMON__MUSIC='false'" in env(), f".env after save: {env()!r}")
     s.check(
         switch(page, "music").get_attribute("aria-checked") == "false",
         "the switch does not show the saved value after the reload",
@@ -162,13 +162,13 @@ def body(s: Session) -> None:
         submit(game, "I linger.\n!none")
         s.check(wait_working(game), "the game shows no turn under way")
         s.shot(game, "game-busy")
-        page.get_by_role("tab", name="battle").click()
+        page.get_by_role("tab", name="pokemon").click()
         switch(page, "music").click()
         s.check(save(page), "a save during a turn wrote nothing")
         s.shot(page, "busy-save")
     wait_idle(game, timeout=60)
     page.reload()
-    page.get_by_role("tab", name="battle").click()
+    page.get_by_role("tab", name="pokemon").click()
 
     # A save applies elsewhere while a game is open: the game keeps playing, untouched.
     switch(page, "music").click()

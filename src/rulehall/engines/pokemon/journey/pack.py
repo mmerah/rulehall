@@ -9,7 +9,7 @@ from rulehall.engines.packs import Pack, PackHead
 from rulehall.engines.pokemon.dex import avatars, dex
 
 
-class PokemonPack(Pack):
+class JourneyPack(Pack):
     mixable: ClassVar[bool] = True
     species_ids: tuple[Slug, ...] = Field(min_length=1)
     starters: tuple[Slug, ...] = Field(min_length=1)
@@ -34,7 +34,7 @@ class PokemonPack(Pack):
             return self
         species_ids = list(self.species_ids)
         for other in others:
-            if not isinstance(other, PokemonPack):
+            if not isinstance(other, JourneyPack):
                 raise TypeError(f"a Pokemon pack joins no {type(other).__name__}")
             species_ids.extend(other.species_ids)
         return self.model_validate(
@@ -53,7 +53,7 @@ class PokemonPack(Pack):
         )
 
 
-class PokemonHead(PackHead):
+class JourneyHead(PackHead):
     species_ids: tuple[Slug, ...] = Field(
         min_length=10,
         description="Ids of the species that live in this region. An id is the Showdown id: the "

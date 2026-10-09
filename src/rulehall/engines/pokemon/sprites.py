@@ -42,7 +42,7 @@ STATUS_COLOURS = {
 }
 CATEGORY_COLOURS = {"Physical": "#c92112", "Special": "#4f5870", "Status": "#8c888c"}
 LOW_COLOUR, OUT_COLOUR = "#f8d030", "#f05030"
-PP_COLOUR = "#6890f0"
+STAT_COLOUR = "#6890f0"
 PP_LOW_SHARE = 0.25
 MEGA_COLOUR = "#c060d0"
 RAISED, LOWERED = " ▲", " ▼"
@@ -92,7 +92,7 @@ def hp_meter(current: int, maximum: int) -> Meter:
 
 def pp_meter(current: int, maximum: int) -> Meter:
     colour = (
-        PP_COLOUR if current > maximum * PP_LOW_SHARE else LOW_COLOUR if current else OUT_COLOUR
+        STAT_COLOUR if current > maximum * PP_LOW_SHARE else LOW_COLOUR if current else OUT_COLOUR
     )
     return Meter(name="PP", current=current, maximum=maximum, colour=colour)
 

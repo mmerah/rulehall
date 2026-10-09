@@ -41,6 +41,8 @@ function deriveArchetypes(regulation, kept, presets) {
     return {
       archetype_id: rule.archetype_id,
       name: rule.name,
+      move_ids: rule.move_ids,
+      ability_ids: rule.ability_ids,
       setter_id: setter.speciesId,
       core_ids: coreIds,
       leads: [setter.speciesId, coreIds[0]],

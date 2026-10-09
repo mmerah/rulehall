@@ -13,13 +13,14 @@ from rulehall.engines.pokemon.journey.rules import (
     tm_move,
 )
 from rulehall.engines.pokemon.journey.scheme import SCHEME_STAGES
-from rulehall.engines.pokemon.journey.sheet import Learning, Mon, MoveSlot, TrainerSheet
-from rulehall.engines.pokemon.journey.world import PokemonWorld
+from rulehall.engines.pokemon.journey.sheet import JourneySheet, Learning, Mon, MoveSlot
+from rulehall.engines.pokemon.journey.world import JourneyWorld
 from rulehall.engines.pokemon.rules import STAT_NAMES, TIMES
 from rulehall.engines.pokemon.sprites import (
     ITEM_SPRITES,
     LOWERED,
     RAISED,
+    STAT_COLOUR,
     category_tag,
     hp_meter,
     item_sprite,
@@ -83,7 +84,7 @@ KIND_TEXT = {
 }
 
 
-def team_panel(world: PokemonWorld) -> Panel:
+def team_panel(world: JourneyWorld) -> Panel:
     sheet = world.player_sheet
     usable = [item_id for item_id in _bag_ids(world) if item_of(item_id).kind != "ball"]
     return Panel(
@@ -96,7 +97,7 @@ def team_panel(world: PokemonWorld) -> Panel:
     )
 
 
-def box_panel(world: PokemonWorld) -> Panel:
+def box_panel(world: JourneyWorld) -> Panel:
     sheet = world.player_sheet
     return Panel(
         title="Box",
@@ -106,7 +107,7 @@ def box_panel(world: PokemonWorld) -> Panel:
     )
 
 
-def bag_panel(world: PokemonWorld) -> Panel:
+def bag_panel(world: JourneyWorld) -> Panel:
     sheet = world.player_sheet
     return Panel(
         title="Bag",
@@ -124,7 +125,7 @@ def bag_panel(world: PokemonWorld) -> Panel:
     )
 
 
-def scheme_panel(world: PokemonWorld) -> Panel | None:
+def scheme_panel(world: JourneyWorld) -> Panel | None:
     evil_team = world.evil_team
     scheme = evil_team.scheme
     if scheme is None or not any(world.npcs[leader_id].known for leader_id in evil_team.leader_ids):
@@ -141,7 +142,7 @@ def scheme_panel(world: PokemonWorld) -> Panel | None:
     return Panel(title=scheme.name, rows=rows, help=help_text)
 
 
-def wild_panel(world: PokemonWorld) -> Panel | None:
+def wild_panel(world: JourneyWorld) -> Panel | None:
     slots = world.wild.get(world.current.id, ())
     if not slots:
         return None
@@ -183,7 +184,7 @@ def wild_panel(world: PokemonWorld) -> Panel | None:
     )
 
 
-def pending_decision(sheet: TrainerSheet) -> Decision | None:
+def pending_decision(sheet: JourneySheet) -> Decision | None:
     return _learning_decision(sheet) or _evolution_decision(sheet) or _rank_decision(sheet)
 
 
@@ -211,7 +212,7 @@ def mon_row(mon: Mon, cap: int, options: tuple[ActionOption, ...] = ()) -> Panel
         meters=(
             hp_meter(mon.hp.current, mon.hp.maximum),
             *(
-                Meter(name=name, current=value, maximum=top, colour="#6890f0", help=help_text)
+                Meter(name=name, current=value, maximum=top, colour=STAT_COLOUR, help=help_text)
                 for name, value, help_text in lines
             ),
         ),
@@ -230,7 +231,7 @@ def move_row(slot: MoveSlot) -> PanelRow:
     )
 
 
-def bag_row(item_id: BagId, world: PokemonWorld) -> PanelRow:
+def bag_row(item_id: BagId, world: JourneyWorld) -> PanelRow:
     sheet = world.player_sheet
     item = item_of(item_id)
     return PanelRow(
@@ -262,7 +263,7 @@ def item_text(item_id: BagId) -> str:
             return KIND_TEXT[kind].format(heal=item.heal)
 
 
-def mon_options(mon: Mon, world: PokemonWorld, bag: list[BagId]) -> tuple[ActionOption, ...]:
+def mon_options(mon: Mon, world: JourneyWorld, bag: list[BagId]) -> tuple[ActionOption, ...]:
     sheet = world.player_sheet
     name = mon.name
     take = (
@@ -301,7 +302,7 @@ def mon_options(mon: Mon, world: PokemonWorld, bag: list[BagId]) -> tuple[Action
     )
 
 
-def box_options(boxed: Mon, sheet: TrainerSheet) -> tuple[ActionOption, ...]:
+def box_options(boxed: Mon, sheet: JourneySheet) -> tuple[ActionOption, ...]:
     name = boxed.name
     return (
         ActionOption(
@@ -325,7 +326,7 @@ def box_options(boxed: Mon, sheet: TrainerSheet) -> tuple[ActionOption, ...]:
     )
 
 
-def item_option(mon: Mon, item_id: BagId, world: PokemonWorld) -> ActionOption:
+def item_option(mon: Mon, item_id: BagId, world: JourneyWorld) -> ActionOption:
     item = item_of(item_id)
     name = mon.name
     brief = help_text = ""
@@ -351,7 +352,7 @@ def item_option(mon: Mon, item_id: BagId, world: PokemonWorld) -> ActionOption:
     )
 
 
-def _learning_decision(sheet: TrainerSheet) -> Decision | None:
+def _learning_decision(sheet: JourneySheet) -> Decision | None:
     if not sheet.learning:
         return None
     learning = sheet.learning[0]
@@ -414,7 +415,7 @@ def _remember_option(mon: Mon, move_id: Slug) -> ActionOption:
     )
 
 
-def _evolution_decision(sheet: TrainerSheet) -> Decision | None:
+def _evolution_decision(sheet: JourneySheet) -> Decision | None:
     if not sheet.evolving:
         return None
     evolving = sheet.evolving[0]
@@ -435,7 +436,7 @@ def _evolution_decision(sheet: TrainerSheet) -> Decision | None:
     )
 
 
-def _rank_decision(sheet: TrainerSheet) -> Decision | None:
+def _rank_decision(sheet: JourneySheet) -> Decision | None:
     options = tuple(
         ActionOption(
             id=skill,
@@ -549,5 +550,5 @@ def _pocket_key(item_id: BagId) -> tuple[int, str]:
     return POCKET_ORDER.index(POCKETS[item.kind]), item.name
 
 
-def _bag_ids(world: PokemonWorld) -> list[BagId]:
+def _bag_ids(world: JourneyWorld) -> list[BagId]:
     return sorted(world.player_sheet.bag, key=_pocket_key)
