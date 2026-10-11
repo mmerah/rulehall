@@ -248,7 +248,7 @@ class Loner4eEngine(
         draft.world.apply_scene_extras(proposal)
         return super().install_next(draft, proposal)
 
-    def end_turn(self, draft: Loner4eGame, /, *, acted: bool) -> None:  # noqa: ARG002
+    def after_master_turn(self, draft: Loner4eGame, /, *, acted: bool) -> None:  # noqa: ARG002
         draft.world.player_question = ""
         if draft.pending is not None or draft.request is not None:
             return

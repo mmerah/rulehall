@@ -143,7 +143,7 @@ def test_a_scene_engine_refuses_a_request_kind_not_its_own() -> None:
     draft.request = WorldsmithRequest(kind="hire", detail="Hire a fixer.")
 
     with pytest.raises(Refusal, match="writes no 'hire'"):
-        engine.validate(draft)
+        engine.check_state(draft)
 
 
 def test_beginning_the_game_does_not_mutate_the_authored_scenario() -> None:

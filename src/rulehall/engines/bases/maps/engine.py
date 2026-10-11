@@ -194,7 +194,7 @@ class MapEngine[P: Dweller, W: MapWorld[Any], K: Pack, R: RegionProposal[Any]](
         draft.request = WorldsmithRequest(kind=EXTEND, detail=args.words)
         return []
 
-    def end_turn(self, draft: Game[W], /, *, acted: bool) -> None:
+    def after_master_turn(self, draft: Game[W], /, *, acted: bool) -> None:
         if acted:
             draft.world.count_turn()
 

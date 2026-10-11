@@ -246,9 +246,8 @@ class ChampionsEngine(
     def ending(self, state: ChampionsGame) -> str | None:
         return SEASON_ENDED if state.world.season_over() else super().ending(state)
 
-    def accept(self, draft: ChampionsGame) -> ChampionsGame:
+    def after_each_change(self, draft: ChampionsGame, /) -> None:
         draft.pending = prize_decision(draft.world.player_sheet)
-        return super().accept(draft)
 
     @tool
     def register_team(self, draft: ChampionsGame, _args: NoArgs, rng: Random) -> list[Fact]:

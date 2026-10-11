@@ -4,7 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 from pathlib import Path
 from random import Random
-from typing import Any, ClassVar
+from typing import Any, ClassVar, final
 
 from pydantic import BaseModel, JsonValue
 
@@ -88,6 +88,10 @@ class Joining[W: World[Any]]:
 
 
 class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
+    """Hook order: a turn the master played first calls `after_master_turn`; each log entry
+    calls `before_log_entry`; every change, the log entry's too, calls `after_each_change`,
+    then `check_state`."""
+
     # Declared, not `ClassVar`: `type[W]` cannot be one.
     id: EngineId
     title: str
@@ -172,7 +176,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         state = parse_json(Game[self.world_model], raw)
         if state.request is not None:
             raise Refusal("the save carries a pending request")
-        self.validate(state)
+        self.check_state(state)
         self.packs.require_joined(state.pack_id, state.extra_pack_ids)
         return state
 
@@ -374,7 +378,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         by_option: bool = False,
         cause: Cause | None = None,
     ) -> Game[W]:
-        self.before_record(draft)
+        self.before_log_entry(draft)
         entry = LogEntry(
             words=words,
             by_option=by_option,
@@ -388,8 +392,8 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         draft.world.meet_people_named(*(line.text for line in lines))
         return self.accept(draft)
 
-    def before_record(self, draft: Game[W], /) -> None:  # noqa: B027
-        pass
+    def before_log_entry(self, _draft: Game[W], /) -> None:
+        return None
 
     def open_chapter(self, draft: Game[W]) -> None:
         if draft.chapters and not draft.chapters[-1].entries:
@@ -398,12 +402,17 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
             Chapter(title=self.narrator_view(draft).title, context=self.context_text(draft))
         )
 
+    @final
     def accept(self, draft: Game[W]) -> Game[W]:
-        self.validate(draft)
+        self.after_each_change(draft)
+        self.check_state(draft)
         return draft.validated()
 
-    def end_turn(self, draft: Game[W], /, *, acted: bool) -> None:  # noqa: B027
-        pass
+    def after_each_change(self, _draft: Game[W], /) -> None:
+        return None
+
+    def after_master_turn(self, _draft: Game[W], /, *, acted: bool) -> None:  # noqa: ARG002
+        return None
 
     def begin(self, scenario_id: Slug, scenario: AnyScenario, character: AnyCharacter) -> Game[W]:
         if scenario.engine_id != self.id:
@@ -452,7 +461,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         check_picks(self.creation_steps(pack_id, picks), picks)
         return self.build_character(name, brief, voice, pack_id, picks)
 
-    def validate(self, state: Game[W]) -> None:
+    def check_state(self, state: Game[W]) -> None:
         if not state.chapters:
             raise Refusal(f"a {self.id!r} game has no chapter open")
         request = state.request

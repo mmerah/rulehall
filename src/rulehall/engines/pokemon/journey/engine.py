@@ -267,9 +267,8 @@ class JourneyEngine(
             return TEAM_FALLEN
         return super().ending(state)
 
-    def accept(self, draft: JourneyGame) -> JourneyGame:
+    def after_each_change(self, draft: JourneyGame, /) -> None:
         draft.pending = pending_decision(draft.world.player_sheet)
-        return super().accept(draft)
 
     @tool
     def check(self, draft: JourneyGame, args: SkillCheck, rng: Random) -> list[Fact]:

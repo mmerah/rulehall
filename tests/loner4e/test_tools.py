@@ -209,7 +209,7 @@ def test_the_end_of_the_turn_drops_an_unasked_player_question() -> None:
     draft = state.draft()
     _ = run_action(ENGINE, draft, "ask_oracle", words="Is the abbot's desk unlocked?")
 
-    ENGINE.end_turn(draft, acted=False)
+    ENGINE.after_master_turn(draft, acted=False)
 
     assert draft.world.player_question == ""
 

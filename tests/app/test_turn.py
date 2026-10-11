@@ -131,7 +131,7 @@ async def test_the_engine_rolls_the_outcome_the_facts_then_record(tmp_path: Path
         assert trace.endswith(f"[{', '.join(str(v) for v in die.rolled)}]")
     wording = outcome_for(max(chance.rolled), max(risk.rolled)).wording
     assert answer.card.splitlines()[1] == wording
-    table.session.engine.validate(state)
+    table.session.engine.check_state(state)
     assert not any(fact.told for fact in fired[:2])
 
 
@@ -360,10 +360,10 @@ def test_a_played_turn_with_no_facts_still_ends(
     engine = table.session.engine
     ended: list[bool] = []
 
-    def end_turn(_draft: AnyGame, /, *, acted: bool) -> None:
+    def after_master_turn(_draft: AnyGame, /, *, acted: bool) -> None:
         ended.append(acted)
 
-    monkeypatch.setattr(engine, "end_turn", end_turn)
+    monkeypatch.setattr(engine, "after_master_turn", after_master_turn)
     turn = Turn.begin(engine, table.state, PlayerInput(text="I wait."), Random())
 
     _ = turn.finish(())

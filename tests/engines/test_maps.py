@@ -353,11 +353,11 @@ def test_a_region_with_an_npc_off_the_map_is_refused() -> None:
 def test_the_clock_counts_only_a_turn_that_acted_and_arms_at_the_tempo() -> None:
     draft = _walked(keep())
 
-    ENGINE.end_turn(draft, acted=False)
+    ENGINE.after_master_turn(draft, acted=False)
     assert draft.world.turns_since_meanwhile == 0
 
     for _ in range(MEANWHILE_EVERY):
-        ENGINE.end_turn(draft, acted=True)
+        ENGINE.after_master_turn(draft, acted=True)
 
     assert (draft.world.turns_since_meanwhile, draft.world.meanwhile_due) == (0, True)
 
@@ -366,7 +366,7 @@ def test_a_counted_turn_spends_the_armed_flag() -> None:
     draft = _walked(keep())
     draft.world.meanwhile_due = True
 
-    ENGINE.end_turn(draft, acted=True)
+    ENGINE.after_master_turn(draft, acted=True)
 
     assert not draft.world.meanwhile_due
 

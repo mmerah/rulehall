@@ -184,7 +184,7 @@ class TwentyFourXXEngine(
             NEWCOMER: RequestHandler(self.write_newcomer, HIRE_UNWRITTEN),
         }
 
-    def before_record(self, draft: TwentyFourXXGame, /) -> None:
+    def before_log_entry(self, draft: TwentyFourXXGame, /) -> None:
         if draft.pending is None and draft.request is None:
             self._succession(draft)
         if draft.pending is None and draft.request is None and draft.world.raise_owed:

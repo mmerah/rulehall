@@ -178,7 +178,7 @@ class Turn:
         if not self.needs_narration:
             self.draft.unnarrated = list(self.told)
         if self.master_plays_this_turn:
-            self.engine.end_turn(self.draft, acted=bool(self.facts))
+            self.engine.after_master_turn(self.draft, acted=bool(self.facts))
         return self.engine.record(
             self.draft,
             lines,
