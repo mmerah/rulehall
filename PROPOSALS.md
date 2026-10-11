@@ -478,3 +478,257 @@ Each part takes callbacks (`edit`, `confirm`, `find_asset`) instead of the whole
 - **Merging the per-genre pack Body classes:** their field descriptions are deliberate per-genre prompt text.
 - **Removing the 75 unused `_rng` parameters:** the uniform `(draft, args, rng)` signature is simpler than having the dispatcher inspect signatures.
 - **Splitting `core/validation.py`:** 177 importers, too much churn for little gain.
+
+---
+
+# Part 2: Deletion proposals (D1–D10)
+
+Three more reviewers looked only for things to delete: dead code, over-built features, and duplication plus tests.
+
+**The honest finding first.** There is almost no dead code. Four scans (vulture, a token count of every defined name, project-wide references, AST checks for parameters and fields) found about 50 deletable lines in total. Copy detection found 0.11% duplicated code. So the real deletions are **features and mechanisms that are built bigger than the app needs**. Those are product calls, and each one says plainly what disappears for the player.
+
+The proof gate applies here too. **Proof** for a deletion means the named code is gone, the stated line count is reached (within 20%), the remaining tests stay green, and nothing outside the stated feature impact changes.
+
+---
+
+## D1. Speech: keep "tap a line to hear it", drop the rest
+
+**Status:** pending
+
+**What exists today:**
+- `voices.json` (1,070 lines): a hand-graded voice catalogue for **7** interchangeable text-to-speech models.
+- `voices.py` (80 lines), which loads that catalogue.
+- `SpeechConfig` checks (`config.py:75-111`) and a voice list on the settings page.
+- A microphone with transcription: `Speaker.transcribe`, `Composer._build_mic` / `_hear`, about 50 lines of recording JS, and its CSS.
+- An auto-read queue: `VoicePlayer.hear` / `drain` with timeouts, `Transcript.take_unheard` / `finished_bubbles` / `withdrawn` (tangled up with streamed narration), the "Speaking" pill, and the auto-read button with its `tick()` hookup.
+
+The MiniMax HD entry in `voices.json` is an exact copy of the Turbo entry: 45 shared voice ids, 237 duplicated lines.
+
+**Why it is over-built.**
+- Speech is off by default.
+- Six of the seven models only change which vendor reads the line.
+- The auto-read queue is the most stateful code in the UI.
+
+**Decision D1:**
+- **A. Delete speech entirely: about −1,900 lines.**
+  - The `Voice` type also goes: the `voice` field on every person, the picker on the new-character form, and the `voice` argument of the `enter` tool.
+  - Golden drift in 7 schema files.
+  - The shipped characters and scenarios must drop their `voice` key.
+  - **Every user-made character becomes unreadable** (`extra="forbid"`).
+- **B. One fixed model, tap-to-read only: about −1,500 lines** (about 1,100 of it data). **Recommended.**
+  - Removed: the catalogue, the narrator-voice/model/transcription settings, the microphone, auto-read and the Speaking pill.
+  - Kept: `Speaker.speak`, a smaller `VoicePlayer`, and the `voice` field.
+  - For the player: no choosing a TTS vendor or narrator voice, no dictating input, no auto-read.
+- **C. Only remove the duplicate HD entry** (`voices_of` alias, or drop HD): about −230 lines, no feature change.
+
+**Proof:** for B, `voices.json` and `voices.py` are gone, and the microphone/auto-read code has 0 grep hits. src lines −400 or more (excluding data), and test lines go down too.
+
+---
+
+## D2. The model-played Pokémon opponent
+
+**Status:** pending
+
+**What exists today:**
+- About 720 of the 850 lines in `battle/opponent.py` exist only to prompt a model: prose, `opponent_system`, `render_opponent`, `check_commands`, `switch_advice` and about 30 render helpers.
+- The scripted AI that plays without a model is about 130 lines.
+- `preview.py:78-152` is a team-preview prompt.
+- The simulator runs think-ahead tasks (the `thinking` dict) and has a model branch in `_decide` (about 60 lines).
+- An `"opponent"` role, the `pokemon.opponent` setting, and the `ask_opponent` plumbing.
+- About 8 of 18 tests in `test_opponent.py`, plus 3 prompt goldens. The Champions opponent golden alone is 264 lines, which is the prompt sent **on every battle turn**.
+
+There are three opponent policies (random, scripted, model), plus a setting that forces scripted, plus an ally that always uses the model. The scripted fallback is already tested, because a model that hangs falls back to it.
+
+**Feature impact of deleting it.**
+- Gym leaders, the rival, key trainers, every Champions opponent and tag allies all play the scripted greedy-plus-switch AI.
+- Opponents lose their in-battle chat lines.
+- Battles stop making one model call per turn (up to 30 s each).
+- **Champions opponents will feel weaker.**
+- The README advertises "the fourth role".
+
+**Decision D2:**
+- **A. Delete the model opponent: about −900 src and −600 test/golden lines.** P9 item 2 then becomes "`opponent.py` shrinks to tactics".
+- **B. Keep the model, drop the extras:** the team-preview prompt (use the scripted preview), the think-ahead tasks and the `pokemon.opponent` setting. About −300 lines. **Recommended if you value opponent strength.**
+- **C. Keep it as it is.**
+
+**Proof:** for A, the `"opponent"` role is gone from `config.Role`, `opponent.py` is ≤ 200 lines, and battle tests stay green with the scripted AI. For B, `preview.py` has no prompt, `thinking` has 0 hits, and there is no `pokemon.opponent` setting.
+
+---
+
+## D3. In-app "New pack" writer overlaps "write a scenario from a document"
+
+**Status:** pending
+
+**What exists today:**
+- `PackForm` and `packs_page` (`ui/create.py:365-427`).
+- `Engine.write_pack`, which asks the worldsmith **twice** (head, then body).
+- `Runtime.new_pack`.
+- The `PackHead`/`PackBody` bases, plus a Head/Body pair in each of the 5 engines (about 150 lines).
+- `HEAD_ASK`, `BODY_ASK`, `PACK_SO_FAR` and `PackStore`.
+- `test_pack_authoring.py` (125 lines).
+
+That is about 350 src and 150 test lines in total. The scenario form already takes a premise or a PDF/Markdown file and has the worldsmith write the setting, so there are two model-driven ways to bring your own setting.
+
+**Feature impact:**
+- There is no in-app pack writer any more.
+- Hand-written pack JSON in the player's `packs/` folder still loads.
+- Shipped packs (12 for Loner) are unchanged.
+
+**Decision D3:**
+- **A. Delete the pack writer: about −500 lines.** R1 then shrinks to "read player packs".
+- **B. Keep it, with one worldsmith ask instead of two.** This deletes the Head/Body split in 5 engines: about −200 lines.
+- **C. Keep it.**
+
+**Proof:** for A, `write_pack`, `PackHead`, `PackBody`, `PackForm`, `new_pack` and `PackStore` all have 0 hits, and the shipped packs still load. For B, the per-engine Head/Body classes have 0 hits.
+
+---
+
+## D4. Team builder: drop the extra input layers (do this before P7)
+
+**Status:** pending
+
+**What exists today:**
+- `KEY_MAP` (19 bindings) and a keys dialog.
+- `pressed()`, `shortcut()`, `swiped()` and `open_keyed_field`.
+- `team_builder_input.js` (64 lines: Ctrl shortcuts, focus restore, swipe).
+- Drag-and-drop for slots and for moves.
+- An "Expert" toggle that **writes to `.env` from inside the screen** and doubles the stat-points UI.
+
+That is about 250–300 lines of Python, JS and CSS.
+
+A slot can be reordered **three ways**: drag-and-drop, Alt+↑/↓, and the card menu's Move up/down. Reordering moves within a set is cosmetic.
+
+**Decision D4:**
+- **A. Delete all of it.** The card menu stays, and there is one stat-points editor. About −300 lines. P7 then splits a smaller class.
+- **B. Delete drag-and-drop and swipe, keep the keyboard shortcuts:** about −150 lines.
+- **C. Keep it.**
+
+**Proof:** for A, `team_builder_input.js`, `KEY_MAP` and the `drag_`/`drop_` methods have 0 hits, and there is no `.env` write from `screens/`. `TeamBuilderScreen` is −250 lines or more before P7 starts.
+
+---
+
+## D5. "Story so far": use the recaps the game already stores
+
+**Status:** pending
+
+**What exists today:**
+- `Debrief` and `render_debrief` (about 45 lines).
+- `prompts/debrief.md`.
+- `GameSession.debrief` with `DebriefMemo`.
+- A dialog in `ui/game.py:366-392`.
+
+About 140 lines in total. This button makes a fresh narrator model call, but `Chapter.recap` already holds a player-safe summary of each finished scene, written by the worldsmith and checked for leaks.
+
+**Decision D5:**
+- **A. Delete the button:** about −140 lines.
+- **B. Show the chapter titles and recaps plus the last few log lines, with no model call:** about −100 lines. The current scene has no recap yet, and Champions writes few recaps. **Recommended.**
+- **C. Keep it.**
+
+**Proof:** `Debrief`, `render_debrief` and `debrief.md` have 0 hits, and no model call is reachable from the dialog.
+
+---
+
+## D6. Settings that duplicate another control or barely matter
+
+**Status:** pending
+
+- **`pokemon.music`:** it duplicates the page's Sound toggle, which mutes battle audio too. Delete the setting.
+- **`pokemon.sprites` (2d/3d):** keep 2d only. The asset fetch downloads every animated GIF anyway, so dropping 3d could also shrink the about-220 MB first-start download (not yet measured).
+- **`pokemon.expert_team_builder`:** goes with D4. If D4 is not taken, store it per browser instead of in `.env`.
+- **`roles.*.max_rounds`:** API roles only; make it a constant.
+
+**Size:** about −50 lines.
+
+**Feature impact:** no 3D/animated battle sprites, one fewer mute switch, `max_rounds` no longer configurable.
+
+**Decision D6:**
+- **A. All four (recommended).**
+- **B. Everything except the sprites.**
+
+**Proof:** the deleted settings have 0 hits in `config.py`, `ui/settings.py` and `.env` examples. Settings model fields go down by 3 or 4.
+
+---
+
+## D7. Trim two defensive checks that guard nothing real
+
+**Status:** pending
+
+- **JSON depth walker** (`_nesting_depth` and `JSON_DEPTH_MAX` in `validation.py`, about 20 lines plus a test). Pydantic's JSON parser already refuses deep nesting. The only recursion risk (`_mended`) is covered by catching `RecursionError` in one line, the same pattern `decode` already uses.
+- **`ScenarioDescription.check_drift` and its caller** (about 10 lines plus a test). The save keeps its own copy of the description, so the check only means that **fixing a typo in a shipped scenario makes every save of it unresumable**.
+
+The reviewer checked and recommends **keeping**:
+- `answer_repair` (it saves a retry round trip on common model slips, and a test pins it)
+- the name-leak checks (the narrator's no-spoiler promise)
+- the duplicate-key JSON check (`json` would silently drop a doubled id)
+
+**Size:** about −40 lines.
+
+**Feature impact:** after D7, editing a shipped scenario's text no longer breaks its saves. That is a small improvement.
+
+**Proof:** `_nesting_depth`, `JSON_DEPTH_MAX` and `check_drift` have 0 hits, and the suite is green.
+
+---
+
+## D8. `qa/demo/`: broken since 2026-10-08
+
+**Status:** pending
+
+**Evidence, confirmed:**
+- `qa/demo/roles.py` `DemoRoles` has no `submit_answer`.
+- Since commit 11dd0ec, every worldsmith call goes through `runner.submit_answer`, and the demo's `create()` step writes a scenario. So every recording take fails.
+- Nothing in CI or basedpyright looks at `qa/`.
+
+**What goes:** 8 files, **1,136 lines**. The shipped `docs/demo/demo.{mp4,gif}` stay, and the README keeps showing them. Only new recordings stop being possible.
+
+**Decision D8:**
+- **A. Delete the kit, keep the media (recommended).**
+- **B. Fix it** (+15 lines: feed the scripted answers through `submission.call_tool`).
+- **C. A, plus delete the media** (14.5 MB) and the README GIF.
+
+**Proof:** for A, `qa/demo/*.py` and `*.html` are gone, and the README still renders the existing media.
+
+---
+
+## D9. Docs and the QA harness: remove what restates code or only takes screenshots
+
+**Status:** pending
+
+- **Docs "## The tools" sections**: about 55 lines, but about 21k characters, roughly 45% of the 24XX and Loner docs. They paraphrase the tool docstrings, which the goldens already pin, and they have **already drifted**: 24XX and Tunnel Goons omit `direct`, and Tunnel Goons omits `extend_map`. Replace each section with one line pointing to the engine's `@tool` docstrings.
+- **QA screenshot and timing scenarios**: `qa/s_gallery.py` (screenshots only, and not even in `run_all.sh`), `qa/s_endure.py`, and the websocket timing instrumentation in `drive.py`. About −280 lines. You lose the traffic-timing check and the design gallery.
+- **Golden fixtures**: store the shared tools (`kill`, `direct`, `reveal`…, repeated 3–5×) once in `shared_tools.json`. About −550 golden lines.
+
+**Decision D9:**
+- **A. All three.**
+- **B. Docs and QA trim only (recommended).** Golden dedup adds test machinery for diff-noise relief only.
+- **C. Docs only.**
+
+**Proof:** the tools sections are gone from `docs/*.md`; `s_gallery.py`, `s_endure.py` and `SocketTraffic` have 0 hits; `run_all.sh` and the README list match.
+
+---
+
+## D10. Safe sweep: small proven dead bits
+
+**Status:** pending
+
+Each item was proven with grep (one hit, or none outside its own definition):
+- **Two scenario portraits that can never show.** `scenarios/whispering-vault/icons/tomas.jpg` and `cloister_rat.jpg` (1.25 MB). Icons are looked up by exact id, and the ids are `brother-tomas` and `a-bloated-rat`. These have never matched since 0.5.0. Confirmed.
+- **Unused test constants.**
+  - `BROKEN_ILLUSION_SETUP`, `HIDDEN_VOLATILES_SETUP` and the `DOUBLES_SETUP` import in `test_opponent.py`.
+  - `OBJECT` in `test_views.py`.
+  - `FENCED` in `test_api_roles.py`.
+  - `SRD` in `twentyfourxx/test_worldsmith.py`.
+
+  About 45 lines in all.
+- **`Subject.row(options=())`:** no caller passes it.
+- **`GET /qa/faults`:** nothing reads it.
+- **The stale `"PLAN.md"` entry** in `pyproject.toml` `extend-exclude`: the file does not exist. Confirmed.
+- **The repeated test helper `_won`** (3 copies) and the wild-battle opener (4 copies) each become one shared helper. About −45 lines.
+- **The prose-scanning boundary test** (`test_shared_modules_name_no_engine_concept` with its 13-phrase allow-list). CLAUDE.md forbids prose tests. About −50 lines. The import-direction tests still guard the real boundary. *R3 proposed rewriting it; this deletes it instead.*
+
+**Decision D10:**
+- **A. Delete the portraits.**
+- **B. Rename them to `brother-tomas.jpg` / `a-bloated-rat.jpg`** so they finally show. **Recommended:** it costs the same, and the art was clearly meant to be used.
+
+**Not included (needs you):** `docs/demo/social.png` (378 KB, unreferenced). It may be the GitHub social-preview source.
+
+**Proof:** each named symbol has 0 hits, test lines −140 or more, and the suite is green.
