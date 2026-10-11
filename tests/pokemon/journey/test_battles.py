@@ -4,7 +4,7 @@ from typing import Literal
 import pytest
 from pydantic import BaseModel
 from support.journey import ENGINE, started
-from support.showdown import WILD_SETUP, ScriptedSimulator
+from support.showdown import WILD_SETUP, ScriptedSimulator, won
 from support.showdown import started as simulator_started
 from support.table import change, refused
 
@@ -40,7 +40,7 @@ def test_every_able_team_pokemon_gets_the_full_share() -> None:
     charmander.level, charmander.exp = 12, 12**3
     setup = _wild(draft)
 
-    _ = end_battle(draft, _won(setup))
+    _ = end_battle(draft, won(setup))
 
     total = 20 * setup.foes[0].level
     assert charmander.exp == 12**3 + total
@@ -53,7 +53,7 @@ def test_exp_doubles_below_the_table_level() -> None:
     charmander = draft.world.player_sheet.require_mon("charmander")
     setup = _wild(draft)
 
-    _ = end_battle(draft, _won(setup))
+    _ = end_battle(draft, won(setup))
 
     assert charmander.exp == 125 + 2 * 20 * setup.foes[0].level
 
@@ -88,7 +88,7 @@ def test_a_level_up_raises_max_hp_by_the_formula() -> None:
     setup = _wild(draft)
     hurt = setup.team[0].model_copy(update={"hp": 15})
 
-    _ = end_battle(draft, _won(setup).model_copy(update={"team": (hurt,)}))
+    _ = end_battle(draft, won(setup).model_copy(update={"team": (hurt,)}))
 
     maximum = charmander.stats()[0]
     assert charmander.level == 6
@@ -99,7 +99,7 @@ def test_a_level_up_raises_max_hp_by_the_formula() -> None:
 def test_a_trainer_win_pays_fifty_per_highest_foe_level_and_marks_the_trainer_beaten() -> None:
     draft = started().draft()
 
-    _ = end_battle(draft, _won(_trainer_battle(draft)))
+    _ = end_battle(draft, won(_trainer_battle(draft)))
 
     assert draft.world.player_sheet.money == 3000 + 50 * 4
     rook = draft.world.npcs["rook"]
@@ -114,7 +114,7 @@ def test_a_trainer_win_pays_fifty_per_highest_foe_level_and_marks_the_trainer_be
 def test_a_new_visit_lets_the_trainer_battle_again_with_the_same_team() -> None:
     draft = started().draft()
     first = _trainer_battle(draft)
-    _ = end_battle(draft, _won(first))
+    _ = end_battle(draft, won(first))
     _ = draft.world.move("tern-harbour", ())
     _ = draft.world.move("harbour-road", ())
 
@@ -123,7 +123,7 @@ def test_a_new_visit_lets_the_trainer_battle_again_with_the_same_team() -> None:
     assert [(foe.mon_id, foe.nature, foe.moves) for foe in again.foes] == [
         (foe.mon_id, foe.nature, foe.moves) for foe in first.foes
     ]
-    _ = end_battle(draft, _won(again))
+    _ = end_battle(draft, won(again))
     assert draft.world.player_sheet.money == 3000 + 50 * 4
     assert draft.world.npcs["rook"].beaten
 
@@ -267,12 +267,12 @@ def test_the_rival_leaves_the_map_after_a_battle_until_the_next_badge() -> None:
     rival.place_id = draft.world.current.id
     rival.known = True
 
-    resolution = end_battle(draft, _won(_trainer_battle(draft, "tamsin")))
+    resolution = end_battle(draft, won(_trainer_battle(draft, "tamsin")))
 
     assert rival.place_id == OFF_MAP_ID
     assert f"{rival.name} leaves" in [fact.card for fact in resolution.facts]
     _ = _ines_here(draft)
-    _ = end_battle(draft, _won(_trainer_battle(draft, "ines")))
+    _ = end_battle(draft, won(_trainer_battle(draft, "ines")))
     _ = change(ENGINE, draft, "move", to_id="tern-harbour")
     assert rival.place_id == "tern-harbour"
 
@@ -281,7 +281,7 @@ def test_after_a_badge_the_next_move_places_the_rival_and_notes_it() -> None:
     draft = started().draft()
     draft.world.npcs["tamsin"].place_id = OFF_MAP_ID
     _ = _ines_here(draft)
-    _ = end_battle(draft, _won(_trainer_battle(draft, "ines")))
+    _ = end_battle(draft, won(_trainer_battle(draft, "ines")))
 
     _ = change(ENGINE, draft, "move", to_id="tern-harbour")
 
@@ -309,9 +309,9 @@ def test_a_won_battle_does_not_black_out_when_the_players_team_has_fainted() -> 
     draft = started().draft()
     setup = _wild(draft)
     fainted = setup.team[0].model_copy(update={"hp": 0})
-    won = _won(setup).model_copy(update={"team": (fainted,)})
+    result = won(setup).model_copy(update={"team": (fainted,)})
 
-    _ = end_battle(draft, won)
+    _ = end_battle(draft, result)
 
     assert draft.world.player_sheet.money == 3000
 
@@ -325,7 +325,7 @@ def test_exp_stops_at_the_level_cap_and_a_rare_candy_is_refused_there() -> None:
     setup = _wild(draft)
     strong = setup.foes[0].model_copy(update={"level": 50, "hp": 0})
 
-    _ = end_battle(draft, _won(setup).model_copy(update={"sent_out_foes": (strong,)}))
+    _ = end_battle(draft, won(setup).model_copy(update={"sent_out_foes": (strong,)}))
 
     assert (charmander.level, charmander.exp) == (12, 12**3)
     _ = change(ENGINE, draft, "gain_item", item_id="rare-candy")
@@ -344,7 +344,7 @@ def test_a_nuzlocke_buries_a_fainted_pokemon_and_a_wipe_ends_the_journey() -> No
     setup = _trainer_battle(draft)
     fallen = setup.team[1].model_copy(update={"hp": 0})
 
-    _ = end_battle(draft, _won(setup).model_copy(update={"team": (setup.team[0], fallen)}))
+    _ = end_battle(draft, won(setup).model_copy(update={"team": (setup.team[0], fallen)}))
 
     assert sheet.mon_ids() == ["charmander"]
     assert sheet.memorial == ["Shelly the Squirtle, fell to Rook"]
@@ -436,15 +436,6 @@ def _fled(draft: JourneyGame, setup: BattleSetup) -> BattleSetup:
         draft, BattleResult(outcome="fled", team=setup.team, sent_out_foes=(), on_field_mon_ids=())
     )
     return setup
-
-
-def _won(setup: BattleSetup) -> BattleResult:
-    return BattleResult(
-        outcome="won",
-        team=setup.team,
-        sent_out_foes=tuple(foe.model_copy(update={"hp": 0}) for foe in setup.foes),
-        on_field_mon_ids=(setup.team[0].mon_id,),
-    )
 
 
 async def _unasked[M: BaseModel](_prompt: Prompt, _model: type[M], _check: Check[M], /) -> M:

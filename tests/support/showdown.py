@@ -351,6 +351,15 @@ def ended(setup: BattleSetup, *, foe_hp: int) -> list[Block]:
     ]
 
 
+def won(setup: BattleSetup) -> BattleResult:
+    return BattleResult(
+        outcome="won",
+        team=setup.team,
+        sent_out_foes=tuple(foe.model_copy(update={"hp": 0}) for foe in setup.foes),
+        on_field_mon_ids=(setup.team[0].mon_id,),
+    )
+
+
 def _update(setup: BattleSetup) -> Block:
     return ("update", _dumped(setup))
 

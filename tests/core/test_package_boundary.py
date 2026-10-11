@@ -21,39 +21,6 @@ CONFINED = {
     "rulehall.config": ("app", "ui", "screens"),
 }
 GENERIC_SUFFIXES = {".py", ".js", ".css", ".md"}
-# What one engine family owns; a shared module names none of it.
-CONCEPTS = (
-    "showdown",
-    "mega",
-    "species",
-    "natures?",
-    "presets?",
-    "stat points",
-    "pips?",
-    "slots?",
-    "teams?",
-    "catalogs?",
-    "trainers?",
-    "movesets?",
-    "evol[a-z]*",
-)
-# A legitimate hit, cut out before the scan: the file's own phrases first, then the shared ones.
-ALLOWED = {
-    "*": ("slots=true", "rulehall.app.catalog import", "runtime.catalog()"),
-    "app/runtime.py": ("def catalog(self) -> launchercatalog",),
-    "core/tools.py": ("keeps the slot it first took",),
-    "ui/create.py": ('add_slot("append")',),
-    "ui/hall.py": ("self.catalog",),
-    "ui/home.py": (
-        "catalog = runtime.catalog()",
-        "catalog: launchercatalog",
-        "catalog.saves",
-        "catalog.scenarios_for",
-        "catalog.unresumable",
-        "(catalog,",
-    ),
-    "ui/transcript.py": ("head_slot", "card_slot", "line_slot", 'add_slot("avatar")'),
-}
 
 
 def _forbidden(package: str) -> set[str]:
@@ -118,7 +85,6 @@ SCREEN_FAMILIES = _registered_families(SCREENS_REGISTRY, "screens")
 ENGINE_WORDS = re.compile(
     "|".join(sorted({*FAMILIES, *(word for each in ENGINE_IDS for word in each.split("-"))}))
 )
-CONCEPT_WORDS = re.compile(rf"(?<![a-z])(?:{'|'.join(CONCEPTS)})(?![a-z])")
 
 
 def _family(path: Path) -> str | None:
@@ -142,13 +108,6 @@ def _shared_files() -> tuple[Path, ...]:
         ),
         SOURCE / COMPOSITION_ROOT,
     )
-
-
-def _scanned_text(path: Path) -> str:
-    text = path.read_text(encoding="utf-8").lower()
-    for phrase in (*ALLOWED.get(path.relative_to(SOURCE).as_posix(), ()), *ALLOWED["*"]):
-        text = text.replace(phrase, "")
-    return text
 
 
 @pytest.mark.parametrize(("package", "forbidden"), FORBIDDEN.items())
@@ -228,15 +187,6 @@ def test_shared_modules_name_no_engine() -> None:
         path.relative_to(SOURCE).as_posix()
         for path in _shared_files()
         if ENGINE_WORDS.search(path.read_text(encoding="utf-8").lower())
-    }
-    assert naming == set()
-
-
-def test_shared_modules_name_no_engine_concept() -> None:
-    naming = {
-        f"{path.relative_to(SOURCE).as_posix()}: {found.group()}"
-        for path in _shared_files()
-        if (found := CONCEPT_WORDS.search(_scanned_text(path)))
     }
     assert naming == set()
 

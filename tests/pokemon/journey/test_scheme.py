@@ -2,10 +2,11 @@ from random import Random
 
 import pytest
 from support.journey import ENGINE, started
+from support.showdown import won
 from support.table import change
 
 from rulehall.core.validation import Refusal
-from rulehall.engines.pokemon.battle.models import BattleResult, BattleSetup
+from rulehall.engines.pokemon.battle.models import BattleSetup
 from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.journey.rules import RosterSlot
 from rulehall.engines.pokemon.journey.scheme import EvilTeam, Operation
@@ -19,7 +20,7 @@ TEAM_BEATEN = "The team is beaten. Your journey is complete."
 def test_beating_the_operation_leader_foils_it_and_reveals_a_stage() -> None:
     draft = started().draft()
 
-    resolution = end_battle(draft, _won(_battle(draft, "vesper")))
+    resolution = end_battle(draft, won(_battle(draft, "vesper")))
 
     evil_team = draft.world.evil_team
     assert (evil_team.outcomes, evil_team.operation) == (["foiled"], None)
@@ -32,8 +33,8 @@ def test_a_foiled_and_a_succeeded_operation_reveal_different_texts() -> None:
     foiled_draft = started().draft()
     succeeded_draft = started().draft()
 
-    foiled = end_battle(foiled_draft, _won(_battle(foiled_draft, "vesper")))
-    succeeded = end_battle(succeeded_draft, _won(_battle(succeeded_draft, "ines")))
+    foiled = end_battle(foiled_draft, won(_battle(foiled_draft, "vesper")))
+    succeeded = end_battle(succeeded_draft, won(_battle(succeeded_draft, "ines")))
 
     stage = foiled_draft.world.evil_team.require_scheme().stages[0]
     assert stage.foiled != stage.succeeded
@@ -46,7 +47,7 @@ def test_a_foiled_and_a_succeeded_operation_reveal_different_texts() -> None:
 def test_a_foiled_leader_leaves_the_map_with_a_card_when_here() -> None:
     draft = started().draft()
 
-    resolution = end_battle(draft, _won(_battle(draft, "vesper")))
+    resolution = end_battle(draft, won(_battle(draft, "vesper")))
 
     leader = draft.world.npcs["vesper"]
     assert leader.place_id == OFF_MAP_ID
@@ -90,7 +91,7 @@ def test_a_reused_leader_returns_at_the_new_operation() -> None:
 def test_a_badge_earned_while_the_operation_is_open_makes_it_succeed() -> None:
     draft = started().draft()
 
-    _ = end_battle(draft, _won(_battle(draft, "ines")))
+    _ = end_battle(draft, won(_battle(draft, "ines")))
 
     evil_team = draft.world.evil_team
     assert (evil_team.outcomes, evil_team.operation) == (["succeeded"], None)
@@ -164,7 +165,7 @@ def test_beating_the_boss_ends_the_journey_with_an_epilogue() -> None:
     draft = started().draft()
     _ = _boss(draft)
 
-    resolution = end_battle(draft, _won(_battle(draft, "boss")))
+    resolution = end_battle(draft, won(_battle(draft, "boss")))
 
     assert draft.world.evil_team.boss_beaten
     assert ENGINE.ending(draft) == TEAM_BEATEN
@@ -218,12 +219,3 @@ def _battle(draft: JourneyGame, trainer_id: str) -> BattleSetup:
     _ = change(ENGINE, draft, "start_battle", trainer_id=trainer_id)
     assert draft.world.battle is not None
     return draft.world.battle.setup
-
-
-def _won(setup: BattleSetup) -> BattleResult:
-    return BattleResult(
-        outcome="won",
-        team=setup.team,
-        sent_out_foes=tuple(foe.model_copy(update={"hp": 0}) for foe in setup.foes),
-        on_field_mon_ids=(setup.team[0].mon_id,),
-    )

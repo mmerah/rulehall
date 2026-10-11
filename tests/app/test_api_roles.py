@@ -23,7 +23,6 @@ CHANGE_TAGS = ENGINES_BUILT[LONER4E].tools["change_tags"]
 DIRECT = ENGINES_BUILT[LONER4E].tools["direct"]
 TRACE = "- the player Kael[player] gained the tag Listening"
 DIRECTED = dumps({"text": "He listens."})
-FENCED = '```json\n{"lines": []}\n```'
 _, STATE = initialized()
 
 

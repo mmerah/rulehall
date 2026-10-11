@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from pydantic import JsonValue
 from support.golden import FIXTURES, golden, masked
-from support.showdown import CHAMPIONS_SETUP, DOUBLES_SETUP, PIKACHU, WILD_SETUP, assessed
+from support.showdown import CHAMPIONS_SETUP, PIKACHU, WILD_SETUP, assessed
 
 from rulehall.core.validation import Refusal, parse_json
 from rulehall.engines.pokemon.battle.assessment import Assessment, OwnMon
@@ -183,36 +183,6 @@ ILLUSION_SETUP = TRAINER_SETUP.model_copy(
 )
 FAINTED_ILLUSION_SETUP = ILLUSION_SETUP.model_copy(
     update={"team": (PIKACHU, ZOROARK.model_copy(update={"hp": 1}), MACHAMP), "weather": "sand"}
-)
-BROKEN_ILLUSION_SETUP = ILLUSION_SETUP.model_copy(
-    update={
-        "foes": (
-            ALAKAZAM.model_copy(
-                update={
-                    "moves": (
-                        BattleMove(move_id="shadowball", name="Shadow Ball", type="Ghost", pp=24),
-                    )
-                }
-            ),
-        )
-    }
-)
-HIDDEN_VOLATILES_SETUP = DOUBLES_SETUP.model_copy(
-    update={
-        "team": (
-            MACHAMP.model_copy(update={"item_id": "metronome"}),
-            MACHAMP.model_copy(
-                update={
-                    "mon_id": "hitmonlee",
-                    "species_id": "hitmonlee",
-                    "name": "Hitmonlee",
-                    "ability": "Unburden",
-                    "item_id": "sitrusberry",
-                    "hp": 20,
-                }
-            ),
-        )
-    }
 )
 CHOICES = (
     *(

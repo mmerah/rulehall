@@ -60,10 +60,8 @@ class Subject(Frozen):
     def headline(self) -> str:
         return headline_of(self.name, self.id, self.brief, alive=self.alive)
 
-    def row(self, options: tuple[ActionOption, ...] = ()) -> PanelRow:
-        return PanelRow(
-            name=self.name, brief=self.brief, icon_id=self.id, alive=self.alive, options=options
-        )
+    def row(self) -> PanelRow:
+        return PanelRow(name=self.name, brief=self.brief, icon_id=self.id, alive=self.alive)
 
 
 class Panel(Frozen):

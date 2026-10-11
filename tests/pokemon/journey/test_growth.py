@@ -2,11 +2,11 @@ from random import Random
 
 import pytest
 from support.journey import ENGINE, started
+from support.showdown import won
 from support.table import change, run_action
 
 from rulehall.core.decisions import ActionOption
 from rulehall.core.validation import Refusal
-from rulehall.engines.pokemon.battle.models import BattleResult
 from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.journey.panels import pending_decision
@@ -99,7 +99,7 @@ def test_a_new_badge_opens_a_skill_rank_decision() -> None:
     sheet = draft.world.player_sheet
     lore = sheet.skills.get("lore", 0)
 
-    _ = end_battle(draft, _won(draft))
+    _ = end_battle(draft, won(draft.world.battle.setup))
 
     assert sheet.badges == ["Tide Badge"]
     decision = pending_decision(draft.world.player_sheet)
@@ -149,18 +149,8 @@ def _charmander(draft: JourneyGame, *, level: int) -> Mon:
 
 def _win_wild(draft: JourneyGame) -> None:
     _ = change(ENGINE, draft, "start_wild_battle", species_id="pidgey")
-    _ = end_battle(draft, _won(draft))
-
-
-def _won(draft: JourneyGame) -> BattleResult:
     assert draft.world.battle is not None
-    setup = draft.world.battle.setup
-    return BattleResult(
-        outcome="won",
-        team=setup.team,
-        sent_out_foes=tuple(foe.model_copy(update={"hp": 0}) for foe in setup.foes),
-        on_field_mon_ids=(setup.team[0].mon_id,),
-    )
+    _ = end_battle(draft, won(draft.world.battle.setup))
 
 
 def _option(draft: JourneyGame, option_id: str) -> ActionOption:

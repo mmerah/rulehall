@@ -80,10 +80,6 @@ def main() -> None:
             for spoken in agents.log
         ]
 
-    @app.get("/qa/faults")
-    def _faults() -> dict[str, list[str]]:  # pyright: ignore[reportUnusedFunction]
-        return {role: list(armed) for role, armed in agents.faults.items()}
-
     # Async, so they run on the event loop that the held roles wait on.
     @app.post("/qa/faults")
     async def _arm(role: str, fault: str) -> None:  # pyright: ignore[reportUnusedFunction]
