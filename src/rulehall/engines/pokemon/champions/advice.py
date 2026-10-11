@@ -3,7 +3,7 @@ from collections.abc import Collection, Sequence
 from functools import cache
 
 from rulehall.core.decisions import ActionOption
-from rulehall.core.validation import Frozen, Slug
+from rulehall.core.validation import Slug
 from rulehall.engines.pokemon.champions.args import PickEdit
 from rulehall.engines.pokemon.champions.data import Archetype, Role, champions_data, move_shares
 from rulehall.engines.pokemon.champions.panels import preset_option, team_option
@@ -11,7 +11,7 @@ from rulehall.engines.pokemon.champions.pending import MOVES, PendingSet, Pendin
 from rulehall.engines.pokemon.champions.rules import PRESET_LETTERS
 from rulehall.engines.pokemon.champions.views import Advice
 from rulehall.engines.pokemon.dex import Species, dex, species_name
-from rulehall.engines.pokemon.rules import IV_MAX, SPEED, STAT_NAMES, effectiveness, stats
+from rulehall.engines.pokemon.rules import effectiveness
 
 ABILITY_IMMUNITIES: dict[Slug, str] = {
     "levitate": "Ground",
@@ -29,7 +29,6 @@ ABILITY_IMMUNITIES: dict[Slug, str] = {
 WEAK_SHARE = 0.02
 WEAK_MEMBERS = 3
 THREATS_SHOWN = 5
-SPEED_TIER_SPECIES = 20
 ROLE_TIPS = {
     "speed-control": (
         "Nothing on your team controls speed. Tailwind or Icy Wind helps your slower Pokemon "
@@ -44,11 +43,6 @@ ROLE_TIPS = {
         "blunts physical attackers."
     ),
 }
-
-
-class SpeedTier(Frozen):
-    speed: int
-    name: str
 
 
 def team_advice(
@@ -105,42 +99,6 @@ def suggested_species(
         taken.add(base_id)
         suggested.append(candidate_id)
     return tuple(suggested)
-
-
-def speed_hint(pending_set: PendingSet) -> str:
-    speed = _speed_of(battle_species(pending_set), pending_set.nature, tuple(pending_set.sp))
-    tiers = speed_tiers()
-    above = [tier for tier in tiers if tier.speed > speed]
-    ties = [tier for tier in tiers if tier.speed == speed]
-    below = [tier for tier in tiers if tier.speed < speed]
-    parts: list[str] = []
-    if above:
-        parts.append(f"slower than {_tier_text(above[-1])}")
-    if ties:
-        parts.append(f"ties {_tier_text(ties[0])}")
-    if below:
-        parts.append(f"outspeeds {_tier_text(below[0])}")
-    return "; ".join(parts)
-
-
-@cache
-def speed_tiers() -> tuple[SpeedTier, ...]:
-    data = champions_data()
-    pokedex = dex()
-    top_ids = sorted(data.usage, key=lambda each: -data.usage[each].usage_percent)
-    tiers: set[SpeedTier] = set()
-    for species_id in top_ids[:SPEED_TIER_SPECIES]:
-        card = data.usage[species_id]
-        forme_ids = [species_id]
-        item_id = card.items[0].item_id if card.items else None
-        if forme_id := data.legal.find_mega_forme_id(item_id, species_id):
-            forme_ids.append(forme_id)
-        for forme_id in forme_ids:
-            species = pokedex.species[forme_id]
-            for spread in data.assumed[species_id]:
-                speed = _speed_of(species, spread.nature, spread.sp)
-                tiers.add(SpeedTier(speed=speed, name=f"{spread.nature} {species.name}"))
-    return tuple(sorted(tiers, key=lambda tier: (-tier.speed, tier.name)))
 
 
 def battle_species(pending_set: PendingSet) -> Species:
@@ -380,13 +338,3 @@ def _ability_ids(species: Species) -> tuple[Slug, ...]:
 @cache
 def _ability_ids_by_name() -> dict[str, Slug]:
     return {name: ability_id for ability_id, name in dex().ability_names.items()}
-
-
-def _speed_of(species: Species, nature: str, sp: tuple[int, ...]) -> int:
-    level = champions_data().legal.level
-    ivs = (IV_MAX,) * len(STAT_NAMES)
-    return stats(species, level, nature, ivs, sp, stat_points=True)[SPEED]
-
-
-def _tier_text(tier: SpeedTier) -> str:
-    return f"{tier.name} ({tier.speed})"

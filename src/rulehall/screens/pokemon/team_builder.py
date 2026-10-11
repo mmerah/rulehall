@@ -1,14 +1,14 @@
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Literal, cast
 
 from nicegui import app, ui
-from nicegui.events import GenericEventArguments, KeyEventArguments, ValueChangeEventArguments
+from nicegui.events import ValueChangeEventArguments
 from pydantic import Field, TypeAdapter
 
 from rulehall.app.game_session import GameSession, SessionSnapshot
-from rulehall.config import read_settings, save_settings
 from rulehall.core.decisions import ActionOption
 from rulehall.core.validation import Frozen, Refusal, Slug, parse
 from rulehall.core.views import Sprite, Surface, require_view
@@ -23,7 +23,7 @@ from rulehall.engines.pokemon.champions.args import (
 from rulehall.engines.pokemon.champions.data import champions_data
 from rulehall.engines.pokemon.champions.panels import team_option
 from rulehall.engines.pokemon.champions.paste import export_paste
-from rulehall.engines.pokemon.champions.pending import ABILITY, ITEM, MOVES, NATURE, SPECIES
+from rulehall.engines.pokemon.champions.pending import ITEM, SPECIES
 from rulehall.engines.pokemon.champions.team_builder import (
     SLOT_CATALOGS,
     TEAM_BUILDER_SURFACE_ID,
@@ -67,10 +67,8 @@ type Pane = Literal["slot", "moves", "points", "tips"]
 PANE = TypeAdapter[Pane](Pane)
 EDIT_FAILED = failure_notice("The team was not changed.")
 UNDO_SECONDS = 8.0
-SAVE_KEY = "Ctrl + S"
+SAVE_TIP = "Check the whole team and save it."
 SAVE_WAITS = "Save waits for the end of the event."
-MOVE_KEYS = ("q", "w", "e", "r")
-FIELD_KEYS = {SPECIES: "s", ITEM: "i", ABILITY: "a", NATURE: "n", MOVES: "m"}
 WIDE_PANES: dict[Pane, str] = {"slot": "Slot", "tips": "Tips"}
 PHONE_PANES: dict[Pane, str] = {"slot": "Set", "moves": "Moves", "points": "Points", "tips": "Tips"}
 SEVERITY_ICONS = {
@@ -80,50 +78,17 @@ SEVERITY_ICONS = {
     "good": "sym_r_check_circle",
 }
 SEVERITY_WORDS = {"info": "Note", "warning": "Warning", "error": "Error", "good": "Good"}
-KEY_MAP = (
-    ("1 to 6", "Select a slot"),
-    ("[  ]", "Previous or next slot"),
-    ("s", "Choose the species"),
-    ("i", "Choose the item"),
-    ("a", "Choose the ability"),
-    ("n", "Choose the nature"),
-    ("m", "Add a move, or pick the one it replaces"),
-    ("q w e r", "Choose move 1, 2, 3 or 4"),
-    ("p", "Go to the presets"),
-    ("Alt + ↑ ↓", "Move the focused slot up or down"),
-    ("Ctrl + S", "Save the team"),
-    ("Ctrl + Shift + V", "Import a paste"),
-    ("Ctrl + Shift + C", "Export the team"),
-    ("/", "Search in an open list"),
-    ("↑ ↓  Enter  Esc", "Move, pick, close in a list"),
-    ("← →", "Stat points ±1 on a focused stepper, or the slider in Expert"),
-    ("Shift + ← →", "Stat points ±8 there"),
-    ("Home  End", "Stat points to 0 or to the most there"),
-    ("?", "Show these keys"),
-)
 EDITING = "game-builder-editing"
 ADVICE_FOLDED = "game-builder-advice-folded"
 FIRST_PICK = ".game-builder-editor .game-builder-pick"
+SELECTED_CARD = '.game-builder-rail [aria-current="true"]'
 FIRST_STEPPER = ".game-builder-editor .game-points-invalid .game-points-step"
-FOCUS_PRESETS = ".game-builder-presets .q-btn"
 
 
 class TeamBuilderPlace(Frozen):
     open: bool = False
     slot: int = Field(default=1, ge=1)
     advice: bool = True
-
-
-class Shortcut(Frozen):
-    name: Literal["save", "import", "export"]
-
-
-class Swipe(Frozen):
-    by: Literal[-1, 1]
-
-
-class TeamBuilderInput(ui.element, component="team_builder_input.js"):
-    pass
 
 
 @dataclass(slots=True)
@@ -150,8 +115,6 @@ class TeamBuilderScreen:
         self.enabled = True
         self.editing = False
         self.pane: Pane = "slot"
-        self.dragged_slot: int | None = None
-        self.dragged_move: int | None = None
         self.previewed = ""
         self.exported = ""
         self.points: PointsEditor | None = None
@@ -172,9 +135,6 @@ class TeamBuilderScreen:
         self.foot_text: ui.label
         self.toast: ui.row
         self.toast_text: ui.label
-        self.keyboard: ui.keyboard
-        self.input: TeamBuilderInput
-        self.input_active = False
         self.edit_buttons: list[ui.button] = []
         self.save_buttons: list[ui.button] = []
         self.save_tips: list[ui.tooltip] = []
@@ -185,7 +145,6 @@ class TeamBuilderScreen:
         self.replace_button: ui.button
         self.export_dialog: ui.dialog
         self.export_box: ui.textarea
-        self.keys_dialog: ui.dialog
         self.replace_dialog: ui.dialog
         self.replace_title: ui.label
         self.replace_box: ui.element
@@ -253,7 +212,7 @@ class TeamBuilderScreen:
                     save.props("color=primary").classes("game-builder-foot-save")
                 )
                 with save:
-                    self.save_tips.append(ui.tooltip(SAVE_KEY))
+                    self.save_tips.append(ui.tooltip(SAVE_TIP))
                 ui.button("Done", on_click=self.leave_slot).props("color=primary").classes(
                     "game-builder-foot-done"
                 )
@@ -263,12 +222,6 @@ class TeamBuilderScreen:
                 self.toast_text = ui.label()
                 ui.button("Undo", on_click=self.undo).props("flat dense no-caps")
             self.toast.set_visibility(False)
-            self.keyboard = ui.keyboard(
-                self.pressed, active=False, ignore=["input", "textarea", "select"]
-            )
-            self.input = TeamBuilderInput()
-            self.input.on("shortcut", self.shortcut)
-            self.input.on("swipe", self.swiped)
         self.column.set_visibility(False)
         self.show_state()
 
@@ -295,11 +248,6 @@ class TeamBuilderScreen:
             view is not None and not view.registered and not self.shown and now.working_role is None
         )
         self.copy_button.set_enabled(now.working_role is None)
-        self.keyboard.active = self.shown
-        if self.input_active != self.shown:
-            self.input_active = self.shown
-            self.input.props["active"] = self.shown
-            self.input.update()
         if view is not None:
             self.apply(view, enabled=_enabled(view, now))
 
@@ -321,7 +269,6 @@ class TeamBuilderScreen:
             if view.advice != before.advice:
                 self.draw_advice.refresh()
         self.show_state()
-        self.input.run_method("refocus")
 
     def sync_editor(self, old: TeamBuilderSlot, new: TeamBuilderSlot) -> None:
         points = _points_field(new)
@@ -341,10 +288,6 @@ class TeamBuilderScreen:
     def selected(self) -> TeamBuilderSlot:
         return self.view.slots[self.slot - 1]
 
-    @property
-    def expert(self) -> bool:
-        return self.session.live_settings.current.pokemon.expert_team_builder
-
     def show_state(self) -> None:
         view = self.view
         self.title.set_text(view.title)
@@ -362,7 +305,7 @@ class TeamBuilderScreen:
         for button in self.save_buttons:
             button.set_enabled(self.enabled and not view.save_lock)
         for tip in self.save_tips:
-            tip.set_text(view.save_lock or SAVE_KEY)
+            tip.set_text(view.save_lock or SAVE_TIP)
         self.show_foot()
 
     def show_foot(self) -> None:
@@ -384,25 +327,17 @@ class TeamBuilderScreen:
         self.foot_text.set_text(used + (f"⚠ {error}" if error else "✓ no problems"))
 
     def draw_head(self) -> None:
-        expert = self.expert
         with ui.row().classes("w-full items-center no-wrap game-builder-head game-gap-md"):
             icon_button("sym_r_arrow_back", "Back to the story", self.close)
             with ui.column().classes("game-gap-0 game-builder-heading"):
                 self.title = ui.label().classes("game-title game-builder-title")
                 self.pill = ui.label().classes("game-builder-pill")
                 self.pill.props("role=status aria-live=polite")
-            ui.space()
-            ui.switch("Expert", value=expert, on_change=self.set_expert).classes(
-                "game-builder-expert"
-            ).tooltip("Expert shows every slider, number box and hint")
-            icon_button("sym_r_keyboard", "Keyboard keys", self.keys_dialog.open).classes(
-                "game-builder-keys-button"
-            )
         with ui.row().classes("w-full items-center game-builder-tools game-gap-sm"):
             self.edit_buttons += [
-                ui.button("Import", icon="sym_r_content_paste", on_click=self.open_import)
-                .props("flat no-caps")
-                .tooltip("Ctrl + Shift + V"),
+                ui.button("Import", icon="sym_r_content_paste", on_click=self.open_import).props(
+                    "flat no-caps"
+                ),
                 ui.button("Start from…", icon="sym_r_auto_awesome", on_click=self.start_from)
                 .props("flat no-caps")
                 .tooltip("Load a whole team that won events"),
@@ -412,13 +347,12 @@ class TeamBuilderScreen:
             ]
             ui.button("Export", icon="sym_r_ios_share", on_click=self.open_export).props(
                 "flat no-caps"
-            ).tooltip("Ctrl + Shift + C")
+            )
             ui.space()
             save = ui.button("Save team", icon="sym_r_save", on_click=self.save)
             self.save_buttons.append(save.props("color=primary").classes("game-builder-save"))
             with save:
-                self.save_tips.append(ui.tooltip(SAVE_KEY))
-        self.column.classes("game-builder-expert-on" if expert else "game-builder-simple")
+                self.save_tips.append(ui.tooltip(SAVE_TIP))
 
     def draw_panes(self) -> None:
         with ui.row().classes("w-full game-builder-panes game-gap-md"):
@@ -458,8 +392,6 @@ class TeamBuilderScreen:
                     "tabindex": "0",
                     "role": "button",
                     "aria-label": f"Slot {number}: {name}, {_status_words(slot)}",
-                    "data-focus": f"card-{number}",
-                    "draggable": "true" if self.enabled else "false",
                 }
             )
             if selected:
@@ -488,15 +420,6 @@ class TeamBuilderScreen:
                 self.draw_card_menu(number, slot)
         chosen = partial(self.select, number)
         card.on("click", chosen).on("keydown.enter", chosen).on("keydown.space.prevent", chosen)
-        card.on("keydown.alt.up.prevent", partial(self.move_slot, number, number - 1))
-        card.on("keydown.alt.down.prevent", partial(self.move_slot, number, number + 1))
-        card.on(
-            "dragstart",
-            partial(self.drag_slot, number),
-            js_handler="(e) => { e.dataTransfer.setData('text/plain', ''); emit(); }",
-        )
-        card.on("dragover.prevent", js_handler="() => {}")
-        card.on("drop.prevent", partial(self.drop_slot, number))
 
     def draw_card_menu(self, number: int, slot: TeamBuilderSlot) -> None:
         with (
@@ -614,10 +537,7 @@ class TeamBuilderScreen:
         with ui.element("div").classes(_field_classes(pick)):
             for index in range(pick.picks):
                 picked = pick.picked[index] if index < len(pick.picked) else None
-                with ui.element("div").classes("game-builder-move") as row:
-                    ui.label(MOVE_KEYS[index] if index < len(MOVE_KEYS) else "").classes(
-                        "game-builder-move-key"
-                    )
+                with ui.element("div").classes("game-builder-move"):
                     self.pick_button(pick, index, picked)
                     if picked is not None:
                         icon_button(
@@ -627,15 +547,6 @@ class TeamBuilderScreen:
                         ).props("dense").classes("game-builder-move-clear").set_enabled(
                             self.enabled
                         )
-                if picked is not None and self.enabled:
-                    row.props("draggable=true")
-                    row.on(
-                        "dragstart",
-                        partial(self.drag_move, index),
-                        js_handler="(e) => { e.dataTransfer.setData('text/plain', ''); emit(); }",
-                    )
-                row.on("dragover.prevent", js_handler="() => {}")
-                row.on("drop.prevent", partial(self.drop_move, pick, index))
             if pick.error:
                 ui.label(pick.error).classes("game-builder-field-error")
             self.draw_pinned(pick)
@@ -758,17 +669,6 @@ class TeamBuilderScreen:
                     "color=primary no-caps"
                 )
         with (
-            ui.dialog() as self.keys_dialog,
-            ui.card().classes("game-row-dialog game-builder-dialog game-gap-md"),
-        ):
-            ui.label("Keyboard keys").classes("game-title game-builder-dialog-title")
-            with ui.element("div").classes("game-builder-keys"):
-                for keys, action in KEY_MAP:
-                    ui.label(keys).classes("game-builder-key")
-                    ui.label(action)
-            with ui.row().classes("w-full justify-end"):
-                ui.button("Close", on_click=self.keys_dialog.close).props("flat no-caps")
-        with (
             ui.dialog() as self.replace_dialog,
             ui.card().classes("game-row-dialog game-gap-md"),
         ):
@@ -777,58 +677,6 @@ class TeamBuilderScreen:
             self.replace_box = ui.element("div").classes("game-builder-replace")
             with ui.row().classes("w-full justify-end"):
                 ui.button("Cancel", on_click=self.replace_dialog.close).props("flat no-caps")
-
-    def dialog_open(self) -> bool:
-        return (
-            self.picker.open
-            or any(
-                dialog.value
-                for dialog in (
-                    self.import_dialog,
-                    self.export_dialog,
-                    self.keys_dialog,
-                    self.replace_dialog,
-                )
-            )
-            or bool(self.confirm.value)
-        )
-
-    async def pressed(self, event: KeyEventArguments) -> None:
-        modifiers = event.modifiers
-        if (
-            not event.action.keydown
-            or not self.shown
-            or self.dialog_open()
-            or modifiers.ctrl
-            or modifiers.meta
-            or modifiers.alt
-        ):
-            return
-        key = event.key.name
-        if key.isdecimal() and 1 <= int(key) <= len(self.view.slots):
-            await self.select(int(key))
-        elif key in ("[", "]"):
-            await self.step_slot(-1 if key == "[" else 1)
-        elif key in MOVE_KEYS:
-            self.open_keyed_field(MOVES, MOVE_KEYS.index(key))
-        elif key == "p":
-            self.input.run_method("focusFirst", FOCUS_PRESETS)
-        elif key == "?":
-            self.keys_dialog.open()
-        elif field_id := next((each for each, typed in FIELD_KEYS.items() if typed == key), None):
-            self.open_keyed_field(field_id, None if field_id == MOVES else 0)
-
-    async def shortcut(self, event: GenericEventArguments) -> None:
-        name = parse(Shortcut, event.args).name
-        if name == "save":
-            await self.save()
-        elif name == "import":
-            self.open_import()
-        else:
-            self.open_export()
-
-    async def swiped(self, event: GenericEventArguments) -> None:
-        await self.step_slot(parse(Swipe, event.args).by)
 
     async def select(self, number: int) -> None:
         await self.flush_points()
@@ -839,7 +687,7 @@ class TeamBuilderScreen:
         self.draw_rail.refresh()
         self.draw_editor.refresh()
         self.show_foot()
-        self.input.run_method("refocus")
+        self.focus_first(SELECTED_CARD)
 
     async def step_slot(self, by: int) -> None:
         await self.select((self.slot - 1 + by) % len(self.view.slots) + 1)
@@ -881,19 +729,6 @@ class TeamBuilderScreen:
             open=self.shown, slot=self.slot, advice=self.advice_open
         ).model_dump()
 
-    def open_keyed_field(self, field_id: str, index: int | None) -> None:
-        pick = next(
-            (
-                each
-                for each in self.selected.fields
-                if isinstance(each, PickField) and each.field_id == field_id
-            ),
-            None,
-        )
-        if pick is None or not self.enabled:
-            return
-        self.open_field(pick, None if index is None else min(index, pick.picks - 1))
-
     def open_field(self, pick: PickField, index: int | None) -> None:
         try:
             catalog = self.catalog(pick.catalog_id)
@@ -930,13 +765,12 @@ class TeamBuilderScreen:
         choice_ids = picked_ids(current, index, choice_id)
         if choice_ids == current:
             return
-        preset = not self.expert
-        placed = preset and pick.field_id == SPECIES
-        await self.edit(
+        if await self.edit(
             "pick",
-            PickEdit(slot=self.slot, field_id=pick.field_id, choice_ids=choice_ids, preset=preset),
-            undo="Placed with its top preset." if placed else "",
-        )
+            PickEdit(slot=self.slot, field_id=pick.field_id, choice_ids=choice_ids, preset=True),
+            undo="Placed with its top preset." if pick.field_id == SPECIES else "",
+        ):
+            self.focus_first(_pick_target(pick.field_id, index))
 
     async def ask_replaced(self, pick: PickField) -> int | None:
         self.replace_title.set_text(f"Replace which {pick.label.lower().removesuffix('s')}?")
@@ -960,21 +794,6 @@ class TeamBuilderScreen:
             ),
         )
 
-    def drag_move(self, index: int) -> None:
-        self.dragged_move = index
-
-    async def drop_move(self, pick: PickField, index: int) -> None:
-        start, self.dragged_move = self.dragged_move, None
-        current = tuple(choice.choice_id for choice in pick.picked)
-        if start is None or start == index or index >= len(current):
-            return
-        await self.edit(
-            "pick",
-            PickEdit(
-                slot=self.slot, field_id=pick.field_id, choice_ids=moved(current, start, index)
-            ),
-        )
-
     async def set_points(self, slot: int, field_id: Slug, row: int, points: int) -> bool:
         return await self.edit(
             "set_points", PointsEdit(slot=slot, field_id=field_id, row=row, points=points)
@@ -985,21 +804,11 @@ class TeamBuilderScreen:
             await self.play(choice.option, undo=f"{choice.name} applied.")
 
     async def move_slot(self, number: int, target: int) -> None:
-        if not 1 <= target <= len(self.view.slots) or target == number:
-            return
         if await self.edit("move_slot", MoveSlotEdit(slot=number, to_slot=target)):
             await self.select(target)
 
     async def clear_slot(self, number: int) -> None:
         await self.edit("clear_slot", SlotEdit(slot=number), undo=f"Slot {number} cleared.")
-
-    def drag_slot(self, number: int) -> None:
-        self.dragged_slot = number
-
-    async def drop_slot(self, number: int) -> None:
-        start, self.dragged_slot = self.dragged_slot, None
-        if start is not None:
-            await self.move_slot(start, number)
 
     async def fix(self, option: ActionOption) -> None:
         await self.play(option, undo="Fixed.")
@@ -1027,15 +836,18 @@ class TeamBuilderScreen:
         wrong = _first_wrong_field(self.selected)
         if isinstance(wrong, PointsField):
             self.show_pane("points")
-            self.input.run_method("focusFirst", FIRST_STEPPER)
+            self.focus_first(FIRST_STEPPER)
             return
         self.show_pane("moves" if wrong is not None and wrong.picks > 1 else "slot")
-        target = (
-            FIRST_PICK
-            if wrong is None
-            else f'.game-builder-editor [data-focus="pick-{wrong.field_id}-0"]'
+        self.focus_first(FIRST_PICK if wrong is None else _pick_target(wrong.field_id, 0))
+
+    def focus_first(self, selector: str) -> None:
+        ui.run_javascript(
+            f"requestAnimationFrame(() => {{ const target = getHtmlElement({self.column.id})"
+            f"?.querySelector({json.dumps(selector)}); "
+            "target?.scrollIntoView({block: 'center', behavior: 'smooth'}); "
+            "target?.focus({preventScroll: true}); })"
         )
-        self.input.run_method("focusFirst", target)
 
     async def discard(self) -> None:
         if not self.view.pending_team_open:
@@ -1131,16 +943,6 @@ class TeamBuilderScreen:
             return
         await self.play(choice.option, undo=f"{choice.name} loaded.")
 
-    def set_expert(self, event: ValueChangeEventArguments[bool | None]) -> None:
-        expert = event.value is True
-        save_settings({("pokemon", "expert_team_builder"): "true" if expert else "false"})
-        live = self.session.live_settings
-        live.current = read_settings().model_copy(update={"server": live.current.server})
-        self.column.classes(
-            add="game-builder-expert-on" if expert else "game-builder-simple",
-            remove="game-builder-simple" if expert else "game-builder-expert-on",
-        )
-
     async def edit(self, edit: TeamEdit, args: Frozen | None = None, *, undo: str = "") -> bool:
         return await self.play(team_option(edit, args), undo=undo)
 
@@ -1201,12 +1003,6 @@ def picked_ids(current: Sequence[Slug], index: int, choice_id: Slug) -> tuple[Sl
     else:
         ids.append(choice_id)
     return tuple(ids)
-
-
-def moved(ids: Sequence[Slug], start: int, end: int) -> tuple[Slug, ...]:
-    reordered = list(ids)
-    reordered.insert(end, reordered.pop(start))
-    return tuple(reordered)
 
 
 def _require_champions_world(session: GameSession) -> ChampionsWorld:
@@ -1304,6 +1100,10 @@ def _first_wrong_field(slot: TeamBuilderSlot) -> TeamBuilderField | None:
 
 def _first_error(slot: TeamBuilderSlot) -> str:
     return slot.error or next((each.error for each in slot.fields if each.error), "")
+
+
+def _pick_target(field_id: Slug, index: int) -> str:
+    return f'.game-builder-editor [data-focus="pick-{field_id}-{index}"]'
 
 
 def _field_classes(pick: PickField) -> str:

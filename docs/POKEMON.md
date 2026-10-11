@@ -139,16 +139,15 @@ The player picks the mode on the Pokemon tile and three things at creation: the 
 
 - The banner under the story and the Team tab open the team builder: a rail of the six slots, the editor of the chosen slot and an advice column. On a narrow screen the advice folds into a Tips tab, and on a phone the overview is a grid of the six and a slot opens full screen with Set, Moves, Points and Tips tabs.
 - A slot picks its species, ability, item, nature and four moves from searchable lists with filters and sort orders: usage, name, Speed and base stat total for species; type, category, common and spread moves. The lists grey out what the rules refuse, with the reason: a species already on another slot, an item another slot holds, a Mega Stone for another species, a species not owned in a story roster. A slot also offers its presets from the Smogon usage, and the most common items and moves as chips.
-- The Stat Points editor has a stepper, a slider and a number box per stat, with the final stat at level 50, the nature's mark and, for Speed, the nearest benchmarks among the most used Pokemon. Quick spreads fill all six at once: the most used spreads of the species, then common shapes such as max Attack and Speed or Trick Room.
+- The Stat Points editor has a stepper per stat, with the final stat at level 50 and the nature's mark. Quick spreads fill all six at once: the most used spreads of the species, then common shapes such as max Attack and Speed or Trick Room.
 - Edits go to a pending team in the game state, not to the team. The pending team survives a reload and leaving the page; the banner says when it holds unsaved changes. Save team checks the whole team and saves it, or points at the first slot with a problem. Discard drops the pending team after a confirm. A quick spread, a preset, a loaded team or a fix shows an Undo.
 - While the team is registered, the builder is read-only and says why; Export still works, and Save team refuses. Copy to a new draft opens an editable pending team from the registered team; it saves once the event ends, and Discard closes it.
 - Import takes a Showdown paste in the Champions form (SP in the `EVs:` line, `Level: 50`, no Tera) and previews the six before it replaces the pending team. A set with errors still comes in and shows them on its slot; values that look like EVs, above 32 or past 66 in total, come in as 0 SP with that error. IVs and Tera are ignored with a note. Export writes the team in the same form.
 - Start from… loads one of the archetype teams or one of the real tournament teams, filtered by archetype, pool and species. In a story roster a team with species the player does not own is refused, naming them.
 - The advice reads the pending team: the clauses, empty slots, speed control, Fake Out and Intimidate, a type that hits three or more Pokemon with no answer, the Pokemon that most often beat the team, more than one Mega Stone, the team's archetype, and a slot that fits the others poorly. Some come with a Fix: fill the empty slots with suggested teammates, add a speed control move, swap in a better preset.
-- Simple or Expert is the setting Settings > pokemon > expert team builder, and the switch in the builder's head. Simple hides the sliders, number boxes and hints, and a new species takes its top preset. Expert shows everything.
-- Keys: 1 to 6 pick a slot, s, i, a, n and m open the species, item, ability, nature and move lists, Ctrl + S saves. "?" shows every key.
+- A new species takes its top preset. Each slot card's menu moves the slot up or down or clears it.
 
-The Pokemon settings sit in their own section, Settings > pokemon: the battle sprites, the battle music, the opponent (scripted or the model) and the expert team builder.
+The Pokemon settings sit in their own section, Settings > pokemon: the battle sprites, the battle music and the opponent (scripted or the model).
 
 ### The opponents
 

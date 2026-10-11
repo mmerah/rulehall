@@ -122,10 +122,6 @@ class PokemonSettings(Configured):
         "deals the most damage, model asks the opponent role with every damage range. Other "
         "trainers always play scripted, and a wild Pokemon picks at random.",
     )
-    expert_team_builder: bool = Field(
-        default=False,
-        description="Show the sliders, number boxes and speed hints of the team builder.",
-    )
 
 
 class ServerConfig(Configured):

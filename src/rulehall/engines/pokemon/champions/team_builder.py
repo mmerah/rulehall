@@ -6,7 +6,6 @@ from rulehall.core.views import Surface
 from rulehall.engines.pokemon.battle.models import Nature
 from rulehall.engines.pokemon.champions.advice import (
     battle_species,
-    speed_hint,
     suggested_species,
     team_advice,
 )
@@ -277,14 +276,12 @@ def _points_field(pending_set: PendingSet, number: int, error: str) -> PointsFie
         species, legal.level, pending_set.nature, ivs, tuple(pending_set.sp), stat_points=True
     )
     raised, lowered = nature_effect(pending_set.nature) or (None, None)
-    speed = STAT_NAMES.index("Spe")
     rows = tuple(
         PointRow(
             name=name,
             points=pending_set.sp[index],
             final=finals[index],
             mark="raised" if index == raised else "lowered" if index == lowered else None,
-            hint=speed_hint(pending_set) if index == speed else "",
         )
         for index, name in enumerate(STAT_NAMES)
     )

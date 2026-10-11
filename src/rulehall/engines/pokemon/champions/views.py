@@ -68,7 +68,6 @@ class PointRow(Frozen):
     points: int = Field(ge=0)
     final: int = Field(ge=0)
     mark: Literal["raised", "lowered"] | None = None
-    hint: str = ""
 
 
 class PointsField(Frozen):
