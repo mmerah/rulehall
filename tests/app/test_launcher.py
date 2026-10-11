@@ -36,7 +36,7 @@ from rulehall.engines.loner4e.world import Loner4eGame
 
 MIRROR = EngineId("mirror")
 _MIRRORED = Loner4eEngine(NO_PACKS)
-_MIRRORED.id = MIRROR
+_MIRRORED.id = _MIRRORED.rule_set_id = MIRROR
 # A second engine installed, so the engine the launcher pairs on is observable at all.
 INSTALLED = {**ENGINES_BUILT, MIRROR: _MIRRORED}
 KAEL_FOR_EACH = [
@@ -49,9 +49,7 @@ KAEL_FOR_EACH = [
 
 
 class _PokemonModeEngine(Loner4eEngine):
-    @property
-    def rule_set_id(self) -> EngineId:
-        return POKEMON
+    rule_set_id = POKEMON
 
 
 def _catalog(settings: Settings, engines: Mapping[EngineId, AnyEngine]) -> LauncherCatalog:

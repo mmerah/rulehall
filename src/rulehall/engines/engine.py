@@ -11,7 +11,7 @@ from pydantic import BaseModel, JsonValue
 from rulehall.core.answer_repair import parse_with_repairs
 from rulehall.core.creation import CreationStep, Picks, check_picks
 from rulehall.core.decisions import ActionOption
-from rulehall.core.facts import Fact
+from rulehall.core.facts import Fact, Resolution
 from rulehall.core.game import (
     AnyCharacter,
     AnyScenario,
@@ -40,6 +40,7 @@ from rulehall.core.validation import (
 )
 from rulehall.core.views import Look, MapView, Panel, PlayerView, Rows, Sprite, Surface
 from rulehall.engines.args import Direct, JoinParty, Kill, LeaveParty, Reveal
+from rulehall.engines.battles import BattleSupport
 from rulehall.engines.packs import (
     Pack,
     PackBody,
@@ -52,12 +53,6 @@ from rulehall.engines.world import OpeningProposal, World
 from rulehall.engines.worldsmith import BODY_ASK, HEAD_ASK, PACK_SO_FAR, render_worldsmith
 
 type AnyEngine = Engine[Any, Any, Any, Any]
-
-
-@dataclass(frozen=True, slots=True)
-class Resolution:
-    facts: tuple[Fact, ...]
-    narrator_cue: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +99,9 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     directory: Path
     base_dir: Path
     assets: Path | None = None
+    battles: BattleSupport | None = None
+    rule_set_id: EngineId
+    mode_name: str
     person_model: type[P]
     world_model: type[W]
     pack_model: type[K]
@@ -137,14 +135,6 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         self.worldsmith_role = read_cached_text(self.base_dir / "worldsmith.md")
         self.character_model = Character[self.person_model]
         self.scenario_model = Scenario[self.opening_model]
-
-    @property
-    def rule_set_id(self) -> EngineId:
-        return self.id
-
-    @property
-    def mode_name(self) -> str:
-        return self.title
 
     @tool
     def kill(self, draft: Game[W], args: Kill, _rng: Random) -> list[Fact]:
@@ -218,6 +208,9 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
 
     def surfaces(self, _state: Game[W], /) -> tuple[Surface, ...]:
         return ()
+
+    def in_battle(self, state: Game[W], /) -> bool:
+        return self.battles is not None and self.battles.in_battle(state)
 
     def narrator_view(self, state: Game[W]) -> NarratorView:
         world = state.world

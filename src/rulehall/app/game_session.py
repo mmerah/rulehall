@@ -24,15 +24,15 @@ from rulehall.app.submission import Submissions
 from rulehall.app.turn import Turn
 from rulehall.config import LiveSettings, Role
 from rulehall.core.decisions import ActionOption, PlayerInput, find_option
-from rulehall.core.facts import Fact
+from rulehall.core.facts import Fact, Resolution
 from rulehall.core.game import AnyCharacter, AnyGame, AnyScenario
 from rulehall.core.log import Cause, LogEntry, SpokenLine
 from rulehall.core.narration import Narration, NarratorView, partial_lines
 from rulehall.core.stores import Library, SaveStore
 from rulehall.core.validation import Frozen, Refusal, Slug
 from rulehall.core.views import PlayerView, Sprite, Surface
-from rulehall.engines.battles import BattleRun, Battling, Transport, in_battle
-from rulehall.engines.engine import AnyEngine, Resolution
+from rulehall.engines.battles import BattleRun, BattleSupport, Transport
+from rulehall.engines.engine import AnyEngine
 
 LOGGER = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class SessionSnapshot:
     held_elsewhere: bool
     in_battle: bool
     can_rewind: bool
-    battle_run: BattleRun[AnyGame] | None = field(compare=False)
+    battle_run: BattleRun | None = field(compare=False)
     battle_log: tuple[str, ...]
     battle_facts: tuple[Fact, ...]
     battle_view: Frozen | None
@@ -110,7 +110,7 @@ class GameSession:
     gate: "Gate" = field(repr=False, compare=False)
     illustrator: Illustrator
     speaker: Speaker
-    start_transport: Callable[[Battling], Awaitable[Transport]] = start_battle_process
+    start_transport: Callable[[BattleSupport], Awaitable[Transport]] = start_battle_process
     live_settings: LiveSettings
     rng: Random = field(default_factory=Random)
     working_role: Role | None = None
@@ -118,7 +118,7 @@ class GameSession:
     live: tuple[SpokenLine, ...] = ()
     turn: Turn | None = None
     rewind_point: Rewind | None = None
-    battle_run: BattleRun[AnyGame] | None = None
+    battle_run: BattleRun | None = None
     edit_undo: EditUndo | None = None
     memo: StateMemo | None = field(default=None, repr=False, compare=False)
     debriefed: DebriefMemo | None = field(default=None, repr=False, compare=False)
@@ -169,14 +169,18 @@ class GameSession:
 
     async def open_battle(self, *, ask_opponent: bool) -> None:
         with self.gate.admit(self):
-            if self.battle_run is not None or not in_battle(self.engine, self.state):
+            if (
+                self.battle_run is not None
+                or (battles := self.engine.battles) is None
+                or not battles.in_battle(self.state)
+            ):
                 return
             self.rewind_point = None
-            transport = await self.start_transport(self.engine)
+            transport = await self.start_transport(battles)
             draft = self.state.draft()
             opponent = role_answer(self.roles, "opponent") if ask_opponent else None
             try:
-                run = self.battle_run = await self.engine.open_battle(draft, transport, opponent)
+                run = self.battle_run = await battles.open_battle(draft, transport, opponent)
             except BaseException:
                 await transport.close()
                 raise
@@ -242,7 +246,7 @@ class GameSession:
             turn_facts=() if turn is None else tuple(turn.facts),
             live=self.live,
             held_elsewhere=admitted is not None and admitted is not self,
-            in_battle=in_battle(self.engine, self.state),
+            in_battle=self.engine.in_battle(self.state),
             can_rewind=self.rewind_point is not None,
             battle_run=run,
             battle_log=() if run is None else tuple(run.log),
@@ -453,7 +457,7 @@ class GameSession:
             def overheard(text: str) -> None:
                 self.live = view.spoken(partial_lines(text))
 
-            evidence = render_evidence(facts, draft, in_battle=in_battle(self.engine, draft))
+            evidence = render_evidence(facts, draft, in_battle=self.engine.in_battle(draft))
             prompt = render_narrator(view, draft, evidence=evidence, cue=cue)
             narration = await ask(
                 self.roles, "narrator", prompt, Narration, view.check_narration, overheard
@@ -499,7 +503,7 @@ class GameSession:
                 "the game master failed after applying %d facts: %s", len(turn.facts), failed
             )
 
-    async def _settle(self, run: BattleRun[AnyGame], draft: AnyGame) -> None:
+    async def _settle(self, run: BattleRun, draft: AnyGame) -> None:
         self.save(self.engine.accept(draft))
         if (resolution := run.resolution) is None:
             return
@@ -570,5 +574,5 @@ class Gate:
 def require_playable(engine: AnyEngine, state: AnyGame) -> None:
     if (ended := engine.ending(state)) is not None:
         raise Refusal(GAME_OVER_FOR_PLAYER.format(ending=ended.rstrip(".")))
-    if in_battle(engine, state):
+    if engine.in_battle(state):
         raise Refusal(BATTLE_ON)

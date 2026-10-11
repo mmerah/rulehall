@@ -8,7 +8,7 @@ from support.journey import into_wild_battle
 from support.showdown import ScriptedSimulator, started
 
 from rulehall.app.game_session import SessionSnapshot
-from rulehall.engines.battles import Battling
+from rulehall.engines.battles import BattleSupport
 from rulehall.screens.pokemon.battle import BattleScreen
 from rulehall.ui.surfaces import ScreenHost
 from rulehall.ui.widgets import Sounds
@@ -24,7 +24,7 @@ async def test_a_refused_command_keeps_the_battle_screen_and_only_a_refused_open
     assert battle is not None
     simulator = ScriptedSimulator(started(battle.setup))
 
-    async def start(_engine: Battling) -> ScriptedSimulator:
+    async def start(_battles: BattleSupport) -> ScriptedSimulator:
         return simulator
 
     table.session.start_transport = start

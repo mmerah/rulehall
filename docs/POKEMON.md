@@ -178,7 +178,7 @@ Left out, and not yet: scouting key trainers or the rival before registration, t
 
 ## Where the rules live
 
-The code both modes share is in `src/rulehall/engines/pokemon/`: the stat, type, nature and item rules in `rules.py`, the rule set's id, title and art style in `rule_set.py`, the dex and its lookups in `dex.py`, the rival ledger with its section, the rival lookup, the rival and key-trainer checks of the worldsmith and the trainer field descriptions both modes share in `trainers.py`, the sprites and colours in `sprites.py`, the battle module in `battle/` (the driver, the choices, the opponent role, team preview and Mega, with the view models of the battle screen in `views.py`), and the Node side in `showdown/`.
+The code both modes share is in `src/rulehall/engines/pokemon/`: the stat, type, nature and item rules in `rules.py`, the base both modes extend, with the rule set's id, title, art style and battle support, in `engine.py`, the dex and its lookups in `dex.py`, the rival ledger with its section, the rival lookup, the rival and key-trainer checks of the worldsmith and the trainer field descriptions both modes share in `trainers.py`, the sprites and colours in `sprites.py`, the battle module in `battle/` (the driver, the choices, the opponent role, team preview and Mega, with the view models of the battle screen in `views.py`), and the Node side in `showdown/`.
 
 `src/rulehall/engines/pokemon/journey/`: the journey engine (`JourneyEngine`, `JourneyWorld`, `JourneyGame`, `JourneyPack`, `JourneyTrainer` and its `JourneySheet`), with the master's instructions in `rules.md`, the journey numbers in `rules.py` and the packs in `packs/`.
 

@@ -12,9 +12,6 @@ from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.core.views import Panel, Sprite, Surface
 from rulehall.engines.args import Attempt, Words
 from rulehall.engines.bases.maps.args import ExtendMap
-from rulehall.engines.bases.maps.engine import MapEngine
-from rulehall.engines.engine import Joining
-from rulehall.engines.pokemon.battle.battling import ShowdownBattling
 from rulehall.engines.pokemon.champions.advice import suggested_species
 from rulehall.engines.pokemon.champions.args import (
     ChoiceEdit,
@@ -65,7 +62,7 @@ from rulehall.engines.pokemon.champions.worldsmith import (
     check_opening,
 )
 from rulehall.engines.pokemon.dex import dex
-from rulehall.engines.pokemon.rule_set import ART_STYLE, RULE_SET_ID, TITLE
+from rulehall.engines.pokemon.engine import PokemonEngine
 from rulehall.engines.pokemon.rules import SEED_LIMIT
 from rulehall.engines.pokemon.sprites import AVATAR, look_step, mon_sprite, trainer_sprite
 from rulehall.engines.sheet import PLAYER_ID
@@ -80,15 +77,11 @@ SEASON_ENDED = "Worlds is played. The season is over."
 
 
 class ChampionsEngine(
-    ShowdownBattling[ChampionsTrainer, ChampionsWorld, ChampionsPack, ChampionsRegionProposal],
-    Joining[ChampionsWorld],
-    MapEngine[ChampionsTrainer, ChampionsWorld, ChampionsPack, ChampionsRegionProposal],
+    PokemonEngine[ChampionsTrainer, ChampionsWorld, ChampionsPack, ChampionsRegionProposal]
 ):
     id = EngineId("pokemon-champions")
-    title = TITLE
+    mode_name = "Champions"
     worldsmith_guidance = WORLDSMITH_GUIDANCE
-    art_style = ART_STYLE
-    portraits = False
     directory = Path(__file__).parent
     pack_model = ChampionsPack
     world_model = ChampionsWorld
@@ -98,14 +91,6 @@ class ChampionsEngine(
     sheet_help = SHEET_HELP
     # Each new game draws a fresh season; a test sets a seeded Random here.
     season_seeds = Random()
-
-    @property
-    def rule_set_id(self) -> EngineId:
-        return RULE_SET_ID
-
-    @property
-    def mode_name(self) -> str:
-        return "Champions"
 
     def creation_steps(self, _pack_id: Slug, _picks: Picks) -> tuple[CreationStep, ...]:
         species = dex().species

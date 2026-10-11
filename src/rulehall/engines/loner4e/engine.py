@@ -4,7 +4,7 @@ from random import Random
 
 from rulehall.core.creation import CreationStep, Picks
 from rulehall.core.decisions import ActionOption, Option, find_option, other_than, unique_options
-from rulehall.core.facts import Fact
+from rulehall.core.facts import Fact, Resolution
 from rulehall.core.game import (
     AnyCharacter,
     AnyScenario,
@@ -21,7 +21,7 @@ from rulehall.core.views import Panel
 from rulehall.engines.args import Words
 from rulehall.engines.bases.scenes.engine import SceneEngine
 from rulehall.engines.bases.scenes.worldsmith import OPENING
-from rulehall.engines.engine import Joining, RequestHandler, Resolution
+from rulehall.engines.engine import Joining, RequestHandler
 from rulehall.engines.loner4e.args import (
     Ask,
     ChangeTags,
@@ -174,7 +174,7 @@ class Loner4eEngine(
     Joining[Loner4eWorld],
     SceneEngine[Loner4ePerson, Loner4eWorld, Loner4ePack, Loner4eNextProposal],
 ):
-    id = EngineId("loner4e")
+    id = rule_set_id = EngineId("loner4e")
     title = "LONER 4E"
     worldsmith_guidance = WORLDSMITH_GUIDANCE
     art_style = "Painterly illustration, muted colours, no text or lettering."

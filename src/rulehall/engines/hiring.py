@@ -1,17 +1,16 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from random import Random
-from typing import Any
+from typing import Any, Protocol
 
 from pydantic import BaseModel
 
-from rulehall.core.facts import Fact
-from rulehall.core.game import Game, RoleAnswer, WorldsmithRequest
+from rulehall.core.facts import Fact, Resolution
+from rulehall.core.game import Check, Game, RoleAnswer, WorldsmithRequest
 from rulehall.core.tools import tool
 from rulehall.core.validation import Refusal, Slug
 from rulehall.engines.args import HireOrJoin
-from rulehall.engines.engine import Engine, RequestHandler, Resolution
-from rulehall.engines.packs import Pack
+from rulehall.engines.engine import RequestHandler
 from rulehall.engines.sheet import Person
 from rulehall.engines.world import World
 
@@ -36,7 +35,28 @@ HIRE_UNWRITTEN = Fact(
 )
 
 
-class Hiring[P: Person, W: World[Any], K: Pack, R: BaseModel, A: BaseModel](Engine[P, W, K, R]):
+class _HireHost[P: Person, W: World[Any], A: BaseModel](Protocol):
+    hire_model: type[A]
+    hire_intent: str
+
+    def request_handlers(self) -> Mapping[Slug, RequestHandler[W]]: ...
+    async def ask_worldsmith(
+        self,
+        draft: Game[W],
+        worldsmith: RoleAnswer,
+        intent: str,
+        answer_model: type[A],
+        *checks: Check[A],
+        guidance: str | None = None,
+    ) -> A: ...
+    async def write_hire(
+        self, draft: Game[W], request: WorldsmithRequest, worldsmith: RoleAnswer
+    ) -> Resolution: ...
+    def hire_guidance(self, draft: Game[W], /) -> str: ...
+    def sign_on(self, draft: Game[W], person: P, answer: A, /) -> str: ...
+
+
+class Hiring[P: Person, W: World[Any], A: BaseModel](ABC):
     hire_model: type[A]
     hire_intent: str
 
@@ -54,11 +74,14 @@ class Hiring[P: Person, W: World[Any], K: Pack, R: BaseModel, A: BaseModel](Engi
         draft.request = WorldsmithRequest(kind=HIRE, detail=args.terms, target_id=person.id)
         return [*filed, Fact(trace=HIRE_PENDING.format(name=person.name, terms=args.terms))]
 
-    def request_handlers(self) -> Mapping[Slug, RequestHandler[W]]:
+    def request_handlers(self: _HireHost[P, W, A]) -> Mapping[Slug, RequestHandler[W]]:
         return {**super().request_handlers(), HIRE: RequestHandler(self.write_hire, HIRE_UNWRITTEN)}
 
     async def write_hire(
-        self, draft: Game[W], request: WorldsmithRequest, worldsmith: RoleAnswer
+        self: _HireHost[P, W, A],
+        draft: Game[W],
+        request: WorldsmithRequest,
+        worldsmith: RoleAnswer,
     ) -> Resolution:
         assert request.target_id is not None
         world = draft.world

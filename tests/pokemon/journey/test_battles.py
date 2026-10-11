@@ -11,6 +11,7 @@ from support.table import change, refused
 from rulehall.core.game import Check
 from rulehall.core.prompt import Prompt
 from rulehall.engines.bases.maps.world import OFF_MAP_ID
+from rulehall.engines.pokemon.battle.battling import ShowdownBattles
 from rulehall.engines.pokemon.battle.models import Battle, BattleMusic, BattleResult, BattleSetup
 from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.dex import dex
@@ -24,7 +25,7 @@ async def test_a_wild_battle_gets_no_model_opponent() -> None:
     draft.world.battle = Battle(setup=WILD_SETUP)
     simulator = ScriptedSimulator(simulator_started(WILD_SETUP))
 
-    run = await ENGINE.open_battle(draft, simulator, _unasked)
+    run = await ShowdownBattles().open_battle(draft, simulator, _unasked)
 
     assert run.opponent is None
 

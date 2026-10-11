@@ -5,7 +5,7 @@ from random import Random
 
 from rulehall.core.creation import CreationStep, Picks
 from rulehall.core.decisions import ActionOption, Option, find_option, unique_options
-from rulehall.core.facts import Fact, roll
+from rulehall.core.facts import Fact, Resolution, roll
 from rulehall.core.game import AnyCharacter, AnyScenario, Character, RoleAnswer, WorldsmithRequest
 from rulehall.core.log import Voice
 from rulehall.core.narration import NarratorView
@@ -15,7 +15,7 @@ from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.core.views import Panel, Rows
 from rulehall.engines.args import Words
 from rulehall.engines.bases.scenes.engine import SceneEngine
-from rulehall.engines.engine import RequestHandler, Resolution, Revealing
+from rulehall.engines.engine import RequestHandler, Revealing
 from rulehall.engines.hiring import HIRE_PENDING, HIRE_UNWRITTEN, Hiring, signed_on
 from rulehall.engines.panels import party_panel
 from rulehall.engines.sheet import PLAYER_ID, joined
@@ -153,10 +153,10 @@ NO_TROUBLE_COMES = "no bad luck: the trouble does not come; play on"
 
 class TwentyFourXXEngine(
     Revealing[TwentyFourXXWorld],
-    Hiring[Crewmate, TwentyFourXXWorld, TwentyFourXXPack, TwentyFourXXNextProposal, SheetProposal],
+    Hiring[Crewmate, TwentyFourXXWorld, SheetProposal],
     SceneEngine[Crewmate, TwentyFourXXWorld, TwentyFourXXPack, TwentyFourXXNextProposal],
 ):
-    id = EngineId("twentyfourxx")
+    id = rule_set_id = EngineId("twentyfourxx")
     title = "24XX"
     worldsmith_guidance = WORLDSMITH_GUIDANCE
     art_style = (

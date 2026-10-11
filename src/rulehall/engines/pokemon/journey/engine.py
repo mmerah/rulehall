@@ -11,10 +11,8 @@ from rulehall.core.tools import NoArgs, action, tool
 from rulehall.core.validation import Refusal, Slug
 from rulehall.core.views import Panel, Sprite
 from rulehall.engines.bases.maps.args import MoveTo
-from rulehall.engines.bases.maps.engine import MapEngine
-from rulehall.engines.engine import Joining
-from rulehall.engines.pokemon.battle.battling import ShowdownBattling
 from rulehall.engines.pokemon.dex import ITEMS, dex
+from rulehall.engines.pokemon.engine import RULE_SET_ID, PokemonEngine
 from rulehall.engines.pokemon.journey.args import (
     DIFFICULTY,
     ChosenMon,
@@ -77,7 +75,6 @@ from rulehall.engines.pokemon.journey.worldsmith import (
     check_next,
     check_opening,
 )
-from rulehall.engines.pokemon.rule_set import ART_STYLE, RULE_SET_ID, TITLE
 from rulehall.engines.pokemon.rules import TIMES, succeeds
 from rulehall.engines.pokemon.sprites import AVATAR, look_step, mon_sprite, trainer_sprite
 from rulehall.engines.sheet import PLAYER_ID
@@ -92,15 +89,11 @@ EDGE_LINE = "{edge}: the next battle here starts with it. It is lost when the pl
 
 
 class JourneyEngine(
-    ShowdownBattling[JourneyTrainer, JourneyWorld, JourneyPack, JourneyRegionProposal],
-    Joining[JourneyWorld],
-    MapEngine[JourneyTrainer, JourneyWorld, JourneyPack, JourneyRegionProposal],
+    PokemonEngine[JourneyTrainer, JourneyWorld, JourneyPack, JourneyRegionProposal]
 ):
     id = RULE_SET_ID
-    title = TITLE
+    mode_name = "Journey"
     worldsmith_guidance = WORLDSMITH_GUIDANCE
-    art_style = ART_STYLE
-    portraits = False
     directory = Path(__file__).parent
     pack_model = JourneyPack
     pack_head_model = JourneyHead
@@ -109,10 +102,6 @@ class JourneyEngine(
     opening_model = JourneyOpeningProposal
     next_proposal_model = JourneyRegionProposal
     sheet_help = SHEET_HELP
-
-    @property
-    def mode_name(self) -> str:
-        return "Journey"
 
     def creation_steps(self, pack_id: Slug, picks: Picks) -> tuple[CreationStep, ...]:
         ranks = _rank_picks(picks)

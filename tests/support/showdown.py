@@ -4,9 +4,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from random import Random
 
-from rulehall.core.facts import Fact
+from rulehall.core.facts import Fact, Resolution
 from rulehall.core.validation import Refusal, Slug
-from rulehall.engines.engine import Resolution
 from rulehall.engines.pokemon.battle.models import (
     Battle,
     BattleMove,

@@ -8,13 +8,12 @@ from pathlib import Path
 from random import Random
 from typing import Literal, Self
 
-from rulehall.core.facts import Fact
+from rulehall.core.facts import Fact, Resolution
 from rulehall.core.game import RoleAnswer
 from rulehall.core.stores import read_cached_text
 from rulehall.core.validation import Loose, Refusal, parse_json
 from rulehall.core.views import Tag
 from rulehall.engines.battles import Transport
-from rulehall.engines.engine import Resolution
 from rulehall.engines.pokemon.battle.assessment import Assessment
 from rulehall.engines.pokemon.battle.choices import (
     MEGA_SUFFIX,

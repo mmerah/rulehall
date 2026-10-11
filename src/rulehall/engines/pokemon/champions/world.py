@@ -4,11 +4,10 @@ from typing import Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.facts import Fact, roll
+from rulehall.core.facts import Fact, Resolution, roll
 from rulehall.core.game import Game
 from rulehall.core.validation import Frozen, Refusal, Slug, refuse
 from rulehall.engines.bases.maps.world import MapProposal, MapWorld, RegionProposal
-from rulehall.engines.engine import Resolution
 from rulehall.engines.packs import Names
 from rulehall.engines.pokemon.battle.models import (
     Battle,

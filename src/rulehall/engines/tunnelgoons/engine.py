@@ -38,10 +38,10 @@ POINT_OPTIONS: tuple[Option, ...] = tuple(
 
 
 class TunnelGoonsEngine(
-    Hiring[Goon, TunnelGoonsWorld, TunnelGoonsPack, RegionProposal[Goon], AbilitiesProposal],
+    Hiring[Goon, TunnelGoonsWorld, AbilitiesProposal],
     MapEngine[Goon, TunnelGoonsWorld, TunnelGoonsPack, RegionProposal[Goon]],
 ):
-    id = EngineId("tunnelgoons")
+    id = rule_set_id = EngineId("tunnelgoons")
     title = "TUNNEL GOONS"
     worldsmith_guidance = WORLDSMITH_GUIDANCE
     art_style = "Old-school fantasy illustration in black ink, cross-hatched, no text or lettering."

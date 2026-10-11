@@ -4,7 +4,7 @@ from random import Random
 from typing import Any
 
 from rulehall.core.decisions import ActionOption
-from rulehall.core.facts import Fact
+from rulehall.core.facts import Fact, Resolution
 from rulehall.core.game import AnyCharacter, AnyScenario, Game, RoleAnswer, WorldsmithRequest
 from rulehall.core.narration import NarratorView
 from rulehall.core.prompt import Sections, lines_of, render_log, section_if
@@ -41,7 +41,7 @@ from rulehall.engines.bases.maps.worldsmith import (
     check_next,
     check_opening,
 )
-from rulehall.engines.engine import Engine, RequestHandler, Resolution, Revealing, ViewHeader
+from rulehall.engines.engine import Engine, RequestHandler, Revealing, ViewHeader
 from rulehall.engines.packs import Pack
 from rulehall.engines.panels import character_panel, here_panel, party_panel
 from rulehall.engines.world import ARC_SO_FAR_TITLE, ARC_TITLE, HIDDEN_TITLE, party_section
