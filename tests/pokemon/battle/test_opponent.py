@@ -12,9 +12,7 @@ from rulehall.engines.pokemon.battle.models import BattleMove, Battler
 from rulehall.engines.pokemon.battle.opponent import (
     Offer,
     OpponentAnswer,
-    advised_switch,
     check_commands,
-    greedy_choice,
     opponent_system,
     render_opponent,
     switch_advice,
@@ -25,7 +23,8 @@ from rulehall.engines.pokemon.battle.preview import (
     render_preview,
     scripted_preview,
 )
-from rulehall.engines.pokemon.battle.simulator import DUMPED, Dump
+from rulehall.engines.pokemon.battle.simulator import DUMPED, Snapshot
+from rulehall.engines.pokemon.battle.tactics import advised_switch, greedy_choice
 from rulehall.engines.pokemon.battle.views import BattleChoice
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.rules import stats
@@ -365,7 +364,7 @@ def test_an_item_or_ability_effect_stays_hidden_until_its_source_shows() -> None
 
 def _assessment(line: str | None = None) -> Assessment:
     recorded = assessed()[0][1] if line is None else line
-    dump = parse_json(Dump, recorded.removeprefix(DUMPED).removesuffix('"'))
+    dump = parse_json(Snapshot, recorded.removeprefix(DUMPED).removesuffix('"'))
     assert dump.assessment is not None
     return dump.assessment
 
@@ -496,10 +495,10 @@ def test_the_preview_asks_for_the_mega_stone_holder_only_when_one_is_in_hand() -
     )
     holders = CHAMPIONS_SETUP.foes
     none = tuple(battler.model_copy(update={"holds_mega_stone": False}) for battler in holders)
-    hand = frozenset(range(6))
+    team_positions = frozenset(range(6))
 
-    held = render_preview(CHAMPIONS_SETUP, "foe", offers, holders, hand, foes)
-    unheld = render_preview(CHAMPIONS_SETUP, "foe", offers, none, hand, foes)
+    held = render_preview(CHAMPIONS_SETUP, "foe", offers, holders, team_positions, foes)
+    unheld = render_preview(CHAMPIONS_SETUP, "foe", offers, none, team_positions, foes)
 
     assert held.user.count("bring one Pokemon that holds its Mega Stone") == 2
     assert "holds its Mega Stone" not in unheld.user

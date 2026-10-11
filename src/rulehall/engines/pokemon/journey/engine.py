@@ -11,7 +11,7 @@ from rulehall.core.tools import NoArgs, action, tool
 from rulehall.core.validation import Refusal, Slug
 from rulehall.core.views import Panel, Sprite
 from rulehall.engines.bases.maps.args import MoveTo
-from rulehall.engines.pokemon.dex import ITEMS, dex
+from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.engine import RULE_SET_ID, PokemonEngine
 from rulehall.engines.pokemon.journey.args import (
     DIFFICULTY,
@@ -32,6 +32,8 @@ from rulehall.engines.pokemon.journey.args import (
     UseItem,
     WildPick,
 )
+from rulehall.engines.pokemon.journey.items import ITEMS, bag_name
+from rulehall.engines.pokemon.journey.mon import Mon
 from rulehall.engines.pokemon.journey.pack import JourneyHead, JourneyPack
 from rulehall.engines.pokemon.journey.panels import (
     SHEET_HELP,
@@ -59,15 +61,13 @@ from rulehall.engines.pokemon.journey.rules import (
     Skill,
     counter_pick,
     help_bonus,
-    item_of,
 )
-from rulehall.engines.pokemon.journey.sheet import JourneySheet, JourneyTrainer, Mon
+from rulehall.engines.pokemon.journey.sheet import JourneySheet, JourneyTrainer
 from rulehall.engines.pokemon.journey.world import (
     JourneyGame,
     JourneyOpeningProposal,
     JourneyRegionProposal,
     JourneyWorld,
-    challenge_line,
 )
 from rulehall.engines.pokemon.journey.worldsmith import (
     DUE_ASKS,
@@ -76,7 +76,8 @@ from rulehall.engines.pokemon.journey.worldsmith import (
     check_opening,
 )
 from rulehall.engines.pokemon.rules import TIMES, succeeds
-from rulehall.engines.pokemon.sprites import AVATAR, look_step, mon_sprite, trainer_sprite
+from rulehall.engines.pokemon.sprites import AVATAR, mon_sprite, trainer_sprite
+from rulehall.engines.pokemon.trainers import look_step
 from rulehall.engines.sheet import PLAYER_ID
 
 SCHEME = "THE SCHEME"
@@ -241,7 +242,7 @@ class JourneyEngine(
             (
                 "THE BAG",
                 lines_of(
-                    f"- {ref_of(item_of(item_id).name, item_id)} {TIMES}{count}"
+                    f"- {ref_of(bag_name(item_id), item_id)} {TIMES}{count}"
                     for item_id, count in sheet.bag.items()
                 ),
             ),
@@ -401,33 +402,15 @@ class JourneyEngine(
             raise Refusal(f"{trainer.name} is beaten and gives no rematch")
         if trainer.last_battle_visit == len(world.visited_place_ids):
             raise Refusal(f"{trainer.name} already battled you on this visit; come back later")
-        if legendary_id is not None:
-            if args.tag:
-                raise Refusal(f"{trainer.name} battles alone; leave `tag` false")
-            sheet = world.player_sheet
-            foe = Mon.new(legendary_id, sheet.table_level(), rng, sheet.mon_ids())
-            world.setup_battle(
-                None,
-                (foe.battler(),),
-                rng,
-                weather=args.weather,
-                terrain=args.terrain,
-                companion=None,
-                legendary_id=trainer.id,
+        if legendary_id is None:
+            return world.start_trainer_battle(
+                trainer, rng, tag=args.tag, weather=args.weather, terrain=args.terrain
             )
-            return [trainer.card_fact(f"The legendary {foe.species_name} appears")]
-        companion = world.require_companion(trainer) if args.tag else None
-        foes = tuple(mon.battler() for mon in world.trainer_team(trainer, rng))
-        world.setup_battle(
-            trainer,
-            foes,
-            rng,
-            weather=args.weather,
-            terrain=args.terrain,
-            companion=companion,
-            legendary_id=None,
+        if args.tag:
+            raise Refusal(f"{trainer.name} battles alone; leave `tag` false")
+        return world.start_legendary_battle(
+            trainer, legendary_id, rng, weather=args.weather, terrain=args.terrain
         )
-        return [trainer.card_fact(challenge_line(trainer.name, foes))]
 
     @tool
     def start_wild_battle(

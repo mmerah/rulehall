@@ -11,8 +11,8 @@ from rulehall.core.validation import Refusal
 from rulehall.engines.bases.maps.world import OFF_MAP_ID
 from rulehall.engines.pokemon.battle.models import BattleResult
 from rulehall.engines.pokemon.battle.simulator import end_battle
+from rulehall.engines.pokemon.journey.mon import Evolving, Learning
 from rulehall.engines.pokemon.journey.panels import wild_panel
-from rulehall.engines.pokemon.journey.sheet import Evolving, Learning
 from rulehall.engines.pokemon.journey.world import JourneyGame
 
 

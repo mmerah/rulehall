@@ -3,8 +3,12 @@ from typing import Protocol
 
 from pydantic import Field
 
+from rulehall.core.creation import CreationStep
+from rulehall.core.decisions import Option
 from rulehall.core.prompt import Sections
 from rulehall.core.validation import Mutable, Refusal, Slug
+from rulehall.engines.pokemon.dex import avatars
+from rulehall.engines.pokemon.sprites import AVATAR, trainer_sprite
 
 AVATAR_ID = "How this person looks: exact id from TRAINER LOOKS."
 STYLE = "One line on how this {key_trainer} battles, such as '{example}'. Empty for anyone else."
@@ -45,6 +49,14 @@ class RivalLedger(Mutable):
             return ()
         lines = (f"- {line}" for line in self.lines)
         return (("THE RIVAL", "\n".join((f"{rival.ref}; style: {rival.style}", *lines))),)
+
+
+def look_step() -> CreationStep:
+    looks = tuple(
+        Option(id=avatar_id, name=avatar_id.title(), sprite=str(trainer_sprite(avatar_id).path))
+        for avatar_id in avatars().player
+    )
+    return CreationStep(id=AVATAR, name="Look", options=looks)
 
 
 def find_rival[T: Trainer](npcs: Iterable[T]) -> T | None:

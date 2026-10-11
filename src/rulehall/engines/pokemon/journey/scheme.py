@@ -9,7 +9,7 @@ from rulehall.engines.pokemon.journey.rules import BOSS_RISE, LEGENDARY_AT, Rost
 from rulehall.engines.pokemon.journey.sheet import JourneyTrainer
 
 type SchemeDue = Literal["operation", "lair"]
-type Outcome = Literal["foiled", "succeeded"]
+type OperationOutcome = Literal["foiled", "succeeded"]
 
 SCHEME_STAGES = 4
 BADGES_PER_OPERATION = 2
@@ -23,7 +23,7 @@ class Stage(Frozen):
         min_length=1, description="What the player learns when this operation succeeds."
     )
 
-    def text_for(self, outcome: Outcome) -> str:
+    def text_for(self, outcome: OperationOutcome) -> str:
         return self.foiled if outcome == "foiled" else self.succeeded
 
 
@@ -56,7 +56,7 @@ class Operation(Frozen):
 class EvilTeam(Mutable):
     scheme: Scheme | None = None
     operation: Operation | None = None
-    outcomes: list[Outcome] = Field(default_factory=list)
+    outcomes: list[OperationOutcome] = Field(default_factory=list)
     opened_at_badges: int = Field(default=0, ge=0)
     leader_ids: list[Slug] = Field(default_factory=list)
     boss_id: Slug | None = None
@@ -116,7 +116,7 @@ class EvilTeam(Mutable):
         if operation.leader_id not in self.leader_ids:
             self.leader_ids.append(operation.leader_id)
 
-    def record_outcome(self, outcome: Outcome) -> str:
+    def record_outcome(self, outcome: OperationOutcome) -> str:
         self.operation = None
         self.outcomes.append(outcome)
         return self.require_scheme().stages[self.stage() - 1].text_for(outcome)

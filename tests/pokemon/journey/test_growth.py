@@ -9,8 +9,8 @@ from rulehall.core.decisions import ActionOption
 from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.dex import dex
+from rulehall.engines.pokemon.journey.mon import Mon
 from rulehall.engines.pokemon.journey.panels import pending_decision
-from rulehall.engines.pokemon.journey.sheet import Mon
 from rulehall.engines.pokemon.journey.world import JourneyGame
 
 

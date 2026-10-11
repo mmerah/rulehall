@@ -23,7 +23,6 @@ from rulehall.engines.pokemon.champions.args import (
 from rulehall.engines.pokemon.champions.data import champions_data
 from rulehall.engines.pokemon.champions.panels import team_option
 from rulehall.engines.pokemon.champions.paste import export_paste
-from rulehall.engines.pokemon.champions.pending import ITEM, SPECIES
 from rulehall.engines.pokemon.champions.team_builder import (
     SLOT_CATALOGS,
     TEAM_BUILDER_SURFACE_ID,
@@ -32,6 +31,7 @@ from rulehall.engines.pokemon.champions.team_builder import (
     team_builder_catalog,
     team_builder_view,
 )
+from rulehall.engines.pokemon.champions.unsaved import ITEM, SPECIES
 from rulehall.engines.pokemon.champions.views import (
     Advice,
     Catalog,
@@ -188,7 +188,7 @@ class TeamBuilderScreen:
                     ui.button(
                         "Copy to a new draft",
                         icon="sym_r_content_copy",
-                        on_click=self.copy_to_pending_team,
+                        on_click=self.copy_to_unsaved_team,
                     )
                     .props("outline no-caps")
                     .tooltip("Edit a copy during the event; save it once the event ends.")
@@ -297,9 +297,9 @@ class TeamBuilderScreen:
             remove="" if view.dirty else "game-builder-pill-dirty",
         )
         self.banner_text.set_text(_banner(view))
-        self.locked_text.set_text(view.save_lock if view.locked_reason else SAVE_WAITS)
+        self.locked_text.set_text(view.save_lock if view.edit_lock else SAVE_WAITS)
         self.locked.set_visibility(bool(view.save_lock))
-        self.copy_button.set_visibility(view.copyable)
+        self.copy_button.set_visibility(not view.copy_lock)
         for button in self.edit_buttons:
             button.set_enabled(self.enabled)
         for button in self.save_buttons:
@@ -385,7 +385,7 @@ class TeamBuilderScreen:
         if selected:
             classes += " game-rail-on"
         name = slot.name if slot.filled else "Empty slot"
-        locked = bool(self.view.locked_reason)
+        locked = bool(self.view.edit_lock)
         with ui.element("div").classes(classes) as card:
             card.props.update(
                 {
@@ -413,9 +413,7 @@ class TeamBuilderScreen:
                     self.draw_status(slot)
                     self.draw_item(slot)
             if locked:
-                ui.icon("sym_r_lock").classes("game-builder-card-lock").tooltip(
-                    self.view.locked_reason
-                )
+                ui.icon("sym_r_lock").classes("game-builder-card-lock").tooltip(self.view.edit_lock)
             else:
                 self.draw_card_menu(number, slot)
         chosen = partial(self.select, number)
@@ -506,7 +504,7 @@ class TeamBuilderScreen:
             ):
                 self.points = PointsEditor(
                     points,
-                    partial(self.set_points, self.slot, points.field_id),
+                    partial(self.set_points, self.slot),
                     self.apply_choice,
                     enabled=self.enabled,
                 )
@@ -767,7 +765,7 @@ class TeamBuilderScreen:
             return
         if await self.edit(
             "pick",
-            PickEdit(slot=self.slot, field_id=pick.field_id, choice_ids=choice_ids, preset=True),
+            PickEdit(slot=self.slot, field_id=pick.field_id, choice_ids=choice_ids),
             undo="Placed with its top preset." if pick.field_id == SPECIES else "",
         ):
             self.focus_first(_pick_target(pick.field_id, index))
@@ -794,10 +792,8 @@ class TeamBuilderScreen:
             ),
         )
 
-    async def set_points(self, slot: int, field_id: Slug, row: int, points: int) -> bool:
-        return await self.edit(
-            "set_points", PointsEdit(slot=slot, field_id=field_id, row=row, points=points)
-        )
+    async def set_points(self, slot: int, row: int, points: int) -> bool:
+        return await self.edit("set_points", PointsEdit(slot=slot, row=row, points=points))
 
     async def apply_choice(self, choice: Choice) -> None:
         if choice.option is not None:
@@ -850,7 +846,7 @@ class TeamBuilderScreen:
         )
 
     async def discard(self) -> None:
-        if not self.view.pending_team_open:
+        if not self.view.unsaved_team_open:
             return
         if not self.view.dirty or await self.confirm.ask(
             "Discard every unsaved change to the team?"
@@ -919,7 +915,7 @@ class TeamBuilderScreen:
         ui.clipboard.write(self.exported)
         done("Copied.")
 
-    async def copy_to_pending_team(self) -> None:
+    async def copy_to_unsaved_team(self) -> None:
         await self.edit("copy_registered_team", undo="Draft opened.")
 
     def export_text(self) -> str:
@@ -1017,11 +1013,11 @@ def _team_builder_view(surface: Surface) -> TeamBuilderView:
 
 
 def _enabled(view: TeamBuilderView, now: SessionSnapshot) -> bool:
-    return not view.locked_reason and now.working_role is None
+    return not view.edit_lock and now.working_role is None
 
 
 def _pill(view: TeamBuilderView) -> str:
-    if view.locked_reason:
+    if view.edit_lock:
         return "Locked"
     if view.save_lock:
         return "● Draft · saves after the event"
@@ -1029,8 +1025,8 @@ def _pill(view: TeamBuilderView) -> str:
 
 
 def _banner(view: TeamBuilderView) -> str:
-    if view.locked_reason:
-        return f"The team is locked: {view.locked_reason}."
+    if view.edit_lock:
+        return f"The team is locked: {view.edit_lock}."
     if view.dirty:
         return "Unsaved team changes. They wait here until you save or discard them."
     return "Build, tune and save the team you register for events."
@@ -1038,7 +1034,7 @@ def _banner(view: TeamBuilderView) -> str:
 
 def _cards(view: TeamBuilderView) -> tuple[object, ...]:
     return (
-        view.locked_reason,
+        view.edit_lock,
         *(
             (
                 slot.name,

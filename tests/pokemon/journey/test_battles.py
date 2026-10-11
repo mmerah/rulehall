@@ -15,7 +15,8 @@ from rulehall.engines.pokemon.battle.battling import ShowdownBattles
 from rulehall.engines.pokemon.battle.models import Battle, BattleMusic, BattleResult, BattleSetup
 from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.dex import dex
-from rulehall.engines.pokemon.journey.sheet import JourneyTrainer, Mon
+from rulehall.engines.pokemon.journey.mon import Mon
+from rulehall.engines.pokemon.journey.sheet import JourneyTrainer
 from rulehall.engines.pokemon.journey.world import JourneyGame
 from rulehall.engines.sheet import Gauge
 

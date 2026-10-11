@@ -25,11 +25,6 @@ from rulehall.engines.pokemon.champions.data import (
     RealTeam,
     champions_data,
 )
-from rulehall.engines.pokemon.champions.pending import (
-    PendingSet,
-    PendingTeam,
-    unowned_refusal,
-)
 from rulehall.engines.pokemon.champions.rules import (
     RECRUIT_CAP,
     RECRUITS_PER_EVENT,
@@ -50,6 +45,7 @@ from rulehall.engines.pokemon.champions.season import (
     Tier,
 )
 from rulehall.engines.pokemon.champions.sheet import LOCKED, ChampionsSheet, ChampionsTrainer
+from rulehall.engines.pokemon.champions.unsaved import UnsavedSet, UnsavedTeam
 from rulehall.engines.pokemon.dex import avatars, dex, species_name
 from rulehall.engines.pokemon.rules import SEED_LIMIT, battle_seed, succeeds
 from rulehall.engines.pokemon.trainers import RivalLedger, check_one_rival, find_rival
@@ -72,7 +68,7 @@ FIELD_ID_PREFIX = "field-"
 TEAM_FINAL = "the season is over; the team is final"
 MATCH_ON = "a match is on; edit the team after it"
 NOT_LOCKED = "the team is not locked; edit it as it is"
-PENDING_OPEN = "a pending team is already open"
+UNSAVED_TEAM_OPEN = "a pending team is already open"
 NO_CHANGES = "the team has no unsaved changes"
 NEXT_EVENT_AWAITS = "the next event is in another city: when the player sets out, call extend_map"
 PRACTICE_PARTNER = "Practice partner"
@@ -117,7 +113,7 @@ class ChampionsWorld(MapWorld[ChampionsTrainer]):
     rival_ledger: RivalLedger = Field(default_factory=RivalLedger)
     used_team_ids: list[Slug] = Field(default_factory=list)
     battle: Battle | None = None
-    pending_team: PendingTeam | None = None
+    pending_team: UnsavedTeam | None = None
     practice_archetype_id: Slug | None = None
 
     @model_validator(mode="after")
@@ -404,14 +400,14 @@ class ChampionsWorld(MapWorld[ChampionsTrainer]):
         name = species_name(species_id)
         return [self.player.card_fact(f"{name} joins the player: the prize of the top cut")]
 
-    def team_lock(self) -> str:
+    def save_lock(self) -> str:
         if self.player_sheet.registered is not None:
             return LOCKED
         if self.season_over():
             return TEAM_FINAL
         return MATCH_ON if self.battle is not None else ""
 
-    def pending_team_lock(self) -> str:
+    def edit_lock(self) -> str:
         if self.season_over():
             return TEAM_FINAL
         if self.battle is not None:
@@ -420,20 +416,6 @@ class ChampionsWorld(MapWorld[ChampionsTrainer]):
             return LOCKED
         return ""
 
-    def require_team_editable(self) -> None:
-        refuse(self.team_lock())
-
-    def editing_team(self) -> PendingTeam:
-        refuse(self.pending_team_lock())
-        if self.pending_team is None:
-            self.pending_team = PendingTeam.of_team(self.player_sheet.team)
-        return self.pending_team
-
-    def shown_team(self) -> PendingTeam:
-        if self.season_over() or self.pending_team is None:
-            return PendingTeam.of_team(self.player_sheet.team)
-        return self.pending_team
-
     def copy_lock(self) -> str:
         if self.season_over():
             return TEAM_FINAL
@@ -441,41 +423,53 @@ class ChampionsWorld(MapWorld[ChampionsTrainer]):
             return NOT_LOCKED
         if self.battle is not None:
             return MATCH_ON
-        return PENDING_OPEN if self.pending_team is not None else ""
+        return UNSAVED_TEAM_OPEN if self.pending_team is not None else ""
+
+    def editing_team(self) -> UnsavedTeam:
+        refuse(self.edit_lock())
+        if self.pending_team is None:
+            self.pending_team = UnsavedTeam.of_team(self.player_sheet.team)
+        return self._with_allowed_species(self.pending_team)
+
+    def shown_team(self) -> UnsavedTeam:
+        if self.season_over() or self.pending_team is None:
+            return self.saved_team()
+        return self._with_allowed_species(self.pending_team)
+
+    def saved_team(self) -> UnsavedTeam:
+        return self._with_allowed_species(UnsavedTeam.of_team(self.player_sheet.team))
+
+    def unsaved_team_of(self, slots: Sequence[UnsavedSet | None]) -> UnsavedTeam:
+        return self._with_allowed_species(UnsavedTeam.of_slots(slots))
 
     def copy_registered_team(self) -> None:
         refuse(self.copy_lock())
         registered = self.player_sheet.registered
         assert registered is not None
-        self.pending_team = PendingTeam.of_team(registered)
+        self.pending_team = UnsavedTeam.of_team(registered)
 
-    def load_pending_team(self, sets: Sequence[PendingSet | None]) -> None:
-        refuse(self.pending_team_lock())
+    def load_unsaved_team(self, sets: Sequence[UnsavedSet | None]) -> None:
+        refuse(self.edit_lock())
         if not any(sets):
             raise Refusal("there is no Pokemon to load")
-        refuse(
-            unowned_refusal(
-                (each.species_id for each in sets if each), self.player_sheet.allowed_species_ids
-            )
-        )
-        size = champions_data().legal.team_size
-        self.pending_team = PendingTeam(slots=[*sets, *[None] * (size - len(sets))])
+        team = self.unsaved_team_of(sets)
+        refuse(team.disallowed_refusal(each.species_id for each in sets if each))
+        self.pending_team = team
 
-    def pending_team_dirty(self) -> bool:
-        pending = self.pending_team
-        if pending is None or self.season_over():
+    def unsaved_team_dirty(self) -> bool:
+        if self.pending_team is None or self.season_over():
             return False
-        return pending != PendingTeam.of_team(self.player_sheet.team)
+        return self.pending_team.slots != UnsavedTeam.of_team(self.player_sheet.team).slots
 
-    def save_pending_team(self) -> None:
-        self.require_team_editable()
+    def save_unsaved_team(self) -> None:
+        refuse(self.save_lock())
         if self.pending_team is None:
             raise Refusal(NO_CHANGES)
         self.player_sheet.replace_team(self.pending_team.completed())
         self.pending_team = None
 
-    def discard_pending_team(self) -> None:
-        refuse(self.pending_team_lock())
+    def discard_unsaved_team(self) -> None:
+        refuse(self.edit_lock())
         if self.pending_team is None:
             raise Refusal(NO_CHANGES)
         self.pending_team = None
@@ -529,6 +523,10 @@ class ChampionsWorld(MapWorld[ChampionsTrainer]):
 
     def season_over(self) -> bool:
         return any(finish.tier == "worlds" for finish in self.player_sheet.finishes)
+
+    def _with_allowed_species(self, team: UnsavedTeam) -> UnsavedTeam:
+        team.allowed_species_ids = self.player_sheet.allowed_species_ids
+        return team
 
     def _finish_event(self, event: Event, sheet: ChampionsSheet) -> list[Fact]:
         player = self.player

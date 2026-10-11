@@ -5,8 +5,9 @@ from support.journey import ENGINE, started
 from support.table import change, refused, run_action
 
 from rulehall.core.validation import Refusal
+from rulehall.engines.pokemon.dex import dex
+from rulehall.engines.pokemon.journey.mon import Mon
 from rulehall.engines.pokemon.journey.rules import START_BAG
-from rulehall.engines.pokemon.journey.sheet import Mon
 
 
 def test_a_tm_teaches_its_move_and_stays_in_the_bag() -> None:
@@ -145,3 +146,7 @@ def test_a_rare_candy_raises_one_level_and_grows_the_pokemon() -> None:
     assert refused(ENGINE, draft, "buy", item_id="rare-candy") == (
         "Rare Candy is not sold; it is found or given"
     )
+
+
+def test_the_dex_names_the_everstone() -> None:
+    assert dex().item_name("everstone") == "Everstone"

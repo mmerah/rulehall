@@ -8,21 +8,19 @@ from rulehall.core.validation import Loose
 from rulehall.core.views import Tag
 from rulehall.engines.pokemon.battle.models import Battler, FormatSpec
 from rulehall.engines.pokemon.battle.views import BattleChoice
-from rulehall.engines.pokemon.dex import dex
+from rulehall.engines.pokemon.dex import dex, move_stats, move_summary
 from rulehall.engines.pokemon.rules import max_hp
 from rulehall.engines.pokemon.sprites import (
     category_tag,
     hp_meter,
     mon_sprite,
-    move_stats,
-    move_summary,
     pp_meter,
     status_tag,
     type_tag,
 )
 
 # The positions, in a side request, of one trainer's own Pokemon.
-type Hand = frozenset[int]
+type TeamPositions = frozenset[int]
 
 PASS = "pass"
 PICKED = "Picked for another Pokemon"
@@ -104,7 +102,7 @@ class SeatRequest:
     # The side's battlers in the request's order: the actives first, in field order.
     battlers: tuple[Battler, ...]
     foe_side: Side
-    hand: Hand
+    team_positions: TeamPositions
     # The field slots this trainer plays, whoever's Pokemon stands there.
     slots: frozenset[int]
     spec: FormatSpec
@@ -113,7 +111,7 @@ class SeatRequest:
         request = self.request
         if request.max_chosen_team_size is not None and request.team_preview:
             # Each pick is a position in the order brought: the leads first, then the back.
-            return tuple(range(min(request.max_chosen_team_size, len(self.hand))))
+            return tuple(range(min(request.max_chosen_team_size, len(self.team_positions))))
         if request.team_preview:
             return tuple(sorted(self.slots))
         team = request.side.pokemon
@@ -123,12 +121,15 @@ class SeatRequest:
             forced = [slot for slot, needed in enumerate(request.force_switch) if needed]
             mine = [slot for slot in forced if slot in self.slots]
             theirs = [slot for slot in forced if slot not in self.slots]
-            own_bench, their_bench = len(bench & self.hand), len(bench - self.hand)
+            own_bench, their_bench = (
+                len(bench & self.team_positions),
+                len(bench - self.team_positions),
+            )
             # Showdown fills every slot it can: a slot whose trainer has no bench left takes
             # the partner's.
             spare = max(own_bench - len(mine), 0)
             return tuple(sorted((*mine[:own_bench], *theirs[their_bench:][:spare])))
-        mine_left, theirs_left = bool(able & self.hand), bool(able - self.hand)
+        mine_left, theirs_left = bool(able & self.team_positions), bool(able - self.team_positions)
         return tuple(
             slot
             for slot in range(len(request.active))
@@ -150,7 +151,7 @@ class SeatRequest:
                     group=self._preview_group(slot),
                     refusal=self._preview_refusal(f"team {at + 1}", picks),
                 )
-                for at in sorted(self.hand)
+                for at in sorted(self.team_positions)
             )
         user = team[slot].name if len(request.force_switch or request.active) > 1 else ""
         switches = tuple(
@@ -164,7 +165,7 @@ class SeatRequest:
                 refusal="Fainted" if mon.fainted else PICKED if f"switch {at + 1}" in picks else "",
             )
             for at, mon in enumerate(team)
-            if not mon.active and at in self.hand
+            if not mon.active and at in self.team_positions
         )
         if any(request.force_switch):
             return switches

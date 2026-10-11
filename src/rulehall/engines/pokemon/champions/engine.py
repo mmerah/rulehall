@@ -14,7 +14,6 @@ from rulehall.engines.args import Attempt, Words
 from rulehall.engines.bases.maps.args import ExtendMap
 from rulehall.engines.pokemon.champions.advice import suggested_species
 from rulehall.engines.pokemon.champions.args import (
-    ChoiceEdit,
     MoveSlotEdit,
     PasteEdit,
     PickEdit,
@@ -22,6 +21,7 @@ from rulehall.engines.pokemon.champions.args import (
     PracticePick,
     PresetEdit,
     PrizePick,
+    QuickSpreadEdit,
     Recruit,
     SlotEdit,
     TemplateEdit,
@@ -38,7 +38,6 @@ from rulehall.engines.pokemon.champions.panels import (
     team_panel,
 )
 from rulehall.engines.pokemon.champions.paste import parse_paste
-from rulehall.engines.pokemon.champions.pending import SP, SPECIES, PendingSet
 from rulehall.engines.pokemon.champions.rules import (
     RECRUITS_PER_EVENT,
     TEAM_SLOT_PREFIX,
@@ -49,6 +48,7 @@ from rulehall.engines.pokemon.champions.rules import (
 )
 from rulehall.engines.pokemon.champions.sheet import ChampionsSheet, ChampionsTrainer, Roster
 from rulehall.engines.pokemon.champions.team_builder import quick_spread, team_builder_surface
+from rulehall.engines.pokemon.champions.unsaved import SPECIES, UnsavedSet
 from rulehall.engines.pokemon.champions.world import (
     ChampionsGame,
     ChampionsOpeningProposal,
@@ -64,7 +64,8 @@ from rulehall.engines.pokemon.champions.worldsmith import (
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.engine import PokemonEngine
 from rulehall.engines.pokemon.rules import SEED_LIMIT
-from rulehall.engines.pokemon.sprites import AVATAR, look_step, mon_sprite, trainer_sprite
+from rulehall.engines.pokemon.sprites import AVATAR, mon_sprite, trainer_sprite
+from rulehall.engines.pokemon.trainers import look_step
 from rulehall.engines.sheet import PLAYER_ID
 
 ROSTER = "roster"
@@ -303,36 +304,27 @@ class ChampionsEngine(
 
     @edit
     def pick(self, draft: ChampionsGame, args: PickEdit, _rng: Random) -> None:
-        world = draft.world
-        team = world.editing_team()
-        allowed_species_ids = world.player_sheet.allowed_species_ids
-        team.pick(args.slot, args.field_id, args.choice_ids, allowed_species_ids)
-        if args.preset and args.field_id == SPECIES:
+        team = draft.world.editing_team()
+        team.pick(args.slot, args.field_id, args.choice_ids)
+        if args.field_id == SPECIES:
             species_id = team.require_set(args.slot).species_id
             index = team.free_preset_index(args.slot, species_id)
             if index is not None:
-                team.place(
-                    args.slot, champions_data().presets[species_id][index], allowed_species_ids
-                )
+                team.place(args.slot, champions_data().presets[species_id][index])
 
     @edit
     def set_points(self, draft: ChampionsGame, args: PointsEdit, _rng: Random) -> None:
-        _require_points_field(args.field_id)
         draft.world.editing_team().set_points(args.slot, args.row, args.points)
 
     @edit
-    def apply_quick(self, draft: ChampionsGame, args: ChoiceEdit, _rng: Random) -> None:
-        _require_points_field(args.field_id)
+    def apply_quick(self, draft: ChampionsGame, args: QuickSpreadEdit, _rng: Random) -> None:
         team = draft.world.editing_team()
         nature, sp = quick_spread(team.require_set(args.slot), args.choice_id)
         team.apply_spread(args.slot, nature, sp)
 
     @edit
     def apply_preset(self, draft: ChampionsGame, args: PresetEdit, _rng: Random) -> None:
-        world = draft.world
-        world.editing_team().place(
-            args.slot, require_preset(args.preset_id), world.player_sheet.allowed_species_ids
-        )
+        draft.world.editing_team().place(args.slot, require_preset(args.preset_id))
 
     @edit
     def move_slot(self, draft: ChampionsGame, args: MoveSlotEdit, _rng: Random) -> None:
@@ -344,12 +336,12 @@ class ChampionsEngine(
 
     @edit
     def import_text(self, draft: ChampionsGame, args: PasteEdit, _rng: Random) -> None:
-        draft.world.load_pending_team([row.pending_set for row in parse_paste(args.text)])
+        draft.world.load_unsaved_team([row.unsaved_set for row in parse_paste(args.text)])
 
     @edit
     def load_template(self, draft: ChampionsGame, args: TemplateEdit, _rng: Random) -> None:
         sets = require_template(args.template_id)
-        draft.world.load_pending_team([PendingSet.of_set(each) for each in sets])
+        draft.world.load_unsaved_team([UnsavedSet.of_set(each) for each in sets])
 
     @edit
     def copy_registered_team(self, draft: ChampionsGame, _args: NoArgs, _rng: Random) -> None:
@@ -357,31 +349,24 @@ class ChampionsEngine(
 
     @edit
     def fill_empty_slots(self, draft: ChampionsGame, _args: NoArgs, _rng: Random) -> None:
-        world = draft.world
-        team = world.editing_team()
-        allowed_species_ids = world.player_sheet.allowed_species_ids
+        team = draft.world.editing_team()
         empty = [number for number, each in enumerate(team.slots, 1) if each is None]
-        suggested = suggested_species(team.slots, len(empty), allowed_species_ids)
+        suggested = suggested_species(team, len(empty))
         for number, species_id in zip(empty, suggested, strict=False):
             index = team.free_preset_index(number, species_id)
             if index is not None:
-                team.place(number, champions_data().presets[species_id][index], allowed_species_ids)
+                team.place(number, champions_data().presets[species_id][index])
 
     @edit
     def save(self, draft: ChampionsGame, _args: NoArgs, _rng: Random) -> None:
-        draft.world.save_pending_team()
+        draft.world.save_unsaved_team()
 
     @edit
     def discard(self, draft: ChampionsGame, _args: NoArgs, _rng: Random) -> None:
-        draft.world.discard_pending_team()
+        draft.world.discard_unsaved_team()
 
 
 def _require_travel_open(world: ChampionsWorld) -> None:
     if world.season_over():
         raise Refusal(SEASON_ENDED)
     world.require_event_idle()
-
-
-def _require_points_field(field_id: Slug) -> None:
-    if field_id != SP:
-        raise Refusal(f"{field_id!r} is no field of stat points")

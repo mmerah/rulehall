@@ -40,8 +40,8 @@ def test_team_actions_refuse_while_registered() -> None:
     team = narrowed(draft.world, ChampionsWorld).player_sheet.team
     cases: dict[str, dict[str, JsonValue]] = {
         "pick": {"slot": 1, "field_id": "nature", "choice_ids": ["jolly"]},
-        "set_points": {"slot": 1, "field_id": "sp", "row": 0, "points": 1},
-        "apply_quick": {"slot": 1, "field_id": "sp", "choice_id": "clear"},
+        "set_points": {"slot": 1, "row": 0, "points": 1},
+        "apply_quick": {"slot": 1, "choice_id": "clear"},
         "apply_preset": {"slot": 1, "preset_id": f"{team[0].species_id}-a"},
         "move_slot": {"slot": 1, "to_slot": 2},
         "clear_slot": {"slot": 1},

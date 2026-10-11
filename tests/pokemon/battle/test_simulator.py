@@ -32,21 +32,26 @@ from rulehall.core.game import Check
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal, parse_json
 from rulehall.core.views import Tag
-from rulehall.engines.pokemon.battle.choices import Hand, SeatRequest, SideRequest, opponent_choice
+from rulehall.engines.pokemon.battle.choices import (
+    SeatRequest,
+    SideRequest,
+    TeamPositions,
+    opponent_choice,
+)
 from rulehall.engines.pokemon.battle.models import (
     Ally,
     Ball,
     Battle,
     Battler,
     BattleSetup,
-    DumpMon,
+    MonSnapshot,
     Outcome,
 )
 from rulehall.engines.pokemon.battle.opponent import Offer, OpponentAnswer, check_commands
 from rulehall.engines.pokemon.battle.simulator import (
-    Dump,
     ShowdownRun,
-    as_dumped,
+    Snapshot,
+    as_snapshot,
     assess_line,
     battle_result,
     condition_lines,
@@ -58,7 +63,7 @@ from rulehall.engines.pokemon.battle.simulator import (
 from rulehall.engines.pokemon.battle.views import BattleChoice
 from rulehall.engines.pokemon.champions.data import champions_data
 from rulehall.engines.pokemon.dex import dex
-from rulehall.engines.pokemon.journey.sheet import Mon
+from rulehall.engines.pokemon.journey.mon import Mon
 from rulehall.engines.pokemon.journey.world import JourneyGame
 from rulehall.engines.pokemon.rules import stats
 from rulehall.engines.pokemon.sprites import mon_sprite
@@ -102,7 +107,7 @@ async def test_a_resumed_battle_replays_its_inputs_and_waits_on_the_player() -> 
     resumed = await ShowdownRun.start(resumed_draft, replayed)
 
     assert resumed.inputs == run.inputs
-    assert resumed.side_request == run.side_request
+    assert resumed.player_request == run.player_request
     assert replayed.sent == played.sent
 
 
@@ -152,7 +157,7 @@ async def test_a_saved_doubles_battle_replays_its_inputs() -> None:
     resumed = await ShowdownRun.start(draft.validated().draft(), replayed)
 
     assert resumed.inputs == run.inputs
-    assert resumed.side_request == run.side_request
+    assert resumed.player_request == run.player_request
     assert replayed.sent == [
         line for line in played.sent if line != assess_line(DOUBLES_SETUP, "foe")
     ]
@@ -307,7 +312,7 @@ def test_a_move_outside_the_setup_has_no_type_and_no_pp() -> None:
     }
     request = _request({"active": [{"moves": [struggle]}], "side": _side(("3/24", True))})
 
-    assert _seated(request, WILD_SETUP.team, frozenset({0})).choices(0, ()) == (
+    assert _seat_request(request, WILD_SETUP.team, frozenset({0})).choices(0, ()) == (
         BattleChoice(command="move 1", kind="move", name="Struggle"),
     )
 
@@ -324,7 +329,7 @@ def test_a_choice_carries_its_types_and_pp() -> None:
     hurt = RATTATA.model_copy(update={"hp": 5, "status": "par"})
     setup = WILD_SETUP.model_copy(update={"team": (PIKACHU, hurt)})
 
-    move, switch = _seated(request, setup.team, frozenset({0, 1})).choices(0, ())
+    move, switch = _seat_request(request, setup.team, frozenset({0, 1})).choices(0, ())
 
     assert [tag.name for tag in move.tags] == ["Electric", "Special"]
     assert move.brief == "40 BP · 100%"
@@ -334,7 +339,7 @@ def test_a_choice_carries_its_types_and_pp() -> None:
     assert switch.kind == "switch"
     assert [(meter.current, meter.maximum) for meter in switch.meters] == [(15, 15)]
     preview = _request({"teamPreview": True, "side": side})
-    hurt_lead = _seated(preview, setup.team, frozenset({0, 1})).choices(0, ())[1]
+    hurt_lead = _seat_request(preview, setup.team, frozenset({0, 1})).choices(0, ())[1]
     assert [(meter.current, meter.maximum) for meter in hurt_lead.meters] == [(5, 15)]
     assert hurt_lead.tags[-1].name == "PAR"
 
@@ -352,9 +357,9 @@ def test_a_choice_carries_its_types_and_pp() -> None:
 def test_each_outcome_reads_the_dump(
     outcome: Outcome | None, player_hp: int, foe_hp: int, expected: Outcome
 ) -> None:
-    dump = Dump(
+    snapshot = Snapshot(
         p1=(
-            DumpMon(
+            MonSnapshot(
                 slot=0,
                 hp=player_hp,
                 status="",
@@ -366,7 +371,7 @@ def test_each_outcome_reads_the_dump(
             ),
         ),
         p2=(
-            DumpMon(
+            MonSnapshot(
                 slot=0,
                 hp=foe_hp,
                 status="fnt" if foe_hp == 0 else "par",
@@ -379,7 +384,7 @@ def test_each_outcome_reads_the_dump(
         ),
     )
 
-    result = battle_result(WILD_SETUP, dump, outcome, ())
+    result = battle_result(WILD_SETUP, snapshot, outcome, ())
 
     assert result.outcome == expected
     assert result.team[0].hp == player_hp
@@ -408,20 +413,26 @@ def test_the_sent_out_foes_keep_their_team_order_and_leave_out_the_bench() -> No
         }
     )
     # Showdown lists the active Pokemon first: the one switched in, then the lead it replaced.
-    dump = Dump(
+    snapshot = Snapshot(
         p1=(
-            DumpMon(
+            MonSnapshot(
                 slot=0, hp=10, status="", pp=(40, 60), out=1, held=True, active=True, boosts={}
             ),
         ),
         p2=(
-            DumpMon(slot=1, hp=5, status="", pp=(40, 60), out=1, held=True, active=True, boosts={}),
-            DumpMon(slot=0, hp=0, status="fnt", pp=(50,), out=1, held=True, active=True, boosts={}),
-            DumpMon(slot=2, hp=15, status="", pp=(56,), out=0, held=True, active=False, boosts={}),
+            MonSnapshot(
+                slot=1, hp=5, status="", pp=(40, 60), out=1, held=True, active=True, boosts={}
+            ),
+            MonSnapshot(
+                slot=0, hp=0, status="fnt", pp=(50,), out=1, held=True, active=True, boosts={}
+            ),
+            MonSnapshot(
+                slot=2, hp=15, status="", pp=(56,), out=0, held=True, active=False, boosts={}
+            ),
         ),
     )
 
-    result = battle_result(setup, dump, "lost", ())
+    result = battle_result(setup, snapshot, "lost", ())
 
     assert [foe.mon_id for foe in result.sent_out_foes] == [RATTATA.mon_id, PIKACHU.mon_id]
     assert [foe.mon_id for foe in result.fainted_foes()] == [RATTATA.mon_id]
@@ -448,8 +459,8 @@ def test_a_tag_player_plays_their_slot_and_switches_only_to_their_own_pokemon() 
     tackle: JsonValue = {"move": "Tackle", "id": "tackle", "pp": 56, "maxpp": 56}
     side = _tag_side("24/24", "18/18")
     request = _request({"active": [{"moves": [tackle]}, {"moves": [tackle]}], "side": side})
-    player = _seated(request, TAG_ORDER, frozenset({0, 2}))
-    ally = _seated(request, TAG_ORDER, frozenset({1, 3}), 1)
+    player = _seat_request(request, TAG_ORDER, frozenset({0, 2}))
+    ally = _seat_request(request, TAG_ORDER, frozenset({1, 3}), 1)
 
     assert (player.deciding_slots(), ally.deciding_slots()) == ((0,), (1,))
     assert [choice.command for choice in player.choices(0, ())] == ["move 1", "switch 3"]
@@ -467,41 +478,49 @@ def test_a_tag_player_keeps_their_slot_when_a_drag_brings_in_the_ally_pokemon() 
     }
     request = _request({"active": [{"moves": [tackle]}, {"moves": [tackle]}], "side": side})
     dragged = (RATTATA, CHARMANDER, PIDGEY, PIKACHU)
-    player = _seated(request, dragged, frozenset({2, 3}))
+    player = _seat_request(request, dragged, frozenset({2, 3}))
 
     assert player.deciding_slots() == (0,)
     choices = player.choices(0, ())
     assert [choice.command for choice in choices] == ["move 1", "switch 3", "switch 4"]
     assert choices[0].tags[0] == Tag(name="Normal", colour="#a8a878")
-    assert _seated(request, dragged, frozenset({0, 1}), 1).deciding_slots() == (1,)
+    assert _seat_request(request, dragged, frozenset({0, 1}), 1).deciding_slots() == (1,)
 
 
 def test_a_tag_trainer_with_no_pokemon_left_leaves_the_slot_to_the_partner() -> None:
     fallen = _request({"forceSwitch": [True, False], "side": _tag_side("0 fnt", "0 fnt")})
 
-    assert _seated(fallen, TAG_ORDER, frozenset({0, 2})).deciding_slots() == ()
-    assert _seated(fallen, TAG_ORDER, frozenset({1, 3}), 1).deciding_slots() == (0,)
+    assert _seat_request(fallen, TAG_ORDER, frozenset({0, 2})).deciding_slots() == ()
+    assert _seat_request(fallen, TAG_ORDER, frozenset({1, 3}), 1).deciding_slots() == (0,)
 
 
 def test_a_tag_battle_result_leaves_out_the_ally_pokemon() -> None:
-    dump = Dump(
+    snapshot = Snapshot(
         p1=(
-            DumpMon(
+            MonSnapshot(
                 slot=0, hp=10, status="", pp=(40, 60), out=1, held=True, active=True, boosts={}
             ),
-            DumpMon(
+            MonSnapshot(
                 slot=2, hp=0, status="fnt", pp=(50, 40), out=1, held=True, active=True, boosts={}
             ),
-            DumpMon(slot=1, hp=18, status="", pp=(56,), out=0, held=True, active=False, boosts={}),
-            DumpMon(slot=3, hp=15, status="", pp=(56,), out=0, held=True, active=False, boosts={}),
+            MonSnapshot(
+                slot=1, hp=18, status="", pp=(56,), out=0, held=True, active=False, boosts={}
+            ),
+            MonSnapshot(
+                slot=3, hp=15, status="", pp=(56,), out=0, held=True, active=False, boosts={}
+            ),
         ),
         p2=(
-            DumpMon(slot=0, hp=0, status="fnt", pp=(56,), out=1, held=True, active=True, boosts={}),
-            DumpMon(slot=1, hp=0, status="fnt", pp=(56,), out=1, held=True, active=True, boosts={}),
+            MonSnapshot(
+                slot=0, hp=0, status="fnt", pp=(56,), out=1, held=True, active=True, boosts={}
+            ),
+            MonSnapshot(
+                slot=1, hp=0, status="fnt", pp=(56,), out=1, held=True, active=True, boosts={}
+            ),
         ),
     )
 
-    result = battle_result(TAG_SETUP, dump, None, ())
+    result = battle_result(TAG_SETUP, snapshot, None, ())
 
     assert result.outcome == "won"
     assert [battler.mon_id for battler in result.team] == ["pikachu", "pidgey"]
@@ -525,10 +544,12 @@ def test_a_packed_pokemon_carries_its_spread_item_and_friendship() -> None:
 
 def test_an_item_used_up_in_battle_is_gone_after_it() -> None:
     pikachu = PIKACHU.model_copy(update={"item_id": "oran-berry"})
-    kept = DumpMon(slot=0, hp=24, status="", pp=(48, 64), out=1, held=True, active=True, boosts={})
+    kept = MonSnapshot(
+        slot=0, hp=24, status="", pp=(48, 64), out=1, held=True, active=True, boosts={}
+    )
 
-    assert as_dumped(pikachu, kept).item_id == "oran-berry"
-    assert as_dumped(pikachu, kept.model_copy(update={"held": False})).item_id is None
+    assert as_snapshot(pikachu, kept).item_id == "oran-berry"
+    assert as_snapshot(pikachu, kept.model_copy(update={"held": False})).item_id is None
 
 
 async def test_a_champions_battle_brings_four_of_six_and_each_side_mega_evolves_once() -> None:
@@ -548,7 +569,7 @@ async def test_a_champions_battle_brings_four_of_six_and_each_side_mega_evolves_
     assert run.log[run.log.index(sheet) - 1].startswith("|teampreview")
     assert [line for line in run.log if line.startswith("|showteam|")] == [sheet]
     assert not [line for line in run.log if "otsrequest" in line or "custom rule" in line]
-    assert run.dump is not None and (len(run.dump.p1), len(run.dump.p2)) == (4, 4)
+    assert run.snapshot is not None and (len(run.snapshot.p1), len(run.snapshot.p2)) == (4, 4)
 
     await run.choose(draft, "move 1", Random(0))
     assert "mega" not in [choice.command for choice in run.view().choices]
@@ -623,10 +644,10 @@ def test_a_team_sheet_from_showdown_never_reaches_the_view() -> None:
 
 def test_the_foe_estimates_take_the_assumed_spread_not_the_real_one() -> None:
     update = next(block for block in recorded(RECORDED_CHAMPIONS) if '"assessment"' in block[-1])
-    _, dump = read_update(update[1:], opening=False)
-    assert dump is not None and dump.assessment is not None
-    assert dump.assessment.foes
-    for foe in dump.assessment.foes:
+    _, snapshot = read_update(update[1:], opening=False)
+    assert snapshot is not None and snapshot.assessment is not None
+    assert snapshot.assessment.foes
+    for foe in snapshot.assessment.foes:
         battler = next(each for each in CHAMPIONS_SETUP.team if each.name == foe.name)
         estimate = battler.estimate
         assert estimate is not None and estimate.nature != battler.nature
@@ -675,14 +696,17 @@ def _battling(setup: BattleSetup, inputs: list[str] | None = None) -> JourneyGam
     return draft
 
 
-def _seated(
-    request: SideRequest, battlers: tuple[Battler, ...], hand: Hand, slot: int = 0
+def _seat_request(
+    request: SideRequest,
+    battlers: tuple[Battler, ...],
+    team_positions: TeamPositions,
+    slot: int = 0,
 ) -> SeatRequest:
     return SeatRequest(
         request=request,
         battlers=battlers,
         foe_side=request.side,
-        hand=hand,
+        team_positions=team_positions,
         slots=frozenset({slot}),
         spec=WILD_SETUP.format_spec(),
     )

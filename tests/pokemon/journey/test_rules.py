@@ -6,6 +6,7 @@ from support.table import change, refused
 
 from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.dex import SIGNATURE_EXCLUDED, Stats, dex
+from rulehall.engines.pokemon.journey.mon import Mon
 from rulehall.engines.pokemon.journey.rules import (
     RIVAL_IV,
     STARTER_LEVEL,
@@ -16,7 +17,6 @@ from rulehall.engines.pokemon.journey.rules import (
     rival_ev,
     signature_moves,
 )
-from rulehall.engines.pokemon.journey.sheet import Mon
 from rulehall.engines.pokemon.journey.world import RivalTeam, WildSlot
 from rulehall.engines.pokemon.rules import stats, succeeds
 

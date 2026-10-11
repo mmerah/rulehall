@@ -1,15 +1,10 @@
 from collections.abc import Sequence
 from random import Random
-from typing import Annotated
-
-from pydantic import AfterValidator
 
 from rulehall.core.validation import Slug
 from rulehall.engines.pokemon.battle.models import Battler
-from rulehall.engines.pokemon.dex import ITEMS, NATURES, Species, Stats, dex
+from rulehall.engines.pokemon.dex import NATURES, Species, Stats, dex
 
-# Lambda: the check sits below the models, and a direct reference fails basedpyright.
-type ItemId = Annotated[str, AfterValidator(lambda item_id: _check_item(item_id))]
 IV_MAX = 31
 EV_STAT_MAX = 252
 EV_TOTAL_MAX = 510
@@ -91,9 +86,3 @@ def effectiveness(attack: str, defender_types: Sequence[str]) -> float:
         elif defender in matchups.weak:
             factor /= 2
     return factor
-
-
-def _check_item(item_id: str) -> str:
-    if item_id not in ITEMS:
-        raise ValueError(f"{item_id!r} is no item id")
-    return item_id

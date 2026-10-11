@@ -288,7 +288,7 @@ class BattleResult(Frozen):
         return (*self.fainted_foes(), *(() if self.caught is None else (self.caught,)))
 
 
-class DumpMon(Loose):
+class MonSnapshot(Loose):
     slot: int
     hp: int
     status: str
@@ -314,7 +314,7 @@ class Battle(Mutable):
     setup: BattleSetup
     inputs: list[str] = Field(default_factory=list)
     throws: list[Throw] = Field(default_factory=list)
-    legendary_id: Slug | None = None
+    legendary_person_id: Slug | None = None
 
     def balls_left(self) -> tuple[Ball, ...]:
         used = Counter(throw.ball_id for throw in self.throws)

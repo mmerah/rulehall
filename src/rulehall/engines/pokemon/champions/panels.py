@@ -56,7 +56,7 @@ PLAY_NEXT_ROUND = ActionOption(
 def team_panel(world: ChampionsWorld) -> Panel:
     registered = world.player_sheet.registered is not None
     brief = UNSAVED_REGISTERED_BRIEF if registered else UNSAVED_BRIEF
-    unsaved = (PanelRow(name=UNSAVED, brief=brief),) if world.pending_team_dirty() else ()
+    unsaved = (PanelRow(name=UNSAVED, brief=brief),) if world.unsaved_team_dirty() else ()
     return Panel(
         title="Team",
         rows=(
