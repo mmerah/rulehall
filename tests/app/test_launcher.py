@@ -83,17 +83,6 @@ def _declaring(tmp_path: Path, engine_id: str) -> Path:
     return scenarios
 
 
-def _retitled(tmp_path: Path) -> Path:
-    scenarios = _scenarios_copy(tmp_path)
-    world = scenarios / "whispering-vault" / "world.json"
-    canon: dict[str, JsonValue] = json.loads(world.read_text(encoding=ENCODING))
-    description = canon["description"]
-    assert isinstance(description, dict)
-    canon["description"] = description | {"title": "The Vault, Renamed"}
-    _ = world.write_text(json.dumps(canon), encoding=ENCODING)
-    return scenarios
-
-
 def test_the_catalog_pairs_a_scenario_with_a_character(tmp_path: Path) -> None:
     catalog = _catalog(offline_settings(tmp_path), ENGINES_BUILT)
 
@@ -167,11 +156,6 @@ def _playing_an_uninstalled_pack(tmp_path: Path) -> BadSave:
     return settings, ENGINES_BUILT, KEY.save_id
 
 
-def _whose_scenario_drifted(tmp_path: Path) -> BadSave:
-    SaveStore(tmp_path).write(KEY.save_id, _opening_state(offline_settings(tmp_path)))
-    return offline_settings(tmp_path, _retitled(tmp_path)), ENGINES_BUILT, KEY.save_id
-
-
 def _that_will_not_restore(tmp_path: Path) -> BadSave:
     settings = offline_settings(tmp_path)
     state = _opening_state(settings)
@@ -195,7 +179,6 @@ def _that_is_not_utf8(tmp_path: Path) -> BadSave:
         _playing_another_engine,
         _filed_under_another_stem,
         _playing_an_uninstalled_pack,
-        _whose_scenario_drifted,
         _that_will_not_restore,
         _that_is_not_utf8,
     ],
@@ -203,7 +186,6 @@ def _that_is_not_utf8(tmp_path: Path) -> BadSave:
         "another engine",
         "another stem",
         "an uninstalled pack",
-        "a drifted scenario",
         "a state that will not restore",
         "bytes that are not text",
     ),

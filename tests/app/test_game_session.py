@@ -29,7 +29,7 @@ from rulehall.app.runtime import Runtime
 from rulehall.config import Role
 from rulehall.core.decisions import ActionOption, PlayerInput
 from rulehall.core.facts import Fact
-from rulehall.core.game import AnyGame, ScenarioDescription, WorldsmithRequest
+from rulehall.core.game import AnyGame, WorldsmithRequest
 from rulehall.core.stores import SaveStore
 from rulehall.core.tools import edit
 from rulehall.core.validation import Frozen, Refusal
@@ -170,31 +170,12 @@ async def test_rewind_before_any_turn_finds_nothing_to_rewind(tmp_path: Path) ->
         await table.session.rewind()
 
 
-@pytest.mark.parametrize(
-    ("change", "message"),
-    (
-        ({"character_id": "someone-else"}, "save is 'whispering-vault--someone-else'"),
-        (
-            {
-                "scenario_description": ScenarioDescription(
-                    title="Another Vault",
-                    premise="Elsewhere.",
-                    backdrop="Plain.",
-                    scope="A single visit, brief.",
-                )
-            },
-            "title",
-        ),
-    ),
-    ids=("another origin", "a scenario edited since the save"),
-)
-def test_resume_refuses_a_save_that_is_not_this_game(
-    tmp_path: Path, change: dict[str, object], message: str
-) -> None:
+def test_resume_refuses_a_save_that_is_not_this_game(tmp_path: Path) -> None:
     game = session(tmp_path)
-    SaveStore(tmp_path).write(KEY.save_id, game.state.model_copy(update=change).validated())
+    other = game.state.model_copy(update={"character_id": "someone-else"}).validated()
+    SaveStore(tmp_path).write(KEY.save_id, other)
 
-    with pytest.raises(Refusal, match=message):
+    with pytest.raises(Refusal, match="save is 'whispering-vault--someone-else'"):
         session(tmp_path)
 
 

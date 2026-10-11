@@ -131,7 +131,7 @@ class Runtime:
             state = engine.begin(key.scenario_id, scenario, character)
         else:
             state = engine.restore(saved)
-            check_resumes(state, key.save_id, scenario.description)
+            check_resumes(state, key.save_id)
         return GameSession(
             key=key,
             scenario=scenario,
@@ -146,7 +146,7 @@ class Runtime:
             illustrator=Illustrator(
                 live_settings=self.live_settings,
                 saves=self.store.media_dir(key.save_id),
-                style=scenario.description.art_style or engine.art_style,
+                style=state.scenario_description.art_style or engine.art_style,
                 icon_dirs=(
                     self.library.scenario_folder(key.scenario_id) / ICON_DIR,
                     self.library.character_folder(key.character_id) / ICON_DIR,

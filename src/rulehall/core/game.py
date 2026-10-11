@@ -32,11 +32,6 @@ class ScenarioDescription(Frozen):
     scope: str = Field(min_length=1)
     art_style: str = ""
 
-    def check_drift(self, other: Self) -> None:
-        fields = ScenarioDescription.model_fields
-        if drifted := [name for name in fields if getattr(self, name) != getattr(other, name)]:
-            raise Refusal(f"save scenario differs from the one on disk in: {', '.join(drifted)}")
-
 
 class PersonHeader(Loose):
     name: str
