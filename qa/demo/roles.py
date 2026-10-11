@@ -15,7 +15,7 @@ from pydantic import JsonValue
 from rulehall.app.role_prompts import OPENING_NARRATION
 from rulehall.app.turn import Turn
 from rulehall.config import Role
-from rulehall.core.log import Line
+from rulehall.core.narration import Line
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Frozen, Refusal
 

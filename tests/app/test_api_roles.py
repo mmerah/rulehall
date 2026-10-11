@@ -16,7 +16,7 @@ from rulehall.app.submission import SUBMIT, Submissions
 from rulehall.app.turn import UNDIRECTED, Turn
 from rulehall.config import LiveSettings, RoleConfig, RoleSettings
 from rulehall.core.prompt import Prompt
-from rulehall.core.tools import MasterTool
+from rulehall.core.tools import ToolSpec
 from rulehall.core.validation import Refusal
 
 CHANGE_TAGS = ENGINES_BUILT[LONER4E].tools["change_tags"]
@@ -30,7 +30,7 @@ _, STATE = initialized()
 class _Tools(Turn):
     calls: list[tuple[str, JsonValue]] = field(default_factory=list)
 
-    def published_tools(self) -> tuple[MasterTool, ...]:
+    def published_tools(self) -> tuple[ToolSpec, ...]:
         return (CHANGE_TAGS, DIRECT)
 
     def call_tool(self, name: str, arguments: str | dict[str, JsonValue]) -> str:

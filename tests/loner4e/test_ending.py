@@ -20,7 +20,7 @@ from rulehall.core.decisions import PlayerInput
 from rulehall.core.stores import Library
 from rulehall.core.validation import Refusal
 from rulehall.engines.loner4e.panels import END_ADVENTURE, OWN_ENDING_PROMPT
-from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.loner4e.sheet import Loner4ePerson
 from rulehall.engines.loner4e.world import Loner4eGame
 from rulehall.engines.sheet import PLAYER_ID
 
@@ -111,7 +111,7 @@ async def test_the_confirmed_end_grows_the_sheet_writes_the_living_world_and_wri
     assert card.startswith("The Living World\nMara: trusts him now.")
     written = table.runtime.library.read_character("mira", ENGINE.id, ENGINE.character_model)
     assert written == table.session.character
-    assert isinstance(written.person, Loner4eEntity)
+    assert isinstance(written.person, Loner4ePerson)
     assert "Patient Watcher" in written.person.tagged("skill")
     assert written.person.living_world == [
         "Mara: trusts him now.",
@@ -164,7 +164,7 @@ async def test_a_living_world_that_fails_twice_still_waits_on_its_write(tmp_path
 
     assert table.state.pending is not None
     assert table.state.pending.kind == "living-world"
-    assert table.session.player_view().moves == ()
+    assert table.session.player_view().standing_options == ()
 
 
 def test_no_scene_closes_while_the_end_waits_and_an_ended_game_offers_no_option() -> None:
@@ -175,7 +175,7 @@ def test_no_scene_closes_while_the_end_waits_and_an_ended_game_offers_no_option(
     assert "adventure is ending" in refused(ENGINE, draft, "close_scene", reason="resolved")
     draft.world.ended = True
     draft.world.frame.next = "quiet"
-    assert ENGINE.moves(draft) == ()
+    assert ENGINE.standing_options(draft) == ()
 
 
 def test_the_growth_after_a_closed_scene_writes_a_nemesis_and_rewords_the_concept() -> None:

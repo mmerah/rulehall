@@ -2,7 +2,7 @@ from typing import Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.decisions import DecisionOption
+from rulehall.core.decisions import Option
 from rulehall.core.prompt import Sections
 from rulehall.core.validation import Slug, slugs
 from rulehall.engines.packs import (
@@ -52,10 +52,10 @@ class Loner4eCastEntry(CastEntry):
 
 
 class Loner4ePack(CastPack[Loner4eCastEntry]):
-    concepts: tuple[DecisionOption, ...] = Field(min_length=1)
-    skills: tuple[DecisionOption, ...] = Field(min_length=1)
-    frailties: tuple[DecisionOption, ...] = Field(min_length=1)
-    gear: tuple[DecisionOption, ...] = Field(min_length=1)
+    concepts: tuple[Option, ...] = Field(min_length=1)
+    skills: tuple[Option, ...] = Field(min_length=1)
+    frailties: tuple[Option, ...] = Field(min_length=1)
+    gear: tuple[Option, ...] = Field(min_length=1)
     spends_luck: bool = False
 
     def table_sections(self) -> Sections:
@@ -110,7 +110,7 @@ class Loner4eHead(PackHead):
             ids = slugs((row.name for row in rows), taken)
             taken += ids
             fields[field] = tuple(
-                DecisionOption(id=row_id, name=row.name, brief=row.brief)
+                Option(id=row_id, name=row.name, brief=row.brief)
                 for row_id, row in zip(ids, rows, strict=True)
             )
         return fields

@@ -3,20 +3,20 @@ from functools import partial
 from pathlib import Path
 from random import Random
 
-from rulehall.core.creation import CreationStep, Picks, find_option
-from rulehall.core.decisions import ActionOption, DecisionOption
+from rulehall.core.creation import CreationStep, Picks
+from rulehall.core.decisions import ActionOption, Option, find_option, unique_options
 from rulehall.core.facts import Fact, roll
 from rulehall.core.game import AnyCharacter, AnyScenario, Character, RoleAnswer, WorldsmithRequest
 from rulehall.core.log import Voice
+from rulehall.core.narration import NarratorView
 from rulehall.core.prompt import Sections, lines_of, ref_of, section_if
 from rulehall.core.tools import action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
-from rulehall.core.views import NarratorView, Panel, Rows
+from rulehall.core.views import Panel, Rows
 from rulehall.engines.args import Words
 from rulehall.engines.bases.scenes.engine import SceneEngine
 from rulehall.engines.engine import RequestHandler, Resolution, Revealing
 from rulehall.engines.hiring import HIRE_PENDING, HIRE_UNWRITTEN, Hiring, signed_on
-from rulehall.engines.packs import unique_options
 from rulehall.engines.panels import party_panel
 from rulehall.engines.sheet import PLAYER_ID, joined
 from rulehall.engines.twentyfourxx.args import (
@@ -54,7 +54,7 @@ from rulehall.engines.twentyfourxx.panels import (
     commit_decision,
     crew_rows,
     job_panel,
-    look_again_move,
+    look_again_option,
     newcomer_decision,
     raise_decision,
     sheet_panel,
@@ -190,8 +190,8 @@ class TwentyFourXXEngine(
         if draft.pending is None and draft.request is None and draft.world.raise_owed:
             draft.pending = raise_decision(draft.world.player.require_sheet())
 
-    def moves(self, state: TwentyFourXXGame, /) -> tuple[ActionOption, ...]:
-        return (MOVE_ON, *look_again_move(state.world))
+    def standing_options(self, state: TwentyFourXXGame, /) -> tuple[ActionOption, ...]:
+        return (MOVE_ON, *look_again_option(state.world))
 
     def hire_guidance(self, draft: TwentyFourXXGame) -> str:
         specialties, origins = self._offered(draft.pack_id)
@@ -543,7 +543,7 @@ class TwentyFourXXEngine(
             lambda proposal: check_newcomer(proposal, world),
             guidance=self.hire_guidance(draft),
         )
-        world.hear(answer.name, answer.brief)
+        world.meet_people_named(answer.name, answer.brief)
         newcomer = Crewmate(
             id=PLAYER_ID,
             name=answer.name,
@@ -657,7 +657,7 @@ def _numbered(picks: Picks, prefix: str) -> tuple[str, ...]:
     return tuple(picks[key] for key in numbered if key in picks)
 
 
-def _chosen[T: DecisionOption](options: Sequence[T], answer: str, what: str) -> T:
+def _chosen[T: Option](options: Sequence[T], answer: str, what: str) -> T:
     folded = answer.casefold()
     chosen = next(
         (option for option in options if folded in (option.id, option.name.casefold())), None
@@ -668,7 +668,7 @@ def _chosen[T: DecisionOption](options: Sequence[T], answer: str, what: str) -> 
     return chosen
 
 
-def _chosen_if_offered[T: DecisionOption](options: Sequence[T], answer: str, what: str) -> T | None:
+def _chosen_if_offered[T: Option](options: Sequence[T], answer: str, what: str) -> T | None:
     if options:
         return _chosen(options, answer, what)
     if answer:

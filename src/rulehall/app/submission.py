@@ -8,7 +8,7 @@ from pydantic import BaseModel, JsonValue
 
 from rulehall.core.answer_repair import parse_with_repairs
 from rulehall.core.game import Check
-from rulehall.core.tools import MasterTool, ToolSurface
+from rulehall.core.tools import ToolSpec, ToolSurface
 from rulehall.core.validation import Refusal, decode
 
 LOGGER = logging.getLogger(__name__)
@@ -37,8 +37,8 @@ class Submission[T: BaseModel]:
     def nudge(self) -> str:
         return UNSUBMITTED
 
-    def published_tools(self) -> tuple[MasterTool, ...]:
-        return (MasterTool(SUBMIT, SUBMIT_DESCRIPTION, self.model),)
+    def published_tools(self) -> tuple[ToolSpec, ...]:
+        return (ToolSpec(SUBMIT, SUBMIT_DESCRIPTION, self.model),)
 
     def call_tool(self, name: str, arguments: str | dict[str, JsonValue]) -> str:
         if self.accepted is not None:

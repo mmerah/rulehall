@@ -256,7 +256,7 @@ def waiting_on_player(page: Page) -> Locator:
 
 
 def choose(page: Page, name: str) -> None:
-    start_turn(decision(page).locator(".game-moves button", has_text=name).first)
+    start_turn(decision(page).locator(".game-options button", has_text=name).first)
     wait_idle(page)
 
 
@@ -289,8 +289,8 @@ def cut_names(page: Page) -> list[str]:
     )
 
 
-def move(page: Page, name: str) -> Locator:
-    return page.locator(".game-moves button.game-choice", has_text=name)
+def option(page: Page, name: str) -> Locator:
+    return page.locator(".game-options button.game-choice", has_text=name)
 
 
 def wait_working(page: Page, timeout: float = 5) -> bool:
@@ -315,7 +315,7 @@ def submit(page: Page, text: str, *, enter: bool = False, wait: bool = True) -> 
 
 
 def start_turn(target: Locator) -> bool:
-    """Click a move or an option; returns whether the server took a turn."""
+    """Click an option; returns whether the server took a turn."""
     started = time.monotonic()
     target.click()
     return wait_started(started)
@@ -331,7 +331,7 @@ def bubbles(page: Page) -> list[str]:
 
 def reach_breather(page: Page, tries: int = 8) -> bool:
     """Close Loner scenes until the transition rolls a quiet one; the dice are seeded per game."""
-    if move(page, "Take the breather").count():
+    if option(page, "Take the breather").count():
         return True
     return bool(close_until(page, "quiet", tries))
 
@@ -339,7 +339,7 @@ def reach_breather(page: Page, tries: int = 8) -> bool:
 def close_until(page: Page, wanted: str, tries: int = 12) -> str:
     """Close Loner scenes until the close card names `wanted`, taking each breather on the way."""
     for attempt in range(tries):
-        if move(page, "Take the breather").count():
+        if option(page, "Take the breather").count():
             take_breather(page, f'I rest ({attempt}).\n!direct text="He rests."')
         submit(page, f'Onward ({attempt}).\n!close_scene reason=resolved\n!direct text="On."')
         wait_idle(page, timeout=60)
@@ -362,19 +362,19 @@ def text(page: Page, label: str, value: str) -> None:
 
 
 def use_move(page: Page, name: str) -> None:
-    start_turn(move(page, name))
+    start_turn(option(page, name))
     wait_idle(page, timeout=60)
 
 
-def send_move(page: Page, name: str, words: str) -> bool:
+def send_option(page: Page, name: str, words: str) -> bool:
     if name not in send(page).inner_text():
-        move(page, name).click()
+        option(page, name).click()
         send(page).filter(has_text=name).wait_for()
     return submit(page, words)
 
 
 def take_breather(page: Page, words: str) -> None:
-    send_move(page, "Take the breather", words)
+    send_option(page, "Take the breather", words)
     # The quiet scene's write and the aim's own turn run back to back: wait for the aim's turn.
     aim = words.splitlines()[0]
     deadline = time.time() + 60

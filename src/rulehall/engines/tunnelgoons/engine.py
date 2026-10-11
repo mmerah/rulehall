@@ -2,7 +2,7 @@ from pathlib import Path
 from random import Random
 
 from rulehall.core.creation import CreationStep, Picks
-from rulehall.core.decisions import DecisionOption
+from rulehall.core.decisions import Option
 from rulehall.core.facts import Fact, roll
 from rulehall.core.game import AnyCharacter, Character
 from rulehall.core.log import Voice
@@ -32,8 +32,8 @@ from rulehall.engines.tunnelgoons.world import (
 )
 from rulehall.engines.tunnelgoons.worldsmith import HIRE_GUIDANCE, HIRING, WORLDSMITH_GUIDANCE
 
-POINT_OPTIONS: tuple[DecisionOption, ...] = tuple(
-    DecisionOption(id=str(points), name=str(points)) for points in range(ABILITY_POINTS + 1)
+POINT_OPTIONS: tuple[Option, ...] = tuple(
+    Option(id=str(points), name=str(points)) for points in range(ABILITY_POINTS + 1)
 )
 
 

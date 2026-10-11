@@ -2,7 +2,7 @@ import pytest
 from support.golden import FIXTURES, golden_json, golden_schema
 from support.table import ENGINE_IDS, game
 
-from rulehall.core.log import Narration
+from rulehall.core.narration import Narration
 from rulehall.core.validation import EngineId
 
 

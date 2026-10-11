@@ -6,10 +6,11 @@ from typing import Any
 from rulehall.core.decisions import ActionOption
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyCharacter, AnyScenario, Game, RoleAnswer, WorldsmithRequest
+from rulehall.core.narration import NarratorView
 from rulehall.core.prompt import Sections, lines_of, render_log, section_if
 from rulehall.core.tools import action, tool
 from rulehall.core.validation import Refusal, Slug
-from rulehall.core.views import NarratorView, Panel
+from rulehall.core.views import Panel
 from rulehall.engines.args import Words
 from rulehall.engines.bases.maps.args import (
     ELSEWHERE,
@@ -120,7 +121,7 @@ class MapEngine[P: Dweller, W: MapWorld[Any], K: Pack, R: RegionProposal[Any]](
         carrying = ", ".join(item.name for item in world.carried(world.player.id))
         return view.model_copy(update={"sheet": (*view.sheet, ("Carrying", carrying or "nothing"))})
 
-    def moves(self, state: Game[W], /) -> tuple[ActionOption, ...]:
+    def standing_options(self, state: Game[W], /) -> tuple[ActionOption, ...]:
         return (MORE_MAP,) if state.world.at_map_edge() else ()
 
     def view_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]:

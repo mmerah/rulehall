@@ -125,7 +125,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
     def apply_opening_extras(self, proposal: TwentyFourXXSceneProposal) -> None:
         self.job = proposal.job
         self.ship_at = proposal.ship_at or self.scene.location
-        self.hear(self.job)
+        self.meet_people_named(self.job)
         self.refuse_unmet_names(self.job)
 
     def scene_lines(self) -> str:
@@ -343,14 +343,14 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
             other.line(detail=LET_GO if self.was_let_go(other) else "") for other in self.others()
         )
 
-    def hear(self, *texts: str) -> None:
+    def meet_people_named(self, *texts: str) -> None:
         hidden = self.hidden()
         for person in unmet_people_named("\n".join(texts), self.people()):
             if person.id not in hidden:
                 person.known = True
 
     def enter_if_stranger(self, entity_id: Slug, /) -> list[Fact]:
-        return [] if self.find_entity(entity_id) is not None else self.enter(entity_id, None)
+        return [] if self.find_by_id_or_name(entity_id) is not None else self.enter(entity_id, None)
 
     def require_no_job(self) -> None:
         if self.job:

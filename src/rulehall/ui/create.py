@@ -14,8 +14,8 @@ from pydantic import TypeAdapter
 
 from rulehall.app.catalog import SavedGameKey
 from rulehall.app.runtime import Runtime
-from rulehall.core.creation import CreationStep, drop_stale, find_option
-from rulehall.core.decisions import DecisionOption
+from rulehall.core.creation import CreationStep, drop_stale
+from rulehall.core.decisions import Option, find_option
 from rulehall.core.documents import SOURCE_SUFFIXES
 from rulehall.core.game import ScenarioDescription
 from rulehall.core.log import Voice
@@ -441,7 +441,7 @@ def _append_help(field: ui.input | ui.select, text: str) -> None:
 
 
 def _pack_select(
-    offered: tuple[DecisionOption, ...],
+    offered: tuple[Option, ...],
     chosen_id: Slug,
     on_change: Callable[[ValueChangeEventArguments[str]], None],
 ) -> None:

@@ -12,9 +12,9 @@ from drive import (
     clean,
     composer,
     log,
-    move,
+    option,
     run,
-    send_move,
+    send_option,
     submit,
     wait_idle,
 )
@@ -105,7 +105,7 @@ def body(s: Session) -> None:
     closed = [card for card in cards(page) if "Scene closes" in card]
     s.check(bool(closed), f"no close card: {cards(page)[-3:]}")
     handed = "QA Scene" in clean(page.inner_text(".game-scene")) or (
-        move(page, "Take the breather").count() == 1
+        option(page, "Take the breather").count() == 1
     )
     s.check(handed, f"the close handed over nothing: {closed}")
     s.shot(page, "loner-close")
@@ -130,20 +130,21 @@ def body(s: Session) -> None:
 
     # The whole authored map is walked: More map is offered, and pushing on asks the worldsmith.
     text = clean(page.inner_text("body"))
-    offered = move(page, "More map")
-    labels = [clean(t) for t in page.locator(".game-moves button").all_inner_texts()]
-    s.note(f"goons moves: {labels}")
+    offered = option(page, "More map")
+    labels = [clean(t) for t in page.locator(".game-options button").all_inner_texts()]
+    s.note(f"goons options: {labels}")
     s.check(offered.count() == 1, f"no More map button once the map ran out: {text[-400:]}")
     if offered.count() == 1:
         before = len([entry for entry in log() if entry["role"] == "worldsmith"])
         s.check(
-            send_move(page, "More map", "Deeper, past the rubble."), "More map never started a turn"
+            send_option(page, "More map", "Deeper, past the rubble."),
+            "More map never started a turn",
         )
         wait_idle(page, timeout=60)
         smiths = len([entry for entry in log() if entry["role"] == "worldsmith"]) - before
         s.check(smiths == 1, f"pushing on spawned the worldsmith {smiths} times")
         s.check(
-            move(page, "More map").count() == 0,
+            option(page, "More map").count() == 0,
             "the More map button stayed after the map was written",
         )
         s.check(

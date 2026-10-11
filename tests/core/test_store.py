@@ -5,7 +5,8 @@ from support.game import character, initialized, scenario
 from support.table import ENGINES_BUILT, LONER4E, NO_SHIPPED, SCENARIO_MODELS, updated
 
 from rulehall.core.facts import Fact
-from rulehall.core.log import Line, LogEntry, partial_lines
+from rulehall.core.log import LogEntry
+from rulehall.core.narration import Line, partial_lines
 from rulehall.core.stores import ENCODING, Library, SaveStore, publish, write_text
 from rulehall.core.validation import EngineId, Refusal
 

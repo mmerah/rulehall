@@ -7,7 +7,7 @@ from typing import ClassVar, Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.decisions import DecisionOption
+from rulehall.core.decisions import Option
 from rulehall.core.prompt import Sections, section_if, sections
 from rulehall.core.stores import read_model
 from rulehall.core.validation import EngineId, Frozen, Refusal, Slug, content_id
@@ -194,13 +194,13 @@ class PackSet[K: Pack]:
         srd = self.srd()
         return (srd,) if pack_id == SRD_PACK else (srd, self.require_pack(pack_id))
 
-    def options(self) -> tuple[DecisionOption, ...]:
+    def options(self) -> tuple[Option, ...]:
         rest = tuple(
-            DecisionOption(id=pack_id, name=pack.name)
+            Option(id=pack_id, name=pack.name)
             for pack_id, pack in self.installed.items()
             if pack_id != SRD_PACK
         )
-        return (DecisionOption(id=SRD_PACK, name=self.srd().name), *rest)
+        return (Option(id=SRD_PACK, name=self.srd().name), *rest)
 
     def guidance(
         self,
@@ -222,13 +222,6 @@ class PackSet[K: Pack]:
 
 def cast_entry_line(name: str, brief: str, *fields: tuple[str, str]) -> str:
     return "; ".join((f"{name} — {brief}", *(f"{key}: {value}" for key, value in fields if value)))
-
-
-def unique_options[T: DecisionOption](rows: Iterable[T]) -> tuple[T, ...]:
-    offered: dict[Slug, T] = {}
-    for row in rows:
-        offered.setdefault(row.id, row)
-    return tuple(offered.values())
 
 
 def bullets(title: str, lines: Iterable[str]) -> Sections:

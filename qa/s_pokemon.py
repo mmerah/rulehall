@@ -21,11 +21,11 @@ from drive import (
     decision,
     drawer_text,
     log,
-    move,
     notifications,
+    option,
     run,
     select,
-    send_move,
+    send_option,
     start_turn,
     submit,
     text,
@@ -298,8 +298,8 @@ def play_battle(s: Session, page: Page, pick: str, shot: str) -> None:
 
 
 def more_map(s: Session, page: Page, words: str, asked: str) -> tuple[str, str]:
-    s.check(move(page, "More map").count() == 1, f"no More map offered before: {words}")
-    send_move(page, "More map", words)
+    s.check(option(page, "More map").count() == 1, f"no More map offered before: {words}")
+    send_option(page, "More map", words)
     wait_idle(page, timeout=60)
     smith = [entry for entry in log() if entry["role"] == "worldsmith"][-1]
     s.check(asked in smith["prompt"], f"the region request did not ask: {asked}")

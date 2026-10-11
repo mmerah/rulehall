@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Self
 
 from rulehall.app.illustration import ICON_DIR, find_cover, find_image
-from rulehall.core.game import AnyGame, AnyScenario
+from rulehall.core.game import AnyGame, AnyScenario, for_engine_of
 from rulehall.core.stores import Library, SaveStore
-from rulehall.core.validation import EngineId, Refusal, Slug, for_engine_of
+from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.sheet import PLAYER_ID
 

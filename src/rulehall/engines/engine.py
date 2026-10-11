@@ -17,6 +17,7 @@ from rulehall.core.game import (
     AnyScenario,
     Character,
     Check,
+    EngineHeader,
     Game,
     RoleAnswer,
     Scenario,
@@ -24,11 +25,11 @@ from rulehall.core.game import (
     WorldsmithRequest,
 )
 from rulehall.core.log import Cause, Chapter, LogEntry, SpokenLine, Voice
+from rulehall.core.narration import NarratorView
 from rulehall.core.prompt import Prompt, Sections, sections
 from rulehall.core.stores import read_cached_text, read_model
-from rulehall.core.tools import MasterTool, action, marked_methods, player_facing_texts, tool
+from rulehall.core.tools import ToolSpec, action, marked_methods, player_facing_texts, tool
 from rulehall.core.validation import (
-    EngineHeader,
     EngineId,
     Refusal,
     Slug,
@@ -37,16 +38,7 @@ from rulehall.core.validation import (
     parse_strict_json,
     slug,
 )
-from rulehall.core.views import (
-    Look,
-    MapView,
-    NarratorView,
-    Panel,
-    PlayerView,
-    Rows,
-    Sprite,
-    Surface,
-)
+from rulehall.core.views import Look, MapView, Panel, PlayerView, Rows, Sprite, Surface
 from rulehall.engines.args import Direct, JoinParty, Kill, LeaveParty, Reveal
 from rulehall.engines.packs import (
     Pack,
@@ -124,9 +116,9 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     packs: PackSet[K]
     instructions: str
     look: Look
-    tools: dict[str, MasterTool]
-    actions: dict[str, MasterTool]
-    edits: dict[str, MasterTool]
+    tools: dict[str, ToolSpec]
+    actions: dict[str, ToolSpec]
+    edits: dict[str, ToolSpec]
     worldsmith_role: str
     opening_sections: Sections
     opening_intent: str
@@ -194,18 +186,18 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         self.packs.require_joined(state.pack_id, state.extra_pack_ids)
         return state
 
-    def published(self, _state: Game[W], /) -> tuple[MasterTool, ...]:
+    def offered_tools(self, _state: Game[W], /) -> tuple[ToolSpec, ...]:
         return tuple(self.tools.values())
 
     def call_tool(self, draft: Game[W], name: str, raw: JsonValue, rng: Random) -> tuple[Fact, ...]:
         found = next(
-            (candidate for candidate in self.published(draft) if candidate.name == name), None
+            (candidate for candidate in self.offered_tools(draft) if candidate.name == name), None
         )
         if found is None:
             raise Refusal(f"{name!r} is not a tool now")
         args = parse_with_repairs(found.args, raw)
         texts = tuple(player_facing_texts(args))
-        draft.world.hear(*texts)
+        draft.world.meet_people_named(*texts)
         draft.world.refuse_unmet_names(*texts)
         return self._run_marked(draft, name, args, rng)
 
@@ -218,7 +210,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         method: Callable[[Game[W], BaseModel, Random], None] = getattr(self, name)
         method(draft, args, rng)
 
-    def moves(self, _state: Game[W], /) -> tuple[ActionOption, ...]:
+    def standing_options(self, _state: Game[W], /) -> tuple[ActionOption, ...]:
         return ()
 
     def allows_text(self, _state: Game[W], /) -> bool:
@@ -254,7 +246,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
             decision=pending,
             ending=self.ending(state),
             map=header.map_view,
-            moves=self.moves(state) if pending is None else (),
+            standing_options=self.standing_options(state) if pending is None else (),
             hint=self.play_hint.format(name=player.name),
             allows_text=self.allows_text(state) if pending is None else pending.allows_text,
         )
@@ -400,7 +392,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
             context=self.context_text(draft),
         )
         draft.chapters[-1].entries.append(entry)
-        draft.world.hear(*(line.text for line in lines))
+        draft.world.meet_people_named(*(line.text for line in lines))
         return self.accept(draft)
 
     def before_record(self, draft: Game[W], /) -> None:  # noqa: B027
@@ -507,7 +499,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         return tuple(method(draft, args, rng))
 
     def _require_offered(
-        self, marked: Mapping[str, MasterTool], chosen: ActionOption
+        self, marked: Mapping[str, ToolSpec], chosen: ActionOption
     ) -> tuple[str, BaseModel]:
         if chosen.refusal:
             raise Refusal(f"{chosen.name}: {chosen.refusal}")

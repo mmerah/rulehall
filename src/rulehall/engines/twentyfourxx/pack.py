@@ -2,7 +2,7 @@ from typing import Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.decisions import DecisionOption
+from rulehall.core.decisions import Option
 from rulehall.core.prompt import Sections, section_if
 from rulehall.core.validation import check_unique, slugs
 from rulehall.engines.packs import (
@@ -20,15 +20,15 @@ from rulehall.engines.twentyfourxx.rules import SkillDie
 from rulehall.engines.twentyfourxx.sheet import Kit
 
 
-class SkillChoice(DecisionOption):
+class SkillChoice(Option):
     skills: dict[str, SkillDie]
 
 
-class Weapon(DecisionOption):
+class Weapon(Option):
     kit: Kit
 
 
-class Specialty(DecisionOption):
+class Specialty(Option):
     skills: dict[str, SkillDie]
     choice: tuple[SkillChoice, ...] = ()
     kit: tuple[Kit, ...] = ()
@@ -45,11 +45,11 @@ class Specialty(DecisionOption):
         return f"{self.name}: {'; '.join(part for part in parts if part)}"
 
 
-class Body(DecisionOption):
+class Body(Option):
     kit: Kit | None = None
 
 
-class Origin(DecisionOption):
+class Origin(Option):
     increases: int = 0
     invents: int = 0
     choice: tuple[Body, ...] = ()
@@ -90,7 +90,7 @@ class TwentyFourXXCastEntry(CastEntry):
 
 
 class TwentyFourXXPack(CastPack[TwentyFourXXCastEntry]):
-    skills: tuple[DecisionOption, ...] = ()
+    skills: tuple[Option, ...] = ()
     specialties: tuple[Specialty, ...] = ()
     origins: tuple[Origin, ...] = ()
     starting_kit: tuple[Kit, ...] = ()

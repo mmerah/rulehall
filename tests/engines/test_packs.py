@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from support.table import ENGINES_BUILT, LONER4E
 
-from rulehall.core.decisions import DecisionOption
+from rulehall.core.decisions import Option
 from rulehall.core.stores import ENCODING
 from rulehall.core.validation import EngineId, Refusal, parse
 from rulehall.engines.loner4e.pack import Loner4ePack
@@ -23,10 +23,10 @@ def _loner4e_pack(name: str) -> Loner4ePack:
         name=name,
         origin="",
         license="",
-        concepts=(DecisionOption(id="concept", name="Concept"),),
-        skills=(DecisionOption(id="skill", name="Skill"),),
-        frailties=(DecisionOption(id="frailty", name="Frailty"),),
-        gear=(DecisionOption(id="gear", name="Gear"),),
+        concepts=(Option(id="concept", name="Concept"),),
+        skills=(Option(id="skill", name="Skill"),),
+        frailties=(Option(id="frailty", name="Frailty"),),
+        gear=(Option(id="gear", name="Gear"),),
     )
 
 

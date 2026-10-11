@@ -2,7 +2,7 @@ from pathlib import Path
 from random import Random
 
 from rulehall.core.creation import CreationStep, Picks
-from rulehall.core.decisions import DecisionOption
+from rulehall.core.decisions import Option
 from rulehall.core.facts import Fact, roll
 from rulehall.core.game import AnyCharacter, AnyScenario, Character
 from rulehall.core.log import Voice
@@ -122,7 +122,7 @@ class JourneyEngine(
                 name=f"Skill rank {number}",
                 help=SHEET_HELP["Skills"],
                 options=tuple(
-                    DecisionOption(id=skill, name=skill.title(), brief=SKILL_USES[skill])
+                    Option(id=skill, name=skill.title(), brief=SKILL_USES[skill])
                     for skill in SKILLS
                     if ranks[: number - 1].count(skill) < RANKS_PER_SKILL_AT_CREATION
                 ),
@@ -130,11 +130,11 @@ class JourneyEngine(
             for number in range(1, RANKS_AT_CREATION + 1)
         )
         starters = tuple(
-            DecisionOption(id=species_id, name=dex().require_species(species_id).name)
+            Option(id=species_id, name=dex().require_species(species_id).name)
             for species_id in self.packs.require_pack(pack_id).starters
         )
         challenges = tuple(
-            DecisionOption(id=challenge, name=challenge.title(), brief=brief)
+            Option(id=challenge, name=challenge.title(), brief=brief)
             for challenge, brief in CHALLENGES.items()
         )
         return (

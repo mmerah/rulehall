@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, JsonValue
 from rulehall.app.http_client import post, stream_chat_completion
 from rulehall.config import ProviderConfig, Role, RoleConfig
 from rulehall.core.prompt import Prompt
-from rulehall.core.tools import MasterTool, ToolSurface
+from rulehall.core.tools import ToolSpec, ToolSurface
 from rulehall.core.validation import Loose, Refusal, parse_json
 
 LOGGER = logging.getLogger(__name__)
@@ -173,7 +173,7 @@ def _request(config: RoleConfig, messages: list[JsonValue]) -> dict[str, JsonVal
     return {"model": config.model, "messages": messages, "reasoning_effort": config.effort}
 
 
-def _declared(tool: MasterTool) -> JsonValue:
+def _declared(tool: ToolSpec) -> JsonValue:
     return {
         "type": "function",
         "function": {

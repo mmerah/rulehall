@@ -2,7 +2,7 @@ from rulehall.core.validation import Slug
 from rulehall.core.views import MapView
 
 type Cell = tuple[int, int]
-type Line = tuple[Cell, Cell]
+type Segment = tuple[Cell, Cell]
 
 MAP_COLUMNS = 3
 # A room's half extent in cells: the box the chart draws around a cell's centre.
@@ -32,7 +32,7 @@ def map_cells(view: MapView, remembered: dict[Slug, Cell]) -> dict[Slug, Cell]:
         linked[edge.from_id].append(edge.to_id)
         linked[edge.to_id].append(edge.from_id)
     cells = {node.id: remembered[node.id] for node in view.nodes if node.id in remembered}
-    lines = [(cells[a], cells[b]) for a in cells for b in linked[a] if b in cells and a < b]
+    segments = [(cells[a], cells[b]) for a in cells for b in linked[a] if b in cells and a < b]
     for node in view.nodes:
         if node.id in cells:
             continue
@@ -54,16 +54,18 @@ def map_cells(view: MapView, remembered: dict[Slug, Cell]) -> dict[Slug, Cell]:
             for column in range(MAP_COLUMNS)
             if (column, row) not in taken
         ]
-        cells[node.id] = min(free, key=lambda cell: _cost(cell, anchor, placed, taken, lines))
-        lines += [(cells[node.id], other) for other in placed]
+        cells[node.id] = min(free, key=lambda cell: _cost(cell, anchor, placed, taken, segments))
+        segments += [(cells[node.id], other) for other in placed]
     return cells
 
 
-def _cost(cell: Cell, anchor: Cell, placed: list[Cell], taken: set[Cell], lines: list[Line]) -> int:
-    new_lines = [(cell, other) for other in placed]
-    through = sum(_passes_through(line, room) for line in new_lines for room in taken)
-    through += sum(_passes_through(line, cell) for line in lines)
-    crossings = sum(_crosses(new, old) for new in new_lines for old in lines)
+def _cost(
+    cell: Cell, anchor: Cell, placed: list[Cell], taken: set[Cell], segments: list[Segment]
+) -> int:
+    new_segments = [(cell, other) for other in placed]
+    through = sum(_passes_through(segment, room) for segment in new_segments for room in taken)
+    through += sum(_passes_through(segment, cell) for segment in segments)
+    crossings = sum(_crosses(new, old) for new in new_segments for old in segments)
     distance = sum(max(abs(cell[0] - column), abs(cell[1] - row)) for column, row in placed)
     step = (cell[0] - anchor[0], cell[1] - anchor[1])
     preference = PREFERRED_STEPS.index(step) if step in PREFERRED_STEPS else len(PREFERRED_STEPS)
@@ -75,23 +77,23 @@ def _cost(cell: Cell, anchor: Cell, placed: list[Cell], taken: set[Cell], lines:
     )
 
 
-def _passes_through(line: Line, room: Cell) -> bool:
-    (ax, ay), (bx, by) = line
+def _passes_through(segment: Segment, room: Cell) -> bool:
+    (ax, ay), (bx, by) = segment
     x, y = room
-    if room in line or not (
+    if room in segment or not (
         min(ax, bx) - ROOM_HALF_WIDTH <= x <= max(ax, bx) + ROOM_HALF_WIDTH
         and min(ay, by) - ROOM_HALF_HEIGHT <= y <= max(ay, by) + ROOM_HALF_HEIGHT
     ):
         return False
     sides = {
-        _side(line[0], line[1], (x + dx, y + dy))
+        _side(segment[0], segment[1], (x + dx, y + dy))
         for dx in (-ROOM_HALF_WIDTH, ROOM_HALF_WIDTH)
         for dy in (-ROOM_HALF_HEIGHT, ROOM_HALF_HEIGHT)
     }
     return not (sides == {1} or sides == {-1})
 
 
-def _crosses(first: Line, second: Line) -> bool:
+def _crosses(first: Segment, second: Segment) -> bool:
     (a, b), (c, d) = first, second
     if len({a, b, c, d}) < 4:
         return False

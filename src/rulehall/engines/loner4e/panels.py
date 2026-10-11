@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.views import Meter, Panel, PanelRow
 from rulehall.engines.loner4e.rules import DOUBLES_PER_TWIST, SceneKind
-from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.loner4e.sheet import Loner4ePerson
 from rulehall.engines.loner4e.world import Loner4eWorld
 from rulehall.engines.panels import character_panel
 from rulehall.engines.sheet import Gauge
@@ -119,7 +119,7 @@ def scene_panel(world: Loner4eWorld) -> Panel:
     )
 
 
-def loner_moves(world: Loner4eWorld, *, played: bool) -> tuple[ActionOption, ...]:
+def loner_options(world: Loner4eWorld, *, played: bool) -> tuple[ActionOption, ...]:
     frame = world.frame
     if world.end_why:
         return ()
@@ -174,7 +174,7 @@ def _ending_decision(why: str, prompt: str) -> Decision:
     return Decision(kind="ending", prompt=prompt, options=(end_it, PLAY_ON), allows_text=False)
 
 
-def _fight(other: Loner4eEntity) -> ActionOption:
+def _fight(other: Loner4ePerson) -> ActionOption:
     return ActionOption(
         id=f"fight-{other.id}",
         name=f"Fight {other.name}",

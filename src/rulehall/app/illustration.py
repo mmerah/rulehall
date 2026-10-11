@@ -8,9 +8,10 @@ from pathlib import Path
 from rulehall.app.background import BackgroundTasks, Claims
 from rulehall.app.http_client import post
 from rulehall.config import LiveSettings
+from rulehall.core.narration import NarratorView
 from rulehall.core.stores import publish
 from rulehall.core.validation import Loose, Refusal, Slug, parse_json
-from rulehall.core.views import NarratorView, Subject
+from rulehall.core.views import Subject
 
 LOGGER = logging.getLogger(__name__)
 

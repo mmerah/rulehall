@@ -2,7 +2,7 @@ import json
 import re
 import unicodedata
 from collections import Counter
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable
 from typing import Annotated, NewType, cast
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
@@ -26,10 +26,6 @@ class Mutable(BaseModel):
 
 class Loose(BaseModel):
     model_config = ConfigDict(extra="ignore", frozen=True, strict=True)
-
-
-class EngineHeader(Loose):
-    engine_id: EngineId
 
 
 class Refusal(ValueError):
@@ -109,14 +105,6 @@ def decode(raw: str) -> JsonValue:
 def parse_strict_json[T: BaseModel](model: type[T], raw: str) -> T:
     decode(raw)
     return parse_json(model, raw)
-
-
-def for_engine_of[T](raw: str, by_engine: Mapping[EngineId, T]) -> T:
-    engine_id = parse_strict_json(EngineHeader, raw).engine_id
-    found = by_engine.get(engine_id)
-    if found is None:
-        raise Refusal(f"the {engine_id!r} engine is not installed")
-    return found
 
 
 def _refused(broken: ValidationError) -> Refusal:

@@ -92,7 +92,7 @@ class World[P: Person](Mutable):
         if leaked := sorted({person.name for person in named}):
             raise Refusal(f"this names what the player has not met: {leaked}; say it another way")
 
-    def hear(self, *texts: str) -> None:
+    def meet_people_named(self, *texts: str) -> None:
         pass
 
     def die(self, person: P) -> str:

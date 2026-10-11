@@ -10,13 +10,12 @@ from tempfile import mkstemp
 
 from pydantic import BaseModel
 
-from rulehall.core.game import AnyCharacter, AnyGame, AnyScenario, CharacterHeader
+from rulehall.core.game import AnyCharacter, AnyGame, AnyScenario, CharacterHeader, for_engine_of
 from rulehall.core.validation import (
     EngineId,
     Refusal,
     Slug,
     content_id,
-    for_engine_of,
     parse_json,
     parse_strict_json,
 )

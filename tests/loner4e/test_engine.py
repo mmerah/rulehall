@@ -90,21 +90,23 @@ def test_break_away_ends_the_conflict_and_move_on_waits_until_it_is_over() -> No
     _, state = initialized()
     draft = state.draft()
     _ = ENGINE.ask(draft, DUEL, Random(0))
-    assert BREAK_AWAY in ENGINE.moves(draft)
-    assert MOVE_ON not in ENGINE.moves(draft)
+    assert BREAK_AWAY in ENGINE.standing_options(draft)
+    assert MOVE_ON not in ENGINE.standing_options(draft)
 
     _ = ENGINE.play_option(draft, BREAK_AWAY, Random(0))
 
     assert draft.world.opponent_ids == []
     assert BROKE_AWAY in draft.notes
-    assert MOVE_ON in ENGINE.moves(draft)
-    assert BREAK_AWAY not in ENGINE.moves(draft)
+    assert MOVE_ON in ENGINE.standing_options(draft)
+    assert BREAK_AWAY not in ENGINE.standing_options(draft)
 
 
 def test_fight_opens_the_conflict_and_the_lone_opponent_gets_the_next_ask() -> None:
     _, state = initialized()
     draft = state.draft()
-    (fight,) = (move for move in ENGINE.moves(draft) if move.args == {"opponent_id": MARA})
+    (fight,) = (
+        option for option in ENGINE.standing_options(draft) if option.args == {"opponent_id": MARA}
+    )
 
     _ = ENGINE.play_option(draft, fight, Random(0))
     _ = ENGINE.ask(draft, Ask(question="Does he force her back from the door?"), Random(0))

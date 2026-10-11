@@ -17,7 +17,7 @@ from rulehall.app.roles import ProviderRoleRunner, final_message
 from rulehall.app.submission import Submissions
 from rulehall.config import LiveSettings
 from rulehall.core.decisions import PlayerInput
-from rulehall.core.log import Narration
+from rulehall.core.narration import Narration
 from rulehall.core.prompt import Prompt
 from rulehall.core.tools import tool_schema
 from rulehall.core.validation import Frozen, Refusal, Slug

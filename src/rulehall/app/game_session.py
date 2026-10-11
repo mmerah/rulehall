@@ -23,20 +23,14 @@ from rulehall.app.speech import Speaker
 from rulehall.app.submission import Submissions
 from rulehall.app.turn import Turn
 from rulehall.config import LiveSettings, Role
-from rulehall.core.creation import find_option
-from rulehall.core.decisions import ActionOption, PlayerInput
+from rulehall.core.decisions import ActionOption, PlayerInput, find_option
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyCharacter, AnyGame, AnyScenario
-from rulehall.core.log import (
-    Cause,
-    LogEntry,
-    Narration,
-    SpokenLine,
-    partial_lines,
-)
+from rulehall.core.log import Cause, LogEntry, SpokenLine
+from rulehall.core.narration import Narration, NarratorView, partial_lines
 from rulehall.core.stores import Library, SaveStore
 from rulehall.core.validation import Frozen, Refusal, Slug
-from rulehall.core.views import NarratorView, PlayerView, Sprite, Surface
+from rulehall.core.views import PlayerView, Sprite, Surface
 from rulehall.engines.battles import BattleRun, Battling, Transport, in_battle
 from rulehall.engines.engine import AnyEngine, Resolution
 
@@ -50,7 +44,7 @@ NO_WORDS_NOW = "the page takes one of its options now, not words"
 BATTLE_ON = "a battle is on: finish it on the battle screen"
 NOTHING_TO_UNDO = "there is no edit to undo"
 NOT_AN_EDIT = "{name} is not an edit now"
-GAME_OVER = "the game is over ({ending}): it continues only after a restart"
+GAME_OVER_FOR_PLAYER = "the game is over ({ending}): it continues only after a restart"
 
 
 @dataclass(frozen=True, slots=True)
@@ -575,6 +569,6 @@ class Gate:
 
 def require_playable(engine: AnyEngine, state: AnyGame) -> None:
     if (ended := engine.ending(state)) is not None:
-        raise Refusal(GAME_OVER.format(ending=ended.rstrip(".")))
+        raise Refusal(GAME_OVER_FOR_PLAYER.format(ending=ended.rstrip(".")))
     if in_battle(engine, state):
         raise Refusal(BATTLE_ON)

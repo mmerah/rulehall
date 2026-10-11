@@ -22,13 +22,13 @@ from drive import (
     gate_status,
     held,
     log,
-    move,
+    option,
     placeholder,
     reach_breather,
     run,
     scrolled_down,
     send,
-    send_move,
+    send_option,
     shows,
     start_turn,
     submit,
@@ -95,20 +95,20 @@ def body(s: Session) -> None:
     s.check(composer(page).input_value() == "", "composer not cleared after an accepted turn")
 
     # 1b. The player asks the oracle: the card shows their own words, rolled as they wrote them.
-    s.check(move(page, "Ask").is_visible(), "no Ask move in an open scene")
-    move(page, "Ask").click()
+    s.check(option(page, "Ask").is_visible(), "no Ask option in an open scene")
+    option(page, "Ask").click()
     send(page).filter(has_text="Ask").wait_for()
     s.check(
         placeholder(page) == "Type a yes/no question for the dice.",
         f"armed: {placeholder(page)!r}",
     )
-    s.check("Ask" in send(page).inner_text(), "the send is not the armed move")
+    s.check("Ask" in send(page).inner_text(), "the send is not the armed option")
     s.shot(page, "oracle-armed")
-    move(page, "Ask").click()
+    option(page, "Ask").click()
     send(page).filter(has_text="Ask").wait_for(state="detached")
     s.check(placeholder(page) == PLAY_HINT, f"the lit cell did not disarm: {placeholder(page)!r}")
     s.check(
-        send_move(page, "Ask", "Is the abbot's desk unlocked?"),
+        send_option(page, "Ask", "Is the abbot's desk unlocked?"),
         "Ask did not start a turn",
     )
     wait_idle(page)
@@ -163,7 +163,7 @@ def body(s: Session) -> None:
     s.check("# CONFLICT" in master["prompt"], "the master prompt in a conflict shows no CONFLICT")
     lone = [c for c in cards(page) if "Do I drive her to the wall?" in c]
     s.check(bool(lone) and "Luck" in lone[-1], f"the lone opponent got no exchange: {lone}")
-    s.check(move(page, "Move on").count() == 0, "Move on is offered during a conflict")
+    s.check(option(page, "Move on").count() == 0, "Move on is offered during a conflict")
     use_move(page, "Break away")
     s.shot(page, "broke-away")
     s.check(
@@ -250,12 +250,12 @@ def body(s: Session) -> None:
         )
         wait_idle(page)
         s.check(decision(page).count() == 0, "a defeat opened a decision")
-        if move(page, "Move on").count():
+        if option(page, "Move on").count():
             ended = True
             break
     s.check(ended, "no defeat in 30 exchanges")
 
-    # 9b. Move on: the player leaves the scene with a move; the transition rolls.
+    # 9b. Move on: the player leaves the scene with an option; the transition rolls.
     use_move(page, "Move on")
     s.shot(page, "moved-on")
     s.check(
@@ -286,8 +286,8 @@ def body(s: Session) -> None:
         )
     s.check(reach_breather(page), "no breather after eight closes")
     s.shot(page, "breather")
-    s.check(move(page, "Take the breather").count() == 1, "no Take the breather move")
-    s.check(move(page, "Ask").count() == 0, "other moves beside the breather")
+    s.check(option(page, "Take the breather").count() == 1, "no Take the breather option")
+    s.check(option(page, "Ask").count() == 0, "other options beside the breather")
     s.check(
         "Take the breather" in send(page).inner_text(),
         "the breather is not armed on the send",
@@ -320,7 +320,7 @@ def body(s: Session) -> None:
     # played turn asks again with no new die (or, after a quiet roll, the breather is retried).
     submit(page, 'I leave.\n!fail worldsmith\n!close_scene reason=blocked\n!direct text="Out."')
     wait_idle(page, timeout=60)
-    if move(page, "Take the breather").count():
+    if option(page, "Take the breather").count():
         take_breather(page, 'I hide.\n!direct text="He hides."')
     s.shot(page, "unwritten")
     s.check(
@@ -328,7 +328,7 @@ def body(s: Session) -> None:
         f"unwritten card missing: {cards(page)[-2:]}",
     )
     s.check(not composer(page).is_disabled(), "composer stuck after an unwritten scene")
-    if move(page, "Take the breather").count():
+    if option(page, "Take the breather").count():
         take_breather(page, 'I hide again.\n!direct text="He hides."')
     else:
         submit(page, "I wait.\n!none")
@@ -359,7 +359,7 @@ def body(s: Session) -> None:
         s.check("act independently" not in narrated, "the narrator read the ally question")
         if follow_up == "quiet":
             s.check(
-                move(page, "Take the breather").count() == 1,
+                option(page, "Take the breather").count() == 1,
                 "no breather after a quiet meanwhile",
             )
             take_breather(page, 'I lie low.\n!direct text="He lies low."')
@@ -532,7 +532,7 @@ def body(s: Session) -> None:
         "no ending decision",
     )
     s.check(composer(page).is_disabled(), "words can answer the ending decision")
-    s.check(start_turn(move(page, "Play on")), "Play on did not start a turn")
+    s.check(start_turn(option(page, "Play on")), "Play on did not start a turn")
     wait_idle(page)
     s.shot(page, "played-on")
     played_on = decision(page).count() == 0
@@ -574,7 +574,7 @@ def body(s: Session) -> None:
     wait_idle(page, timeout=30)
     s.check("Patient Watcher" in clean(drawer_text(page)), "the restart forgot the growth")
     close_until(page, "Next:", tries=1)
-    if move(page, "Take the breather").count():
+    if option(page, "Take the breather").count():
         take_breather(page, 'I rest.\n!direct text="She rests."')
     carried = [e for e in log() if e["role"] == "worldsmith"][-1]["prompt"]
     s.check(

@@ -36,7 +36,7 @@ from rulehall.core.validation import Frozen, Refusal
 from rulehall.core.views import Surface, require_view
 from rulehall.engines.loner4e.engine import Loner4eEngine
 from rulehall.engines.loner4e.panels import ASK_ORACLE, TAKE_BREATHER
-from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.loner4e.sheet import Loner4ePerson
 from rulehall.engines.loner4e.world import Loner4eGame
 from rulehall.engines.pokemon.journey.world import JourneyGame
 from rulehall.engines.sheet import PLAYER_ID
@@ -337,7 +337,9 @@ async def test_a_paid_look_again_is_the_turn_s_own_facts_in_its_log_entry(tmp_pa
         table, "I ask around for work.", tool_call("job", verb="find", where="Docks")
     )
     (look_again,) = (
-        move for move in table.session.player_view().moves if move.action_name == "find_again"
+        option
+        for option in table.session.player_view().standing_options
+        if option.action_name == "find_again"
     )
 
     state = await play_turn(table, PlayerInput(option_id=look_again.id))
@@ -445,7 +447,7 @@ async def test_the_debrief_prompt_holds_no_hidden_entity_and_no_untold_fact(
     tmp_path: Path,
 ) -> None:
     table = open_game(tmp_path)
-    hidden = Loner4eEntity(
+    hidden = Loner4ePerson(
         id="the-lurker", name="The Lurker", voice="other", brief="It waits.", known=False
     )
     draft = with_entity(table.state, hidden).draft()

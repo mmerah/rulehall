@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from rulehall.core.creation import CreationStep
-from rulehall.core.decisions import DecisionOption
+from rulehall.core.decisions import Option
 from rulehall.core.validation import Slug
 from rulehall.core.views import Meter, Sprite, Tag
 from rulehall.engines.pokemon.dex import Move, Species, avatars
@@ -64,9 +64,7 @@ def trainer_sprite(avatar_id: Slug) -> Sprite:
 
 def look_step() -> CreationStep:
     looks = tuple(
-        DecisionOption(
-            id=avatar_id, name=avatar_id.title(), sprite=str(trainer_sprite(avatar_id).path)
-        )
+        Option(id=avatar_id, name=avatar_id.title(), sprite=str(trainer_sprite(avatar_id).path))
         for avatar_id in avatars().player
     )
     return CreationStep(id=AVATAR, name="Look", options=looks)

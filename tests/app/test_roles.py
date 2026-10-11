@@ -11,7 +11,7 @@ from rulehall.app.roles import ProviderRoleRunner, ask
 from rulehall.app.submission import SUBMIT, UNSUBMITTED, Submission, Submissions
 from rulehall.app.turn import Turn
 from rulehall.config import LiveSettings, Role, RoleConfig
-from rulehall.core.log import Narration
+from rulehall.core.narration import Narration
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal
 

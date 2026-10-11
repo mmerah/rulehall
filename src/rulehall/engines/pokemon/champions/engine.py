@@ -2,7 +2,7 @@ from pathlib import Path
 from random import Random
 
 from rulehall.core.creation import CreationStep, Picks
-from rulehall.core.decisions import ActionOption, DecisionOption
+from rulehall.core.decisions import ActionOption, Option
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyCharacter, AnyScenario, Character
 from rulehall.core.log import Voice
@@ -110,11 +110,10 @@ class ChampionsEngine(
     def creation_steps(self, _pack_id: Slug, _picks: Picks) -> tuple[CreationStep, ...]:
         species = dex().species
         rosters = tuple(
-            DecisionOption(id=roster, name=name, brief=brief)
-            for roster, (name, brief) in ROSTERS.items()
+            Option(id=roster, name=name, brief=brief) for roster, (name, brief) in ROSTERS.items()
         )
         teams = tuple(
-            DecisionOption(
+            Option(
                 id=archetype.archetype_id,
                 name=archetype.name,
                 brief=", ".join(species[each.species_id].name for each in archetype.team.sets),
@@ -245,13 +244,13 @@ class ChampionsEngine(
             practice_panel(world),
         )
 
-    def moves(self, state: ChampionsGame, /) -> tuple[ActionOption, ...]:
+    def standing_options(self, state: ChampionsGame, /) -> tuple[ActionOption, ...]:
         world = state.world
         if not world.match_refusal():
             return (PLAY_NEXT_ROUND,)
         if world.next_event_open():
             return (NEXT_EVENT,)
-        return super().moves(state)
+        return super().standing_options(state)
 
     def surfaces(self, state: ChampionsGame, /) -> tuple[Surface, ...]:
         return (

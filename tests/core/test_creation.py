@@ -2,7 +2,7 @@ import pytest
 from support.table import ENGINES_BUILT, TWENTYFOURXX
 
 from rulehall.core.creation import CreationStep, check_picks, drop_stale
-from rulehall.core.decisions import DecisionOption
+from rulehall.core.decisions import Option
 from rulehall.core.validation import Refusal, Slug
 
 ANDROID: dict[Slug, str] = {
@@ -15,7 +15,7 @@ ANDROID: dict[Slug, str] = {
 STEP = CreationStep(
     id="supplements",
     name="Table sets beyond the SRD",
-    options=(DecisionOption(id="one", name="One"), DecisionOption(id="two", name="Two")),
+    options=(Option(id="one", name="One"), Option(id="two", name="Two")),
 )
 
 

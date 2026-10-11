@@ -168,14 +168,14 @@ def test_a_finished_event_offers_the_next_event_with_places_left_unvisited() -> 
     engine, draft, world = _registered()
     _play_event(world, won=True)
     assert world.has_frontier()
-    assert engine.player_view(draft).moves == (NEXT_EVENT,)
+    assert engine.player_view(draft).standing_options == (NEXT_EVENT,)
     _ = change(engine, draft, "extend_map", heading="the next event")
     assert draft.request is not None
 
 
 def test_a_registered_player_at_the_venue_plays_the_next_round_and_cannot_leave() -> None:
     engine, draft, world = _registered()
-    assert engine.player_view(draft).moves == (PLAY_NEXT_ROUND,)
+    assert engine.player_view(draft).standing_options == (PLAY_NEXT_ROUND,)
     assert "under way" in refused(engine, draft, "extend_map", heading="away")
     _ = run_action(engine, draft, "start_match")
     assert world.battle is not None

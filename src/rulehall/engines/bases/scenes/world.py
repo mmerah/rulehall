@@ -165,13 +165,13 @@ class SceneWorld[P: Person](World[P]):
     def roster(self) -> Mapping[Slug, P]:
         return self.cast
 
-    def find_entity(self, wanted: str) -> P | None:
+    def find_by_id_or_name(self, wanted: str) -> P | None:
         everyone = {self.player.id: self.player, **self.cast}
         found_id = find_cast_id(wanted, everyone)
         return None if found_id is None else everyone[found_id]
 
     def require_entity(self, entity_id: Slug) -> P:
-        entity = self.find_entity(entity_id)
+        entity = self.find_by_id_or_name(entity_id)
         if entity is None:
             raise Refusal(UNKNOWN_ID.format(entity_id=entity_id))
         return entity

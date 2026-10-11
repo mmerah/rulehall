@@ -154,7 +154,7 @@ def job_panel(world: TwentyFourXXWorld) -> Panel | None:
     return Panel(title="Job", rows=(PanelRow(name=shown, brief=""),), help=JOB_HELP)
 
 
-def look_again_move(world: TwentyFourXXWorld) -> tuple[ActionOption, ...]:
+def look_again_option(world: TwentyFourXXWorld) -> tuple[ActionOption, ...]:
     where = world.work_found_at
     if not where or world.player.require_sheet().credits < 1:
         return ()

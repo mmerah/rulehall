@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 
-from rulehall.core.decisions import DecisionOption
+from rulehall.core.decisions import Option
 from rulehall.core.validation import Frozen, Refusal, Slug
 
 type Picks = Mapping[Slug, str]
@@ -10,7 +10,7 @@ ANSWER_MAX = 100
 class CreationStep(Frozen):
     id: Slug
     name: str
-    options: tuple[DecisionOption, ...] = ()
+    options: tuple[Option, ...] = ()
     hint: str = ""
     help: str = ""
     allows_text: bool = False
@@ -44,11 +44,3 @@ def drop_stale(steps: Sequence[CreationStep], picks: dict[Slug, str]) -> None:
     for step in steps:
         if not step.offers(picks.get(step.id, "")):
             picks.pop(step.id, None)
-
-
-def other_than(options: Sequence[DecisionOption], taken: str) -> tuple[DecisionOption, ...]:
-    return tuple(option for option in options if taken not in (option.id, option.name))
-
-
-def find_option[T: DecisionOption](options: Sequence[T], chosen: str) -> T | None:
-    return next((option for option in options if option.id == chosen), None)

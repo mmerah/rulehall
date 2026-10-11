@@ -5,8 +5,7 @@ from pydantic import JsonValue, ValidationError
 from support.table import change, refused, run_action
 from support.twentyfourxx import ENGINE, KESTREL, LOCKPICKS, SABLE, SCENE_BASE, hired, small_world
 
-from rulehall.core.creation import find_option
-from rulehall.core.decisions import ActionOption
+from rulehall.core.decisions import ActionOption, find_option
 from rulehall.core.facts import Fact
 from rulehall.core.validation import Refusal
 from rulehall.engines.bases.scenes.world import SceneProposal
@@ -508,7 +507,11 @@ def test_a_take_while_a_job_is_open_amends_its_terms_and_closes_nothing() -> Non
 
 
 def _look_again(draft: TwentyFourXXGame) -> list[ActionOption]:
-    return [move for move in ENGINE.player_view(draft).moves if move.action_name == "find_again"]
+    return [
+        option
+        for option in ENGINE.player_view(draft).standing_options
+        if option.action_name == "find_again"
+    ]
 
 
 def test_every_find_can_be_looked_again_for_1_credit_until_a_job_is_taken() -> None:
