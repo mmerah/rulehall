@@ -10,8 +10,8 @@ from rulehall.core.log import Voice
 from rulehall.core.prompt import lines_of
 from rulehall.core.validation import Frozen, Refusal, Slug, slug
 from rulehall.core.views import Rows
+from rulehall.engines.bases.scenes.world import NextProposal, SceneProposal, SceneWorld
 from rulehall.engines.name_leaks import unmet_people_named
-from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
 from rulehall.engines.sheet import PLAYER_ID, VOICE_HELP
 from rulehall.engines.twentyfourxx.rules import (
     BRIEF,

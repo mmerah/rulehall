@@ -8,12 +8,12 @@ from support.table import POKEMON, change, open_table, play_turn, refused, run_a
 from rulehall.core.decisions import PlayerInput
 from rulehall.core.facts import Fact
 from rulehall.core.validation import Refusal
+from rulehall.engines.bases.maps.world import OFF_MAP_ID
 from rulehall.engines.pokemon.battle.models import BattleResult
 from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.journey.panels import wild_panel
 from rulehall.engines.pokemon.journey.sheet import Evolving, Learning
 from rulehall.engines.pokemon.journey.world import JourneyGame
-from rulehall.engines.rooms.world import OFF_MAP_ID
 
 
 def test_the_rival_blocks_every_way_but_the_way_back() -> None:

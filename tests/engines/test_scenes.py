@@ -13,9 +13,9 @@ from support.table import (
 
 from rulehall.core.game import WorldsmithRequest
 from rulehall.core.validation import Refusal, Slug
+from rulehall.engines.bases.scenes.world import NextProposal, Scene, SceneProposal, SceneWorld
+from rulehall.engines.bases.scenes.worldsmith import check_next, check_opening
 from rulehall.engines.loner4e.world import Loner4eGame
-from rulehall.engines.scenes.world import NextProposal, Scene, SceneProposal, SceneWorld
-from rulehall.engines.scenes.worldsmith import check_next, check_opening
 from rulehall.engines.sheet import PLAYER_ID, Person
 
 PLAYER = Person(id=PLAYER_ID, name="Player", voice="masculine", brief="", known=True)

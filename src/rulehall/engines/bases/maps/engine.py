@@ -11,10 +11,7 @@ from rulehall.core.tools import action, tool
 from rulehall.core.validation import Refusal, Slug
 from rulehall.core.views import NarratorView, Panel
 from rulehall.engines.args import Words
-from rulehall.engines.engine import Engine, RequestHandler, Resolution, Revealing, SceneHeader
-from rulehall.engines.packs import Pack
-from rulehall.engines.panels import character_panel, here_panel, party_panel
-from rulehall.engines.rooms.args import (
+from rulehall.engines.bases.maps.args import (
     ELSEWHERE,
     FRONTIER_LEFT,
     MAP_EDGE,
@@ -29,15 +26,23 @@ from rulehall.engines.rooms.args import (
     MoveTo,
     UnlockWay,
 )
-from rulehall.engines.rooms.panels import (
+from rulehall.engines.bases.maps.panels import (
     EXTEND,
     MORE_MAP,
     carried_panel,
     map_view,
     ways_panel,
 )
-from rulehall.engines.rooms.world import Dweller, Item, MapProposal, RegionProposal, RoomWorld
-from rulehall.engines.rooms.worldsmith import MAP_ASK, OPENING_SECTIONS, check_next, check_opening
+from rulehall.engines.bases.maps.world import Dweller, Item, MapProposal, MapWorld, RegionProposal
+from rulehall.engines.bases.maps.worldsmith import (
+    MAP_ASK,
+    OPENING_SECTIONS,
+    check_next,
+    check_opening,
+)
+from rulehall.engines.engine import Engine, RequestHandler, Resolution, Revealing, ViewHeader
+from rulehall.engines.packs import Pack
+from rulehall.engines.panels import character_panel, here_panel, party_panel
 from rulehall.engines.world import ARC_SO_FAR_TITLE, ARC_TITLE, HIDDEN_TITLE, party_section
 
 MAP_UNWRITTEN = Fact(
@@ -47,10 +52,10 @@ MAP_UNWRITTEN = Fact(
 )
 
 
-class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]](
+class MapEngine[P: Dweller, W: MapWorld[Any], K: Pack, R: RegionProposal[Any]](
     Revealing[W], Engine[P, W, K, R]
 ):
-    family_dir = Path(__file__).parent
+    base_dir = Path(__file__).parent
     opening_sections = OPENING_SECTIONS
     opening_intent = MAP_ASK
     play_hint = "What does {name} do? Or tap the map."
@@ -98,10 +103,10 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
     def context_text(self, state: Game[W]) -> str:
         return f"place: {state.world.current.name}"
 
-    def scene_header(self, state: Game[W], /) -> SceneHeader:
+    def view_header(self, state: Game[W], /) -> ViewHeader:
         world = state.world
         place = world.current
-        return SceneHeader(
+        return ViewHeader(
             place_id=place.id,
             title=place.name,
             situation=place.description,
@@ -118,7 +123,7 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
     def moves(self, state: Game[W], /) -> tuple[ActionOption, ...]:
         return (MORE_MAP,) if state.world.at_map_edge() else ()
 
-    def scene_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]:
+    def view_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]:
         world = state.world
         return (
             character_panel(world.player.subject(), world.sheet_rows(), sheet_help=self.sheet_help),

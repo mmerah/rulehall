@@ -6,7 +6,7 @@ import pytest
 from support.table import ENGINE_IDS
 
 SOURCE = Path(__file__).parents[2] / "src" / "rulehall"
-# The registries are the only modules that name a family;
+# The registries are the only modules that name an engine package;
 # the composition root names only the registries.
 REGISTRY = "engines/registry.py"
 SCREENS_REGISTRY = "screens/registry.py"
@@ -69,8 +69,8 @@ def _names(name: str, root: str) -> bool:
     return name == root or name.startswith(f"{root}.")
 
 
-def _registered_families(registry: str, layer: str) -> frozenset[str]:
-    """The family packages a registry installs; the others are bases they share."""
+def _registered_packages(registry: str, layer: str) -> frozenset[str]:
+    """The engine packages a registry installs; `engines/bases/` holds the bases they share."""
     return frozenset(
         parts[2]
         for name in _file_imports(SOURCE / registry)
@@ -80,30 +80,30 @@ def _registered_families(registry: str, layer: str) -> frozenset[str]:
     )
 
 
-FAMILIES = _registered_families(REGISTRY, "engines")
-SCREEN_FAMILIES = _registered_families(SCREENS_REGISTRY, "screens")
+ENGINE_PACKAGES = _registered_packages(REGISTRY, "engines")
+SCREEN_PACKAGES = _registered_packages(SCREENS_REGISTRY, "screens")
 ENGINE_WORDS = re.compile(
-    "|".join(sorted({*FAMILIES, *(word for each in ENGINE_IDS for word in each.split("-"))}))
+    "|".join(sorted({*ENGINE_PACKAGES, *(word for each in ENGINE_IDS for word in each.split("-"))}))
 )
 
 
-def _family(path: Path) -> str | None:
-    """The engine family a file belongs to: `engines/<family>/` or `screens/<family>/`."""
+def _engine_package(path: Path) -> str | None:
+    """The engine package a file belongs to: `engines/<package>/` or `screens/<package>/`."""
     parts = path.relative_to(SOURCE).parts
-    if len(parts) > 2 and parts[0] in {"engines", "screens"} and parts[1] in FAMILIES:
+    if len(parts) > 2 and parts[0] in {"engines", "screens"} and parts[1] in ENGINE_PACKAGES:
         return parts[1]
     return None
 
 
 def _shared_files() -> tuple[Path, ...]:
-    """core/, app/, ui/, main.py and every engines/ file outside a family, but the registry."""
+    """core/, app/, ui/, main.py and every engines/ file outside a package, but the registry."""
     return (
         *(
             path
             for root in ("core", "app", "ui", "engines")
             for path in (SOURCE / root).rglob("*")
             if path.suffix in GENERIC_SUFFIXES
-            and _family(path) is None
+            and _engine_package(path) is None
             and path.relative_to(SOURCE).as_posix() != REGISTRY
         ),
         SOURCE / COMPOSITION_ROOT,
@@ -125,15 +125,15 @@ def test_the_turn_reads_no_settings() -> None:
     assert not {name for name in _imports("app/turn") if name.startswith("rulehall.config")}
 
 
-def test_each_screen_family_is_an_installed_engine_family() -> None:
+def test_each_screen_package_is_an_installed_engine_package() -> None:
     screens = SOURCE / "screens"
     packages = {
         path.relative_to(screens).parts[0]
         for path in _python_files(screens)
         if len(path.relative_to(screens).parts) > 1
     }
-    assert packages == SCREEN_FAMILIES
-    assert SCREEN_FAMILIES <= FAMILIES
+    assert packages == SCREEN_PACKAGES
+    assert SCREEN_PACKAGES <= ENGINE_PACKAGES
 
 
 def test_no_module_names_a_concrete_engine() -> None:
@@ -141,19 +141,19 @@ def test_no_module_names_a_concrete_engine() -> None:
         path.relative_to(SOURCE).as_posix()
         for path in _python_files(SOURCE)
         for name in _file_imports(path)
-        if any(_names(name, f"rulehall.engines.{family}") for family in FAMILIES)
-        if not ((family := _family(path)) and _names(name, f"rulehall.engines.{family}"))
+        if any(_names(name, f"rulehall.engines.{package}") for package in ENGINE_PACKAGES)
+        if not ((package := _engine_package(path)) and _names(name, f"rulehall.engines.{package}"))
     }
     assert naming == {REGISTRY}
 
 
-def test_only_the_screens_registry_names_a_screen_family() -> None:
+def test_only_the_screens_registry_names_a_screen_package() -> None:
     naming = {
         path.relative_to(SOURCE).as_posix()
         for path in _python_files(SOURCE)
         for name in _file_imports(path)
-        if any(_names(name, f"rulehall.screens.{family}") for family in SCREEN_FAMILIES)
-        if not ((family := _family(path)) and _names(name, f"rulehall.screens.{family}"))
+        if any(_names(name, f"rulehall.screens.{package}") for package in SCREEN_PACKAGES)
+        if not ((package := _engine_package(path)) and _names(name, f"rulehall.screens.{package}"))
     }
     assert naming == {SCREENS_REGISTRY}
 
@@ -170,14 +170,14 @@ def test_the_composition_root_names_only_the_screens_registry() -> None:
     assert all(_names(name, "rulehall.screens.registry") for _, name in naming)
 
 
-def test_a_screen_family_imports_only_its_own_screens() -> None:
+def test_a_screen_package_imports_only_its_own_screens() -> None:
     naming = {
         path.relative_to(SOURCE).as_posix()
         for path in _python_files(SOURCE / "screens")
-        if _family(path)
+        if _engine_package(path)
         for name in _file_imports(path)
         if _names(name, "rulehall.screens")
-        and not _names(name, f"rulehall.screens.{_family(path)}")
+        and not _names(name, f"rulehall.screens.{_engine_package(path)}")
     }
     assert naming == set()
 
@@ -191,10 +191,11 @@ def test_shared_modules_name_no_engine() -> None:
     assert naming == set()
 
 
-def test_only_the_pokemon_family_names_showdown() -> None:
+def test_only_the_pokemon_package_names_showdown() -> None:
     naming = {
         path.relative_to(SOURCE).as_posix()
         for path in _python_files(SOURCE)
-        if _family(path) != "pokemon" and "showdown" in path.read_text(encoding="utf-8").lower()
+        if _engine_package(path) != "pokemon"
+        and "showdown" in path.read_text(encoding="utf-8").lower()
     }
     assert naming == set()

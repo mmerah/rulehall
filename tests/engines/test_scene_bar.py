@@ -15,11 +15,11 @@ from support.twentyfourxx import small_world as twentyfourxx_world
 
 from rulehall.core.game import AnyGame
 from rulehall.core.validation import Refusal, Slug
+from rulehall.engines.bases.scenes.world import NextProposal, SceneProposal, SceneWorld
+from rulehall.engines.bases.scenes.worldsmith import check_next
 from rulehall.engines.loner4e.engine import Loner4eEngine
 from rulehall.engines.loner4e.sheet import Loner4eEntity
 from rulehall.engines.loner4e.world import Loner4eWorld
-from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
-from rulehall.engines.scenes.worldsmith import check_next
 from rulehall.engines.sheet import PLAYER_ID, Person
 from rulehall.engines.twentyfourxx.engine import TwentyFourXXEngine
 from rulehall.engines.twentyfourxx.sheet import Crewmate

@@ -109,7 +109,7 @@ class Speaking(Frozen):
     off_screen: bool
 
 
-class SceneHeaderView:
+class HeaderCard:
     def __init__(self, session: GameSession, now: SessionSnapshot) -> None:
         self.session = session
         self.art = session.scene_art()
@@ -149,10 +149,10 @@ class GamePage:
         self.screen_factories = screen_factories
         self.screens: dict[Slug, Screen]
         self.drawn: SessionSnapshot
-        self.scene: SceneHeaderView
+        self.scene: HeaderCard
         self.composer: Composer
         self.drawer: Drawer
-        self.parts: tuple[SceneHeaderView | Transcript | Composer | Drawer | Screen, ...]
+        self.parts: tuple[HeaderCard | Transcript | Composer | Drawer | Screen, ...]
         self.story: ui.element
         self.sounds: Sounds
         self.sound: ui.button
@@ -205,7 +205,7 @@ class GamePage:
                 .style("min-width: 0")
             ):
                 with ui.element("div").style(PASS_THROUGH) as self.story:
-                    self.scene = SceneHeaderView(session, now)
+                    self.scene = HeaderCard(session, now)
                     # No padding class: NiceGUI pads the scroll content; twice would misalign.
                     with ui.scroll_area().classes("w-full flex-grow game-transcript") as scroll:
                         self.transcript = Transcript(

@@ -11,6 +11,8 @@ from rulehall.core.tools import NoArgs, action, edit, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.core.views import Panel, Sprite, Surface
 from rulehall.engines.args import Attempt, Words
+from rulehall.engines.bases.maps.args import ExtendMap
+from rulehall.engines.bases.maps.engine import MapEngine
 from rulehall.engines.engine import Joining
 from rulehall.engines.pokemon.battle.battling import ShowdownBattling
 from rulehall.engines.pokemon.champions.advice import suggested_species
@@ -63,11 +65,9 @@ from rulehall.engines.pokemon.champions.worldsmith import (
     check_opening,
 )
 from rulehall.engines.pokemon.dex import dex
-from rulehall.engines.pokemon.door import ART_STYLE, DOOR_ID, TITLE
+from rulehall.engines.pokemon.rule_set import ART_STYLE, RULE_SET_ID, TITLE
 from rulehall.engines.pokemon.rules import SEED_LIMIT
 from rulehall.engines.pokemon.sprites import AVATAR, look_step, mon_sprite, trainer_sprite
-from rulehall.engines.rooms.args import ExtendMap
-from rulehall.engines.rooms.engine import RoomEngine
 from rulehall.engines.sheet import PLAYER_ID
 
 ROSTER = "roster"
@@ -82,7 +82,7 @@ SEASON_ENDED = "Worlds is played. The season is over."
 class ChampionsEngine(
     ShowdownBattling[ChampionsTrainer, ChampionsWorld, ChampionsPack, ChampionsRegionProposal],
     Joining[ChampionsWorld],
-    RoomEngine[ChampionsTrainer, ChampionsWorld, ChampionsPack, ChampionsRegionProposal],
+    MapEngine[ChampionsTrainer, ChampionsWorld, ChampionsPack, ChampionsRegionProposal],
 ):
     id = EngineId("pokemon-champions")
     title = TITLE
@@ -100,8 +100,8 @@ class ChampionsEngine(
     season_seeds = Random()
 
     @property
-    def door_id(self) -> EngineId:
-        return DOOR_ID
+    def rule_set_id(self) -> EngineId:
+        return RULE_SET_ID
 
     @property
     def mode_name(self) -> str:
@@ -236,10 +236,10 @@ class ChampionsEngine(
         found = world.find_entity(entity_id)
         return trainer_sprite(found.avatar_id) if isinstance(found, ChampionsTrainer) else None
 
-    def scene_panels(self, state: ChampionsGame, /) -> tuple[Panel | None, ...]:
+    def view_panels(self, state: ChampionsGame, /) -> tuple[Panel | None, ...]:
         world = state.world
         return (
-            *super().scene_panels(state),
+            *super().view_panels(state),
             team_panel(world),
             season_panel(world),
             practice_panel(world),

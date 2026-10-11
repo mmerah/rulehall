@@ -8,8 +8,8 @@ STYLES: tuple[Path, ...] = (*POKEMON_STYLES,)
 
 
 def build_screen_factories() -> ScreenFactories:
-    families = (POKEMON_SCREEN_FACTORIES,)
-    ids = [surface_id for family in families for surface_id in family]
+    packages = (POKEMON_SCREEN_FACTORIES,)
+    ids = [surface_id for package in packages for surface_id in package]
     if len(set(ids)) != len(ids):
         raise ValueError(f"surface ids are not unique: {ids}")
-    return {surface_id: factory for family in families for surface_id, factory in family.items()}
+    return {surface_id: factory for package in packages for surface_id, factory in package.items()}

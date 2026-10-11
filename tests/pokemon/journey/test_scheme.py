@@ -6,13 +6,13 @@ from support.showdown import won
 from support.table import change
 
 from rulehall.core.validation import Refusal
+from rulehall.engines.bases.maps.world import OFF_MAP_ID, Place
 from rulehall.engines.pokemon.battle.models import BattleSetup
 from rulehall.engines.pokemon.battle.simulator import end_battle
 from rulehall.engines.pokemon.journey.rules import RosterSlot
 from rulehall.engines.pokemon.journey.scheme import EvilTeam, Operation
 from rulehall.engines.pokemon.journey.sheet import JourneyTrainer
 from rulehall.engines.pokemon.journey.world import JourneyGame, JourneyRegionProposal
-from rulehall.engines.rooms.world import OFF_MAP_ID, Place
 
 TEAM_BEATEN = "The team is beaten. Your journey is complete."
 

@@ -62,7 +62,7 @@ async def test_a_worldsmith_request_renders_unchanged(engine_id: EngineId) -> No
         models.append(model)
         raise Refusal("recorded")
 
-    # The family's own write, not the seam's `hire`: the detail is a place to go.
+    # The engine's own write, not the seam's `hire`: the detail is a place to go.
     kind = next(kind for kind in engine.request_handlers() if kind != HIRE)
     request = WorldsmithRequest(kind=kind, detail="Deeper in, toward the sound.")
     draft = state.draft()

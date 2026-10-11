@@ -13,11 +13,11 @@ from rulehall.core.tools import action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.core.views import NarratorView, Panel, Rows
 from rulehall.engines.args import Words
+from rulehall.engines.bases.scenes.engine import SceneEngine
 from rulehall.engines.engine import RequestHandler, Resolution, Revealing
 from rulehall.engines.hiring import HIRE_PENDING, HIRE_UNWRITTEN, Hiring, signed_on
 from rulehall.engines.packs import unique_options
 from rulehall.engines.panels import party_panel
-from rulehall.engines.scenes.engine import SceneEngine
 from rulehall.engines.sheet import PLAYER_ID, joined
 from rulehall.engines.twentyfourxx.args import (
     BringIn,

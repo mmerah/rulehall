@@ -1,11 +1,11 @@
 from rulehall.core.validation import Refusal
+from rulehall.engines.bases.scenes.worldsmith import next_needs
 from rulehall.engines.loner4e.rules import MEANWHILE_QUESTION
 from rulehall.engines.loner4e.world import (
     LivingWorldProposal,
     Loner4eMeanwhileProposal,
     Loner4eWorld,
 )
-from rulehall.engines.scenes.worldsmith import next_needs
 
 WORLDSMITH_GUIDANCE = (
     "LONER 4E AUTHORING\n"

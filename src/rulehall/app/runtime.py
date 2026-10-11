@@ -62,8 +62,10 @@ class Runtime:
             raise Refusal(f"no rules {engine_id!r}")
         return found
 
-    def door_engines(self, door_id: EngineId) -> tuple[AnyEngine, ...]:
-        return tuple(engine for engine in self.engines.values() if engine.door_id == door_id)
+    def modes_of(self, rule_set_id: EngineId) -> tuple[AnyEngine, ...]:
+        return tuple(
+            engine for engine in self.engines.values() if engine.rule_set_id == rule_set_id
+        )
 
     async def new_scenario(
         self,

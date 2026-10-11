@@ -8,6 +8,7 @@ from rulehall.core.facts import Fact, roll
 from rulehall.core.game import Game
 from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, check_unique, refuse
 from rulehall.core.views import Rows
+from rulehall.engines.bases.maps.world import OFF_MAP_ID, MapProposal, MapWorld, RegionProposal
 from rulehall.engines.engine import Resolution
 from rulehall.engines.pokemon.battle.models import (
     DOUBLE_TEAM_MIN,
@@ -56,7 +57,6 @@ from rulehall.engines.pokemon.journey.scheme import (
 from rulehall.engines.pokemon.journey.sheet import JourneySheet, JourneyTrainer, Mon, built_team
 from rulehall.engines.pokemon.rules import battle_seed, check_species, is_legendary
 from rulehall.engines.pokemon.trainers import RivalLedger, check_one_rival, find_rival
-from rulehall.engines.rooms.world import OFF_MAP_ID, MapProposal, RegionProposal, RoomWorld
 
 WILD = "The wild table of each new place, keyed by place id. A town or a building has no table."
 RIVAL_WAITS = (
@@ -178,7 +178,7 @@ class RivalTeam(Mutable):
         )
 
 
-class JourneyWorld(RoomWorld[JourneyTrainer]):
+class JourneyWorld(MapWorld[JourneyTrainer]):
     species_ids: tuple[Slug, ...] = Field(min_length=1)
     wild: dict[Slug, tuple[WildSlot, ...]] = Field(default_factory=dict)
     battle: Battle | None = None

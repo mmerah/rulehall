@@ -7,6 +7,7 @@ from pydantic import Field, model_validator
 from rulehall.core.facts import Fact, roll
 from rulehall.core.game import Game
 from rulehall.core.validation import Frozen, Refusal, Slug, refuse
+from rulehall.engines.bases.maps.world import MapProposal, MapWorld, RegionProposal
 from rulehall.engines.engine import Resolution
 from rulehall.engines.packs import Names
 from rulehall.engines.pokemon.battle.models import (
@@ -53,7 +54,6 @@ from rulehall.engines.pokemon.champions.sheet import LOCKED, ChampionsSheet, Cha
 from rulehall.engines.pokemon.dex import avatars, dex, species_name
 from rulehall.engines.pokemon.rules import SEED_LIMIT, battle_seed, succeeds
 from rulehall.engines.pokemon.trainers import RivalLedger, check_one_rival, find_rival
-from rulehall.engines.rooms.world import MapProposal, RegionProposal, RoomWorld
 from rulehall.engines.sheet import PLAYER_ID
 
 EVENT = (
@@ -110,7 +110,7 @@ class ChampionsRegionProposal(ChampionsMapProposal, RegionProposal[ChampionsTrai
     pass
 
 
-class ChampionsWorld(RoomWorld[ChampionsTrainer]):
+class ChampionsWorld(MapWorld[ChampionsTrainer]):
     season_seed: int = Field(ge=0)
     event: Event | None = None
     key_trainer_ids: list[Slug] = Field(default_factory=list)

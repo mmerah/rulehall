@@ -7,7 +7,7 @@ from pydantic.json_schema import SkipJsonSchema
 from rulehall.core.facts import Fact
 from rulehall.core.validation import Mutable, slugs
 from rulehall.core.views import Rows
-from rulehall.engines.rooms.world import Dweller, Item
+from rulehall.engines.bases.maps.world import Dweller, Item
 from rulehall.engines.sheet import PLAYER_ID, Gauge, Sheeted
 
 type Ability = Literal["brute", "skulker", "erudite"]

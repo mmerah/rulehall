@@ -23,6 +23,7 @@ from rulehall.core.game import Check, RoleAnswer, WorldsmithRequest
 from rulehall.core.log import LogEntry
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal
+from rulehall.engines.bases.scenes.worldsmith import check_opening
 from rulehall.engines.loner4e.args import CloseScene
 from rulehall.engines.loner4e.engine import ELSEWHERE_TITLE
 from rulehall.engines.loner4e.panels import MOVE_ON, TAKE_BREATHER
@@ -33,7 +34,6 @@ from rulehall.engines.loner4e.world import (
     Loner4eNextProposal,
     Loner4eSceneProposal,
 )
-from rulehall.engines.scenes.worldsmith import check_opening
 
 GOAL = "Find the stair down"
 NEXT_SCENE: dict[str, object] = {

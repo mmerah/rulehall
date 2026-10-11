@@ -2,8 +2,13 @@ from collections.abc import Iterable, Mapping
 
 from rulehall.core.prompt import Sections
 from rulehall.core.validation import Refusal, Slug
+from rulehall.engines.bases.scenes.world import (
+    NextProposal,
+    SceneProposal,
+    SceneWorld,
+    find_cast_id,
+)
 from rulehall.engines.name_leaks import leaked_names, names_in
-from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld, find_cast_id
 from rulehall.engines.sheet import Entity, Person
 
 OPENING_SECTIONS: Sections = (

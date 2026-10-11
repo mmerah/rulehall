@@ -2,7 +2,7 @@ import pytest
 from support.tunnelgoons import small_world
 
 from rulehall.core.validation import Refusal
-from rulehall.engines.rooms.world import Item
+from rulehall.engines.bases.maps.world import Item
 from rulehall.engines.tunnelgoons.world import (
     TunnelGoonsGame,
 )

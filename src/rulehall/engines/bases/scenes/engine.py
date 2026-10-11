@@ -8,13 +8,18 @@ from rulehall.core.game import AnyCharacter, AnyScenario, Game
 from rulehall.core.prompt import Sections, render_log, section_if
 from rulehall.core.tools import tool
 from rulehall.core.views import Panel
-from rulehall.engines.engine import Engine, SceneHeader
+from rulehall.engines.bases.scenes.args import Enter, Leave
+from rulehall.engines.bases.scenes.panels import trail_panel
+from rulehall.engines.bases.scenes.world import NextProposal, SceneProposal, SceneWorld
+from rulehall.engines.bases.scenes.worldsmith import (
+    OPENING,
+    OPENING_SECTIONS,
+    check_next,
+    check_opening,
+)
+from rulehall.engines.engine import Engine, ViewHeader
 from rulehall.engines.packs import Pack
 from rulehall.engines.panels import here_panel
-from rulehall.engines.scenes.args import Enter, Leave
-from rulehall.engines.scenes.panels import trail_panel
-from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
-from rulehall.engines.scenes.worldsmith import OPENING, OPENING_SECTIONS, check_next, check_opening
 from rulehall.engines.sheet import Person
 from rulehall.engines.world import ARC_SO_FAR_TITLE, HIDDEN_TITLE, party_section
 
@@ -26,7 +31,7 @@ FIXED_TITLE = "FIXED (settled or told in play: they stand, whatever the arc says
 
 
 class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](Engine[P, W, K, R]):
-    family_dir = Path(__file__).parent
+    base_dir = Path(__file__).parent
     opening_sections = OPENING_SECTIONS
     opening_intent = OPENING
 
@@ -70,11 +75,11 @@ class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](
     def context_text(self, state: Game[W]) -> str:
         return f"location: {state.world.scene.location}"
 
-    def scene_header(self, state: Game[W], /) -> SceneHeader:
+    def view_header(self, state: Game[W], /) -> ViewHeader:
         scene = state.world.scene
-        return SceneHeader(place_id=scene.place_id, title=scene.title, situation=scene.situation)
+        return ViewHeader(place_id=scene.place_id, title=scene.title, situation=scene.situation)
 
-    def scene_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]:
+    def view_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]:
         world = state.world
         return (
             *self.lead_panels(state),

@@ -18,6 +18,7 @@ from rulehall.core.validation import (
     slugs,
 )
 from rulehall.core.views import Rows
+from rulehall.engines.bases.maps.world import Dweller
 from rulehall.engines.pokemon.battle.models import (
     FRIENDSHIP_MAX,
     LEVEL_MAX,
@@ -79,7 +80,6 @@ from rulehall.engines.pokemon.rules import (
     stats,
 )
 from rulehall.engines.pokemon.trainers import AVATAR_ID, LOSE_LINE, RIVAL, STYLE, WIN_LINE
-from rulehall.engines.rooms.world import Dweller
 from rulehall.engines.sheet import Gauge, Sheeted
 
 ROSTER = (

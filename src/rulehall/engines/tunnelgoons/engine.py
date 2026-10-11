@@ -9,9 +9,9 @@ from rulehall.core.log import Voice
 from rulehall.core.tools import NoArgs, action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug, parse
 from rulehall.core.views import Rows
+from rulehall.engines.bases.maps.engine import MapEngine
+from rulehall.engines.bases.maps.world import Item, MapProposal, RegionProposal
 from rulehall.engines.hiring import Hiring
-from rulehall.engines.rooms.engine import RoomEngine
-from rulehall.engines.rooms.world import Item, MapProposal, RegionProposal
 from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.args import LevelUp, Roll
 from rulehall.engines.tunnelgoons.pack import TunnelGoonsBody, TunnelGoonsHead, TunnelGoonsPack
@@ -39,7 +39,7 @@ POINT_OPTIONS: tuple[DecisionOption, ...] = tuple(
 
 class TunnelGoonsEngine(
     Hiring[Goon, TunnelGoonsWorld, TunnelGoonsPack, RegionProposal[Goon], AbilitiesProposal],
-    RoomEngine[Goon, TunnelGoonsWorld, TunnelGoonsPack, RegionProposal[Goon]],
+    MapEngine[Goon, TunnelGoonsWorld, TunnelGoonsPack, RegionProposal[Goon]],
 ):
     id = EngineId("tunnelgoons")
     title = "TUNNEL GOONS"

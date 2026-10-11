@@ -10,6 +10,12 @@ from rulehall.core.game import Game
 from rulehall.core.log import Voice
 from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, as_tuple
 from rulehall.engines.args import BE_SHORT
+from rulehall.engines.bases.scenes.world import (
+    NEXT_ARC_DESCRIPTION,
+    NextProposal,
+    SceneProposal,
+    SceneWorld,
+)
 from rulehall.engines.loner4e.rules import (
     DIE_FACE,
     DOUBLES_PER_TWIST,
@@ -32,12 +38,6 @@ from rulehall.engines.loner4e.rules import (
     transition_for,
 )
 from rulehall.engines.loner4e.sheet import Loner4eEntity, TagName, Tags
-from rulehall.engines.scenes.world import (
-    NEXT_ARC_DESCRIPTION,
-    NextProposal,
-    SceneProposal,
-    SceneWorld,
-)
 from rulehall.engines.sheet import Gauge, changed_tags, tag_card, tag_delta
 from rulehall.engines.world import IS_DEAD
 

@@ -50,10 +50,12 @@ def home_page(runtime: Runtime) -> None:
             _welcome()
         section_title("Choose your rules")
         with ui.element("div").classes("game-doors"):
-            for door_id in dict.fromkeys(engine.door_id for engine in runtime.engines.values()):
-                door = runtime.require_engine(door_id)
-                mode_ids = tuple(engine.id for engine in runtime.door_engines(door_id))
-                _door(catalog, door_id, mode_ids, door.title, door.look)
+            for rule_set_id in dict.fromkeys(
+                engine.rule_set_id for engine in runtime.engines.values()
+            ):
+                lead_engine = runtime.require_engine(rule_set_id)
+                mode_ids = tuple(engine.id for engine in runtime.modes_of(rule_set_id))
+                _door(catalog, rule_set_id, mode_ids, lead_engine.title, lead_engine.look)
         if catalog.unresumable:
             _unresumable(runtime, catalog.unresumable)
 
@@ -105,7 +107,7 @@ def _recent(runtime: Runtime, save: SaveOption, now: datetime) -> None:
 
 def _door(
     catalog: LauncherCatalog,
-    door_id: EngineId,
+    rule_set_id: EngineId,
     mode_ids: tuple[EngineId, ...],
     title: str,
     look: Look,
@@ -113,7 +115,7 @@ def _door(
     adventures = sum(len(catalog.scenarios_for(engine_id)) for engine_id in mode_ids)
     playing = sum(len(catalog.saves_for(engine_id)) for engine_id in mode_ids)
     count = _counted(adventures, "adventure") + (f" · {playing} in play" if playing else "")
-    door = link_box(hall_path(door_id), f"game-look game-door {pattern_classes(look)}")
+    door = link_box(hall_path(rule_set_id), f"game-look game-door {pattern_classes(look)}")
     with door.style(look_style(look)):
         with ui.row().classes("w-full items-start no-wrap game-gap-md"):
             ui.label(title).classes("game-title game-door-title col")

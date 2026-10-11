@@ -1,6 +1,6 @@
 # Pokemon
 
-Pokemon is one door with two modes. Journey is a Pokemon journey played as a tabletop RPG; Champions is a competitive circuit season, described under Champions mode below. This part and the rules up to Champions mode are the journey.
+Pokemon is one rule set with two modes. Journey is a Pokemon journey played as a tabletop RPG; Champions is a competitive circuit season, described under Champions mode below. This part and the rules up to Champions mode are the journey.
 
 A Pokemon journey played as a tabletop RPG. No official Pokemon tabletop game exists, so this rule set is our own: a light d20 layer for the trainer, and the real battle rules for the fights. The master runs towns, routes, people and trainer checks on a map. When a fight starts, the fight runs in the Pokemon Showdown simulator, and the player picks moves in Showdown's battle view.
 
@@ -87,9 +87,9 @@ Left out: a post-game after the boss falls, the race to catch the legendary, Ter
 
 ## Champions mode
 
-Champions is the second mode of the Pokemon door, beside Journey. It is a season of VGC doubles events at level 50, in the format of the pinned Showdown (`gen9championsvgc2026regmc` now; `champions/data.json` names it in `source`). Its engine id is `pokemon-champions`; the journey keeps `pokemon`, so old saves stay valid. The master narrates the circuit, the player builds six Pokemon, and every match is a one-game doubles battle in Showdown. Journey rules do not apply: no badges, gyms, EXP, wild battles, balls, Nuzlocke or evil team.
+Champions is the second mode of the Pokemon rule set, beside Journey. It is a season of VGC doubles events at level 50, in the format of the pinned Showdown (`gen9championsvgc2026regmc` now; `champions/data.json` names it in `source`). Its engine id is `pokemon-champions`; the journey keeps `pokemon`, so old saves stay valid. The master narrates the circuit, the player builds six Pokemon, and every match is a one-game doubles battle in Showdown. Journey rules do not apply: no badges, gyms, EXP, wild battles, balls, Nuzlocke or evil team.
 
-The player picks the mode on the Pokemon door and three things at creation: the roster, the starting team and the look. The map is the Tunnel Goons map machinery. Each map is the host city of one event, with its venue, and `extend_map` moves the story to the next city and event. While an event is under way, `extend_map` and the player's extend action refuse.
+The player picks the mode on the Pokemon tile and three things at creation: the roster, the starting team and the look. The map is the shared map base. Each map is the host city of one event, with its venue, and `extend_map` moves the story to the next city and event. While an event is under way, `extend_map` and the player's extend action refuse.
 
 ### The season
 
@@ -178,7 +178,7 @@ Left out, and not yet: scouting key trainers or the rival before registration, t
 
 ## Where the rules live
 
-The shared base is `src/rulehall/engines/pokemon/`: the stat, type, nature and item rules in `rules.py`, the door's id, title and art style in `door.py`, the dex and its lookups in `dex.py`, the rival ledger with its section, the rival lookup, the rival and key-trainer checks of the worldsmith and the trainer field descriptions both modes share in `trainers.py`, the sprites and colours in `sprites.py`, the battle module in `battle/` (the driver, the choices, the opponent role, team preview and Mega, with the view models of the battle screen in `views.py`), and the Node side in `showdown/`.
+The code both modes share is in `src/rulehall/engines/pokemon/`: the stat, type, nature and item rules in `rules.py`, the rule set's id, title and art style in `rule_set.py`, the dex and its lookups in `dex.py`, the rival ledger with its section, the rival lookup, the rival and key-trainer checks of the worldsmith and the trainer field descriptions both modes share in `trainers.py`, the sprites and colours in `sprites.py`, the battle module in `battle/` (the driver, the choices, the opponent role, team preview and Mega, with the view models of the battle screen in `views.py`), and the Node side in `showdown/`.
 
 `src/rulehall/engines/pokemon/journey/`: the journey engine (`JourneyEngine`, `JourneyWorld`, `JourneyGame`, `JourneyPack`, `JourneyTrainer` and its `JourneySheet`), with the master's instructions in `rules.md`, the journey numbers in `rules.py` and the packs in `packs/`.
 
@@ -186,4 +186,4 @@ The shared base is `src/rulehall/engines/pokemon/`: the stat, type, nature and i
 
 The tests mirror this layout: `tests/pokemon/battle/` (with the recorded battles in `fixtures/`), `tests/pokemon/journey/`, `tests/pokemon/champions/` and `tests/screens/pokemon/`.
 
-The map machinery is `RoomEngine` in `src/rulehall/engines/rooms/`.
+The map machinery is `MapEngine` in `src/rulehall/engines/bases/maps/`.

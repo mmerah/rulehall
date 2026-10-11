@@ -9,7 +9,7 @@ from rulehall.core.creation import find_option
 from rulehall.core.decisions import ActionOption
 from rulehall.core.facts import Fact
 from rulehall.core.validation import Refusal
-from rulehall.engines.scenes.world import SceneProposal
+from rulehall.engines.bases.scenes.world import SceneProposal
 from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.twentyfourxx.args import (
     Helper,

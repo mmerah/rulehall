@@ -6,7 +6,7 @@ from rulehall.core.facts import Fact
 from rulehall.core.game import Game
 from rulehall.core.validation import Frozen, Slug
 from rulehall.core.views import Rows
-from rulehall.engines.rooms.world import RoomWorld
+from rulehall.engines.bases.maps.world import MapWorld
 from rulehall.engines.tunnelgoons.sheet import ABILITY_POINTS, Ability, AbilityScores, Boost, Goon
 
 
@@ -30,7 +30,7 @@ class AbilitiesProposal(Frozen):
         return self
 
 
-class TunnelGoonsWorld(RoomWorld[Goon]):
+class TunnelGoonsWorld(MapWorld[Goon]):
     levelled_ids: list[Slug] = Field(default_factory=list)
 
     def sheet_rows(self) -> Rows:

@@ -9,9 +9,9 @@ from rulehall.app.turn import Turn
 from rulehall.core.decisions import PlayerInput
 from rulehall.core.facts import told_cards
 from rulehall.core.log import SpokenLine
+from rulehall.engines.bases.scenes.world import STRANGER_VOICE
 from rulehall.engines.loner4e.engine import BROKE_AWAY
 from rulehall.engines.loner4e.sheet import Loner4eEntity
-from rulehall.engines.scenes.world import STRANGER_VOICE
 from rulehall.engines.sheet import PLAYER_ID
 
 

@@ -10,10 +10,11 @@ from rulehall.core.prompt import Sections, lines_of, ref_of, section_if, sentenc
 from rulehall.core.tools import NoArgs, action, tool
 from rulehall.core.validation import Refusal, Slug
 from rulehall.core.views import Panel, Sprite
+from rulehall.engines.bases.maps.args import MoveTo
+from rulehall.engines.bases.maps.engine import MapEngine
 from rulehall.engines.engine import Joining
 from rulehall.engines.pokemon.battle.battling import ShowdownBattling
 from rulehall.engines.pokemon.dex import ITEMS, dex
-from rulehall.engines.pokemon.door import ART_STYLE, DOOR_ID, TITLE
 from rulehall.engines.pokemon.journey.args import (
     DIFFICULTY,
     ChosenMon,
@@ -76,10 +77,9 @@ from rulehall.engines.pokemon.journey.worldsmith import (
     check_next,
     check_opening,
 )
+from rulehall.engines.pokemon.rule_set import ART_STYLE, RULE_SET_ID, TITLE
 from rulehall.engines.pokemon.rules import TIMES, succeeds
 from rulehall.engines.pokemon.sprites import AVATAR, look_step, mon_sprite, trainer_sprite
-from rulehall.engines.rooms.args import MoveTo
-from rulehall.engines.rooms.engine import RoomEngine
 from rulehall.engines.sheet import PLAYER_ID
 
 SCHEME = "THE SCHEME"
@@ -94,9 +94,9 @@ EDGE_LINE = "{edge}: the next battle here starts with it. It is lost when the pl
 class JourneyEngine(
     ShowdownBattling[JourneyTrainer, JourneyWorld, JourneyPack, JourneyRegionProposal],
     Joining[JourneyWorld],
-    RoomEngine[JourneyTrainer, JourneyWorld, JourneyPack, JourneyRegionProposal],
+    MapEngine[JourneyTrainer, JourneyWorld, JourneyPack, JourneyRegionProposal],
 ):
-    id = DOOR_ID
+    id = RULE_SET_ID
     title = TITLE
     worldsmith_guidance = WORLDSMITH_GUIDANCE
     art_style = ART_STYLE
@@ -259,10 +259,10 @@ class JourneyEngine(
             *section_if("WILD HERE", wild),
         )
 
-    def scene_panels(self, state: JourneyGame, /) -> tuple[Panel | None, ...]:
+    def view_panels(self, state: JourneyGame, /) -> tuple[Panel | None, ...]:
         world = state.world
         return (
-            *super().scene_panels(state),
+            *super().view_panels(state),
             scheme_panel(world),
             team_panel(world),
             box_panel(world),

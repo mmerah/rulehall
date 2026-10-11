@@ -126,4 +126,4 @@ Fields and tools that exist for the app around the rules, not the rules themselv
 
 ## Where the rules live
 
-Mechanics are in `src/rulehall/engines/loner4e/`; the scene machinery shared with the other scene engines is `SceneEngine` in `src/rulehall/engines/scenes/`. `rules.py` — not this file — is the transcription of record: the twist table, the inspiration tables, the outcome lines, the fixed questions and the transition ranges.
+Mechanics are in `src/rulehall/engines/loner4e/`; the scene machinery shared with the other scene engines is `SceneEngine` in `src/rulehall/engines/bases/scenes/`. `rules.py` — not this file — is the transcription of record: the twist table, the inspiration tables, the outcome lines, the fixed questions and the transition ranges.

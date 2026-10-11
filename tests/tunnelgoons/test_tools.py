@@ -18,7 +18,7 @@ from support.tunnelgoons import (
 
 from rulehall.core.log import LogEntry
 from rulehall.core.validation import Refusal
-from rulehall.engines.rooms.world import Item, Place, RegionProposal
+from rulehall.engines.bases.maps.world import Item, Place, RegionProposal
 from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.tunnelgoons.args import LevelUp, Roll
 from rulehall.engines.tunnelgoons.sheet import Goon, GoonSheet

@@ -43,4 +43,4 @@ Every entity has `known`, and a `Way` is known unless it is a secret the story m
 
 ## Where the rules live
 
-`src/rulehall/engines/tunnelgoons/`, instructions in `rules.md`. The room machinery is `RoomEngine` in `src/rulehall/engines/rooms/`.
+`src/rulehall/engines/tunnelgoons/`, instructions in `rules.md`. The map machinery is `MapEngine` in `src/rulehall/engines/bases/maps/`.

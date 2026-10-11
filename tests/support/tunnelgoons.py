@@ -1,7 +1,7 @@
 from rulehall.core.game import ScenarioDescription
 from rulehall.core.log import Chapter
 from rulehall.core.validation import EngineId, Slug
-from rulehall.engines.rooms.world import Item, Place, Region, Way
+from rulehall.engines.bases.maps.world import Item, Place, Region, Way
 from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
 from rulehall.engines.tunnelgoons.sheet import HP_START, Goon, GoonSheet

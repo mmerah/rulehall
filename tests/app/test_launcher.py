@@ -50,7 +50,7 @@ KAEL_FOR_EACH = [
 
 class _PokemonModeEngine(Loner4eEngine):
     @property
-    def door_id(self) -> EngineId:
+    def rule_set_id(self) -> EngineId:
         return POKEMON
 
 
@@ -323,13 +323,13 @@ async def test_a_scenario_written_from_a_document_carries_its_text(tmp_path: Pat
     assert state.scenario_description.premise == _OPENING["situation"]
 
 
-def test_a_door_holds_its_engines_in_registry_order(tmp_path: Path) -> None:
+def test_a_rule_set_holds_its_modes_in_registry_order(tmp_path: Path) -> None:
     runtime = Runtime(offline_settings(tmp_path), roles=ScriptedRoles())
     mode = _PokemonModeEngine(NO_PACKS)
     mode.id = MIRROR
     runtime.engines[MIRROR] = mode
 
-    assert runtime.door_engines(POKEMON) == (
+    assert runtime.modes_of(POKEMON) == (
         runtime.engines[POKEMON],
         runtime.engines[CHAMPIONS],
         mode,

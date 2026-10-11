@@ -69,7 +69,7 @@ class Resolution:
 
 
 @dataclass(frozen=True, slots=True)
-class SceneHeader:
+class ViewHeader:
     place_id: Slug
     title: str
     situation: str
@@ -110,7 +110,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     sheet_help: ClassVar[Mapping[str, str]] = {}
     portraits: bool = True
     directory: Path
-    family_dir: Path
+    base_dir: Path
     assets: Path | None = None
     person_model: type[P]
     world_model: type[W]
@@ -136,18 +136,18 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         self.packs.srd()  # an engine that ships no srd pack is a bug, not a refusal
         self.instructions = (
             f"{read_cached_text(self.directory / 'rules.md')}\n"
-            f"{read_cached_text(self.family_dir / 'rules.md')}"
+            f"{read_cached_text(self.base_dir / 'rules.md')}"
         )
         self.look = read_model(self.directory / "look.json", Look)
         self.tools = marked_methods(self, "tool")
         self.actions = marked_methods(self, "action")
         self.edits = marked_methods(self, "edit")
-        self.worldsmith_role = read_cached_text(self.family_dir / "worldsmith.md")
+        self.worldsmith_role = read_cached_text(self.base_dir / "worldsmith.md")
         self.character_model = Character[self.person_model]
         self.scenario_model = Scenario[self.opening_model]
 
     @property
-    def door_id(self) -> EngineId:
+    def rule_set_id(self) -> EngineId:
         return self.id
 
     @property
@@ -229,7 +229,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
 
     def narrator_view(self, state: Game[W]) -> NarratorView:
         world = state.world
-        header = self.scene_header(state)
+        header = self.view_header(state)
         here = tuple(person.subject() for person in world.here() if person.known)
         return NarratorView(
             place_id=header.place_id,
@@ -243,14 +243,14 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
 
     def player_view(self, state: Game[W]) -> PlayerView:
         player = state.world.player
-        header = self.scene_header(state)
+        header = self.view_header(state)
         pending = state.pending
         return PlayerView(
             premise=state.scenario_description.premise,
             player=player.subject(),
             scene_title=header.title,
             situation=header.situation,
-            panels=tuple(panel for panel in self.scene_panels(state) if panel is not None),
+            panels=tuple(panel for panel in self.view_panels(state) if panel is not None),
             decision=pending,
             ending=self.ending(state),
             map=header.map_view,
@@ -493,9 +493,9 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     @abstractmethod
     def context_text(self, state: Game[W], /) -> str: ...
     @abstractmethod
-    def scene_header(self, state: Game[W], /) -> SceneHeader: ...
+    def view_header(self, state: Game[W], /) -> ViewHeader: ...
     @abstractmethod
-    def scene_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]: ...
+    def view_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]: ...
 
     def request_handlers(self) -> Mapping[Slug, RequestHandler[W]]:
         return {}

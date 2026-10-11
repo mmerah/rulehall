@@ -26,10 +26,16 @@ from support.tunnelgoons import (
 from rulehall.core.facts import Fact, told_cards
 from rulehall.core.game import WorldsmithRequest
 from rulehall.core.validation import Refusal
-from rulehall.engines.rooms.args import MOVED_CARD, MOVES_OFFSCREEN
-from rulehall.engines.rooms.panels import EXTEND, map_view
-from rulehall.engines.rooms.world import MEANWHILE_EVERY, OFF_MAP_ID, Place, RegionProposal, Way
-from rulehall.engines.rooms.worldsmith import check_next
+from rulehall.engines.bases.maps.args import MOVED_CARD, MOVES_OFFSCREEN
+from rulehall.engines.bases.maps.panels import EXTEND, map_view
+from rulehall.engines.bases.maps.world import (
+    MEANWHILE_EVERY,
+    OFF_MAP_ID,
+    Place,
+    RegionProposal,
+    Way,
+)
+from rulehall.engines.bases.maps.worldsmith import check_next
 from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
 from rulehall.engines.tunnelgoons.sheet import Goon
@@ -258,11 +264,11 @@ def test_drop_here_puts_a_carried_item_in_this_place_and_refuses_one_on_the_floo
         _ = run_action(ENGINE, draft, "drop_here", item_id=LANTERN)
 
 
-def _walked(begun_room: TunnelGoonsGame) -> TunnelGoonsGame:
+def _walked(begun_map: TunnelGoonsGame) -> TunnelGoonsGame:
     """At CELLAR, having walked GATE and YARD: every power has something legal."""
-    begun_room.world.move(YARD, ())
-    begun_room.world.move(CELLAR, ())
-    return begun_room.draft()
+    begun_map.world.move(YARD, ())
+    begun_map.world.move(CELLAR, ())
+    return begun_map.draft()
 
 
 def _all_three(engine: TunnelGoonsEngine, draft: TunnelGoonsGame) -> list[Fact]:
@@ -366,11 +372,11 @@ def test_a_counted_turn_spends_the_armed_flag() -> None:
 
 
 def test_the_arc_reaches_the_master_and_the_worldsmith_and_nobody_else() -> None:
-    begun_room = keep()
+    begun_map = keep()
     arc = "The Warden answers to the Gremlin Queen."
-    begun_room.world.arc = arc
+    begun_map.world.arc = arc
 
-    assert arc in str(ENGINE.master_sections(begun_room))
-    assert arc in str(ENGINE.worldsmith_sections(begun_room))
-    assert arc not in str(ENGINE.narrator_view(begun_room).model_dump())
-    assert arc not in str(ENGINE.player_view(begun_room).model_dump())
+    assert arc in str(ENGINE.master_sections(begun_map))
+    assert arc in str(ENGINE.worldsmith_sections(begun_map))
+    assert arc not in str(ENGINE.narrator_view(begun_map).model_dump())
+    assert arc not in str(ENGINE.player_view(begun_map).model_dump())

@@ -4,9 +4,9 @@ from support.table import TUNNELGOONS, game, narrowed
 from support.tunnelgoons import ENGINE, small_world
 
 from rulehall.core.validation import Refusal
-from rulehall.engines.rooms.panels import MORE_MAP
-from rulehall.engines.rooms.world import Item, MapProposal, Place, RegionProposal, Way
-from rulehall.engines.rooms.worldsmith import check_next, check_opening
+from rulehall.engines.bases.maps.panels import MORE_MAP
+from rulehall.engines.bases.maps.world import Item, MapProposal, Place, RegionProposal, Way
+from rulehall.engines.bases.maps.worldsmith import check_next, check_opening
 from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.sheet import Goon
 from rulehall.engines.tunnelgoons.world import TunnelGoonsGame
