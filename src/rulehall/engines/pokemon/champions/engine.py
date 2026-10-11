@@ -163,7 +163,7 @@ class ChampionsEngine(
             for archetype in champions_data().archetypes
             if list(archetype.team.sets) == world.player_sheet.team
         ]
-        world.install_event(opening)
+        world.apply_opening_extras(opening)
         return world
 
     def check_next(self, draft: ChampionsGame, proposal: ChampionsRegionProposal, /) -> None:
@@ -173,7 +173,7 @@ class ChampionsEngine(
         self, draft: ChampionsGame, proposal: ChampionsRegionProposal, /
     ) -> list[Fact]:
         facts = super().install_next(draft, proposal)
-        draft.world.install_event(proposal)
+        draft.world.apply_next_extras(proposal)
         return facts
 
     def worldsmith_sections(self, draft: ChampionsGame, /) -> Sections:

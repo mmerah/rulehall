@@ -1,18 +1,21 @@
+from collections.abc import Mapping, Sequence
 from random import Random
 from typing import Annotated
 
 from pydantic import Field
 
 from rulehall.core.creation import ANSWER_MAX
+from rulehall.core.decisions import Option
 from rulehall.core.facts import Fact, roll
 from rulehall.core.game import Game
 from rulehall.core.log import Voice
-from rulehall.core.prompt import lines_of
+from rulehall.core.prompt import lines_of, ref_of
 from rulehall.core.validation import Frozen, Refusal, Slug, slug
 from rulehall.core.views import Rows
 from rulehall.engines.bases.scenes.world import NextProposal, SceneProposal, SceneWorld
 from rulehall.engines.name_leaks import unmet_people_named
 from rulehall.engines.sheet import PLAYER_ID, VOICE_HELP
+from rulehall.engines.twentyfourxx.pack import Origin, Specialty, TwentyFourXXPack
 from rulehall.engines.twentyfourxx.rules import (
     BRIEF,
     NO_WORK,
@@ -20,10 +23,23 @@ from rulehall.engines.twentyfourxx.rules import (
     TWO_JOBS_FOUND,
     brief_hindrance,
     lesser_hurt,
+    next_die,
     outcome_band,
 )
-from rulehall.engines.twentyfourxx.sheet import MAIMED, SHIP_FUNCTIONS, SHIP_IDS, Crewmate, Gear
+from rulehall.engines.twentyfourxx.sheet import (
+    MAIMED,
+    SHIP_FUNCTIONS,
+    SHIP_IDS,
+    Crewmate,
+    CrewSheet,
+    Gear,
+    items_from_kits,
+)
 
+DEPARTURE_REQUEST: Slug = "departure"
+FLIGHT_REQUEST: Slug = "flight"
+COMPLICATION_REQUEST: Slug = "complication"
+NEWCOMER_REQUEST: Slug = "newcomer"
 ALREADY_MAIMED = "{who} is already maimed: the engine writes no second maim"
 UPGRADE_COST = 10
 ALREADY_BROKEN = "{name} is already broken"
@@ -84,6 +100,41 @@ class SheetProposal(Frozen):
         description="One skill for each increase the origin gives: from the skills in ENGINE "
         "GUIDANCE, or one you invent that fits. A skill named twice rises twice.",
     )
+
+    def build_sheet(
+        self,
+        specialties: Sequence[Specialty],
+        origins: Sequence[Origin],
+        srd: TwentyFourXXPack,
+    ) -> CrewSheet:
+        specialty = _require_offered_option(specialties, self.specialty, "specialty")
+        origin = _require_offered_option(origins, self.origin, "origin")
+        skill_choice = _require_offered_option_if_any(
+            specialty.choice, self.specialty_skills, "specialty skills"
+        )
+        weapon = _require_offered_option_if_any(specialty.kit_choice, self.weapon, "weapon")
+        body = _require_offered_option_if_any(origin.choice, self.body, "body")
+        _require_count(self.traits, origin.invents, "traits to invent")
+        _require_count(self.increases, origin.increases, "skill increases")
+
+        kits = [*srd.starting_kit, *specialty.kit]
+        if weapon is not None:
+            kits.append(weapon.kit)
+        if body is not None and body.kit is not None:
+            kits.append(body.kit)
+        sheet = CrewSheet(
+            specialty=specialty.name,
+            origin=origin.name,
+            traits=(*self.traits, *(() if body is None else (body.name,))),
+            skills={**specialty.skills, **({} if skill_choice is None else skill_choice.skills)},
+            items=items_from_kits(kits),
+        )
+        for wanted in self.increases:
+            skill = sheet.match_skill(wanted, srd.rulebook_skills()) or wanted
+            if (raised_die := next_die(sheet.skills.get(skill))) is None:
+                raise Refusal(f"{skill} is already at d12")
+            sheet.skills[skill] = raised_die
+        return sheet
 
 
 class NewcomerProposal(Frozen):
@@ -231,6 +282,19 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
         card = actor.card_line(f"{item.name} breaks — {hindrance}")
         trace = f"{actor.mention} breaks {item.name} — {hindrance}"
         return [actor.fact(trace, card=card)]
+
+    def spend(self, actor_id: Slug | None, to_id: Slug | None, amount: int, why: str) -> list[Fact]:
+        actor = self.require_actor(actor_id)
+        if to_id is None:
+            return actor.spend(amount, why)
+        if to_id == actor.id:
+            raise Refusal(f"{actor.name} cannot pay themselves")
+        person = self.find_person(to_id)
+        if to_id == self.player.id or (person and person.has_sheet and person.id in self.party_ids):
+            taker = self.require_actor(to_id)
+            return [*actor.spend(amount, why), *taker.earn(amount, giver=actor)]
+        taker_name = to_id if person is None else person.name
+        return actor.spend(amount, f"{why}, to {taker_name}")
 
     def ship_refusal(self) -> str:
         return "" if self.ship_here() else SHIP_AWAY
@@ -390,3 +454,36 @@ TwentyFourXXNextProposal = NextProposal[Crewmate]
 
 
 TwentyFourXXGame = Game[TwentyFourXXWorld]
+
+
+def gear_lines(items: Mapping[Slug, Gear]) -> str:
+    return lines_of(
+        f"- {ref_of(item.name, key)}" + (f" — {detail}" if (detail := item.notes()) else "")
+        for key, item in items.items()
+    )
+
+
+def _require_offered_option[T: Option](options: Sequence[T], answer: str, what: str) -> T:
+    folded = answer.casefold()
+    chosen = next(
+        (option for option in options if folded in (option.id, option.name.casefold())), None
+    )
+    if chosen is None:
+        names = " / ".join(option.name for option in options)
+        raise Refusal(f"{what}: {answer!r} is not one of {names}")
+    return chosen
+
+
+def _require_offered_option_if_any[T: Option](
+    options: Sequence[T], answer: str, what: str
+) -> T | None:
+    if options:
+        return _require_offered_option(options, answer, what)
+    if answer:
+        raise Refusal(f"{what}: none is on offer here, so leave it empty")
+    return None
+
+
+def _require_count(answers: Sequence[str], offered: int, what: str) -> None:
+    if len(answers) != offered or not all(answer.strip() for answer in answers):
+        raise Refusal(f"the origin takes exactly {offered} {what}, each one named")

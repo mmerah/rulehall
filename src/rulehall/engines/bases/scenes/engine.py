@@ -1,13 +1,15 @@
 from abc import abstractmethod
+from collections.abc import Mapping
+from functools import partial
 from pathlib import Path
 from random import Random
-from typing import Any
+from typing import Any, ClassVar
 
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyCharacter, AnyScenario, Game
 from rulehall.core.prompt import Sections, render_log, section_if
 from rulehall.core.tools import tool
-from rulehall.core.views import Panel
+from rulehall.core.views import Panel, PanelRow
 from rulehall.engines.bases.scenes.args import Enter, Leave
 from rulehall.engines.bases.scenes.panels import trail_panel
 from rulehall.engines.bases.scenes.world import NextProposal, SceneProposal, SceneWorld
@@ -19,7 +21,7 @@ from rulehall.engines.bases.scenes.worldsmith import (
 )
 from rulehall.engines.engine import Engine, ViewHeader
 from rulehall.engines.packs import Pack
-from rulehall.engines.panels import here_panel
+from rulehall.engines.panels import here_panel, party_panel
 from rulehall.engines.sheet import Person
 from rulehall.engines.world import ARC_SO_FAR_TITLE, HIDDEN_TITLE, party_section
 
@@ -34,6 +36,8 @@ class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](
     base_dir = Path(__file__).parent
     opening_sections = OPENING_SECTIONS
     opening_intent = OPENING
+    # The sheet help speaks of the player: a companion's luck and goal work otherwise.
+    party_help: ClassVar[Mapping[str, str]] = {}
 
     def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> W:
         proposal: SceneProposal[P] = scenario.opening.filed_by_name()
@@ -83,12 +87,16 @@ class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](
         world = state.world
         return (
             *self.lead_panels(state),
+            party_panel(world.party_members(), self.party_help, partial(self.member_rows, world)),
             here_panel(other.subject() for other in world.others()),
             trail_panel(scene.title for scene in world.scenes),
         )
 
     @abstractmethod
     def lead_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]: ...
+
+    def member_rows(self, _world: W, _member: P, /) -> tuple[PanelRow, ...]:
+        return ()
 
     @tool
     def enter(self, draft: Game[W], args: Enter, _rng: Random) -> list[Fact]:

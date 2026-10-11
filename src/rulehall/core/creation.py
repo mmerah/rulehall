@@ -44,3 +44,8 @@ def drop_stale(steps: Sequence[CreationStep], picks: dict[Slug, str]) -> None:
     for step in steps:
         if not step.offers(picks.get(step.id, "")):
             picks.pop(step.id, None)
+
+
+def numbered_picks(picks: Picks, prefix: str) -> tuple[str, ...]:
+    numbered = (f"{prefix}-{number}" for number in range(1, len(picks) + 1))
+    return tuple(picks[key] for key in numbered if key in picks)

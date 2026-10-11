@@ -151,7 +151,7 @@ class ChampionsWorld(MapWorld[ChampionsTrainer]):
         self._refuse_key(person.id)
         return super().join(person)
 
-    def install_event(self, proposal: ChampionsMapProposal) -> None:
+    def apply_opening_extras(self, proposal: ChampionsMapProposal) -> None:
         planned = proposal.event
         pools = key_team_pools(planned.tier)
         self.key_trainer_ids = []
@@ -179,6 +179,8 @@ class ChampionsWorld(MapWorld[ChampionsTrainer]):
             venue_id=planned.venue_id,
             battle_background=planned.battle_background,
         )
+
+    apply_next_extras = apply_opening_extras
 
     def register_team(self, names: Names, rng: Random) -> list[Fact]:
         event = self.require_event()

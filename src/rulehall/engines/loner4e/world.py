@@ -41,6 +41,16 @@ from rulehall.engines.loner4e.sheet import Loner4ePerson, TagName, Tags
 from rulehall.engines.sheet import Gauge, changed_tags, tag_card, tag_delta
 from rulehall.engines.world import IS_DEAD
 
+QUIET_SCENE_REQUEST: Slug = "quiet"
+DRAMATIC_SCENE_REQUEST: Slug = "dramatic"
+MEANWHILE_REQUEST: Slug = "meanwhile"
+LIVING_WORLD_REQUEST: Slug = "living-world"
+GROWTH_WAITS = (
+    "a new skill or frailty on the protagonist is the growth at the end of the adventure: it is "
+    "written only after the player picks End it; propose the end with `end_adventure`, or tell the "
+    "change in `direct`"
+)
+GROWN = "the growth is one new skill or frailty, and it is written; call `direct` now"
 SCENE_CLOSED = "the scene has closed: change nothing more in it; call `direct` now"
 NO_SUCH_TAG = (
     "no such tag here: {missing}; cite exact tags from SCENE, the sheet or who is here, or cite "
@@ -247,10 +257,19 @@ class Loner4eWorld(SceneWorld[Loner4ePerson]):
         _check_scene_id_unfiled(self.cast)
         return self
 
-    def apply_scene_extras(self, proposal: Loner4eSceneProposal) -> None:
+    def apply_opening_extras(self, proposal: Loner4eSceneProposal) -> None:
         self.frame = Frame(
             kind=self.frame.coming, goal=proposal.goal, details=list(proposal.details)
         )
+
+    apply_next_extras = apply_opening_extras
+
+    def grow(self, gained: Sequence[str]) -> None:
+        if not self.end_why:
+            raise Refusal(GROWTH_WAITS)
+        if self.grown or len(gained) > 1:
+            raise Refusal(GROWN)
+        self.grown = True
 
     def close(self, reason: ClosedBy, rng: Random) -> list[Fact]:
         frame = self.frame

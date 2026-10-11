@@ -26,9 +26,10 @@ from support.tunnelgoons import (
 from rulehall.core.facts import Fact, told_cards
 from rulehall.core.game import WorldsmithRequest
 from rulehall.core.validation import Refusal
-from rulehall.engines.bases.maps.args import MOVED_CARD, MOVES_OFFSCREEN
-from rulehall.engines.bases.maps.panels import EXTEND, map_view
+from rulehall.engines.bases.maps.engine import MOVED_CARD, MOVES_OFFSCREEN
+from rulehall.engines.bases.maps.panels import map_view
 from rulehall.engines.bases.maps.world import (
+    EXTEND_REQUEST,
     MEANWHILE_EVERY,
     OFF_MAP_ID,
     Place,
@@ -108,7 +109,7 @@ def test_extend_map_is_refused_with_a_frontier_and_requests_the_region_at_the_ed
     assert not draft.world.has_frontier()
     _ = change(ENGINE, draft, "extend_map", heading="north")
 
-    assert draft.request == WorldsmithRequest(kind=EXTEND, detail="north")
+    assert draft.request == WorldsmithRequest(kind=EXTEND_REQUEST, detail="north")
 
 
 def test_a_known_way_into_an_unknown_place_is_a_stub_that_hides_its_end() -> None:

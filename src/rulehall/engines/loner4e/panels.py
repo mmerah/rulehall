@@ -1,5 +1,3 @@
-from collections.abc import Mapping
-
 from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.views import Meter, Panel, PanelRow
 from rulehall.engines.loner4e.rules import DOUBLES_PER_TWIST, SceneKind
@@ -91,14 +89,14 @@ WRITE_LIVING_WORLD = ActionOption(
 UNWRITTEN_PROMPT = "The adventure is over, and the Living World is still to be written."
 
 
-def sheet_panel(world: Loner4eWorld, sheet_help: Mapping[str, str]) -> Panel:
+def sheet_panel(world: Loner4eWorld) -> Panel:
     player = world.player
     return character_panel(
         player.subject(),
         player.traits(),
-        _meter_row("Luck", player.luck, sheet_help),
-        _meter_row("Twist Counter", world.twist, sheet_help),
-        sheet_help=sheet_help,
+        _meter_row("Luck", player.luck),
+        _meter_row("Twist Counter", world.twist),
+        sheet_help=SHEET_HELP,
     )
 
 
@@ -186,6 +184,6 @@ def _fight(other: Loner4ePerson) -> ActionOption:
     )
 
 
-def _meter_row(name: str, gauge: Gauge, sheet_help: Mapping[str, str]) -> PanelRow:
+def _meter_row(name: str, gauge: Gauge) -> PanelRow:
     meter = Meter(name="", current=gauge.current, maximum=gauge.maximum)
-    return PanelRow(name=name, brief="", help=sheet_help[name], meters=(meter,))
+    return PanelRow(name=name, brief="", help=SHEET_HELP[name], meters=(meter,))

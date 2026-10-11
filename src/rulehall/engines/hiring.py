@@ -14,7 +14,7 @@ from rulehall.engines.engine import RequestHandler
 from rulehall.engines.sheet import Person
 from rulehall.engines.world import World
 
-HIRE: Slug = "hire"
+HIRE_REQUEST: Slug = "hire"
 SIGNED_ON = "{name} has signed on with the player. Tell it in a line or two. Settle nothing else."
 HIRED = "The player has hired {name}, {brief}, on these terms: {terms}. "
 UNWRITTEN_CAST = (
@@ -71,11 +71,12 @@ class Hiring[P: Person, W: World[Any], A: BaseModel](ABC):
         # A member let go keeps their sheet, so hiring them again only brings them back.
         if not args.terms or person.has_sheet:
             return [*filed, *draft.world.join(person)]
-        draft.request = WorldsmithRequest(kind=HIRE, detail=args.terms, target_id=person.id)
+        draft.request = WorldsmithRequest(kind=HIRE_REQUEST, detail=args.terms, target_id=person.id)
         return [*filed, Fact(trace=HIRE_PENDING.format(name=person.name, terms=args.terms))]
 
     def request_handlers(self: _HireHost[P, W, A]) -> Mapping[Slug, RequestHandler[W]]:
-        return {**super().request_handlers(), HIRE: RequestHandler(self.write_hire, HIRE_UNWRITTEN)}
+        hire = RequestHandler(self.write_hire, HIRE_UNWRITTEN)
+        return {**super().request_handlers(), HIRE_REQUEST: hire}
 
     async def write_hire(
         self: _HireHost[P, W, A],

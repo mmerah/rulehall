@@ -3,11 +3,10 @@ from collections.abc import Iterable, Mapping, Sequence
 from rulehall.core.decisions import ActionOption
 from rulehall.core.validation import Slug
 from rulehall.core.views import MapEdge, MapNode, MapNodeKind, MapView, Panel, PanelRow
-from rulehall.engines.bases.maps.world import Dweller, MapWorld, Place, Way
+from rulehall.engines.bases.maps.world import EXTEND_REQUEST, Dweller, MapWorld, Place, Way
 
-EXTEND: Slug = "extend"
 MORE_MAP = ActionOption(
-    id=EXTEND,
+    id=EXTEND_REQUEST,
     name="More map",
     help="Say where you head; the map grows.",
     action_name="extend",

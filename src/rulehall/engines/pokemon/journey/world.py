@@ -311,7 +311,7 @@ class JourneyWorld(MapWorld[JourneyTrainer]):
         self.evil_team.scheme = opening.scheme
         self.open_operation(opening.operation)
 
-    def apply_region_extras(self, region: JourneyRegionProposal) -> None:
+    def apply_next_extras(self, region: JourneyRegionProposal) -> None:
         self._add_map_extras(region)
         if region.boss_id is not None:
             self.evil_team.boss_id = region.boss_id

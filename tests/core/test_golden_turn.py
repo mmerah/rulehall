@@ -11,7 +11,7 @@ from rulehall.core.game import Check, Game, WorldsmithRequest
 from rulehall.core.log import LogEntry
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import EngineId, Refusal
-from rulehall.engines.hiring import HIRE
+from rulehall.engines.hiring import HIRE_REQUEST
 
 PROMPT = "I lever up the loose flagstone and listen at the vault door."
 SEED = 19
@@ -63,7 +63,7 @@ async def test_a_worldsmith_request_renders_unchanged(engine_id: EngineId) -> No
         raise Refusal("recorded")
 
     # The engine's own write, not the seam's `hire`: the detail is a place to go.
-    kind = next(kind for kind in engine.request_handlers() if kind != HIRE)
+    kind = next(kind for kind in engine.request_handlers() if kind != HIRE_REQUEST)
     request = WorldsmithRequest(kind=kind, detail="Deeper in, toward the sound.")
     draft = state.draft()
     draft.chapters[-1].entries.append(LogEntry(words="I head deeper in.", lines=()))

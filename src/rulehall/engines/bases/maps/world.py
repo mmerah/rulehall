@@ -11,6 +11,7 @@ from rulehall.engines.world import IS_DEAD, UNKNOWN_ID, OpeningProposal, World, 
 
 MEANWHILE_EVERY = 4
 OFF_MAP_ID: Slug = "off-map"
+EXTEND_REQUEST: Slug = "extend"
 
 
 class Dweller(Person):

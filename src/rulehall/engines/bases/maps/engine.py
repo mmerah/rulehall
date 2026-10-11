@@ -5,7 +5,7 @@ from typing import Any
 
 from rulehall.core.decisions import ActionOption
 from rulehall.core.facts import Fact, Resolution
-from rulehall.core.game import AnyCharacter, AnyScenario, Game, RoleAnswer, WorldsmithRequest
+from rulehall.core.game import Game, RoleAnswer, WorldsmithRequest
 from rulehall.core.narration import NarratorView
 from rulehall.core.prompt import Sections, lines_of, render_log, section_if
 from rulehall.core.tools import action, tool
@@ -13,13 +13,6 @@ from rulehall.core.validation import Refusal, Slug
 from rulehall.core.views import Panel
 from rulehall.engines.args import Words
 from rulehall.engines.bases.maps.args import (
-    ELSEWHERE,
-    FRONTIER_LEFT,
-    MAP_EDGE,
-    MOVED_CARD,
-    MOVES_OFFSCREEN,
-    NOTHING_OFFSCREEN,
-    PAST_THE_EDGE,
     DropHere,
     ExtendMap,
     Meanwhile,
@@ -27,25 +20,30 @@ from rulehall.engines.bases.maps.args import (
     MoveTo,
     UnlockWay,
 )
-from rulehall.engines.bases.maps.panels import (
-    EXTEND,
-    MORE_MAP,
-    carried_panel,
-    map_view,
-    ways_panel,
-)
-from rulehall.engines.bases.maps.world import Dweller, Item, MapProposal, MapWorld, RegionProposal
+from rulehall.engines.bases.maps.panels import MORE_MAP, carried_panel, map_view, ways_panel
+from rulehall.engines.bases.maps.world import EXTEND_REQUEST, Dweller, MapWorld, RegionProposal
 from rulehall.engines.bases.maps.worldsmith import (
     MAP_ASK,
     OPENING_SECTIONS,
     check_next,
-    check_opening,
 )
 from rulehall.engines.engine import Engine, RequestHandler, Revealing, ViewHeader
 from rulehall.engines.packs import Pack
 from rulehall.engines.panels import character_panel, here_panel, party_panel
 from rulehall.engines.world import ARC_SO_FAR_TITLE, ARC_TITLE, HIDDEN_TITLE, party_section
 
+ELSEWHERE = "ELSEWHERE (time has passed; you can move what the player cannot see)"
+NOTHING_OFFSCREEN = "no time has passed offscreen; call this only while ELSEWHERE is shown"
+MOVES_OFFSCREEN = "something moves where the player cannot see"
+MOVED_CARD = "Elsewhere, something moves."
+FRONTIER_LEFT = (
+    "an open way the player knows still leads to a place they have not visited; go there first"
+)
+PAST_THE_EDGE = "the player heads past the map's edge"
+MAP_EDGE = (
+    "No open way the player knows leads to a place they have not visited. When the player heads "
+    "on, call extend_map."
+)
 MAP_UNWRITTEN = Fact(
     told=True,
     trace="the map could not be written",
@@ -61,17 +59,8 @@ class MapEngine[P: Dweller, W: MapWorld[Any], K: Pack, R: RegionProposal[Any]](
     opening_intent = MAP_ASK
     play_hint = "What does {name} do? Or tap the map."
 
-    def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> W:
-        proposal: MapProposal[P] = scenario.opening
-        check_opening(proposal)
-        player = self.player_of(character)
-        return self.world_model.opening(proposal, player, self.starting_items(proposal, player))
-
-    def starting_items(self, _proposal: MapProposal[P], _player: P, /) -> tuple[Item, ...]:
-        return ()
-
     def request_handlers(self) -> Mapping[Slug, RequestHandler[W]]:
-        return {EXTEND: RequestHandler(self.write_region, MAP_UNWRITTEN)}
+        return {EXTEND_REQUEST: RequestHandler(self.write_region, MAP_UNWRITTEN)}
 
     def worldsmith_sections(self, draft: Game[W], /) -> Sections:
         world = draft.world
@@ -186,12 +175,12 @@ class MapEngine[P: Dweller, W: MapWorld[Any], K: Pack, R: RegionProposal[Any]](
         your turn."""
         if not draft.world.at_map_edge():
             raise Refusal(FRONTIER_LEFT)
-        draft.request = WorldsmithRequest(kind=EXTEND, detail=args.heading)
+        draft.request = WorldsmithRequest(kind=EXTEND_REQUEST, detail=args.heading)
         return [Fact(trace=PAST_THE_EDGE, told=True)]
 
     @action
     def extend(self, draft: Game[W], args: Words, _rng: Random) -> list[Fact]:
-        draft.request = WorldsmithRequest(kind=EXTEND, detail=args.words)
+        draft.request = WorldsmithRequest(kind=EXTEND_REQUEST, detail=args.words)
         return []
 
     def after_master_turn(self, draft: Game[W], /, *, acted: bool) -> None:

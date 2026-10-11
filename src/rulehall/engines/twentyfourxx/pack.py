@@ -95,6 +95,9 @@ class TwentyFourXXPack(CastPack[TwentyFourXXCastEntry]):
     origins: tuple[Origin, ...] = ()
     starting_kit: tuple[Kit, ...] = ()
 
+    def rulebook_skills(self) -> tuple[str, ...]:
+        return tuple(option.name for option in self.skills)
+
     @model_validator(mode="after")
     def _every_pick_told(self) -> Self:
         untold = [option.id for option in (*self.specialties, *self.origins) if not option.brief]

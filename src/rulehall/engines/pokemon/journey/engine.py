@@ -190,7 +190,7 @@ class JourneyEngine(
 
     def install_next(self, draft: JourneyGame, proposal: JourneyRegionProposal, /) -> list[Fact]:
         facts = super().install_next(draft, proposal)
-        draft.world.apply_region_extras(proposal)
+        draft.world.apply_next_extras(proposal)
         return facts
 
     def worldsmith_sections(self, draft: JourneyGame, /) -> Sections:

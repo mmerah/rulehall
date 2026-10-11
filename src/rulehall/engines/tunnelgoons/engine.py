@@ -1,16 +1,17 @@
 from pathlib import Path
 from random import Random
 
-from rulehall.core.creation import CreationStep, Picks
+from rulehall.core.creation import CreationStep, Picks, numbered_picks
 from rulehall.core.decisions import Option
 from rulehall.core.facts import Fact, roll
-from rulehall.core.game import AnyCharacter, Character
+from rulehall.core.game import AnyCharacter, AnyScenario, Character
 from rulehall.core.log import Voice
 from rulehall.core.tools import NoArgs, action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug, parse
 from rulehall.core.views import Rows
 from rulehall.engines.bases.maps.engine import MapEngine
-from rulehall.engines.bases.maps.world import Item, MapProposal, RegionProposal
+from rulehall.engines.bases.maps.world import MapProposal, RegionProposal
+from rulehall.engines.bases.maps.worldsmith import check_opening
 from rulehall.engines.hiring import Hiring
 from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.args import LevelUp, Roll
@@ -107,9 +108,7 @@ class TunnelGoonsEngine(
                 "place_id": PLAYER_ID,
                 "hp": Gauge(current=HP_START, maximum=HP_START),
                 "sheet": GoonSheet(abilities=abilities),
-                "kit": tuple(
-                    picks.get(f"item-{number}", "") for number in range(1, STARTING_ITEMS + 1)
-                ),
+                "kit": numbered_picks(picks, "item"),
             },
         )
         return self.character_of(name, sheet)
@@ -118,8 +117,12 @@ class TunnelGoonsEngine(
         sheet = self.player_of(character)
         return (*sheet.rows(), ("Items", ", ".join(sheet.kit)))
 
-    def starting_items(self, proposal: MapProposal[Goon], player: Goon) -> tuple[Item, ...]:
-        return player.unpack_kit((*proposal.places, *proposal.npcs, *proposal.items))
+    def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> TunnelGoonsWorld:
+        proposal: MapProposal[Goon] = scenario.opening
+        check_opening(proposal)
+        player = self.player_of(character)
+        items = player.unpack_kit((*proposal.places, *proposal.npcs, *proposal.items))
+        return self.world_model.opening(proposal, player, items)
 
     @tool
     def roll(self, draft: TunnelGoonsGame, args: Roll, rng: Random) -> list[Fact]:
