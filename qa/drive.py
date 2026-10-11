@@ -12,11 +12,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NotRequired, TypedDict
 
-from playwright.sync_api import Browser, Locator, Page, ViewportSize, WebSocket, sync_playwright
+from playwright.sync_api import Browser, Locator, Page, ViewportSize, sync_playwright
 
 BASE = f"http://localhost:{os.environ.get('QA_PORT', '8123')}"
-# A socket.io event frame starts with its packet digits: `42[...]`.
-SOCKET_EVENT = re.compile(r"^\d+(?=\[)")
 SCROLLED_DOWN = "box => box.scrollTop + box.clientHeight >= box.scrollHeight - 2"
 # Loops such as the working dots never end, so they do not count.
 ANIMATIONS_DONE = """selector => document.querySelector(selector)
@@ -122,50 +120,6 @@ class Session:
     def note(self, message: str) -> None:
         self.notes.append(message)
         print("NOTE:", message)
-
-
-@dataclass(frozen=True)
-class Sample:
-    frames: int
-    kilobytes: float
-    elements: int
-
-    def line(self) -> str:
-        return f"frames={self.frames} kb={self.kilobytes:.1f} elements={self.elements}"
-
-
-class SocketTraffic:
-    """What the server sends one page over its websockets, counted from the page's side.
-
-    Sync Playwright hands over frames only inside its own calls, so a caller waits with
-    `page.wait_for_timeout`, never `time.sleep`, before it marks.
-    """
-
-    def __init__(self, page: Page) -> None:
-        self.total = Sample(frames=0, kilobytes=0, elements=0)
-        self.marked = self.total
-        page.on("websocket", self.attach)
-
-    def attach(self, socket: WebSocket) -> None:
-        socket.on("framereceived", self.count)
-
-    def count(self, payload: str | bytes) -> None:
-        binary = isinstance(payload, bytes)
-        self.total = Sample(
-            frames=self.total.frames + 1,
-            kilobytes=self.total.kilobytes + len(payload if binary else payload.encode()) / 1024,
-            elements=self.total.elements + (0 if binary else updated_elements(payload)),
-        )
-
-    def mark(self) -> Sample:
-        """The traffic since the last mark."""
-        total, marked = self.total, self.marked
-        self.marked = total
-        return Sample(
-            frames=total.frames - marked.frames,
-            kilobytes=total.kilobytes - marked.kilobytes,
-            elements=total.elements - marked.elements,
-        )
 
 
 def run(name: str, body: Callable[[Session], None]) -> None:
@@ -483,17 +437,6 @@ def notified(page: Page, words: str, timeout: float = 5) -> bool:
 def still(page: Page, selector: str = "body") -> None:
     """Every finite animation in `selector` has ended, for a screenshot worth looking at."""
     page.wait_for_function(ANIMATIONS_DONE, arg=selector)
-
-
-def updated_elements(frame: str) -> int:
-    """The element entries of a NiceGUI `update` event: `42["update",{"<id>":{…},"_id":7}]`."""
-    head = SOCKET_EVENT.match(frame)
-    if head is None:
-        return 0
-    event = json.loads(frame[head.end() :])
-    if event[0] != "update":
-        return 0
-    return sum(1 for key in event[1] if key != "_id")
 
 
 def _post(path: str, **query: str) -> None:

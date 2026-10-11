@@ -49,16 +49,9 @@ Only the pack's species live in the region, and a Pokemon evolves only into a sp
 
 ## The tools
 
-The map tools of Tunnel Goons stay: `move`, `move_item`, `unlock_way`, `meanwhile`, `reveal`, `kill`, `join_party`, `leave_party` and `direct`. A locked way can be a Cut tree or a door the story opens. `move` also places the rival after a badge. While the rival waits at a place, `move` refuses every way but the way back; before the first move it refuses every way. `kill` and `join_party` refuse a key trainer.
+The master's tools are the `@tool` methods of `src/rulehall/engines/pokemon/journey/engine.py` and `src/rulehall/engines/pokemon/champions/engine.py`, and of their bases. Their docstrings are exactly what the model reads.
 
-- `check`: a d20 trainer check, with one team Pokemon as a helper. A success can earn an edge for the next battle here.
-- `start_battle`: fight a trainer who is here, with an optional weather and terrain from the story, alone or as a tag battle beside a party member. It ends the master's turn. The rival battles once before the first badge, then once after each badge.
-- `start_wild_battle`: fight a species from the wild table of this place, or a random one, with the same optional weather and terrain. In a Nuzlocke the table always decides. The Wild here panel does the same without the master: the player sees the wild table and picks a species or searches the grass, and in a Nuzlocke only the search.
-- `heal_team`: heal the team and the box, only in a town, at its Pokemon Center.
-- `nickname`: name a team or box Pokemon.
-- `buy`, `gain_item`, `gain_money`: the bag and the wallet. `buy` works only in a town, at its mart.
-- `use_item`: a potion, a revive, a Rare Candy, a stone or another evolution item.
-- `swap_mon`: swap a team Pokemon with a box Pokemon.
+## Player actions
 
 The player also acts without the master, from the Team tab, the Wild here panel and decisions: hold an item, teach a TM, relearn a move, send a Pokemon to the box or back, set the lead, learn or forget a move, raise a skill after a badge, and pick an evolution. Learning or forgetting a move and raising a skill resolve at once, with no master or narrator turn. An evolution stays narrated.
 
