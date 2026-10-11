@@ -11,8 +11,8 @@ from support.game import initialized
 from support.table import ENGINES_BUILT, LONER4E, offline_settings, updated
 
 from rulehall.app.role_prompts import Debrief
-from rulehall.app.roles import ProviderRoleRunner, ask
-from rulehall.app.submission import SUBMIT, Submissions
+from rulehall.app.roles import ProviderRoleRunner, ask_by_submission
+from rulehall.app.submission import SUBMIT
 from rulehall.app.turn import UNDIRECTED, Turn
 from rulehall.config import LiveSettings, RoleConfig, RoleSettings
 from rulehall.core.prompt import Prompt
@@ -30,7 +30,7 @@ _, STATE = initialized()
 class _Tools(Turn):
     calls: list[tuple[str, JsonValue]] = field(default_factory=list)
 
-    def published_tools(self) -> tuple[ToolSpec, ...]:
+    def offered_tools(self) -> tuple[ToolSpec, ...]:
         return (CHANGE_TAGS, DIRECT)
 
     def call_tool(self, name: str, arguments: str | dict[str, JsonValue]) -> str:
@@ -132,8 +132,8 @@ async def test_the_master_plays_its_tools_in_process_and_echoes_each_reply_whole
     tools = _tools()
 
     await ProviderRoleRunner(
-        _live_settings(master=RoleConfig(provider="local", model="m")), Submissions()
-    ).play_master_turn(Prompt(system="BE THE MASTER", user="PLAY"), tools)
+        _live_settings(master=RoleConfig(provider="local", model="m"))
+    ).play_tools("master", Prompt(system="BE THE MASTER", user="PLAY"), tools)
 
     assert tools.calls == [("change_tags", arguments), ("direct", DIRECTED)]
     assert sent[0]["tools"] == [
@@ -179,7 +179,7 @@ async def test_a_writer_streams_its_answer_and_the_listener_hears_the_text_so_fa
     heard: list[str] = []
 
     spoken = await ProviderRoleRunner(
-        _live_settings(narrator=RoleConfig(provider="local", model="m")), Submissions()
+        _live_settings(narrator=RoleConfig(provider="local", model="m"))
     ).answer("narrator", prompt, heard=heard.append)
 
     assert spoken == "Done."
@@ -198,8 +198,8 @@ async def test_a_master_still_calling_tools_past_the_cap_is_cut_off(
     prompt = Prompt(system="", user="PLAY")
 
     with pytest.raises(Refusal, match="3 rounds"):
-        await ProviderRoleRunner(_live_settings(master=master), Submissions()).play_master_turn(
-            prompt, _tools()
+        await ProviderRoleRunner(_live_settings(master=master)).play_tools(
+            "master", prompt, _tools()
         )
     assert len(sent) == 3
 
@@ -211,9 +211,7 @@ async def test_a_master_that_stops_undirected_is_told_once_and_its_direct_ends_t
     prompt = Prompt(system="", user="PLAY")
     master = RoleConfig(provider="local", model="m")
 
-    await ProviderRoleRunner(_live_settings(master=master), Submissions()).play_master_turn(
-        prompt, _tools()
-    )
+    await ProviderRoleRunner(_live_settings(master=master)).play_tools("master", prompt, _tools())
 
     assert len(sent) == 2
     assert _messages(sent[1])[-1] == {"role": "user", "content": UNDIRECTED}
@@ -240,8 +238,8 @@ async def test_a_failed_provider_refuses_in_words_the_player_reads(
 
     with pytest.raises(Refusal, match=expected):
         await ProviderRoleRunner(
-            _live_settings(master=RoleConfig(provider="local", model="m")), Submissions()
-        ).play_master_turn(prompt, _tools())
+            _live_settings(master=RoleConfig(provider="local", model="m"))
+        ).play_tools("master", prompt, _tools())
 
 
 async def test_a_writer_that_calls_a_tool_is_refused_before_anything_lands(
@@ -252,7 +250,7 @@ async def test_a_writer_that_calls_a_tool_is_refused_before_anything_lands(
 
     with pytest.raises(Refusal, match="no tools, yet called 'change_tags'"):
         _ = await ProviderRoleRunner(
-            _live_settings(narrator=RoleConfig(provider="local", model="m")), Submissions()
+            _live_settings(narrator=RoleConfig(provider="local", model="m"))
         ).answer("narrator", prompt)
 
 
@@ -271,11 +269,9 @@ async def test_a_worldsmith_resubmits_a_refused_answer_within_one_run(
         _said(None, _call("a", SUBMIT, blank)),
         _said(None, _call("b", SUBMIT, dumps(good))),
     )
-    runner = ProviderRoleRunner(
-        _live_settings(worldsmith=RoleConfig(provider="local", model="m")), Submissions()
-    )
+    runner = ProviderRoleRunner(_live_settings(worldsmith=RoleConfig(provider="local", model="m")))
 
-    answer = await ask(
+    answer = await ask_by_submission(
         runner, "worldsmith", Prompt(system="", user="WRITE"), Debrief, Debrief.check
     )
 

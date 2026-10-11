@@ -171,7 +171,7 @@ class Turn:
             lines.append(f"- {RULES_WAIT}")
         return "\n".join(lines) or NOTHING
 
-    def published_tools(self) -> tuple[ToolSpec, ...]:
+    def offered_tools(self) -> tuple[ToolSpec, ...]:
         return self.engine.offered_tools(self.draft)
 
     def finish(self, lines: tuple[SpokenLine, ...]) -> AnyGame:

@@ -64,7 +64,6 @@ def main() -> None:
     agents = ScriptedAgents(delay=parsed.delay)
     # The built agents are passed so a reload, which rebuilds the runtime, keeps them.
     runtime = Runtime(settings, roles=agents)
-    agents.runtime = runtime
     mount(runtime)
 
     @app.get("/qa/log")

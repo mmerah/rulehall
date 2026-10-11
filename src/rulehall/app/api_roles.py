@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, JsonValue
 from rulehall.app.http_client import post, stream_chat_completion
 from rulehall.config import ProviderConfig, Role, RoleConfig
 from rulehall.core.prompt import Prompt
-from rulehall.core.tools import ToolSpec, ToolSurface
+from rulehall.core.tools import ToolProvider, ToolSpec
 from rulehall.core.validation import Loose, Refusal, parse_json
 
 LOGGER = logging.getLogger(__name__)
@@ -98,35 +98,35 @@ async def converse(
     config: RoleConfig,
     provider: ProviderConfig,
     prompt: Prompt,
-    surface: ToolSurface,
+    tool_provider: ToolProvider,
 ) -> None:
     messages = _opening_messages(prompt)
-    published: list[JsonValue] = [_declared(tool) for tool in surface.published_tools()]
+    offered: list[JsonValue] = [_declared(tool) for tool in tool_provider.offered_tools()]
     retried = False
     for rounds in range(1, config.max_rounds + 1):
-        said = await _round(role, config, provider, messages, published)
+        said = await _round(role, config, provider, messages, offered)
         messages.append(said.model_dump(mode="json", exclude_none=True))
         messages.extend(
-            {"role": "tool", "tool_call_id": call.id, "content": _answer(surface, call)}
+            {"role": "tool", "tool_call_id": call.id, "content": _answer(tool_provider, call)}
             for call in said.tool_calls or ()
         )
-        if surface.must_stop:
+        if tool_provider.must_stop:
             LOGGER.info("the %s ended its work after %d rounds", role, rounds)
             return
         if not said.tool_calls:
             if retried:
                 raise Refusal(f"the {role} stopped without ending its work, twice")
             retried = True
-            messages.append({"role": "user", "content": surface.nudge})
+            messages.append({"role": "user", "content": tool_provider.nudge})
     raise Refusal(
         f"the {role} made {config.max_rounds} rounds of tool calls without ending its work"
     )
 
 
-def _answer(surface: ToolSurface, call: _ToolCall) -> str:
+def _answer(tool_provider: ToolProvider, call: _ToolCall) -> str:
     """A refusal is a result the model reads and continues from, not an error."""
     try:
-        return surface.call_tool(call.function.name, call.function.arguments)
+        return tool_provider.call_tool(call.function.name, call.function.arguments)
     except Refusal as refused:
         return str(refused)
 

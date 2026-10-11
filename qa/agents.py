@@ -25,13 +25,14 @@ from dataclasses import dataclass, field
 from itertools import count
 from typing import Literal
 
-from pydantic import BaseModel, JsonValue
+from pydantic import JsonValue
 
-from rulehall.app.runtime import Runtime
-from rulehall.app.submission import SUBMIT, Submission
+from rulehall.app.mcp import OpenToolProviders
+from rulehall.app.submission import SUBMIT
 from rulehall.app.turn import Turn
 from rulehall.config import Role
 from rulehall.core.prompt import Prompt
+from rulehall.core.tools import ToolProvider
 from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.journey.rules import level_for
 
@@ -63,12 +64,13 @@ class Spoken:
 @dataclass(slots=True)
 class ScriptedAgents:
     delay: float = 0
-    runtime: Runtime | None = None
     faults: dict[Role, list[Fault]] = field(default_factory=dict)
     holds: dict[Role, Event] = field(default_factory=dict)
     log: list[Spoken] = field(default_factory=list)
     scenes: "count[int]" = field(default_factory=lambda: count(1))
     gyms: "count[int]" = field(default_factory=lambda: count(1))
+    tool_providers: OpenToolProviders = field(default_factory=OpenToolProviders)
+    token: str = ""
 
     async def answer(
         self, role: Role, prompt: Prompt, *, heard: Callable[[str], None] | None = None
@@ -76,19 +78,24 @@ class ScriptedAgents:
         del heard
         return (await self._spoken(role, prompt.text)).answer
 
-    async def play_master_turn(self, prompt: Prompt, turn: Turn) -> None:
-        del turn
-        _ = await self._spoken("master", prompt.text)
+    async def play_tools(self, role: Role, prompt: Prompt, provider: ToolProvider) -> None:
+        with self.tool_providers.open(provider) as token:
+            outer, self.token = self.token, token
+            try:
+                await self._play(role, prompt, provider)
+            finally:
+                self.token = outer
 
-    async def submit_answer[T: BaseModel](
-        self, role: Role, prompt: Prompt, submission: Submission[T]
-    ) -> None:
+    async def _play(self, role: Role, prompt: Prompt, provider: ToolProvider) -> None:
+        if role == "master":
+            _ = await self._spoken("master", prompt.text)
+            return
         for _ in range(SUBMIT_ATTEMPTS):
-            if submission.must_stop:
+            if provider.must_stop:
                 return
             answer = (await self._spoken(role, prompt.text)).answer
             try:
-                submission.call_tool(SUBMIT, answer)
+                provider.call_tool(SUBMIT, answer)
             except Refusal:
                 continue
 
@@ -164,7 +171,7 @@ class ScriptedAgents:
 
     async def _call(self, name: str, args: dict[str, JsonValue], spoken: Spoken) -> None:
         try:
-            answered = self._runtime().gate.require_turn().call_tool(name, args)
+            answered = self.tool_providers.require(self.token).call_tool(name, args)
         except Refusal as refused:
             answered = f"REFUSED: {refused}"
         spoken.calls.append((name, args, answered))
@@ -382,13 +389,9 @@ class ScriptedAgents:
         scene = json.loads(self._scene(schema, number, opening=False)) if dramatic else None
         return json.dumps({"power": updates, "ally": ally, "scene": scene})
 
-    def _runtime(self) -> Runtime:
-        assert self.runtime is not None
-        return self.runtime
-
     def _engine_id(self) -> str:
-        playing = self._runtime().gate.turn
-        assert playing is not None
+        playing = self.tool_providers.require(self.token)
+        assert isinstance(playing, Turn)
         return playing.engine.id
 
 

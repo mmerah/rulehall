@@ -14,7 +14,6 @@ from support.table import (
 import rulehall.app.processes as processes
 from rulehall.app.cli_roles import CodexDriver
 from rulehall.app.roles import ProviderRoleRunner, final_message
-from rulehall.app.submission import Submissions
 from rulehall.config import LiveSettings
 from rulehall.core.decisions import PlayerInput
 from rulehall.core.narration import Narration
@@ -109,7 +108,7 @@ async def test_abandoning_a_spawn_kills_the_process_group_it_started(
     )
 
     with pytest.raises(Refusal, match="answered nothing in"):
-        _ = await ProviderRoleRunner(LiveSettings(settings), Submissions()).answer(
+        _ = await ProviderRoleRunner(LiveSettings(settings)).answer(
             "master", Prompt(system="", user="go")
         )
     assert killed == [1234]

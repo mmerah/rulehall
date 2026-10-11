@@ -18,9 +18,8 @@ from rulehall.app.role_prompts import (
     render_master,
     render_narrator,
 )
-from rulehall.app.roles import RoleRunner, ask, role_answer
+from rulehall.app.roles import RoleRunner, ask_with_retry, role_answer
 from rulehall.app.speech import Speaker
-from rulehall.app.submission import Submissions
 from rulehall.app.turn import Turn
 from rulehall.config import LiveSettings, Role
 from rulehall.core.decisions import ActionOption, PlayerInput, find_option
@@ -39,7 +38,6 @@ LOGGER = logging.getLogger(__name__)
 IN_FLIGHT_HERE = "a turn is already running in this game"
 IN_FLIGHT_ELSEWHERE = "another game is taking a turn: wait for that turn to end, then try again"
 NOTHING_TO_REWIND = "there is no turn to rewind"
-NO_TURN = "no turn is open: the player starts a turn from the page, so wait until you start again"
 NO_WORDS_NOW = "the page takes one of its options now, not words"
 BATTLE_ON = "a battle is on: finish it on the battle screen"
 NOTHING_TO_UNDO = "there is no edit to undo"
@@ -221,7 +219,7 @@ class GameSession:
             if self.debriefed is not None and self.debriefed.state is state:
                 return self.debriefed.debrief
             prompt = render_debrief(self.engine.narrator_view(state), state)
-            answer = await ask(self.roles, "narrator", prompt, Debrief, Debrief.check)
+            answer = await ask_with_retry(self.roles, "narrator", prompt, Debrief, Debrief.check)
             self.debriefed = DebriefMemo(state, answer)
             return answer
 
@@ -384,7 +382,6 @@ class GameSession:
                     )
             state = turn.finish(lines)
         finally:
-            # Cleared before arrival: the tool surface must not reach a turn nobody plays.
             self.turn = None
         self.save(state)
         self.rng.setstate(turn.rng.getstate())
@@ -459,7 +456,7 @@ class GameSession:
 
             evidence = render_evidence(facts, draft, in_battle=self.engine.in_battle(draft))
             prompt = render_narrator(view, draft, evidence=evidence, cue=cue)
-            narration = await ask(
+            narration = await ask_with_retry(
                 self.roles, "narrator", prompt, Narration, view.check_narration, overheard
             )
             return view.spoken(narration.lines)
@@ -495,7 +492,7 @@ class GameSession:
             notes=turn.notes,
         )
         try:
-            await self.roles.play_master_turn(prompt, turn)
+            await self.roles.play_tools("master", prompt, turn)
         except Refusal as failed:
             if not turn.state_changed:
                 raise
@@ -527,7 +524,6 @@ class Busy(Refusal):
 @dataclass(slots=True)
 class Gate:
     admitted: GameSession | None = field(default=None, repr=False)
-    submissions: Submissions = field(default_factory=Submissions)
     creating: int = 0
     active_at: float = field(default_factory=monotonic)
 
@@ -549,15 +545,6 @@ class Gate:
         finally:
             self.creating -= 1
             self.active_at = monotonic()
-
-    @property
-    def turn(self) -> Turn | None:
-        return None if self.admitted is None else self.admitted.turn
-
-    def require_turn(self) -> Turn:
-        if (turn := self.turn) is None:
-            raise Refusal(NO_TURN)
-        return turn
 
     @contextmanager
     def admit(self, session: GameSession) -> Generator[None]:

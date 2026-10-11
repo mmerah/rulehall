@@ -1,14 +1,11 @@
 import logging
-from collections.abc import Generator
-from contextlib import contextmanager
-from dataclasses import dataclass, field
-from secrets import token_urlsafe
+from dataclasses import dataclass
 
 from pydantic import BaseModel, JsonValue
 
 from rulehall.core.answer_repair import parse_with_repairs
 from rulehall.core.game import Check
-from rulehall.core.tools import ToolSpec, ToolSurface
+from rulehall.core.tools import ToolSpec
 from rulehall.core.validation import Refusal, decode
 
 LOGGER = logging.getLogger(__name__)
@@ -20,7 +17,6 @@ SUBMIT_DESCRIPTION = (
 )
 ACCEPTED = "accepted: stop here and exit"
 UNSUBMITTED = "You stopped with no accepted answer. Call `submit` now with your complete answer."
-NO_SUBMISSION = "no answer is open for this call: stop here and exit"
 
 
 @dataclass(slots=True)
@@ -37,7 +33,7 @@ class Submission[T: BaseModel]:
     def nudge(self) -> str:
         return UNSUBMITTED
 
-    def published_tools(self) -> tuple[ToolSpec, ...]:
+    def offered_tools(self) -> tuple[ToolSpec, ...]:
         return (ToolSpec(SUBMIT, SUBMIT_DESCRIPTION, self.model),)
 
     def call_tool(self, name: str, arguments: str | dict[str, JsonValue]) -> str:
@@ -58,25 +54,3 @@ class Submission[T: BaseModel]:
         )
         self.check(answer)
         return answer
-
-
-@dataclass(slots=True)
-class Submissions:
-    opened: dict[str, ToolSurface] = field(default_factory=dict)
-
-    @contextmanager
-    def open(self, surface: ToolSurface) -> Generator[str]:
-        token = token_urlsafe(16)
-        self.opened[token] = surface
-        try:
-            yield token
-        finally:
-            del self.opened[token]
-
-    def find(self, token: str) -> ToolSurface | None:
-        return self.opened.get(token)
-
-    def require(self, token: str) -> ToolSurface:
-        if (submission := self.find(token)) is None:
-            raise Refusal(NO_SUBMISSION)
-        return submission

@@ -1,6 +1,9 @@
 import logging
 from asyncio import Event, Task, create_task
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
+from secrets import token_urlsafe
 
 import mcp_types as types
 from mcp.server import Server, ServerRequestContext
@@ -10,8 +13,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
-from rulehall.app.cli_roles import SUBMISSION_HEADER
-from rulehall.app.game_session import Gate
+from rulehall.core.tools import ToolProvider
 from rulehall.core.validation import Refusal
 
 LOGGER = logging.getLogger(__name__)
@@ -19,6 +21,30 @@ LOGGER = logging.getLogger(__name__)
 SERVER_NAME = "rulehall"
 MOUNT_PATH = "/mcp"
 LOOPBACK_CLIENTS = frozenset({"127.0.0.1", "::1"})
+TOOLS_HEADER = "X-Rulehall-Tools"
+NO_TOOLS = "no tools are open for this call: stop here and exit"
+
+
+@dataclass(slots=True)
+class OpenToolProviders:
+    opened: dict[str, ToolProvider] = field(default_factory=dict)
+
+    @contextmanager
+    def open(self, provider: ToolProvider) -> Generator[str]:
+        token = token_urlsafe(16)
+        self.opened[token] = provider
+        try:
+            yield token
+        finally:
+            del self.opened[token]
+
+    def find(self, token: str) -> ToolProvider | None:
+        return self.opened.get(token)
+
+    def require(self, token: str) -> ToolProvider:
+        if (provider := self.find(token)) is None:
+            raise Refusal(NO_TOOLS)
+        return provider
 
 
 @dataclass(slots=True)
@@ -65,9 +91,11 @@ class LoopbackOnly:
         await self.inner(scope, receive, send)
 
 
-def endpoint(gate: Gate) -> tuple[LoopbackOnly, StreamableHTTPSessionManager]:
+def endpoint(
+    tool_providers: OpenToolProviders,
+) -> tuple[LoopbackOnly, StreamableHTTPSessionManager]:
     manager = StreamableHTTPSessionManager(
-        app=_build_server(gate),
+        app=_build_server(tool_providers),
         json_response=True,
         stateless=True,
         security_settings=TransportSecuritySettings(
@@ -79,13 +107,12 @@ def endpoint(gate: Gate) -> tuple[LoopbackOnly, StreamableHTTPSessionManager]:
     return LoopbackOnly(StreamableHTTPASGIApp(manager)), manager
 
 
-def _build_server(gate: Gate) -> Server[dict[str, object]]:
+def _build_server(tool_providers: OpenToolProviders) -> Server[dict[str, object]]:
     async def on_list_tools(
         ctx: ServerRequestContext[dict[str, object], Request],
         _params: types.PaginatedRequestParams | None,
     ) -> types.ListToolsResult:
-        token = _submission_token(ctx)
-        surface = gate.turn if token is None else gate.submissions.find(token)
+        provider = tool_providers.find(_tools_token(ctx))
         return types.ListToolsResult(
             tools=[
                 types.Tool(
@@ -93,7 +120,7 @@ def _build_server(gate: Gate) -> Server[dict[str, object]]:
                     description=tool.description,
                     input_schema=tool.schema,
                 )
-                for tool in (() if surface is None else surface.published_tools())
+                for tool in (() if provider is None else provider.offered_tools())
             ]
         )
 
@@ -101,10 +128,9 @@ def _build_server(gate: Gate) -> Server[dict[str, object]]:
         ctx: ServerRequestContext[dict[str, object], Request],
         params: types.CallToolRequestParams,
     ) -> types.CallToolResult:
-        token = _submission_token(ctx)
         try:
-            surface = gate.require_turn() if token is None else gate.submissions.require(token)
-            answered = surface.call_tool(params.name, params.arguments or {})
+            provider = tool_providers.require(_tools_token(ctx))
+            answered = provider.call_tool(params.name, params.arguments or {})
         except Refusal as refused:
             return _content(str(refused), error=True)
         except Exception:
@@ -116,8 +142,8 @@ def _build_server(gate: Gate) -> Server[dict[str, object]]:
     return Server(SERVER_NAME, on_list_tools=on_list_tools, on_call_tool=on_call_tool)
 
 
-def _submission_token(ctx: ServerRequestContext[dict[str, object], Request]) -> str | None:
-    return None if ctx.request is None else ctx.request.headers.get(SUBMISSION_HEADER)
+def _tools_token(ctx: ServerRequestContext[dict[str, object], Request]) -> str:
+    return "" if ctx.request is None else ctx.request.headers.get(TOOLS_HEADER, "")
 
 
 def _content(body: str, *, error: bool = False) -> types.CallToolResult:
