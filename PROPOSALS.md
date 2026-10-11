@@ -21,11 +21,41 @@ Each proposal has a **Status** line. Where the right choice is not obvious, it e
 
 Baseline: `uv run pytest` gives 785 passed. Nothing here changes game rules.
 
+
+## Proof gate: every change must prove it is simpler
+
+A change is kept only if it measurably meets its **Proof** line (listed under each proposal). Otherwise it is **reworked once**, and **reverted** if it still fails. Each proposal is one commit, so a revert is clean.
+
+**How it is measured.** `metrics.py` (an AST script, kept in the session scratchpad) is run on `src/rulehall` before and after each commit. It reports code lines (no blanks or comments), classes, functions, protocols, base classes, type parameters, functions over 40 lines, and classes over 300 lines. On top of that come the proposal-specific counts named in each Proof line (greps, file sizes, hops a reader must follow). Every commit must also keep `pytest`, `ruff check`, `ruff format --check` and `basedpyright` green, and an adversarial `reviewer` agent reads each diff against its Proof line.
+
+**Baseline (before any change):**
+
+| Metric | Value |
+|---|---|
+| Code lines (src) | 25,663 |
+| Classes | 424 |
+| Functions | 2,097 |
+| Protocols | 11 |
+| Base classes | 377 |
+| Type parameters | 40 |
+| Functions > 40 lines | 33 |
+| Classes > 300 lines | 13 |
+| Largest class | `TeamBuilderScreen`, 1,055 lines |
+| Concrete engine headers | 13 bases, 42 type arguments |
+
+**Rules for a rename-only proposal** (P4, P10). A rename cannot reduce lines, so it must prove two things:
+- (a) **Zero logic change.** `git diff -M` shows only renames and moves, and the goldens are unchanged unless the proposal says otherwise.
+- (b) **Each old ambiguous meaning is gone.** A grep shows that the old word now has exactly one meaning, or no hits at all.
+
+**Running total.** The goal for the whole programme is **fewer code lines, fewer classes and fewer base classes/type parameters than the baseline**. A split (P7) may add a few lines, but only if the size of the largest unit drops by the amount its Proof line names.
+
 ---
 
 ## P1. One path for every tool call a model makes
 
 **Status:** ACCEPTED
+
+**Proof:** Files a reader must open to follow one master tool call: 6 → ≤ 4. `RoleRunner` methods: 3 → 2. `match config.provider` blocks: 2 → 1. `if role ==` branches in `roles.py`: 1 → 0. `str | None` token branches: 0 left. Net src code lines ≤ −30.
 
 **In plain English.** Two kinds of AI role use tools: the game master and the worldsmith. Their tool calls reach the engine by two different routes.
 - The worldsmith's call carries a token that names the open submission.
@@ -63,6 +93,8 @@ So to follow one tool call you have to read six files: `mcp`, `game_session` (Ga
 
 **Status:** ACCEPTED — Decision C (core + `PokemonEngine` base + battle support as a component)
 
+**Proof:** Concrete engine headers: 13 bases / 42 type arguments → ≤ 7 bases / ≤ 20 type arguments. `Joining`, the `@runtime_checkable` `Battling` check and the `TypeGuard` are deleted. Base classes and type parameters (metrics) both go down. Net src code lines ≤ 0. Golden change: only the `join_party` position in `master_tools.json`.
+
 **In plain English.** The first line a newcomer reads in an engine is its class header, and it is the hardest line to read.
 - TunnelGoons inherits from `Hiring[Goon, TunnelGoonsWorld, TunnelGoonsPack, RegionProposal[Goon], AbilitiesProposal], RoomEngine[Goon, TunnelGoonsWorld, TunnelGoonsPack, RegionProposal[Goon]]`.
 - 24XX has three bases with 10 type arguments.
@@ -95,6 +127,8 @@ So to follow one tool call you have to read six files: `mcp`, `game_session` (Ga
 ## P3. Name the engine's "after a change" hooks by when they run
 
 **Status:** ACCEPTED — Decision A (24XX keeps its pending timing in `before_log_entry`)
+
+**Proof:** `def accept` overrides: 3 → 1 (the base only). `# noqa: B027`: 2 → 0. Every hook is named after its timing, and one docstring lists the order. Net src code lines ≤ +10 (the docstring). Goldens unchanged.
 
 **In plain English.** An engine has three hooks that run after the state changes, at three different moments. Their names don't say when they run. Two engines also override `accept`, the method that checks the state, and use it to change the state. On top of that there are three different checking names: `accept`, `validate` and `validated`. A newcomer cannot tell where something like "derive the pending decision" belongs.
 
@@ -135,6 +169,8 @@ So to follow one tool call you have to read six files: `mcp`, `game_session` (Ga
 
 **Status:** ACCEPTED — Decision B (move the bases to `engines/bases/{maps,scenes}/`)
 
+**Proof:** Rename rules (a) and (b). Afterwards: "door" appears only inside `ui/home.py`; "family" has one meaning; the maps base contains no `Room*` identifiers. Goldens unchanged.
+
 **In plain English.** Several words mean the same thing, and one word means two things.
 - The README says "rule sets" and "modes". The code says "door" (`door_id`, `door_engines`, `pokemon/door.py`), a home-page picture that leaked onto the engine base class.
 - "Family" means two things. `Engine.family_dir` points at the shared `rooms/` or `scenes/` base, while the boundary test calls each engine package (loner4e, pokemon…) a "family".
@@ -171,6 +207,8 @@ So to follow one tool call you have to read six files: `mcp`, `game_session` (Ga
 ## P5. GameSession: one undo record (fixes a bug), Gate in its own file, plain verbs
 
 **Status:** ACCEPTED — Decision A (all 5 steps, including the `choose` routing table)
+
+**Proof:** The rewind-after-restart regression test fails before and passes after. Undo concepts: 2 → 1. Hand-written `rewind_point = None` clears: 4 → 0. Speaker pass-through methods: 4 → 0. `game_session.py`: 580 → ≤ 520 lines (including the code moved to `gate.py`, the net is still negative). `choose` nesting depth goes down, and `_route` gets a table test.
 
 **In plain English.** `GameSession` (580 lines) keeps two separate "undo" concepts, and they stay valid in two different ways.
 - One is checked by identity.
@@ -212,6 +250,8 @@ Its core methods also use metaphor verbs that hide what they do: `present`, `_la
 
 **Status:** ACCEPTED
 
+**Proof:** `.state.world` reads above the engines: 1 → 0. `battle_*` snapshot fields: 4 → 1. Screen registry files: 2 → 1. Copied banner blocks: 2 → 1. Net src code lines ≤ 0.
+
 **In plain English.** Engine-specific screens get their data in two different ways.
 - The team builder reads `Surface.view`.
 - The battle ignores it (`view=None`) and reads four loose `battle_*` fields on `SessionSnapshot`.
@@ -241,6 +281,8 @@ There is also a two-level screen registry built for "many families" when only on
 ## P7. Split the 1,310-line `TeamBuilderScreen`
 
 **Status:** ACCEPTED — Decision A (three component classes, after P6)
+
+**Proof:** Largest class: 1,055 → ≤ 450 lines. No part receives the whole screen, only callbacks. New glue ≤ 100 lines; if the glue grows past 150 lines, rework or revert to Decision B.
 
 **In plain English.** One class does everything:
 - layout
@@ -276,6 +318,8 @@ Each part takes callbacks (`edit`, `confirm`, `find_asset`) instead of the whole
 ## P8. Make the sibling engines actually alike
 
 **Status:** ACCEPTED — Decision A (rename only). After P4, paths read `engines/bases/maps/` where this says `rooms/`.
+
+**Proof:** Distinct extension-point names for "setup + extras": 5 → 2. `twentyfourxx/engine.py` 681 → ≤ 600 lines; `loner4e/engine.py` 684 → ≤ 670. Hand-written numbered-pick loops: 3 → 0. Net src code lines ≤ 0. Goldens unchanged.
 
 **In plain English.** CLAUDE.md says sibling engines hold the same files with the same roles. Mostly true, but the same job is done in different ways from engine to engine.
 
@@ -326,6 +370,8 @@ Each part takes callbacks (`edit`, `confirm`, `find_asset`) instead of the whole
 ## P9. Untangle the Pokémon modules
 
 **Status:** ACCEPTED — P9: A (rename to `legendary_person_id`); P9b: A (`UnsavedTeam`/`UnsavedSet`)
+
+**Proof:** `setup_battle` (77 lines, 7 arguments) is gone, and no new battle-start function is over 40 lines. `opponent.py` 850 → ≤ 650. `journey/sheet.py` 892 → ≤ 600. `allowed_species_ids` references: 54 → ≤ 15. Two `Outcome` classes → one. Net src code lines ≤ 0. Prompt goldens unchanged.
 
 **In plain English.** The Pokémon code is the newest and largest part of the codebase (13.5k lines). The battle package (header, history, choices, preview…) is clean. The rest has overloaded functions, mixed modules, and one name used for two things.
 
@@ -380,6 +426,8 @@ Each part takes callbacks (`edit`, `confirm`, `find_asset`) instead of the whole
 
 **Status:** ACCEPTED
 
+**Proof:** Rename rules (a) and (b). In particular: `moves` no longer names player options; one `GAME_OVER` per meaning; no type named `Line` outside `core`. Goldens unchanged.
+
 **In plain English.** A few central core names describe the wrong thing, or collide with another meaning. Each one costs a newcomer a lookup.
 
 **Change** (renames and moves only):
@@ -410,7 +458,7 @@ Each part takes callbacks (`edit`, `confirm`, `find_asset`) instead of the whole
 
 ## Runners-up (not in the top 10, could be promoted)
 
-- **R1. Player packs get one owner.** **(PROMOTED — ACCEPTED)** Today three places in two layers handle player packs: `read_packs`, `core/stores.PackStore` and `Engine.install_pack`, which rewrites a frozen `PackSet` with `replace`. **Change:** make `PackSet` a mutable state class with `new_id`, `path` and `write`, and delete `PackStore` and `install_pack`. About 50 lines.
+- **R1. Player packs get one owner.** **(PROMOTED — ACCEPTED)** Today three places in two layers handle player packs: `read_packs`, `core/stores.PackStore` and `Engine.install_pack`, which rewrites a frozen `PackSet` with `replace`. **Change:** make `PackSet` a mutable state class with `new_id`, `path` and `write`, and delete `PackStore` and `install_pack`. About 50 lines. **Proof:** `PackStore`, `Runtime.packs` and `install_pack` are deleted, and the frozen-`replace` write is gone. Pack-folder owners: 3 → 1. Net src code lines ≤ −15.
 - *(not taken)* **R2. Test helpers with the same names in every engine.** The started-game helper is called `initialized`, `small_world` or `started`, depending on the engine. `support/game.py` is actually the Loner helper module. `change()` calls a tool (142 call sites). **Change:**
   - `support/loner4e.py`
   - `new_game()` everywhere
