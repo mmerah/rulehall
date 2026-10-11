@@ -165,24 +165,6 @@ class Library:
         return self.characters / content_id(character.id) / f"{character.engine_id}.json"
 
 
-@dataclass(frozen=True, slots=True)
-class PackStore:
-    directory: Path
-
-    def ids(self, engine_id: EngineId) -> tuple[str, ...]:
-        """Every stem, slug or not: a new id must not overwrite a file the engine skipped."""
-        folder = self.directory / engine_id
-        if not folder.is_dir():
-            return ()
-        return tuple(path.stem for path in sorted(folder.glob("*.json")))
-
-    def path(self, engine_id: EngineId, pack_id: Slug) -> Path:
-        return self.directory / engine_id / f"{pack_id}.json"
-
-    def write(self, engine_id: EngineId, pack_id: Slug, pack: BaseModel) -> None:
-        write_model(self.path(engine_id, pack_id), pack)
-
-
 @cache
 def read_cached_text(path: Path) -> str:
     return path.read_text(encoding=ENCODING)

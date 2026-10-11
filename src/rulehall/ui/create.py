@@ -401,7 +401,8 @@ class PackForm:
                 self.engine_id, name, premise, document, entered_text(self.license)
             )
             LOGGER.info("pack created: engine=%s slug=%s", self.engine_id, pack_id)
-            done(f"Wrote {name}. Edit it in {self.runtime.packs.path(self.engine_id, pack_id)}.")
+            path = self.runtime.require_engine(self.engine_id).packs.path(pack_id)
+            done(f"Wrote {name}. Edit it in {path}.")
             ui.navigate.to(hall_path(self.engine_id))
 
         _ = await attempt(writing, failed=PACK_FAILED, loading=self.button)
@@ -414,7 +415,7 @@ def packs_page(runtime: Runtime, engine_id: EngineId) -> None:
         page_intro(engine.title, "Packs", "The tables these rules roll on.")
         with ui.column().classes("w-full game-gap-xl"):
             for pack in runtime.catalog().packs_for(engine.id):
-                sub = f"Edit it in {runtime.packs.path(engine.id, pack.id)}" if pack.written else ""
+                sub = f"Edit it in {engine.packs.path(pack.id)}" if pack.written else ""
                 entry_card(PACK_ICON, pack.name, sub)
         with action_bar():
             ui.button(

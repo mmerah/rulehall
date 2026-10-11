@@ -13,7 +13,7 @@ from rulehall.app.speech import Speaker
 from rulehall.config import LiveSettings, Settings
 from rulehall.core.documents import given_text
 from rulehall.core.game import AnyScenario, ScenarioDescription
-from rulehall.core.stores import Library, PackStore, SaveStore
+from rulehall.core.stores import Library, SaveStore
 from rulehall.core.validation import EngineId, Refusal, Slug, slug
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.registry import build_engines
@@ -30,7 +30,6 @@ class Runtime:
         self.scenario_models = scenario_models(self.engines)
         self.library = Library(settings.scenarios_dir, settings.characters_dir)
         self.store = SaveStore(settings.saves_dir)
-        self.packs = PackStore(settings.packs_dir)
         self._sessions: dict[str, GameSession] = {}
 
     async def close(self) -> None:
@@ -102,7 +101,7 @@ class Runtime:
     ) -> Slug:
         engine = self.require_engine(engine_id)
         source = await to_thread(given_text, premise, document)
-        pack_id = slug(name, (*engine.packs.installed, *self.packs.ids(engine.id)))
+        pack_id = engine.packs.new_id(name)
         origin = f"written in this app from {'the premise' if document is None else document.name}"
         with self.gate.creation():
             pack = await engine.write_pack(
@@ -112,8 +111,7 @@ class Runtime:
                 license=license,
                 worldsmith=role_answer(self.roles, "worldsmith"),
             )
-        self.packs.write(engine.id, pack_id, pack)
-        engine.install_pack(pack_id, pack)
+        engine.packs.write(pack_id, pack)
         LOGGER.info("pack written: engine=%s slug=%s name=%r", engine.id, pack_id, name)
         return pack_id
 

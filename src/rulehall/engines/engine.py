@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from copy import deepcopy
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 from random import Random
 from typing import Any, ClassVar, final
@@ -158,14 +158,6 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         Share only facts the player can know now.
         Apply world changes through the other tools before calling direct."""
         return [Fact(trace=f"the game master directs: {args.text}", told=True)]
-
-    def install_pack(self, pack_id: Slug, pack: K) -> None:
-        packs = self.packs
-        self.packs = replace(
-            packs,
-            installed={**packs.installed, pack_id: pack},
-            written_ids=packs.written_ids | {pack_id},
-        )
 
     def preview_character(self, character: AnyCharacter) -> Rows:
         return self.player_of(character).rows()

@@ -48,12 +48,23 @@ def test_read_packs_skips_a_written_pack_that_shadows_a_shipped_id(tmp_path: Pat
 
     packs = read_packs(LONER4E, shipped, tmp_path, Loner4ePack)
 
-    assert packs.written_ids == frozenset()
+    assert packs.written_ids == set()
     assert packs.installed[SRD_PACK].name != "Fake SRD"
 
 
+def test_new_id_never_takes_the_id_of_a_pack_file_read_packs_skipped(tmp_path: Path) -> None:
+    shipped = ENGINES_BUILT[LONER4E].directory / "packs"
+    (tmp_path / "salt-and-ash.json").write_text("not a pack", encoding=ENCODING)
+
+    packs = read_packs(LONER4E, shipped, tmp_path, Loner4ePack)
+
+    assert "salt-and-ash" not in packs.installed
+    assert packs.new_id("Salt and Ash") != "salt-and-ash"
+
+
 def test_require_refuses_an_uninstalled_pack() -> None:
-    packs = PackSet(TEST_ENGINE, {SRD_PACK: Pack(name="SRD", origin="", license="")}, frozenset())
+    srd = Pack(name="SRD", origin="", license="")
+    packs = PackSet(TEST_ENGINE, Path(), {SRD_PACK: srd}, set())
 
     with pytest.raises(Refusal, match="is not installed"):
         packs.require_pack("gone")
@@ -62,7 +73,7 @@ def test_require_refuses_an_uninstalled_pack() -> None:
 def test_played_reads_the_srd_once_then_the_chosen_pack() -> None:
     srd = Pack(name="SRD", origin="", license="")
     second = Pack(name="Second", origin="", license="")
-    packs = PackSet(TEST_ENGINE, {SRD_PACK: srd, "second": second}, frozenset())
+    packs = PackSet(TEST_ENGINE, Path(), {SRD_PACK: srd, "second": second}, set())
 
     assert packs.played(SRD_PACK) == (srd,)
     assert packs.played("second") == (srd, second)
