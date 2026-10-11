@@ -4,7 +4,8 @@ from pathlib import Path
 from shutil import rmtree
 
 from rulehall.app.catalog import LauncherCatalog, SavedGameKey, check_resumes, scenario_models
-from rulehall.app.game_session import GameSession, Gate
+from rulehall.app.game_session import GameSession
+from rulehall.app.gate import Gate
 from rulehall.app.http_client import close_client
 from rulehall.app.illustration import ICON_DIR, Illustrator
 from rulehall.app.roles import ProviderRoleRunner, RoleRunner, role_answer
@@ -23,7 +24,7 @@ LOGGER = logging.getLogger(__name__)
 class Runtime:
     def __init__(self, settings: Settings, roles: RoleRunner | None = None) -> None:
         self.live_settings = LiveSettings(settings)
-        self.gate = Gate()
+        self.gate = Gate[GameSession]()
         self.roles: RoleRunner = roles or ProviderRoleRunner(self.live_settings)
         self.engines = build_engines(settings.packs_dir)
         self.scenario_models = scenario_models(self.engines)

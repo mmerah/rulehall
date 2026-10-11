@@ -9,7 +9,7 @@ from rulehall.app.background import BackgroundTasks, Claims
 from rulehall.app.http_client import post
 from rulehall.config import LiveSettings
 from rulehall.core.narration import NarratorView
-from rulehall.core.stores import publish
+from rulehall.core.stores import write_atomically
 from rulehall.core.validation import Loose, Refusal, Slug, parse_json
 from rulehall.core.views import Subject
 
@@ -65,15 +65,15 @@ class Illustrator:
             with self.claims.hold(key) as drawing:
                 await self._drawn_icon(player)
                 if drawing and find_image(self.saves, key) is None:
-                    await self._draw(scene, key)
+                    await self._generate_scene(scene, key)
                 for subject in scene.subjects:
                     await self._drawn_icon(subject)
         except Refusal as failed:
             LOGGER.warning("image generation failed: %s", failed)
 
-    async def _draw(self, scene: NarratorView, key: str) -> None:
+    async def _generate_scene(self, scene: NarratorView, key: str) -> None:
         generated = await self._generate(illustration_request(scene, self.style), SCENE_RATIO)
-        publish(
+        write_atomically(
             self.saves / f"{key}{generated.suffix}",
             lambda staged: staged.write_bytes(generated.data),
         )
@@ -88,7 +88,7 @@ class Illustrator:
                 return None
             generated = await self._generate(_icon_request(subject, self.style), ICON_RATIO)
             path = self.saves / ICON_DIR / f"{subject.id}{generated.suffix}"
-            publish(path, lambda staged: staged.write_bytes(generated.data))
+            write_atomically(path, lambda staged: staged.write_bytes(generated.data))
             return path
 
     async def _generate(self, prompt: str, ratio: str) -> GeneratedImage:

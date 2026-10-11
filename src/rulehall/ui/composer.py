@@ -240,7 +240,7 @@ class Composer:
     async def _hear(self, event: GenericEventArguments) -> None:
         async def transcribe() -> None:
             recording = parse(Recording, event.args)
-            words = await self.session.transcribe(recording.audio, recording.mime)
+            words = await self.session.speaker.transcribe(recording.audio, recording.mime)
             draft = entered_text(self.words_input)
             self.set_input(f"{draft} {words}" if draft else words)
             self.words_input.run_method("focus")

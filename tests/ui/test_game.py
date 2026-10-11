@@ -17,6 +17,7 @@ from support.table import (
 )
 
 from rulehall.app.game_session import GameSession, SessionSnapshot
+from rulehall.app.speech import Speaker
 from rulehall.app.turn import Turn
 from rulehall.core.decisions import ActionOption, Decision, PlayerInput
 from rulehall.core.facts import Fact
@@ -491,14 +492,14 @@ async def test_the_voice_plays_landed_clips_in_order_and_a_redraw_is_flagged(
     ready = {lines[0].text, lines[2].text}
     spoken: list[SpokenLine] = []
 
-    def speak_later(_session: GameSession, said: Sequence[SpokenLine]) -> None:
+    def speak_later(_speaker: Speaker, said: Sequence[SpokenLine]) -> None:
         spoken.extend(said)
 
-    def find_clip(_session: GameSession, line: SpokenLine) -> Path | None:
+    def find_clip(_speaker: Speaker, line: SpokenLine) -> Path | None:
         return tmp_path / line.text if line.text in ready else None
 
-    monkeypatch.setattr(GameSession, "speak_later", speak_later)
-    monkeypatch.setattr(GameSession, "find_clip", find_clip)
+    monkeypatch.setattr(Speaker, "speak_later", speak_later)
+    monkeypatch.setattr(Speaker, "find_clip", find_clip)
     service = open_game(tmp_path).session
     page()
     speech = HeardSpeech()
@@ -534,14 +535,14 @@ async def test_a_replay_waits_for_a_missing_clip_and_a_stop_clears_the_wait(
     ready: set[str] = set()
     spoken: list[SpokenLine] = []
 
-    def speak_later(_session: GameSession, said: Sequence[SpokenLine]) -> None:
+    def speak_later(_speaker: Speaker, said: Sequence[SpokenLine]) -> None:
         spoken.extend(said)
 
-    def find_clip(_session: GameSession, line: SpokenLine) -> Path | None:
+    def find_clip(_speaker: Speaker, line: SpokenLine) -> Path | None:
         return tmp_path / line.text if line.text in ready else None
 
-    monkeypatch.setattr(GameSession, "speak_later", speak_later)
-    monkeypatch.setattr(GameSession, "find_clip", find_clip)
+    monkeypatch.setattr(Speaker, "speak_later", speak_later)
+    monkeypatch.setattr(Speaker, "find_clip", find_clip)
     service = open_game(tmp_path).session
     page()
     speech = HeardSpeech()
@@ -566,14 +567,14 @@ async def test_the_voice_marks_a_blocked_head_as_waiting_until_its_clip_plays(
     line = SpokenLine(text="Rain.")
     ready: set[str] = set()
 
-    def speak_later(_session: GameSession, _said: Sequence[SpokenLine]) -> None:
+    def speak_later(_speaker: Speaker, _said: Sequence[SpokenLine]) -> None:
         return None
 
-    def find_clip(_session: GameSession, line: SpokenLine) -> Path | None:
+    def find_clip(_speaker: Speaker, line: SpokenLine) -> Path | None:
         return tmp_path / line.text if line.text in ready else None
 
-    monkeypatch.setattr(GameSession, "speak_later", speak_later)
-    monkeypatch.setattr(GameSession, "find_clip", find_clip)
+    monkeypatch.setattr(Speaker, "speak_later", speak_later)
+    monkeypatch.setattr(Speaker, "find_clip", find_clip)
     service = open_game(tmp_path).session
     page()
     speech = HeardSpeech()

@@ -188,7 +188,7 @@ def read_cached_text(path: Path) -> str:
     return path.read_text(encoding=ENCODING)
 
 
-def publish(path: Path, write: Callable[[Path], object]) -> None:
+def write_atomically(path: Path, write: Callable[[Path], object]) -> None:
     staged: Path | None = None
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -205,7 +205,7 @@ def publish(path: Path, write: Callable[[Path], object]) -> None:
 
 
 def write_text(path: Path, body: str) -> None:
-    publish(path, lambda staged: staged.write_text(body, encoding=ENCODING))
+    write_atomically(path, lambda staged: staged.write_text(body, encoding=ENCODING))
 
 
 def write_model(path: Path, model: BaseModel) -> None:

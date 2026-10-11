@@ -8,7 +8,7 @@ from rulehall.app.background import BackgroundTasks, Claims
 from rulehall.app.http_client import post
 from rulehall.config import LiveSettings, SpeechConfig
 from rulehall.core.log import SpokenLine
-from rulehall.core.stores import publish
+from rulehall.core.stores import write_atomically
 from rulehall.core.validation import Loose, Refusal, fold_accents, parse_json
 
 LOGGER = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ class Speaker:
         )
         if not audio:
             raise Refusal("speech reply held no audio")
-        publish(self._clip_path(key), lambda staged: staged.write_bytes(audio))
+        write_atomically(self._clip_path(key), lambda staged: staged.write_bytes(audio))
 
 
 class _Transcript(Loose):

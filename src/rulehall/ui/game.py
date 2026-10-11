@@ -7,7 +7,8 @@ from nicegui import ui
 from nicegui.events import GenericEventArguments, ScrollEventArguments
 
 from rulehall.app.catalog import SavedGameKey
-from rulehall.app.game_session import Busy, GameSession, SessionSnapshot
+from rulehall.app.game_session import GameSession, SessionSnapshot
+from rulehall.app.gate import Busy
 from rulehall.app.runtime import Runtime
 from rulehall.core.decisions import ActionOption, PlayerInput
 from rulehall.core.validation import Frozen, Refusal, Slug, content_id, parse
