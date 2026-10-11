@@ -35,6 +35,18 @@ class Way(Mutable):
     locked: bool = False
 
 
+class Region(Mutable):
+    start_id: Slug
+    name: str = Field(min_length=1)
+    place_ids: list[Slug] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _starts_inside(self) -> Self:
+        if self.start_id not in self.place_ids:
+            raise ValueError(f"region {self.name} does not hold its start {self.start_id!r}")
+        return self
+
+
 class RoomMap[P: Dweller](Mutable):
     places: dict[Slug, Place] = Field(default_factory=dict)
     ways: dict[Slug, list[Way]] = Field(default_factory=dict)
@@ -125,6 +137,12 @@ class RoomMap[P: Dweller](Mutable):
 
 class MapProposal[P: Dweller](RoomMap[P], OpeningProposal):
     start_id: Slug = Field(description="Exact id of the place this map starts from.")
+    region_name: str = Field(
+        min_length=1,
+        description="The name of this part of the map as the player knows it, such as a "
+        "district, a level of a dungeon, an island or a city: never one room. Once the player "
+        "leaves it, the map shows the whole region under this name. Name nothing hidden.",
+    )
 
     def premise(self) -> str:
         start = self.places.get(self.start_id)
@@ -141,6 +159,7 @@ class RegionProposal[P: Dweller](MapProposal[P]):
 
 class RoomWorld[P: Dweller](RoomMap[P], World[P]):
     visited_place_ids: list[Slug] = Field(min_length=1)
+    regions: list[Region] = Field(min_length=1)
     turns_since_meanwhile: int = Field(default=0, ge=0)
     meanwhile_due: bool = False
 
@@ -148,6 +167,12 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
     def _playable(self) -> Self:
         for place_id in self.visited_place_ids:
             self.require_place(place_id)
+        region_place_ids = [place_id for region in self.regions for place_id in region.place_ids]
+        check_unique("places across regions", region_place_ids)
+        if stray := sorted(set(region_place_ids) - set(self.places)):
+            raise ValueError(f"regions hold ids that are not places: {stray}")
+        if outside := sorted(set(self.places) - set(region_place_ids)):
+            raise ValueError(f"places in no region: {outside}")
         for member_id in self.party_ids:
             npc = self.npcs[member_id]
             if npc.place_id != self.current.id:
@@ -167,6 +192,13 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
                 "items": {**proposal.items, **{item.id: item for item in items}},
                 "player": player,
                 "visited_place_ids": [proposal.start_id],
+                "regions": [
+                    {
+                        "start_id": proposal.start_id,
+                        "name": proposal.region_name,
+                        "place_ids": list(proposal.places),
+                    }
+                ],
                 **extra_fields,
             },
         )
@@ -175,11 +207,26 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
     def current(self) -> Place:
         return self.places[self.visited_place_ids[-1]]
 
+    @property
+    def current_region(self) -> Region:
+        return self.require_region(self.current.id)
+
+    def require_region(self, place_id: Slug) -> Region:
+        return next(region for region in self.regions if place_id in region.place_ids)
+
+    def visited_region_places(self) -> list[Place]:
+        place_ids = self.current_region.place_ids
+        return [place for place in self.visited_places() if place.id in place_ids]
+
+    def at_map_edge(self) -> bool:
+        return not self.has_frontier()
+
     def has_frontier(self) -> bool:
         visited = set(self.visited_place_ids)
+        region_ids = set(self.current_region.place_ids)
         return any(
             way.known and not way.locked and way.to_id not in visited
-            for place_id in visited & self.reachable(self.current.id)
+            for place_id in visited & region_ids & self.reachable(self.current.id)
             for way in self.ways.get(place_id, ())
         )
 
@@ -415,6 +462,9 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
         self.npcs.update(region.npcs)
         self.items.update(region.items)
         self.arc = "\n".join(part for part in (self.arc, region.arc) if part)
+        self.regions.append(
+            Region(start_id=region.start_id, name=region.region_name, place_ids=list(region.places))
+        )
         self.add_way(anchor_id, region.start_id)
         self.add_way(region.start_id, anchor_id)
 
@@ -438,8 +488,41 @@ class RoomWorld[P: Dweller](RoomMap[P], World[P]):
             f"- {self.require_place(way.to_id).ref} — {'known' if way.known else 'unknown'}"
             + ("; destination unknown to the player" if self.is_unexplored(way) else "")
             + ("; locked" if way.locked else "")
+            + self._leads_into(way)
             for way in self.ways.get(self.current.id, ())
         )
+
+    def _leads_into(self, way: Way) -> str:
+        region = self.require_region(way.to_id)
+        return "" if region is self.current_region else f"; leads into {region.name}"
+
+    def region_lines(self) -> str:
+        visited_ids = {place.id for place in self.visited_places()}
+        visited_regions = [
+            region for region in self.regions if visited_ids.intersection(region.place_ids)
+        ]
+        if len(visited_regions) < 2:
+            return ""
+        lines = [f"the player is in {self.current_region.name}"]
+        joined: set[frozenset[Slug]] = set()
+        for region in visited_regions:
+            for place_id in region.place_ids:
+                for way in self.ways.get(place_id, ()):
+                    other = self.require_region(way.to_id)
+                    pair = frozenset((place_id, way.to_id))
+                    if (
+                        not way.known
+                        or other is region
+                        or not any(other is visited for visited in visited_regions)
+                        or pair in joined
+                    ):
+                        continue
+                    joined.add(pair)
+                    lines.append(
+                        f"- {region.name}: {self.require_place(place_id).ref} ⇄ "
+                        f"{other.name}: {self.require_place(way.to_id).ref}"
+                    )
+        return "\n".join(lines)
 
     def elsewhere_lines(self) -> str:
         return lines_of(self._offscreen_line(place) for place in self.elsewhere())

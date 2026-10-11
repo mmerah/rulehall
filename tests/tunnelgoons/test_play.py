@@ -45,6 +45,7 @@ REGION = {
         }
     },
     "start_id": "deep-vault",
+    "region_name": "The Deep Vaults",
     "recap": "They left the corridor behind and pressed on into the flooded cellar.",
 }
 

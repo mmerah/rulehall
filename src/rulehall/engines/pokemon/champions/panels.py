@@ -7,7 +7,7 @@ from rulehall.engines.pokemon.champions.rules import TEAM_SLOT_PREFIX
 from rulehall.engines.pokemon.champions.season import TIERS, Event, Finish
 from rulehall.engines.pokemon.champions.sheet import ChampionsSheet
 from rulehall.engines.pokemon.champions.world import ChampionsWorld
-from rulehall.engines.pokemon.dex import dex
+from rulehall.engines.pokemon.dex import dex, species_name
 from rulehall.engines.pokemon.rules import STAT_NAMES
 from rulehall.engines.pokemon.sprites import STAT_COLOUR, nature_arrows, nature_tag, type_tag
 from rulehall.engines.sheet import PLAYER_ID
@@ -33,6 +33,24 @@ SEASON_HELP = {
     "Placing": "The player's placing at the last event played, and the CP it earned.",
 }
 STAGE_NAMES = {"open": "registration", "swiss": "Swiss rounds", "cut": "top cut", "done": "over"}
+PRACTICE_HELP = (
+    "Play a practice match against an archetype you pick, with your saved team. It counts for "
+    "nothing at the event."
+)
+NEXT_EVENT = ActionOption(
+    id="next-event",
+    name="Go to the next event",
+    help="Travel on: the next host city and its event appear.",
+    action_name="extend",
+    args={"words": "I set out for the next event"},
+    told_in_turn=True,
+)
+PLAY_NEXT_ROUND = ActionOption(
+    id="play-next-round",
+    name="Play next round",
+    help="Sit down for your next match of the event.",
+    action_name="start_match",
+)
 
 
 def team_panel(world: ChampionsWorld) -> Panel:
@@ -99,6 +117,31 @@ def season_panel(world: ChampionsWorld) -> Panel:
         title="Season",
         rows=(*rows, *standings),
         help="The circuit season: events, placings and Championship Points.",
+        tab=TEAM_TAB,
+    )
+
+
+def practice_panel(world: ChampionsWorld) -> Panel:
+    refusal = world.practice_refusal()
+    return Panel(
+        title="Practice",
+        rows=tuple(
+            PanelRow(
+                name=archetype.name,
+                brief=", ".join(species_name(each.species_id) for each in archetype.team.sets),
+                options=(
+                    ActionOption(
+                        id=f"practice-{archetype.archetype_id}",
+                        name="Practice",
+                        action_name="practice_match",
+                        args={"archetype_id": archetype.archetype_id},
+                        refusal=refusal,
+                    ),
+                ),
+            )
+            for archetype in champions_data().archetypes
+        ),
+        help=PRACTICE_HELP,
         tab=TEAM_TAB,
     )
 

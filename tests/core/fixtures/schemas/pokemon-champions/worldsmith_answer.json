@@ -194,6 +194,10 @@
       "description": "Exact id of the place this map starts from.",
       "type": "string"
     },
+    "region_name": {
+      "description": "The name of this part of the map as the player knows it, such as a district, a level of a dungeon, an island or a city: never one room. Once the player leaves it, the map shows the whole region under this name. Name nothing hidden.",
+      "type": "string"
+    },
     "recap": {
       "description": "One paragraph on the part of the map the player leaves behind: what the player did there, paid and learned. The narrator reads it. Name nothing hidden.",
       "type": "string"
@@ -281,6 +285,7 @@
   },
   "required": [
     "start_id",
+    "region_name",
     "recap",
     "event"
   ],

@@ -43,6 +43,14 @@ class Hit(Frozen):
         )
 
     @property
+    def sure_share(self) -> int:
+        if self.shield or not self.multiplier or self.one_hit_ko or self.percents is None:
+            return 0
+        if self.knocks_out:
+            return FULL
+        return min(self.percents[0], FULL - 1)
+
+    @property
     def dealt_share(self) -> int:
         if self.damage is None or self.maxhp == 0:
             return 0
@@ -99,6 +107,24 @@ class OwnMon(Frozen):
     @property
     def active(self) -> bool:
         return self.position > 0
+
+    def sure_dealt(self) -> int:
+        return max(
+            (
+                hit.sure_share
+                for move in self.moves
+                if not move.lock
+                for hit in move.hits
+                if hit.target > 0
+            ),
+            default=0,
+        )
+
+    def sure_taken(self) -> int:
+        return max((threat.sure_share for threat in self.threats), default=0)
+
+    def matchup_edge(self) -> int:
+        return self.sure_dealt() - self.sure_taken()
 
 
 class SeenMon(Frozen):

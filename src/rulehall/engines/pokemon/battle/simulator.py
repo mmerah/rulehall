@@ -26,6 +26,7 @@ from rulehall.engines.pokemon.battle.choices import (
 from rulehall.engines.pokemon.battle.header import battle_header
 from rulehall.engines.pokemon.battle.highlights import battle_highlights
 from rulehall.engines.pokemon.battle.models import (
+    SIDE_OF,
     STATUSES,
     TERRAINS,
     WEATHERS,
@@ -40,10 +41,12 @@ from rulehall.engines.pokemon.battle.models import (
     Policy,
     RoleSeat,
     Seat,
+    SideId,
 )
 from rulehall.engines.pokemon.battle.opponent import (
     Offer,
     OpponentAnswer,
+    advised_switch,
     check_commands,
     greedy_choice,
     render_opponent,
@@ -55,13 +58,10 @@ from rulehall.engines.pokemon.dex import Species, dex
 from rulehall.engines.pokemon.rules import TIMES
 from rulehall.engines.pokemon.sprites import MEGA_COLOUR, item_sprite
 
-type SideId = Literal["p1", "p2"]
-
 LOGGER = logging.getLogger(__name__)
 SHOWDOWN = Path(__file__).parents[1] / "showdown"
 ASSESS_JS = SHOWDOWN / "assess.js"
 SIDES: tuple[SideId, ...] = ("p1", "p2")
-SIDE_OF: dict[RoleSeat, SideId] = {"foe": "p2", "ally": "p1"}
 TURN_ENDS = ("|upkeep", "|turn|", "|win|", "|tie")
 TEAM_PREVIEW_LINE = "|teampreview"
 # A Showdown sheet shows natures; only our own sheet line, added after, reaches the view.
@@ -431,7 +431,10 @@ class ShowdownRun:
         assessment = await self._assess(seat)
         picks: list[str] = []
         for slot in slots:
-            pick = greedy_choice(assessment, seated.aimed_choices(slot, picks), slot)
+            choices = seated.aimed_choices(slot, picks)
+            pick = advised_switch(assessment, choices, slot, seat, self.log) or greedy_choice(
+                assessment, choices, slot
+            )
             mega = pick.startswith("move ") and seated.can_mega(slot, picks)
             picks.append(f"{pick}{MEGA_SUFFIX}" if mega else pick)
         return dict(zip(slots, picks, strict=True))

@@ -12,6 +12,7 @@ from rulehall.core.validation import Frozen, Refusal, Slug, check_unique, slug
 SCENE_TAB = "Scene"
 
 type Rows = tuple[tuple[str, str], ...]
+type MapNodeKind = Literal["visited", "seen", "unexplored", "region"]
 
 
 class Tag(Frozen):
@@ -167,8 +168,7 @@ class NarratorView(Frozen):
 class MapNode(Frozen):
     id: Slug
     name: str
-    visited: bool
-    unexplored: bool
+    kind: MapNodeKind
     prefill: str
 
 
@@ -179,6 +179,8 @@ class MapEdge(Frozen):
 
 
 class MapView(Frozen):
+    region_id: Slug
+    region_name: str
     nodes: tuple[MapNode, ...]
     edges: tuple[MapEdge, ...]
     here_id: Slug

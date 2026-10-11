@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 from support.table import (
     change,
     refused,
@@ -32,7 +33,10 @@ from rulehall.engines.rooms.worldsmith import check_next
 from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
 from rulehall.engines.tunnelgoons.sheet import Goon
-from rulehall.engines.tunnelgoons.world import TunnelGoonsGame
+from rulehall.engines.tunnelgoons.world import TunnelGoonsGame, TunnelGoonsWorld
+
+MOAT = "moat"
+TOWER = "tower"
 
 
 def test_a_member_joins_and_leaves_the_party() -> None:
@@ -108,11 +112,11 @@ def test_a_known_way_into_an_unknown_place_is_a_stub_that_hides_its_end() -> Non
 
     view = map_view(world)
 
-    assert [(node.id, node.name, node.visited, node.prefill) for node in view.nodes] == [
-        (START, "Start", True, "I go to Start"),
-        (HALL, "Hall", True, ""),
-        ("way-2-2", "???", False, "I take the unknown way out of Hall"),
-        ("way-2-3", "???", False, "I take the unknown way out of Hall"),
+    assert [(node.id, node.name, node.kind, node.prefill) for node in view.nodes] == [
+        (START, "Start", "visited", "I go to Start"),
+        (HALL, "Hall", "visited", ""),
+        ("way-2-2", "???", "unexplored", "I take the unknown way out of Hall"),
+        ("way-2-3", "???", "unexplored", "I take the unknown way out of Hall"),
     ]
     assert {(edge.from_id, edge.to_id, edge.locked) for edge in view.edges} == {
         (HALL, START, False),
@@ -161,6 +165,87 @@ def test_the_map_edge_follows_the_way_from_here_when_the_way_back_is_locked() ->
 
     assert (START, "I go to Start") in {(node.id, node.prefill) for node in view.nodes}
     assert (HALL, START, False) in {(edge.from_id, edge.to_id, edge.locked) for edge in view.edges}
+
+
+def _moat_world() -> TunnelGoonsWorld:
+    world = small_world().world
+    _ = world.move(HALL, ())
+    world.apply_region(
+        RegionProposal[Goon](
+            places={
+                MOAT: Place(id=MOAT, name="Moat", brief="b", known=False, description="d"),
+                TOWER: Place(id=TOWER, name="Tower", brief="b", known=False, description="d"),
+            },
+            ways={MOAT: [Way(to_id=TOWER)]},
+            start_id=MOAT,
+            region_name="The Outer Ward",
+            recap="They left the dungeon.",
+        )
+    )
+    _ = world.move(MOAT, ())
+    return world
+
+
+def test_an_earlier_region_is_one_box_linked_to_the_place_it_joins() -> None:
+    world = _moat_world()
+
+    view = map_view(world)
+
+    assert (view.region_id, view.region_name) == (MOAT, "The Outer Ward")
+    assert [(node.id, node.kind, node.prefill) for node in view.nodes] == [
+        (MOAT, "visited", ""),
+        ("way-1-1", "unexplored", "I take the unknown way out of Moat"),
+        (START, "region", "I head back to The Test Dungeon"),
+    ]
+    assert (MOAT, START, False) in {(edge.from_id, edge.to_id, edge.locked) for edge in view.edges}
+    shown = view.model_dump_json().lower()
+    assert all(hidden_id not in shown for hidden_id in (TOWER, VAULT, CRYPT))
+    assert world.region_lines().splitlines() == [
+        "the player is in The Outer Ward",
+        "- The Test Dungeon: Hall[hall] ⇄ The Outer Ward: Moat[moat]",
+    ]
+
+
+def test_walking_back_boxes_the_region_the_player_left() -> None:
+    world = _moat_world()
+    _ = world.move(HALL, ())
+
+    view = map_view(world)
+
+    assert view.region_id == START
+    assert [node.id for node in view.nodes if node.kind == "region"] == [MOAT]
+    assert (HALL, MOAT, False) in {(edge.from_id, edge.to_id, edge.locked) for edge in view.edges}
+    assert "- Moat[moat] — known; leads into The Outer Ward" in world.ways_lines().splitlines()
+
+
+def test_the_map_edge_counts_only_the_region_the_player_is_in() -> None:
+    world = small_world().world
+    _ = world.move(HALL, ())
+    world.ways[HALL].append(Way(to_id=CRYPT))
+    world.apply_region(
+        RegionProposal[Goon](
+            places={MOAT: Place(id=MOAT, name="Moat", brief="b", known=False, description="d")},
+            start_id=MOAT,
+            region_name="The Outer Ward",
+            recap="They left the dungeon.",
+        )
+    )
+    _ = world.move(MOAT, ())
+
+    assert world.at_map_edge()
+
+    _ = world.move(HALL, ())
+
+    assert not world.at_map_edge()
+
+
+def test_a_place_in_no_region_is_refused() -> None:
+    world = small_world().world
+    dumped = world.model_dump()
+    dumped["regions"][0]["place_ids"].remove(CRYPT)
+
+    with pytest.raises(ValidationError, match="places in no region"):
+        _ = TunnelGoonsWorld.model_validate(dumped)
 
 
 def test_drop_here_puts_a_carried_item_in_this_place_and_refuses_one_on_the_floor() -> None:
@@ -251,6 +336,7 @@ def test_a_region_with_an_npc_off_the_map_is_refused() -> None:
         places={"moat": Place(id="moat", name="Moat", brief="b", known=False, description="d")},
         npcs={stray.id: stray},
         start_id="moat",
+        region_name="Beyond",
         recap="They left the keep.",
     )
 

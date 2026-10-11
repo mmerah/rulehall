@@ -229,6 +229,7 @@ class ScriptedAgents:
                 {
                     **recap,
                     "start_id": room,
+                    "region_name": f"QA Region {number}",
                     "places": {
                         room: {
                             "id": room,
@@ -279,6 +280,7 @@ class ScriptedAgents:
         region: dict[str, JsonValue] = {
             "recap": f"Recap of the region before {number}.",
             "start_id": room,
+            "region_name": f"QA Region {number}",
             "places": {
                 room: {
                     "id": room,

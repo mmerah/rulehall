@@ -36,6 +36,10 @@ class PrizePick(Frozen):
     species_id: Slug
 
 
+class PracticePick(Frozen):
+    archetype_id: Slug
+
+
 class SlotEdit(Frozen):
     slot: int = Field(ge=1)
 

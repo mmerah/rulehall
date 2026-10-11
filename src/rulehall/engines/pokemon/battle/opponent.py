@@ -6,6 +6,7 @@ from rulehall.core.prompt import Prompt, lines_of, section_if, sections
 from rulehall.core.tools import render_schema
 from rulehall.core.validation import Frozen, Refusal
 from rulehall.engines.pokemon.battle.assessment import (
+    FULL,
     AimedHit,
     Assessment,
     Effect,
@@ -23,8 +24,9 @@ from rulehall.engines.pokemon.battle.history import (
     STATUS_WORDS,
     hp_percent,
     recent_turns,
+    turns_on_field,
 )
-from rulehall.engines.pokemon.battle.models import Battler, BattleSetup, RoleSeat
+from rulehall.engines.pokemon.battle.models import SIDE_OF, Battler, BattleSetup, RoleSeat
 from rulehall.engines.pokemon.battle.views import BattleChoice
 from rulehall.engines.pokemon.dex import Move, dex
 
@@ -134,10 +136,10 @@ TACTICS = (
     "- Check the SPEED ORDER: a faster foe that can knock your Pokemon out stops your move. "
     "Use a priority move, or see the switch rule below.",
     "- Use moves that are super effective; avoid moves the target resists or is immune to.",
-    "- Staying in and attacking is the default. Switch only to dodge a sure knock-out, and only "
-    "when a bench Pokemon takes clearly less damage; DAMAGE YOU TAKE shows how your bench "
-    "Pokemon would fare. A switch costs the turn.",
-    "- A Pokemon that just came in stays and fights. Do not switch it out again.",
+    "- Staying in and attacking is the default: only damage wins the battle, and each switch "
+    "costs a turn and gives the foe a free hit.",
+    "- Switch only when SWITCH ADVICE names a switch, and take it unless a move of yours knocks "
+    "a foe out first. Without SWITCH ADVICE, stay in and attack, even in a poor matchup.",
     "- Status and stat-raising moves pay off early, while your Pokemon is healthy and safe. "
     "When it is in danger, attack.",
 )
@@ -153,7 +155,19 @@ DOUBLES_TACTICS = (
     "- Tailwind helps a faster team and Trick Room a slower one; setting the right one early "
     "often beats one more hit.",
 )
+SWITCH_ADVICE_READING = (
+    "- SWITCH ADVICE, when shown, names a switch for one of your Pokemon on the field that "
+    "clearly loses its matchup: the lowest roll of the foe's best hit on it, minus the lowest "
+    "roll of its best hit on a foe, is {losing}% of HP or more, a bench Pokemon fares at least "
+    "{gain} points better and takes less, it has fought a full turn since it came in, and it "
+    "still has a third of its HP or more."
+)
 UNSEEN_MOVES = "- A foe likely has moves of its own types, even if you have not seen them yet."
+LOSING_EDGE = -25
+SWITCH_GAIN = 30
+SETTLE_TURNS = 2
+SPENT_SHARE = 33
+POSITION_LETTERS = "ab"
 LINE_MAX = 120
 LINE = (
     "Something you say aloud this turn, in your style, at most one short sentence. Leave it empty "
@@ -260,6 +274,7 @@ def opponent_system(setup: BattleSetup, seat: RoleSeat) -> str:
         TAKEN_OPEN if sheet_open else TAKEN_HIDDEN,
         ESTIMATES_SPREAD if setup.format_spec().stat_points else ESTIMATES_LEVEL,
         *READING_THE_REST,
+        SWITCH_ADVICE_READING.format(losing=-LOSING_EDGE, gain=SWITCH_GAIN),
     )
     tactics = (
         *TACTICS,
@@ -322,6 +337,7 @@ def render_opponent(
         ("DAMAGE YOU TAKE", _damage_taken(own)),
         ("SPEED ORDER", _speed_order(assessment, own, partner, foes)),
         ("MOST DAMAGE", _most_damage(assessment, offers)),
+        *section_if("SWITCH ADVICE", switch_advice(assessment, offers, seat, log)),
         *section_if(
             "MEGA EVOLUTION", MEGA_EVOLUTION if any(offer.can_mega for offer in offers) else ""
         ),
@@ -386,6 +402,70 @@ def greedy_choice(assessment: Assessment, choices: Sequence[BattleChoice], slot:
         bench, key=bench.__getitem__, default=None
     )
     return best or offered[0]
+
+
+def advised_switch(
+    assessment: Assessment,
+    choices: Sequence[BattleChoice],
+    slot: int,
+    seat: RoleSeat,
+    log: Sequence[str],
+) -> str | None:
+    advice = _switch_for(assessment, choices, slot, seat, log)
+    return None if advice is None else advice[0]
+
+
+def switch_advice(
+    assessment: Assessment, offers: Sequence[Offer], seat: RoleSeat, log: Sequence[str]
+) -> str:
+    team = {mon.slot: mon for mon in assessment.team}
+    lines: list[str] = []
+    advised: list[str] = []
+    for offer in offers:
+        choices = [choice for choice in offer.choices if choice.command not in advised]
+        advice = _switch_for(assessment, choices, offer.slot, seat, log)
+        if advice is None:
+            continue
+        command, bench = advice
+        advised.append(command)
+        active = team[offer.slot + 1]
+        lines.append(
+            f"- For {offer.mon_name}: {command} ({bench.name}). {offer.mon_name} takes "
+            f"{active.sure_taken()}% and deals {active.sure_dealt()}%; {bench.name} would take "
+            f"{bench.sure_taken()}% and deal {bench.sure_dealt()}%."
+        )
+    return "\n".join(lines)
+
+
+def _position(seat: RoleSeat, slot: int) -> str:
+    return SIDE_OF[seat] + POSITION_LETTERS[slot]
+
+
+def _switch_for(
+    assessment: Assessment,
+    choices: Sequence[BattleChoice],
+    slot: int,
+    seat: RoleSeat,
+    log: Sequence[str],
+) -> tuple[str, OwnMon] | None:
+    team = {mon.slot: mon for mon in assessment.team}
+    active = team.get(slot + 1)
+    if (
+        active is None
+        or active.hp * FULL < SPENT_SHARE * active.maxhp
+        or turns_on_field(log, _position(seat, slot)) < SETTLE_TURNS
+        or active.matchup_edge() > LOSING_EDGE
+    ):
+        return None
+    allowed = [choice.command for choice in choices if not choice.refusal]
+    better = {
+        command: team[number]
+        for number, command in _numbered(allowed, "switch").items()
+        if team[number].sure_taken() < active.sure_taken()
+        and team[number].matchup_edge() - active.matchup_edge() >= SWITCH_GAIN
+    }
+    best = max(better, key=lambda command: better[command].matchup_edge(), default=None)
+    return None if best is None else (best, better[best])
 
 
 def _tag_rules(setup: BattleSetup, seat: RoleSeat) -> tuple[str, ...]:
@@ -590,7 +670,8 @@ def _field_first[M: OwnMon | SeenMon](mons: Iterable[M]) -> tuple[M, ...]:
 
 
 def _owners(setup: BattleSetup, seat: RoleSeat) -> dict[str, str]:
-    own, other = ("p2", "p1") if seat == "foe" else ("p1", "p2")
+    own = SIDE_OF[seat]
+    other = "p1" if own == "p2" else "p2"
     owners = {own: "your", other: "the foe's"}
     if seat == "ally" and setup.ally is not None:
         allied = {battler.name for battler in setup.ally.team}

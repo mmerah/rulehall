@@ -1,7 +1,7 @@
 from rulehall.core.game import ScenarioDescription
 from rulehall.core.log import Chapter
 from rulehall.core.validation import EngineId, Slug
-from rulehall.engines.rooms.world import Item, Place, Way
+from rulehall.engines.rooms.world import Item, Place, Region, Way
 from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
 from rulehall.engines.tunnelgoons.sheet import HP_START, Goon, GoonSheet
@@ -145,6 +145,7 @@ def small_world() -> TunnelGoonsGame:
         items=items,
         player=_kael(),
         visited_place_ids=[START],
+        regions=[Region(start_id=START, name="The Test Dungeon", place_ids=list(places))],
     )
     return _game(world, scenario_id="test", chapter=Chapter(title="Start"))
 
@@ -182,5 +183,6 @@ def keep() -> TunnelGoonsGame:
         items={LANTERN: lantern},
         player=_kael(),
         visited_place_ids=[GATE],
+        regions=[Region(start_id=GATE, name="The Keep", place_ids=list(places))],
     )
     return _game(world, scenario_id="the-keep", chapter=Chapter(title="Gate"))

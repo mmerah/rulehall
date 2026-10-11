@@ -24,6 +24,7 @@ MAP_WEIGHT = 400
 MAP_HERE_WEIGHT = 600
 MAP_LINK_OPACITY = 0.6
 MAP_LINK_WIDTH = 2
+MAP_REGION_BORDER = 2
 REMEMBERED_CELLS = TypeAdapter(dict[Slug, tuple[int, int]])
 
 
@@ -34,15 +35,20 @@ class SceneMap:
         self.chart: ui.echart | None = None
         # Tab storage, not the save: a reload keeps the layout, and a layout is no game state.
         self.storage = cast("dict[str, object]", app.storage.tab)
-        self.storage_key = f"map:{session.key.save_id}"
-        self.cells = REMEMBERED_CELLS.validate_python(self.storage.get(self.storage_key, {}))
+        self.cells: dict[Slug, Cell] = {}
 
     def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
         map_view = now.view.map
-        if map_view == drawn.view.map:
+        drawn_view = drawn.view.map
+        if map_view == drawn_view:
             return
-        if map_view is not None and self.chart is not None:
-            self.place(map_view)
+        if (
+            map_view is not None
+            and drawn_view is not None
+            and map_view.region_id == drawn_view.region_id
+            and self.chart is not None
+        ):
+            self.place(map_view, self.cells)
             self.chart.props["options"] = map_options(
                 map_view, self.session.engine.look, self.cells
             )
@@ -54,15 +60,19 @@ class SceneMap:
     def draw(self, map_view: MapView | None) -> None:
         self.chart = None
         if map_view is not None:
-            self.place(map_view)
-            with section("Map"):
+            remembered = self.storage.get(self.storage_key(map_view), {})
+            self.place(map_view, REMEMBERED_CELLS.validate_python(remembered))
+            with section(f"Map — {map_view.region_name}"):
                 self.chart = map_chart(
                     map_view, self.session.engine.look, self.cells, self.node_clicked
                 )
 
-    def place(self, map_view: MapView) -> None:
-        self.cells = map_cells(map_view, self.cells)
-        self.storage[self.storage_key] = self.cells
+    def storage_key(self, map_view: MapView) -> str:
+        return f"map:{self.session.key.save_id}:{map_view.region_id}"
+
+    def place(self, map_view: MapView, remembered: dict[Slug, Cell]) -> None:
+        self.cells = map_cells(map_view, remembered)
+        self.storage[self.storage_key(map_view)] = self.cells
 
     def node_clicked(self, index: int) -> None:
         map_view = self.session.player_view().map
@@ -93,7 +103,7 @@ def map_rows(cells: dict[Slug, Cell]) -> int:
 def map_options(view: MapView, look: Look | None, cells: dict[Slug, Cell]) -> dict[str, object]:
     colours = theme.palette(look)
     index = {node.id: at for at, node in enumerate(view.nodes)}
-    unexplored_ids = {node.id for node in view.nodes if node.unexplored}
+    unexplored_ids = {node.id for node in view.nodes if node.kind == "unexplored"}
     links = [
         {
             "source": index[edge.from_id],
@@ -149,24 +159,30 @@ def _map_node(
     node: MapNode, cell: Cell, here_id: Slug, colours: dict[str, str]
 ) -> dict[str, object]:
     here = node.id == here_id
-    width, height = MAP_STUB_SIZE if node.unexplored else MAP_ROOM_SIZE
-    ink = "game-bg" if here else "game-text" if node.visited else "game-muted"
+    is_region = node.kind == "region"
+    width, height = MAP_STUB_SIZE if node.kind == "unexplored" else MAP_ROOM_SIZE
+    ink = (
+        "game-bg" if here else "game-muted" if node.kind in ("seen", "unexplored") else "game-text"
+    )
+    border = "game-accent" if here else "game-text" if is_region else "game-muted"
     # NiceGUI's point click reads args['value'] unguarded; every node and link must carry one.
     # The id, not the name, keys a node: every unexplored way is named "???".
     return {
         "id": node.id,
         "name": node.name,
         "value": [cell[0] + 0.5, cell[1] + 0.5],
+        "symbol": "rect" if is_region else "roundRect",
         "symbolSize": [width, height],
         "itemStyle": {
             "color": colours["game-accent" if here else "game-surface"],
-            "borderColor": colours["game-accent" if here else "game-muted"],
-            "borderWidth": 1,
-            "borderType": "solid" if node.visited else "dashed",
+            "borderColor": colours[border],
+            "borderWidth": MAP_REGION_BORDER if is_region else 1,
+            "borderType": "solid" if node.kind in ("visited", "region") else "dashed",
         },
         "label": {
             "color": colours[ink],
             "width": width - MAP_LABEL_INSET,
             "fontWeight": MAP_HERE_WEIGHT if here else MAP_WEIGHT,
+            "fontStyle": "italic" if is_region else "normal",
         },
     }

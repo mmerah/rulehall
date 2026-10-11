@@ -26,7 +26,8 @@ WORLDSMITH_GUIDANCE = (
     "teams, and a street or station between them. `event` names the event: its `tier` from "
     "SEASON, a `name` that carries the tier, such as 'Lumiose Locals', the `venue_id` of the "
     "venue, and the `battle_background` of its matches, such as 'gen3-arena' or 'gen6-city'. "
-    "The start reaches the venue without a lock. "
+    "The opening's start reaches the venue without a lock; a later map starts at its venue: "
+    "`start_id` is `event.venue_id`. `region_name` is the host city. "
     f"Write at most {KEY_TRAINERS_MAX} key trainers: players of this event with an "
     "`archetype_id` from ARCHETYPES and, if they have a signature Pokemon, an `ace_species_id` "
     "from ACE SPECIES. Every key trainer and the rival has a `style`, a `win_line` and a "
@@ -69,6 +70,8 @@ def _check_champions_map(
         raise Refusal(f"the event's name carries its tier: {tier.name}")
     if event.venue_id not in proposal.places:
         raise Refusal(f"`event.venue_id` {event.venue_id!r} is no place of this map")
+    if not opening and proposal.start_id != event.venue_id:
+        raise Refusal("a later map starts at its venue: set start_id to event.venue_id")
     if event.venue_id not in proposal.reachable(proposal.start_id):
         raise Refusal(f"the venue {event.venue_id!r} is reached from the start without a lock")
     trainers = list(proposal.npcs.values())

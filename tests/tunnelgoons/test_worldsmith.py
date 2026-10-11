@@ -21,6 +21,7 @@ HALL = "hall"
 THIN = MapProposal[Goon](
     places={ONLY: Place(id=ONLY, name="Only", brief="b", known=True, description="d")},
     start_id=ONLY,
+    region_name="Beyond",
 )
 
 
@@ -42,6 +43,7 @@ def _region() -> RegionProposal[Goon]:
             FAR_ITEM: Item(id=FAR_ITEM, name="Far Item", brief="b", known=False, holder_id=FAR_HALL)
         },
         start_id=FAR_HALL,
+        region_name="Beyond",
         recap="They pushed past the hall and found the vault beyond it.",
     )
 
@@ -54,6 +56,7 @@ def _wide_region() -> MapProposal[Goon]:
         npcs=canon.npcs,
         items=canon.items,
         start_id=canon.current.id,
+        region_name="Beyond",
     )
 
 
@@ -66,6 +69,7 @@ def test_a_region_of_one_hidden_place_with_no_ways_installs_hidden() -> None:
     region = RegionProposal[Goon](
         places={HIDDEN: Place(id=HIDDEN, name="Hidden", brief="b", known=False, description="d")},
         start_id=HIDDEN,
+        region_name="Beyond",
         recap="They found a hidden way and pushed through it.",
     )
     check_next(region, draft.world)
@@ -102,6 +106,7 @@ def test_check_next_refuses_an_item_planted_on_the_player() -> None:
             )
         },
         start_id=HIDDEN,
+        region_name="Beyond",
         recap="A hand slipped something into their pocket.",
     )
     with pytest.raises(Refusal, match="planted on the player"):
@@ -138,7 +143,10 @@ def _hiding_gremlin(
         id=place_id, name=place_id.title(), brief=brief, known=known, description=description
     )
     return MapProposal[Goon](
-        places={place_id: place}, npcs={gremlin.id: gremlin}, start_id=place_id
+        places={place_id: place},
+        npcs={gremlin.id: gremlin},
+        start_id=place_id,
+        region_name="Beyond",
     )
 
 
@@ -201,3 +209,10 @@ def test_more_map_waits_for_no_open_way_and_a_joined_region_begins_as_an_unexplo
         "???",
         "???",
     ]
+
+
+def test_check_next_refuses_a_region_name_already_on_the_map() -> None:
+    world = _tunnelgoons_game().world
+    region = _region().model_copy(update={"region_name": world.regions[0].name.upper()})
+    with pytest.raises(Refusal, match="a region name not already on the map"):
+        check_next(region, world)

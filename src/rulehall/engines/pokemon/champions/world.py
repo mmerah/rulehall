@@ -75,6 +75,12 @@ MATCH_ON = "a match is on; edit the team after it"
 NOT_LOCKED = "the team is not locked; edit it as it is"
 PENDING_OPEN = "a pending team is already open"
 NO_CHANGES = "the team has no unsaved changes"
+NEXT_EVENT_AWAITS = "the next event is in another city: when the player sets out, call extend_map"
+PRACTICE_PARTNER = "Practice partner"
+PRACTICE_BACKGROUND: BattleBackground = "gen4-indoors"
+PRACTICE_MUSIC: BattleMusic = "bw-trainer"
+MATCH_IN_PROGRESS = "a match is already on"
+NO_EVENT = "no event is open"
 
 
 class EventProposal(Frozen):
@@ -113,6 +119,7 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
     used_team_ids: list[Slug] = Field(default_factory=list)
     battle: Battle | None = None
     pending_team: PendingTeam | None = None
+    practice_archetype_id: Slug | None = None
 
     @model_validator(mode="after")
     def _a_season_on_a_map(self) -> Self:
@@ -121,6 +128,8 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
             raise ValueError(f"the event is at no place: {self.event.venue_id!r}")
         if strays := sorted(set(self.key_trainer_ids) - set(self.npcs)):
             raise ValueError(f"key trainers who are no npc: {strays}")
+        if self.practice_archetype_id is not None and self.battle is None:
+            raise ValueError(f"a practice with no battle on: {self.practice_archetype_id!r}")
         return self
 
     @property
@@ -129,7 +138,7 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
 
     def require_event(self) -> Event:
         if self.event is None:
-            raise Refusal("no event is open")
+            raise Refusal(NO_EVENT)
         return self.event
 
     def find_rival(self) -> ChampionsTrainer | None:
@@ -221,41 +230,74 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
         )
         return [player.card_fact(line)]
 
-    def start_match(self, rng: Random) -> list[Fact]:
+    def at_map_edge(self) -> bool:
+        event = self.event
+        if event is None or event.stage == "open":
+            return super().at_map_edge()
+        return self.next_event_open()
+
+    def next_event_open(self) -> bool:
+        event = self.event
+        return event is not None and event.stage == "done" and not self.season_over()
+
+    def match_refusal(self) -> str:
         if self.battle is not None:
-            raise Refusal("a match is already on")
-        event = self.require_event()
+            return MATCH_IN_PROGRESS
+        event = self.event
+        if event is None:
+            return NO_EVENT
         if event.stage not in ("swiss", "cut"):
-            raise Refusal(f"{event.name} has no match to play now")
+            return f"{event.name} has no match to play now"
         if self.current.id != event.venue_id:
-            raise Refusal(f"the matches are played at {self.places[event.venue_id].name}")
-        sheet = self.player_sheet
-        registered = sheet.registered
+            return f"the matches are played at {self.places[event.venue_id].name}"
+        return ""
+
+    def start_match(self, rng: Random) -> list[Fact]:
+        refuse(self.match_refusal())
+        event = self.event
+        assert event is not None
+        registered = self.player_sheet.registered
         assert registered is not None
         player = self.player
         opponent = event.require_player_opponent()
         open_sheets = TIERS[event.tier].open_sheets
-        setup = BattleSetup(
-            policy="model",
-            foe_style=opponent.style,
-            foe_id=opponent.entrant_id,
-            player_name=player.name,
-            foe_name=opponent.name,
-            player_avatar_id=player.avatar_id,
-            foe_avatar_id=opponent.avatar_id,
-            seed=battle_seed(rng),
-            battle_background=event.battle_background,
-            battle_music=self._music_against(opponent, event),
-            team=_battlers(registered),
-            foes=_battlers(opponent.sets),
-            format_id=champions_data().source.format_id,
+        self.battle = self._battle(
+            registered,
+            opponent,
+            event.battle_background,
+            self._music_against(opponent, event),
+            rng,
             foe_sheet_open=open_sheets or opponent.entrant_id in event.scouted_ids,
             player_sheet_open=open_sheets,
         )
-        self.battle = Battle(setup=setup)
         return [
             player.card_fact(f"{_round_name(event).capitalize()}: {player.name} vs {opponent.name}")
         ]
+
+    def practice_refusal(self) -> str:
+        return MATCH_IN_PROGRESS if self.battle is not None else ""
+
+    def start_practice(self, archetype_id: Slug, rng: Random) -> list[Fact]:
+        refuse(self.practice_refusal())
+        archetype = require_archetype(archetype_id)
+        player = self.player
+        partner = _field_entrant(
+            archetype,
+            f"practice-{archetype_id}",
+            PRACTICE_PARTNER,
+            rng.choice(avatars().npc.classes).id,
+        )
+        self.battle = self._battle(
+            tuple(self.player_sheet.team),
+            partner,
+            PRACTICE_BACKGROUND,
+            PRACTICE_MUSIC,
+            rng,
+            foe_sheet_open=True,
+            player_sheet_open=False,
+        )
+        self.practice_archetype_id = archetype_id
+        return [player.card_fact(f"Practice match: {player.name} vs {archetype.name}")]
 
     def scout(self, what: str, rng: Random) -> list[Fact]:
         if self.battle is not None:
@@ -288,10 +330,21 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
         raise Refusal("no ball is thrown in a tournament match")
 
     def settle_battle(self, result: BattleResult) -> tuple[Resolution, list[str]]:
-        event = self.require_event()
-        sheet = self.player_sheet
         player = self.player
         won = result.outcome == "won"
+        if self.practice_archetype_id is not None:
+            archetype_name = require_archetype(self.practice_archetype_id).name
+            self.battle = None
+            self.practice_archetype_id = None
+            outcome = "wins" if won else "loses"
+            line = (
+                f"Practice vs {archetype_name}: {player.name} {outcome}; "
+                "it counts for nothing at the event"
+            )
+            facts = [player.card_fact(line), *(player.fact(each) for each in result.highlights)]
+            return Resolution(tuple(facts), BATTLE_OVER), []
+        event = self.require_event()
+        sheet = self.player_sheet
         opponent = event.require_player_opponent()
         round_name = _round_name(event)
         swiss = event.stage == "swiss"
@@ -460,6 +513,8 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
         ]
         if event.stage == "done":
             lines.append(f"over: the player placed {event.placing}")
+            if not self.season_over():
+                lines.append(NEXT_EVENT_AWAITS)
             return "\n".join(lines)
         opponent = event.require_player_opponent()
         if opponent.npc_id is None:
@@ -508,6 +563,37 @@ class ChampionsWorld(RoomWorld[ChampionsTrainer]):
                     player.card_fact(f"Prize for the top cut: {player.name} picks one of {names}")
                 )
         return facts
+
+    def _battle(
+        self,
+        team: tuple[CompetitiveSet, ...],
+        foe: Entrant,
+        background: BattleBackground,
+        music: BattleMusic,
+        rng: Random,
+        *,
+        foe_sheet_open: bool,
+        player_sheet_open: bool,
+    ) -> Battle:
+        player = self.player
+        setup = BattleSetup(
+            policy="model",
+            foe_style=foe.style,
+            foe_id=foe.entrant_id,
+            player_name=player.name,
+            foe_name=foe.name,
+            player_avatar_id=player.avatar_id,
+            foe_avatar_id=foe.avatar_id,
+            seed=battle_seed(rng),
+            battle_background=background,
+            battle_music=music,
+            team=_battlers(team),
+            foes=_battlers(foe.sets),
+            format_id=champions_data().source.format_id,
+            foe_sheet_open=foe_sheet_open,
+            player_sheet_open=player_sheet_open,
+        )
+        return Battle(setup=setup)
 
     def _scouted_text(self, event: Event, opponent: Entrant) -> str:
         if TIERS[event.tier].open_sheets:
