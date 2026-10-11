@@ -112,7 +112,6 @@ class BattleScreen:
                 "base": assets_route(self.session.engine.id),
                 "lines": list(now.battle_log),
                 "sprites": settings.sprites,
-                "music": settings.music,
                 "dock": f"#{self.log_dock.html_id}",
                 "battle-background": view.background,
                 "battle-music": view.music,

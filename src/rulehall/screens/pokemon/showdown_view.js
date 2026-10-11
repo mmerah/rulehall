@@ -68,7 +68,6 @@ export default {
     base: String,
     lines: Array,
     sprites: String,
-    music: Boolean,
     dock: String,
     battleBackground: String,
     battleMusic: String,
@@ -88,8 +87,8 @@ export default {
     if (this.$.isUnmounted) return;
     this.battle = new Battle({ $frame: $(this.$refs.frame), $logFrame: $(this.$refs.log) });
     this.pinBattleBackgroundAndMusic();
-    this.battle.setMute(!this.music || localStorage.getItem(SOUND_KEY) === "off");
-    this.sound = (event) => this.battle.setMute(!this.music || !event.detail);
+    this.battle.setMute(localStorage.getItem(SOUND_KEY) === "off");
+    this.sound = (event) => this.battle.setMute(!event.detail);
     window.addEventListener(SOUND_EVENT, this.sound);
     for (const line of this.lines) this.battle.add(line);
     this.battle.seekTurn(Infinity);

@@ -192,9 +192,10 @@ async def test_a_writer_streams_its_answer_and_the_listener_hears_the_text_so_fa
 async def test_a_master_still_calling_tools_past_the_cap_is_cut_off(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr("rulehall.app.api_roles.MAX_TOOL_ROUNDS", 3)
     endless = _said(None, _call("a", "change_tags", "{}"))
     sent = _post(monkeypatch, endless, endless, endless, endless)
-    master = RoleConfig(provider="local", model="m", max_rounds=3)
+    master = RoleConfig(provider="local", model="m")
     prompt = Prompt(system="", user="PLAY")
 
     with pytest.raises(Refusal, match="3 rounds"):

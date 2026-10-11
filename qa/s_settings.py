@@ -17,6 +17,7 @@ from drive import (
     notified,
     placeholder,
     run,
+    select,
     still,
     submit,
     wait_idle,
@@ -32,6 +33,10 @@ ART_POLL_MS = 3200
 
 def switch(page: Page, label: str) -> Locator:
     return page.locator(".q-toggle", has_text=label)
+
+
+def opponent(page: Page) -> Locator:
+    return page.locator(".q-select:has(.q-field__label:text-is('opponent'))").first
 
 
 def env() -> str:
@@ -113,16 +118,16 @@ def body(s: Session) -> None:
     s.shot(page, "media-no-key")
     page.reload()
 
-    # A real change: music off. .env holds the key; the switch still shows it clicked.
+    # A real change: a scripted opponent. .env holds the key; the select still shows it chosen.
     page.get_by_role("tab", name="pokemon").click()
-    switch(page, "music").click()
+    select(page, "opponent", "scripted")
     save(page)
-    s.check("POKEMON__MUSIC='false'" in env(), f".env after save: {env()!r}")
+    s.check("POKEMON__OPPONENT='scripted'" in env(), f".env after save: {env()!r}")
     s.check(
-        switch(page, "music").get_attribute("aria-checked") == "false",
-        "the switch does not show the saved value after the reload",
+        "scripted" in opponent(page).inner_text(),
+        "the select does not show the saved value after the reload",
     )
-    s.shot(page, "music-off")
+    s.shot(page, "opponent-scripted")
 
     # A secret: typed once, stored, never read back.
     page.get_by_role("tab", name="providers").click()
@@ -163,7 +168,7 @@ def body(s: Session) -> None:
         s.check(wait_working(game), "the game shows no turn under way")
         s.shot(game, "game-busy")
         page.get_by_role("tab", name="pokemon").click()
-        switch(page, "music").click()
+        select(page, "opponent", "model")
         s.check(save(page), "a save during a turn wrote nothing")
         s.shot(page, "busy-save")
     wait_idle(game, timeout=60)
@@ -171,7 +176,7 @@ def body(s: Session) -> None:
     page.get_by_role("tab", name="pokemon").click()
 
     # A save applies elsewhere while a game is open: the game keeps playing, untouched.
-    switch(page, "music").click()
+    select(page, "opponent", "scripted")
     save(page)
     s.shot(game, "stale-game")
     submit(game, "I try to play on.")

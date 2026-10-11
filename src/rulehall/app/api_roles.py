@@ -13,6 +13,7 @@ from rulehall.core.validation import Loose, Refusal, parse_json
 
 LOGGER = logging.getLogger(__name__)
 ROUND_SHARE = 3
+MAX_TOOL_ROUNDS = 30
 
 
 class _Echoed(BaseModel):
@@ -103,7 +104,7 @@ async def converse(
     messages = _opening_messages(prompt)
     offered: list[JsonValue] = [_declared(tool) for tool in tool_provider.offered_tools()]
     retried = False
-    for rounds in range(1, config.max_rounds + 1):
+    for rounds in range(1, MAX_TOOL_ROUNDS + 1):
         said = await _round(role, config, provider, messages, offered)
         messages.append(said.model_dump(mode="json", exclude_none=True))
         messages.extend(
@@ -118,9 +119,7 @@ async def converse(
                 raise Refusal(f"the {role} stopped without ending its work, twice")
             retried = True
             messages.append({"role": "user", "content": tool_provider.nudge})
-    raise Refusal(
-        f"the {role} made {config.max_rounds} rounds of tool calls without ending its work"
-    )
+    raise Refusal(f"the {role} made {MAX_TOOL_ROUNDS} rounds of tool calls without ending its work")
 
 
 def _answer(tool_provider: ToolProvider, call: _ToolCall) -> str:

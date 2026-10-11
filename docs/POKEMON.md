@@ -147,7 +147,7 @@ The player picks the mode on the Pokemon tile and three things at creation: the 
 - The advice reads the pending team: the clauses, empty slots, speed control, Fake Out and Intimidate, a type that hits three or more Pokemon with no answer, the Pokemon that most often beat the team, more than one Mega Stone, the team's archetype, and a slot that fits the others poorly. Some come with a Fix: fill the empty slots with suggested teammates, add a speed control move, swap in a better preset.
 - A new species takes its top preset. Each slot card's menu moves the slot up or down or clears it.
 
-The Pokemon settings sit in their own section, Settings > pokemon: the battle sprites, the battle music and the opponent (scripted or the model).
+The Pokemon settings sit in their own section, Settings > pokemon: the battle sprites and the opponent (scripted or the model).
 
 ### The opponents
 
