@@ -1,6 +1,6 @@
 # Simplification proposals
 
-> **Review closed (2026-10-11).** Accepted: P1–P10 and R1. Not taken: R2–R5. The chosen option is marked on each decision.
+> **Review closed (2026-10-11).** Part 1 accepted: P1–P10 and R1; not taken: R2–R5. Part 2 (deletions) accepted: D1 (C), D4 (A), D6 (B), D7, D8 (B), D9 (B), D10 (A); declined: D2, D3, D5. The chosen option is marked on each decision.
 >
 > **Implementation order** (mechanical moves first, so later diffs stay small; each step keeps `pytest`, `ruff` and `basedpyright` green):
 > 1. **P4.** Vocabulary and the move to `engines/bases/{maps,scenes}/`.
@@ -9,11 +9,20 @@
 > 4. **P3.** Lifecycle hooks.
 > 5. **P1 + the ToolProvider rename from P6.** One tool-call route.
 > 6. **P5.** GameSession cleanup and the rewind-after-restart fix (add a regression test).
+> 6b. **D4 (A) and D6 (B).** Delete the team-builder input layers and the settings, before the P7 split.
 > 7. **P8 (A).** Make the siblings alike.
 > 8. **P9.** Pokémon untangling, including `legendary_person_id` and `UnsavedTeam`.
 > 9. **P6 (rest).** BattleSnapshot, ScreenSlot, the TeamBuilding protocol, the flat registry and the banner.
 > 10. **P7 (A).** Split the team builder.
 > 11. **R1.** One owner for player packs.
+>
+> **Deletions:**
+> - **D10 and D7** come first. They are tiny, proven and independent, so they give a clean start.
+> - **D1 (C)** and **D9 (B)** can go any time.
+> - **D8 (B)** goes with P1.
+> - **D4 and D6** go at step 6b.
+>
+> **Expected deletion total:** about −1,000 lines across src, tests, qa, docs and data (D1 C ≈ −230, D4 ≈ −300, D6 ≈ −40, D7 ≈ −40, D9 ≈ −335, D10 ≈ −140), plus D8 at +15 and 1.25 MB of images removed.
 
 Five reviewers looked at the code, each through a different lens: core/app, the non-Pokémon engines, the Pokémon engines, UI/tests/naming, plus one cross-cutting pass. This file merges their findings into the top 10 proposals, ranked by impact. Items that came close are listed under **Runners-up** at the end.
 
@@ -493,7 +502,7 @@ The proof gate applies here too. **Proof** for a deletion means the named code i
 
 ## D1. Speech: keep "tap a line to hear it", drop the rest
 
-**Status:** pending
+**Status:** ACCEPTED — Decision C. Dedupe the catalogue only: HD reuses Turbo's lists through a `voices_of` alias, so `.env` files naming HD keep working. Proof for C: `voices.json` is about −230 lines, there are no duplicate voice lists, and no feature changes.
 
 **What exists today:**
 - `voices.json` (1,070 lines): a hand-graded voice catalogue for **7** interchangeable text-to-speech models.
@@ -527,7 +536,7 @@ The MiniMax HD entry in `voices.json` is an exact copy of the Turbo entry: 45 sh
 
 ## D2. The model-played Pokémon opponent
 
-**Status:** pending
+**Status:** DECLINED (keep the model opponent as is)
 
 **What exists today:**
 - About 720 of the 850 lines in `battle/opponent.py` exist only to prompt a model: prose, `opponent_system`, `render_opponent`, `check_commands`, `switch_advice` and about 30 render helpers.
@@ -557,7 +566,7 @@ There are three opponent policies (random, scripted, model), plus a setting that
 
 ## D3. In-app "New pack" writer overlaps "write a scenario from a document"
 
-**Status:** pending
+**Status:** DECLINED (keep the pack writer as is; R1 stays as accepted)
 
 **What exists today:**
 - `PackForm` and `packs_page` (`ui/create.py:365-427`).
@@ -585,7 +594,7 @@ That is about 350 src and 150 test lines in total. The scenario form already tak
 
 ## D4. Team builder: drop the extra input layers (do this before P7)
 
-**Status:** pending
+**Status:** ACCEPTED — Decision A (delete all extra input layers, including the Expert toggle and the second stat editor). Do it **before P7**, and measure P7's proof from the smaller class.
 
 **What exists today:**
 - `KEY_MAP` (19 bindings) and a keys dialog.
@@ -609,7 +618,7 @@ A slot can be reordered **three ways**: drag-and-drop, Alt+↑/↓, and the card
 
 ## D5. "Story so far": use the recaps the game already stores
 
-**Status:** pending
+**Status:** DECLINED (keep the model-written story summary)
 
 **What exists today:**
 - `Debrief` and `render_debrief` (about 45 lines).
@@ -630,7 +639,7 @@ About 140 lines in total. This button makes a fresh narrator model call, but `Ch
 
 ## D6. Settings that duplicate another control or barely matter
 
-**Status:** pending
+**Status:** ACCEPTED — Decision B (drop `pokemon.music`, `pokemon.expert_team_builder` (removed with D4) and `roles.*.max_rounds`; keep the 2d/3d sprites setting)
 
 - **`pokemon.music`:** it duplicates the page's Sound toggle, which mutes battle audio too. Delete the setting.
 - **`pokemon.sprites` (2d/3d):** keep 2d only. The asset fetch downloads every animated GIF anyway, so dropping 3d could also shrink the about-220 MB first-start download (not yet measured).
@@ -651,7 +660,7 @@ About 140 lines in total. This button makes a fresh narrator model call, but `Ch
 
 ## D7. Trim two defensive checks that guard nothing real
 
-**Status:** pending
+**Status:** ACCEPTED (delete the JSON depth walker and `check_drift`; keep answer repair, the leak checks and the duplicate-key check)
 
 - **JSON depth walker** (`_nesting_depth` and `JSON_DEPTH_MAX` in `validation.py`, about 20 lines plus a test). Pydantic's JSON parser already refuses deep nesting. The only recursion risk (`_mended`) is covered by catching `RecursionError` in one line, the same pattern `decode` already uses.
 - **`ScenarioDescription.check_drift` and its caller** (about 10 lines plus a test). The save keeps its own copy of the description, so the check only means that **fixing a typo in a shipped scenario makes every save of it unresumable**.
@@ -671,7 +680,7 @@ The reviewer checked and recommends **keeping**:
 
 ## D8. `qa/demo/`: broken since 2026-10-08
 
-**Status:** pending
+**Status:** ACCEPTED — Decision B (fix the demo kit). Because P1 reshapes `RoleRunner` to `answer` plus `play_tools`, fix `DemoRoles` against that interface, in the P1 commit or right after it. Proof: `uv run basedpyright qa/demo` reports no protocol error.
 
 **Evidence, confirmed:**
 - `qa/demo/roles.py` `DemoRoles` has no `submit_answer`.
@@ -691,7 +700,7 @@ The reviewer checked and recommends **keeping**:
 
 ## D9. Docs and the QA harness: remove what restates code or only takes screenshots
 
-**Status:** pending
+**Status:** ACCEPTED — Decision B (replace the docs' tool sections with a pointer; delete `s_gallery.py`, `s_endure.py` and the websocket timing instrumentation; keep the goldens as they are)
 
 - **Docs "## The tools" sections**: about 55 lines, but about 21k characters, roughly 45% of the 24XX and Loner docs. They paraphrase the tool docstrings, which the goldens already pin, and they have **already drifted**: 24XX and Tunnel Goons omit `direct`, and Tunnel Goons omits `extend_map`. Replace each section with one line pointing to the engine's `@tool` docstrings.
 - **QA screenshot and timing scenarios**: `qa/s_gallery.py` (screenshots only, and not even in `run_all.sh`), `qa/s_endure.py`, and the websocket timing instrumentation in `drive.py`. About −280 lines. You lose the traffic-timing check and the design gallery.
@@ -708,7 +717,7 @@ The reviewer checked and recommends **keeping**:
 
 ## D10. Safe sweep: small proven dead bits
 
-**Status:** pending
+**Status:** ACCEPTED — Decision A (delete the two orphan portraits), plus the whole safe sweep. `docs/demo/social.png` stays untouched until you decide.
 
 Each item was proven with grep (one hit, or none outside its own definition):
 - **Two scenario portraits that can never show.** `scenarios/whispering-vault/icons/tomas.jpg` and `cloister_rat.jpg` (1.25 MB). Icons are looked up by exact id, and the ids are `brother-tomas` and `a-bloated-rat`. These have never matched since 0.5.0. Confirmed.
