@@ -10,6 +10,14 @@ Sometimes no open way that the player can see leads to a place they have not vis
 offers the player "More map", and MAP EDGE shows: when the story heads on, call `extend_map`. The
 worldsmith writes what lies beyond. Never invent a place, a way, or what waits in them, yourself.
 
+## Regions
+
+Each map the worldsmith writes is one region, such as a district, a level of a dungeon or an
+island. The page draws the region the player is in, place by place. Each earlier region shows as
+one box named after it. REGIONS tells how the regions join, and WAYS OUT marks a way that "leads
+into" another region. When the player heads back to an earlier region, move one way at a time
+along the ways that join the regions. MAP EDGE counts only the region the player is in.
+
 ## Failure
 
 A failure costs something and changes the situation. A failure never shuts the only way on: after

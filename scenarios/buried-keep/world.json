@@ -145,6 +145,7 @@
         "holder_id": "storeroom"
       }
     },
-    "start_id": "entrance"
+    "start_id": "entrance",
+    "region_name": "The Upper Tunnels"
   }
 }

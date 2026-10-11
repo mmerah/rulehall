@@ -1,7 +1,8 @@
+import json
 from random import Random
 
 import pytest
-from support.table import CHAMPIONS, change, game, narrowed, run_action
+from support.table import CHAMPIONS, SCENARIOS, change, game, narrowed, refused, run_action
 
 from rulehall.core.game import AnyGame
 from rulehall.core.prompt import sections
@@ -9,8 +10,10 @@ from rulehall.core.validation import Refusal
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.pokemon.battle.models import BattleResult
 from rulehall.engines.pokemon.champions.engine import ChampionsEngine
+from rulehall.engines.pokemon.champions.panels import NEXT_EVENT, PLAY_NEXT_ROUND
 from rulehall.engines.pokemon.champions.rules import PRIZE_CHOICES, RECRUIT_CAP
-from rulehall.engines.pokemon.champions.world import ChampionsWorld
+from rulehall.engines.pokemon.champions.world import ChampionsRegionProposal, ChampionsWorld
+from rulehall.engines.pokemon.champions.worldsmith import check_next
 from rulehall.engines.pokemon.dex import species_name
 
 ROUNDS_MAX = 6
@@ -159,3 +162,70 @@ def test_recruits_add_up_to_the_cap() -> None:
     world.player_sheet.recruits_left = RECRUIT_CAP
     _play_event(world, won=True)
     assert world.player_sheet.recruits_left == RECRUIT_CAP
+
+
+def test_a_finished_event_offers_the_next_event_with_places_left_unvisited() -> None:
+    engine, draft, world = _registered()
+    _play_event(world, won=True)
+    assert world.has_frontier()
+    assert engine.player_view(draft).moves == (NEXT_EVENT,)
+    _ = change(engine, draft, "extend_map", heading="the next event")
+    assert draft.request is not None
+
+
+def test_a_registered_player_at_the_venue_plays_the_next_round_and_cannot_leave() -> None:
+    engine, draft, world = _registered()
+    assert engine.player_view(draft).moves == (PLAY_NEXT_ROUND,)
+    assert "under way" in refused(engine, draft, "extend_map", heading="away")
+    _ = run_action(engine, draft, "start_match")
+    assert world.battle is not None
+
+
+def test_a_later_map_starts_at_its_venue() -> None:
+    _, _, world = _registered()
+    _play_event(world, won=True)
+    opening = json.loads((SCENARIOS / "coral-circuit" / "world.json").read_text())["opening"]
+    places = {
+        f"next-{place_id}": place | {"id": f"next-{place_id}", "known": False}
+        for place_id, place in opening["places"].items()
+    }
+    ways = {
+        f"next-{place_id}": [way | {"to_id": f"next-{way['to_id']}"} for way in place_ways]
+        for place_id, place_ways in opening["ways"].items()
+    }
+    event = opening["event"] | {"name": "Harbour Locals", "venue_id": "next-prism-games"}
+    proposal = ChampionsRegionProposal.model_validate(
+        {
+            "places": places,
+            "ways": ways,
+            "npcs": {},
+            "items": {},
+            "arc": "The circuit goes on.",
+            "event": event,
+            "start_id": "next-coral-station",
+            "region_name": "Harbour Town",
+            "recap": "The player played a Locals.",
+        }
+    )
+    with pytest.raises(Refusal, match="starts at its venue"):
+        check_next(proposal, world)
+    check_next(proposal.model_copy(update={"start_id": "next-prism-games"}), world)
+
+
+def test_a_practice_match_records_nothing_at_the_event() -> None:
+    engine, draft, world = _registered()
+    event = world.require_event().model_dump()
+    finishes = list(world.player_sheet.finishes)
+    _ = run_action(engine, draft, "practice_match", archetype_id="trickroom")
+    assert world.battle is not None
+    assert world.battle.setup.foe_id == "practice-trickroom"
+    with pytest.raises(Refusal, match="already on"):
+        _ = run_action(engine, draft, "practice_match", archetype_id="trickroom")
+    team = world.battle.setup.team
+    _ = world.settle_battle(
+        BattleResult(outcome="won", team=team, sent_out_foes=(), on_field_mon_ids=())
+    )
+    assert world.require_event().model_dump() == event
+    assert world.player_sheet.finishes == finishes
+    assert world.battle is None
+    assert world.practice_archetype_id is None

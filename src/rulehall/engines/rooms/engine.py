@@ -89,7 +89,8 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
             (HIDDEN_TITLE, world.place_lines(known=False)),
             *section_if(ARC_TITLE, world.arc),
             ("WAYS OUT", world.ways_lines()),
-            *section_if("MAP EDGE", "" if world.has_frontier() else MAP_EDGE),
+            *section_if("REGIONS", world.region_lines()),
+            *section_if("MAP EDGE", MAP_EDGE if world.at_map_edge() else ""),
             *self.packs.rules_section(state.pack_id),
             *(((ELSEWHERE, world.elsewhere_lines()),) if world.meanwhile_due else ()),
         )
@@ -115,7 +116,7 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
         return view.model_copy(update={"sheet": (*view.sheet, ("Carrying", carrying or "nothing"))})
 
     def moves(self, state: Game[W], /) -> tuple[ActionOption, ...]:
-        return () if state.world.has_frontier() else (MORE_MAP,)
+        return (MORE_MAP,) if state.world.at_map_edge() else ()
 
     def scene_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]:
         world = state.world
@@ -177,7 +178,7 @@ class RoomEngine[P: Dweller, W: RoomWorld[Any], K: Pack, R: RegionProposal[Any]]
         """Extend the map past its edge. Call this when MAP EDGE shows and the player heads past
         it: after the goal here is met, or when they set out somewhere new. Call it last: it ends
         your turn."""
-        if draft.world.has_frontier():
+        if not draft.world.at_map_edge():
             raise Refusal(FRONTIER_LEFT)
         draft.request = WorldsmithRequest(kind=EXTEND, detail=args.heading)
         return [Fact(trace=PAST_THE_EDGE, told=True)]

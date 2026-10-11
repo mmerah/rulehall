@@ -1,6 +1,6 @@
 from rulehall.core.prompt import Sections
 from rulehall.core.validation import Refusal
-from rulehall.engines.name_leaks import leaked_names
+from rulehall.engines.name_leaks import leaked_names, names_in
 from rulehall.engines.rooms.world import (
     OFF_MAP_ID,
     Dweller,
@@ -33,11 +33,12 @@ def check_next[P: Dweller](proposal: RegionProposal[P], world: RoomWorld[P]) -> 
         _map_needs(proposal, start_known=False)
         + _standing_needs(proposal)
         + _overlap_needs(proposal, world)
+        + _region_name_needs(proposal, world)
         + _named_needs(proposal)
         + _planted_needs(proposal)
     ):
         raise Refusal("the extension needs " + "; ".join(needs))
-    world.refuse_unmet_names(proposal.recap)
+    world.refuse_unmet_names(proposal.recap, proposal.region_name)
 
 
 def _planted_needs[P: Dweller](proposal: MapProposal[P]) -> list[str]:
@@ -78,11 +79,22 @@ def _overlap_needs[P: Dweller](proposal: MapProposal[P], world: RoomMap[P]) -> l
     return []
 
 
+def _region_name_needs[P: Dweller](proposal: MapProposal[P], world: RoomWorld[P]) -> list[str]:
+    if proposal.region_name.casefold() in {region.name.casefold() for region in world.regions}:
+        return [f"a region name not already on the map: {proposal.region_name!r}"]
+    return []
+
+
 def _named_needs[P: Dweller](proposal: MapProposal[P]) -> list[str]:
-    leaked: set[str] = set()
     hidden = [
         entity for entity in (*proposal.npcs.values(), *proposal.items.values()) if not entity.known
     ]
+    needs: list[str] = []
+    if region_named := sorted(set(names_in(proposal.region_name, hidden))):
+        needs.append(
+            f"a region name that does not name what the player has not met: {region_named}"
+        )
+    leaked: set[str] = set()
     for place_id, place in proposal.places.items():
         entities = [
             *proposal.entities_at(place_id),
@@ -91,5 +103,5 @@ def _named_needs[P: Dweller](proposal: MapProposal[P]) -> list[str]:
         read = "\n".join((place.name, place.brief, place.description))
         leaked.update(leaked_names(read, entities, hidden))
     if named := sorted(leaked):
-        return [f"places that do not name what the player has not met: {named}"]
-    return []
+        needs.append(f"places that do not name what the player has not met: {named}")
+    return needs

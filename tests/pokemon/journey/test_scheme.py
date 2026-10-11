@@ -101,6 +101,7 @@ def test_a_region_without_the_operation_that_is_owed_is_refused() -> None:
     region = JourneyRegionProposal(
         places={"reef": Place(id="reef", name="Reef", brief="b", known=False, description="d")},
         start_id="reef",
+        region_name="Beyond",
         recap="They left the harbour behind.",
     )
 
@@ -127,6 +128,7 @@ def test_a_region_installs_an_operation_led_by_one_of_its_own_new_people() -> No
         places={"reef": Place(id="reef", name="Reef", brief="b", known=False, description="d")},
         npcs={grunt.id: grunt},
         start_id="reef",
+        region_name="Beyond",
         recap="They left the harbour behind.",
         operation=Operation(place_id="reef", leader_id=grunt.id, goal="Drain the reef."),
     )
@@ -180,6 +182,7 @@ def _reef_region(operation: Operation) -> JourneyRegionProposal:
     return JourneyRegionProposal(
         places={"reef": Place(id="reef", name="Reef", brief="b", known=False, description="d")},
         start_id="reef",
+        region_name="Beyond",
         recap="They left the harbour behind.",
         operation=operation,
     )

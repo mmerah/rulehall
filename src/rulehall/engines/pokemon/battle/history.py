@@ -66,6 +66,7 @@ FIELD_WORDS: dict[str, tuple[str, str]] = {
 PROTECTIONS = frozenset({"Protect", "Detect", "King's Shield", "Spiky Shield", "Baneful Bunker"})
 FIRST_PART = "Start"
 FROM = "[from] "
+ARRIVALS = frozenset({"switch", "drag", "replace"})
 
 
 def recent_turns(log: Sequence[str], owners: Mapping[str, str], shown: int) -> tuple[str, ...]:
@@ -78,6 +79,17 @@ def recent_turns(log: Sequence[str], owners: Mapping[str, str], shown: int) -> t
             turns[-1][1].append(sentence(event))
     told = [f"{label}: {'. '.join(events)}." for label, events in turns if events]
     return tuple(told[-shown:])
+
+
+def turns_on_field(log: Sequence[str], position: str) -> int:
+    turns = 0
+    for line in reversed(log):
+        _, kind, *fields = line.split("|")
+        if kind == "turn":
+            turns += 1
+        elif kind in ARRIVALS and fields[0].startswith(f"{position}:"):
+            break
+    return turns
 
 
 def hp_percent(hp: int, maxhp: int) -> int:

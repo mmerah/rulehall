@@ -117,6 +117,7 @@ class TeamBuilderView(Frozen):
     slots: tuple[TeamBuilderSlot, ...]
     advice: tuple[Advice, ...]
     dirty: bool
+    registered: bool
     locked_reason: str = ""
     save_lock: str = ""
     copyable: bool = False

@@ -99,6 +99,7 @@ def team_builder_view(world: ChampionsWorld) -> TeamBuilderView:
         ),
         advice=team_advice(shown.slots, allowed_species_ids),
         dirty=world.pending_team_dirty(),
+        registered=world.player_sheet.registered is not None,
         locked_reason=world.pending_team_lock(),
         save_lock=world.team_lock(),
         copyable=not world.copy_lock(),

@@ -7,15 +7,17 @@ from support.golden import FIXTURES, golden, masked
 from support.showdown import CHAMPIONS_SETUP, DOUBLES_SETUP, PIKACHU, WILD_SETUP, assessed
 
 from rulehall.core.validation import Refusal, parse_json
-from rulehall.engines.pokemon.battle.assessment import Assessment
+from rulehall.engines.pokemon.battle.assessment import Assessment, OwnMon
 from rulehall.engines.pokemon.battle.models import BattleMove, Battler
 from rulehall.engines.pokemon.battle.opponent import (
     Offer,
     OpponentAnswer,
+    advised_switch,
     check_commands,
     greedy_choice,
     opponent_system,
     render_opponent,
+    switch_advice,
 )
 from rulehall.engines.pokemon.battle.preview import (
     matchup_score,
@@ -258,6 +260,72 @@ def test_greedy_takes_the_knockout_else_the_most_damage() -> None:
     assert greedy_choice(assessment.model_copy(update={"team": (weakened, *rest)}), CHOICES, 0) == (
         "move 1"
     )
+
+
+def _losing(mon: OwnMon) -> OwnMon:
+    return mon.model_copy(
+        update={
+            "moves": tuple(
+                move.model_copy(
+                    update={
+                        "hits": tuple(
+                            hit.model_copy(update={"damage": (1, 1), "hp": 100})
+                            for hit in move.hits
+                        )
+                    }
+                )
+                for move in mon.moves
+            ),
+            "threats": tuple(
+                threat.model_copy(update={"damage": (mon.hp, mon.hp)}) for threat in mon.threats
+            ),
+        }
+    )
+
+
+def test_a_settled_losing_pokemon_is_advised_to_switch_but_not_one_that_just_came_in() -> None:
+    assessment = _assessment()
+    bulbasaur, rattata, *rest = assessment.team
+    stronger = rattata.model_copy(update={"threats": ()})
+    team = assessment.model_copy(update={"team": (_losing(bulbasaur), stronger, *rest)})
+    arrived = (*LOG[:-1], "|switch|p2a: Bulbasaur|Bulbasaur, L12, F|36/36", "|turn|3")
+
+    assert advised_switch(team, CHOICES, 0, "foe", LOG) == "switch 2"
+    assert advised_switch(team, CHOICES, 0, "foe", arrived) is None
+
+
+def test_a_pokemon_with_little_hp_left_is_not_advised_to_switch() -> None:
+    assessment = _assessment()
+    bulbasaur, rattata, *rest = assessment.team
+    spent = _losing(bulbasaur).model_copy(update={"hp": 1})
+    stronger = rattata.model_copy(update={"threats": ()})
+    team = assessment.model_copy(update={"team": (spent, stronger, *rest)})
+
+    assert advised_switch(team, CHOICES, 0, "foe", LOG) is None
+
+
+def test_two_pokemon_are_not_advised_to_switch_to_the_same_bench_pokemon() -> None:
+    assessment = _assessment()
+    bulbasaur, rattata, *rest = assessment.team
+    first = _losing(bulbasaur)
+    second = first.model_copy(update={"slot": 2, "position": 2})
+    bench = rattata.model_copy(update={"slot": 3, "position": 0, "threats": ()})
+    team = assessment.model_copy(update={"team": (first, second, bench, *rest)})
+    choices = (BattleChoice(command="switch 3", kind="switch", name="Rattata"),)
+    offers = tuple(
+        Offer(slot=slot, mon_name="Bulbasaur", choices=choices, can_mega=False) for slot in (0, 1)
+    )
+    log = (
+        "|switch|p2a: Bulbasaur|Bulbasaur, L12, F|36/36",
+        "|switch|p2b: Bulbasaur|Bulbasaur, L12, F|36/36",
+        "|turn|1",
+        "|turn|2",
+    )
+
+    advice = switch_advice(team, offers, "foe", log)
+
+    assert advice.count("switch 3") == 1
+    assert len(advice.splitlines()) == 1
 
 
 def test_a_foe_ability_and_item_not_revealed_yet_do_not_shape_the_damage() -> None:

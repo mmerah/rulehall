@@ -286,19 +286,21 @@ class TeamBuilderScreen:
     def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:  # noqa: ARG002
         surface = now.require_surface(TEAM_BUILDER_SURFACE_ID)
         live = surface.live
+        view = _team_builder_view(surface) if live else None
         if self.shown and not live:
             self.shown = False
             self.remember()
         self.column.set_visibility(self.shown)
-        self.banner.set_visibility(live and not self.shown and now.working_role is None)
+        self.banner.set_visibility(
+            view is not None and not view.registered and not self.shown and now.working_role is None
+        )
         self.copy_button.set_enabled(now.working_role is None)
         self.keyboard.active = self.shown
         if self.input_active != self.shown:
             self.input_active = self.shown
             self.input.props["active"] = self.shown
             self.input.update()
-        if live:
-            view = _team_builder_view(surface)
+        if view is not None:
             self.apply(view, enabled=_enabled(view, now))
 
     def apply(self, view: TeamBuilderView, *, enabled: bool) -> None:
@@ -1231,12 +1233,8 @@ def _pill(view: TeamBuilderView) -> str:
 
 
 def _banner(view: TeamBuilderView) -> str:
-    if view.copyable:
-        return "The team is locked for the event. Copy it to a draft to plan changes."
     if view.locked_reason:
         return f"The team is locked: {view.locked_reason}."
-    if view.save_lock:
-        return "A draft of the team waits here. Save it once the event ends."
     if view.dirty:
         return "Unsaved team changes. They wait here until you save or discard them."
     return "Build, tune and save the team you register for events."

@@ -2,7 +2,7 @@ from pathlib import Path
 from random import Random
 
 from rulehall.core.creation import CreationStep, Picks
-from rulehall.core.decisions import DecisionOption
+from rulehall.core.decisions import ActionOption, DecisionOption
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyCharacter, AnyScenario, Character
 from rulehall.core.log import Voice
@@ -20,6 +20,7 @@ from rulehall.engines.pokemon.champions.args import (
     PasteEdit,
     PickEdit,
     PointsEdit,
+    PracticePick,
     PresetEdit,
     PrizePick,
     Recruit,
@@ -29,7 +30,10 @@ from rulehall.engines.pokemon.champions.args import (
 from rulehall.engines.pokemon.champions.data import champions_data
 from rulehall.engines.pokemon.champions.pack import ChampionsPack
 from rulehall.engines.pokemon.champions.panels import (
+    NEXT_EVENT,
+    PLAY_NEXT_ROUND,
     SHEET_HELP,
+    practice_panel,
     prize_decision,
     season_panel,
     team_panel,
@@ -234,7 +238,20 @@ class ChampionsEngine(
 
     def scene_panels(self, state: ChampionsGame, /) -> tuple[Panel | None, ...]:
         world = state.world
-        return (*super().scene_panels(state), team_panel(world), season_panel(world))
+        return (
+            *super().scene_panels(state),
+            team_panel(world),
+            season_panel(world),
+            practice_panel(world),
+        )
+
+    def moves(self, state: ChampionsGame, /) -> tuple[ActionOption, ...]:
+        world = state.world
+        if not world.match_refusal():
+            return (PLAY_NEXT_ROUND,)
+        if world.next_event_open():
+            return (NEXT_EVENT,)
+        return super().moves(state)
 
     def surfaces(self, state: ChampionsGame, /) -> tuple[Surface, ...]:
         return (
@@ -257,6 +274,7 @@ class ChampionsEngine(
         return draft.world.register_team(names, rng)
 
     @tool
+    @action
     def start_match(self, draft: ChampionsGame, _args: NoArgs, rng: Random) -> list[Fact]:
         """Start the player's next match of the event, against the opponent EVENT names, when
         the player sits down to play it. The battle screen plays the match, and the engine
@@ -284,7 +302,7 @@ class ChampionsEngine(
         """Extend the map past its edge: the next host city and its event. Call this when MAP
         EDGE shows and the player sets out for the next event. The engine refuses while an event
         is under way. Call it last: it ends your turn."""
-        draft.world.require_event_idle()
+        _require_travel_open(draft.world)
         return super().extend_map(draft, args, rng)
 
     @action
@@ -292,8 +310,12 @@ class ChampionsEngine(
         return draft.world.claim_prize(args.species_id)
 
     @action
+    def practice_match(self, draft: ChampionsGame, args: PracticePick, rng: Random) -> list[Fact]:
+        return draft.world.start_practice(args.archetype_id, rng)
+
+    @action
     def extend(self, draft: ChampionsGame, args: Words, rng: Random) -> list[Fact]:
-        draft.world.require_event_idle()
+        _require_travel_open(draft.world)
         return super().extend(draft, args, rng)
 
     @edit
@@ -369,6 +391,12 @@ class ChampionsEngine(
     @edit
     def discard(self, draft: ChampionsGame, _args: NoArgs, _rng: Random) -> None:
         draft.world.discard_pending_team()
+
+
+def _require_travel_open(world: ChampionsWorld) -> None:
+    if world.season_over():
+        raise Refusal(SEASON_ENDED)
+    world.require_event_idle()
 
 
 def _require_points_field(field_id: Slug) -> None:

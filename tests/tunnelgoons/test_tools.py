@@ -215,6 +215,7 @@ def test_two_moves_open_no_chapter_and_install_closes_with_the_recap(
             "beyond": Place(id="beyond", name="Beyond", brief="b", known=False, description="d")
         },
         start_id="beyond",
+        region_name="Beyond",
         recap="They walked to the hall and back, finding nothing.",
     )
     _ = ENGINE.install_next(draft, region)
