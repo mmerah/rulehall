@@ -1,16 +1,24 @@
 from collections.abc import Awaitable, Callable, Sequence
 from pathlib import Path
+from typing import Protocol
 
 from nicegui import ui
 from nicegui.events import GenericEventArguments
 
 from rulehall.core.validation import Frozen, Slug, parse
 from rulehall.core.views import Sprite
-from rulehall.engines.pokemon.champions.views import Catalog, Choice
+from rulehall.engines.pokemon.champions.args import TeamEdit
+from rulehall.engines.pokemon.champions.views import Catalog, Choice, TeamBuilderSlot
 from rulehall.ui.widgets import media_url
 
 type FindSprite = Callable[[Sprite], Sprite | None]
 type PickChoice = Callable[[Slug], Awaitable[object]]
+
+
+class EditTeam(Protocol):
+    async def __call__(
+        self, edit: TeamEdit, args: Frozen | None = None, *, undo: str = ""
+    ) -> bool: ...
 
 
 class Picked(Frozen):
@@ -99,3 +107,7 @@ class CatalogPicker:
         self.dialog.close()
         if self.on_pick is not None:
             await self.on_pick(choice_id)
+
+
+def slot_sprite(find_sprite: FindSprite, slot: TeamBuilderSlot) -> Sprite | None:
+    return None if slot.sprite is None else find_sprite(slot.sprite)
