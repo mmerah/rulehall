@@ -1,8 +1,17 @@
+from pathlib import Path
+
 import pydantic
 import pytest
 from support.table import EnvFileFreeSettings
 
-from rulehall.config import ProviderConfig, RoleConfig, RoleSettings, SpeechConfig
+from rulehall.config import (
+    ProviderConfig,
+    RoleConfig,
+    RoleSettings,
+    SpeechConfig,
+    read_settings,
+    unknown_setting_keys,
+)
 
 
 def test_a_role_carries_its_own_model_and_inherits_nothing(
@@ -12,6 +21,24 @@ def test_a_role_carries_its_own_model_and_inherits_nothing(
     settings = EnvFileFreeSettings()
     assert settings.roles.for_name("master").model == "fable"
     assert settings.roles.for_name("narrator").model == "sonnet"
+
+
+def test_a_removed_setting_is_named_but_does_not_stop_startup(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    _ = (tmp_path / ".env").write_text(
+        "POKEMON__EXPERT_TEAM_BUILDER=true\nARENA__OPPONENT=model\nPOKEMON__SPRITES=3d\n"
+    )
+    monkeypatch.setenv("ROLES__MASTER__MAX_ROUNDS", "30")
+    monkeypatch.setenv("UNRELATED__VARIABLE", "1")
+
+    assert read_settings().pokemon.sprites == "3d"
+    assert unknown_setting_keys() == (
+        "ARENA__OPPONENT",
+        "POKEMON__EXPERT_TEAM_BUILDER",
+        "ROLES__MASTER__MAX_ROUNDS",
+    )
 
 
 def test_a_role_on_a_provider_without_a_key_is_refused() -> None:

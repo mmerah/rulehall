@@ -7,7 +7,7 @@ from nicegui import app, ui
 
 from rulehall.app.mcp import MOUNT_PATH, MountedLifespan, endpoint
 from rulehall.app.runtime import Runtime
-from rulehall.config import ENV_FILE, read_settings
+from rulehall.config import ENV_FILE, read_settings, unknown_setting_keys
 from rulehall.core.validation import EngineId, Refusal
 from rulehall.ui import theme
 from rulehall.ui.create import CharacterForm, PackForm, ScenarioForm, packs_page
@@ -30,6 +30,8 @@ from rulehall.ui.routes import (
 from rulehall.ui.screen_host import ScreenFactories
 from rulehall.ui.settings import SettingsForm
 from rulehall.ui.widgets import ICONS_DIR, SOUNDS_DIR, refused_page
+
+LOGGER = logging.getLogger(__name__)
 
 type EnginePage = Callable[[Runtime, EngineId], object]
 
@@ -75,6 +77,8 @@ def start(screen_factories: ScreenFactories, styles: Sequence[Path]) -> None:
         raise SystemExit(
             f"settings: {broken}. Fix the key in {ENV_FILE}, then start again."
         ) from None
+    for key in unknown_setting_keys():
+        LOGGER.warning("settings: %s names no setting and is ignored", key)
     mount(Runtime(settings), screen_factories, styles)
     ui.run(  # pyright: ignore[reportUnknownMemberType]
         title="Rulehall",

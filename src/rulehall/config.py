@@ -1,12 +1,14 @@
+import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Literal, Self, get_args
 
 import httpx
-from dotenv import set_key, unset_key
+from dotenv import dotenv_values, set_key, unset_key
 from pydantic import (
     AnyHttpUrl,
+    BaseModel,
     ConfigDict,
     Field,
     SecretStr,
@@ -31,9 +33,12 @@ LOOPBACK_HOST = "127.0.0.1"
 
 
 class Configured(Frozen):
-    """Settings arrive as env strings, so these read them lax; every other model is strict."""
+    """Settings arrive as env strings, so these read them lax; every other model is strict.
 
-    model_config = ConfigDict(strict=False)
+    An unknown key is ignored, not refused: a removed setting left in a deployed .env must not
+    stop startup. `unknown_setting_keys` names such keys for a warning."""
+
+    model_config = ConfigDict(strict=False, extra="ignore")
 
 
 class ProviderConfig(Configured):
@@ -204,6 +209,17 @@ def read_settings() -> Settings:
     return parse(Settings, {})
 
 
+def unknown_setting_keys() -> tuple[str, ...]:
+    """Every key of the .env file is checked; of the environment, only a key under a section."""
+    environment = (
+        key
+        for key in os.environ
+        if "__" in key and key.split("__")[0].lower() in Settings.model_fields
+    )
+    keys = {*dotenv_values(ENV_FILE), *environment}
+    return tuple(sorted(key for key in keys if not _names_a_setting(Settings, key)))
+
+
 def env_key(path: tuple[str, ...]) -> str:
     return "__".join(path).upper()
 
@@ -214,3 +230,16 @@ def save_settings(changed: Mapping[tuple[str, ...], str | None]) -> None:
             unset_key(ENV_FILE, env_key(path))
         else:
             set_key(ENV_FILE, env_key(path), value)
+
+
+def _names_a_setting(model: type[BaseModel], key: str) -> bool:
+    name, _, rest = key.lower().partition("__")
+    field = model.model_fields.get(name)
+    if field is None:
+        return False
+    if not rest:
+        return True
+    section = field.annotation
+    if not (isinstance(section, type) and issubclass(section, BaseModel)):
+        return False
+    return _names_a_setting(section, rest)
