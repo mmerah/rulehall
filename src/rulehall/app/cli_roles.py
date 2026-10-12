@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from tempfile import TemporaryDirectory
 from typing import Protocol
 
+from rulehall.app.mcp import TOOLS_HEADER
 from rulehall.app.processes import start_child, stop_process
 from rulehall.config import CliProvider, Role, RoleConfig
 from rulehall.core.prompt import Prompt
@@ -15,16 +16,19 @@ from rulehall.core.validation import Loose, Refusal, parse_json
 LOGGER = logging.getLogger(__name__)
 
 OUTPUT_MAX_BYTES = 4_194_304
-SUBMISSION_HEADER = "X-Rulehall-Submission"
+
+
+@dataclass(frozen=True, slots=True)
+class McpAccess:
+    url: str
+    token: str
 
 
 class Driver(Protocol):
     @property
     def secrets(self) -> tuple[str, ...]: ...
 
-    def command(
-        self, config: RoleConfig, mcp_url: str | None, *, mcp_token: str | None
-    ) -> Sequence[str]: ...
+    def command(self, config: RoleConfig, mcp: McpAccess | None) -> Sequence[str]: ...
     def delta(self, line: str) -> str: ...
     def read_result(self, output: str) -> str: ...
 
@@ -63,9 +67,7 @@ class _CodexEvent(Loose):
 class ClaudeDriver:
     secrets: tuple[str, ...] = ("ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN")
 
-    def command(
-        self, config: RoleConfig, mcp_url: str | None, *, mcp_token: str | None
-    ) -> Sequence[str]:
+    def command(self, config: RoleConfig, mcp: McpAccess | None) -> Sequence[str]:
         argv = [
             "claude",
             "-p",
@@ -81,9 +83,8 @@ class ClaudeDriver:
             "--tools",
             "",
         ]
-        if mcp_url is not None:
-            mcp = _claude_mcp(mcp_url, mcp_token)
-            argv += ["--allowed-tools", "mcp__rulehall", "--mcp-config", mcp]
+        if mcp is not None:
+            argv += ["--allowed-tools", "mcp__rulehall", "--mcp-config", _claude_mcp(mcp)]
         return (*argv, "--strict-mcp-config")
 
     def delta(self, line: str) -> str:
@@ -111,9 +112,7 @@ class ClaudeDriver:
 class CodexDriver:
     secrets: tuple[str, ...] = ("OPENAI_API_KEY",)
 
-    def command(
-        self, config: RoleConfig, mcp_url: str | None, *, mcp_token: str | None
-    ) -> Sequence[str]:
+    def command(self, config: RoleConfig, mcp: McpAccess | None) -> Sequence[str]:
         argv = [
             "codex",
             "exec",
@@ -143,13 +142,12 @@ class CodexDriver:
             "--disable",
             "image_generation",
         ]
-        if mcp_url is not None:
+        if mcp is not None:
             # Measured: under `approval_policy=never` an MCP call is refused without this.
             argv += ["-c", "mcp_servers.rulehall.default_tools_approval_mode=approve"]
-            argv += ["-c", f"mcp_servers.rulehall.url={mcp_url}"]
-            if mcp_token is not None:
-                headers = f'{{ "{SUBMISSION_HEADER}" = "{mcp_token}" }}'
-                argv += ["-c", f"mcp_servers.rulehall.http_headers={headers}"]
+            argv += ["-c", f"mcp_servers.rulehall.url={mcp.url}"]
+            headers = f'{{ "{TOOLS_HEADER}" = "{mcp.token}" }}'
+            argv += ["-c", f"mcp_servers.rulehall.http_headers={headers}"]
         return [*argv, "-"]
 
     def delta(self, line: str) -> str:
@@ -169,11 +167,10 @@ async def run_cli(
     driver: Driver,
     prompt: Prompt,
     *,
-    mcp_url: str | None = None,
-    mcp_token: str | None = None,
+    mcp: McpAccess | None = None,
     heard: Callable[[str], None] | None = None,
 ) -> str:
-    argv = driver.command(config, mcp_url, mcp_token=mcp_token)
+    argv = driver.command(config, mcp)
     said = ""
 
     def heard_line(line: str) -> None:
@@ -214,10 +211,8 @@ async def _spawn(
     return output
 
 
-def _claude_mcp(url: str, token: str | None) -> str:
-    server: dict[str, object] = {"type": "http", "url": url}
-    if token is not None:
-        server["headers"] = {SUBMISSION_HEADER: token}
+def _claude_mcp(mcp: McpAccess) -> str:
+    server = {"type": "http", "url": mcp.url, "headers": {TOOLS_HEADER: mcp.token}}
     return json.dumps({"mcpServers": {"rulehall": server}})
 
 

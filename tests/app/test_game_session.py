@@ -24,25 +24,42 @@ from support.table import (
 from support.twentyfourxx import TROUBLE_SEED, open_crew
 
 from rulehall.app.catalog import SavedGameKey
-from rulehall.app.game_session import IN_FLIGHT_ELSEWHERE, NOTHING_TO_REWIND, Busy
+from rulehall.app.game_session import (
+    NO_WORDS_NOW,
+    NOTHING_TO_REWIND,
+    OptionIntoTurn,
+    PlainTurn,
+    Route,
+    SilentOption,
+)
+from rulehall.app.gate import IN_FLIGHT_ELSEWHERE, Busy
 from rulehall.app.runtime import Runtime
 from rulehall.config import Role
-from rulehall.core.decisions import ActionOption, PlayerInput
+from rulehall.core.decisions import ActionOption, Decision, PlayerInput
 from rulehall.core.facts import Fact
-from rulehall.core.game import AnyGame, ScenarioDescription, WorldsmithRequest
+from rulehall.core.game import AnyGame, WorldsmithRequest
 from rulehall.core.stores import SaveStore
 from rulehall.core.tools import edit
 from rulehall.core.validation import Frozen, Refusal
-from rulehall.core.views import Surface, require_view
+from rulehall.core.views import PlayerView, ScreenSlot, require_view
 from rulehall.engines.loner4e.engine import Loner4eEngine
 from rulehall.engines.loner4e.panels import ASK_ORACLE, TAKE_BREATHER
-from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.loner4e.sheet import Loner4ePerson
 from rulehall.engines.loner4e.world import Loner4eGame
 from rulehall.engines.pokemon.journey.world import JourneyGame
 from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.twentyfourxx.sheet import STARTING_CREDITS
 
-NOTES_SURFACE_ID = "notes"
+NOTES_SCREEN_ID = "notes"
+WORDED = ActionOption(id="worded", name="Worded", action_name="take_breather", needs_words=True)
+TOLD = ActionOption(id="told", name="Told", action_name="move_on", told_in_turn=True)
+QUIET = ActionOption(id="quiet", name="Quiet", action_name="move_on")
+DECIDED = ActionOption(id="decided", name="Decided", action_name="move_on")
+SILENT_PICK = Decision(
+    kind="pick", prompt="Pick.", options=(DECIDED,), allows_text=False, silent=True
+)
+SPOKEN_PICK = SILENT_PICK.model_copy(update={"silent": False})
+HELD = Fact(trace="held")
 
 
 class _UnsavableStore(SaveStore):
@@ -61,16 +78,27 @@ class _SlotEdit(Frozen):
 
 
 class _EditingEngine(Loner4eEngine):
-    def surfaces(self, state: Loner4eGame, /) -> tuple[Surface, ...]:
+    def screen_slots(self, state: Loner4eGame, /) -> tuple[ScreenSlot, ...]:
         return (
-            Surface(
-                surface_id=NOTES_SURFACE_ID, live=True, view=_NotesView(dirty=bool(state.notes))
+            ScreenSlot(
+                screen_id=NOTES_SCREEN_ID, live=True, view=_NotesView(dirty=bool(state.notes))
             ),
         )
 
     @edit
     def clear_slot(self, draft: Loner4eGame, args: _SlotEdit, _rng: Random) -> None:
         draft.note(f"cleared {args.slot}")
+
+
+class _RoutingEngine(Loner4eEngine):
+    def player_view(self, state: Loner4eGame) -> PlayerView:
+        return (
+            super()
+            .player_view(state)
+            .model_copy(
+                update={"standing_options": (WORDED, TOLD, QUIET), "allows_text": not state.notes}
+            )
+        )
 
 
 def _clear_slot(slot: int, *, refusal: str = "") -> ActionOption:
@@ -85,7 +113,7 @@ def _clear_slot(slot: int, *, refusal: str = "") -> ActionOption:
 
 def _notes_dirty(table: Table[Loner4eGame]) -> bool:
     return require_view(
-        table.session.snapshot().require_surface(NOTES_SURFACE_ID).view, _NotesView
+        table.session.snapshot().require_screen_slot(NOTES_SCREEN_ID).view, _NotesView
     ).dirty
 
 
@@ -170,31 +198,23 @@ async def test_rewind_before_any_turn_finds_nothing_to_rewind(tmp_path: Path) ->
         await table.session.rewind()
 
 
-@pytest.mark.parametrize(
-    ("change", "message"),
-    (
-        ({"character_id": "someone-else"}, "save is 'whispering-vault--someone-else'"),
-        (
-            {
-                "scenario_description": ScenarioDescription(
-                    title="Another Vault",
-                    premise="Elsewhere.",
-                    backdrop="Plain.",
-                    scope="A single visit, brief.",
-                )
-            },
-            "title",
-        ),
-    ),
-    ids=("another origin", "a scenario edited since the save"),
-)
-def test_resume_refuses_a_save_that_is_not_this_game(
-    tmp_path: Path, change: dict[str, object], message: str
-) -> None:
-    game = session(tmp_path)
-    SaveStore(tmp_path).write(KEY.save_id, game.state.model_copy(update=change).validated())
+async def test_a_restart_leaves_nothing_to_rewind(tmp_path: Path) -> None:
+    table = open_game(tmp_path)
+    _ = await play_turn(table, "I wait.", narration="Nothing stirs.")
 
-    with pytest.raises(Refusal, match=message):
+    await table.session.restart()
+
+    assert not table.session.snapshot().can_rewind
+    with pytest.raises(Refusal, match=re.escape(NOTHING_TO_REWIND)):
+        await table.session.rewind()
+
+
+def test_resume_refuses_a_save_that_is_not_this_game(tmp_path: Path) -> None:
+    game = session(tmp_path)
+    other = game.state.model_copy(update={"character_id": "someone-else"}).validated()
+    SaveStore(tmp_path).write(KEY.save_id, other)
+
+    with pytest.raises(Refusal, match="save is 'whispering-vault--someone-else'"):
         session(tmp_path)
 
 
@@ -356,7 +376,9 @@ async def test_a_paid_look_again_is_the_turn_s_own_facts_in_its_log_entry(tmp_pa
         table, "I ask around for work.", tool_call("job", verb="find", where="Docks")
     )
     (look_again,) = (
-        move for move in table.session.player_view().moves if move.action_name == "find_again"
+        option
+        for option in table.session.player_view().standing_options
+        if option.action_name == "find_again"
     )
 
     state = await play_turn(table, PlayerInput(option_id=look_again.id))
@@ -379,6 +401,59 @@ async def test_an_option_the_page_no_longer_offers_is_refused(tmp_path: Path) ->
 
     assert table.state is before
     assert table.roles.prompts == []
+
+
+@pytest.mark.parametrize(
+    ("pending", "held", "notes", "answer", "expected"),
+    (
+        (SILENT_PICK, (), (), PlayerInput(option_id=DECIDED.id), SilentOption(DECIDED)),
+        (SILENT_PICK, (HELD,), (), PlayerInput(option_id=DECIDED.id), PlainTurn()),
+        (SPOKEN_PICK, (), (), PlayerInput(option_id=DECIDED.id), PlainTurn()),
+        (None, (), (), PlayerInput(text="I wait."), PlainTurn()),
+        (None, (), ("mute",), PlayerInput(text="I wait."), NO_WORDS_NOW),
+        (
+            None,
+            (),
+            (),
+            PlayerInput(option_id=WORDED.id, text="I rest."),
+            OptionIntoTurn(WORDED.with_words("I rest."), "I rest."),
+        ),
+        (None, (), (), PlayerInput(option_id=TOLD.id), OptionIntoTurn(TOLD, TOLD.name)),
+        (None, (), (), PlayerInput(option_id=QUIET.id), SilentOption(QUIET)),
+    ),
+    ids=(
+        "silent decision",
+        "silent decision over held facts",
+        "spoken decision",
+        "words",
+        "words the page refuses",
+        "option that needs words",
+        "option told in the turn",
+        "silent option",
+    ),
+)
+def test_an_answer_routes_by_the_decision_and_the_option_it_names(
+    tmp_path: Path,
+    pending: Decision | None,
+    held: tuple[Fact, ...],
+    notes: tuple[str, ...],
+    answer: PlayerInput,
+    expected: Route | str,
+) -> None:
+    table = open_table(
+        tmp_path, engine_id=LONER4E, state_type=Loner4eGame, engine=_RoutingEngine(NO_PACKS)
+    )
+    draft = table.state.draft()
+    draft.pending = pending
+    draft.unnarrated = list(held)
+    draft.notes = list(notes)
+    table.session.save(draft.validated())
+
+    if isinstance(expected, str):
+        with pytest.raises(Refusal, match=re.escape(expected)):
+            table.session._route(answer)  # pyright: ignore[reportPrivateUsage]
+    else:
+        assert table.session._route(answer) == expected  # pyright: ignore[reportPrivateUsage]
 
 
 async def test_a_failed_turn_after_a_worded_move_saves_nothing(tmp_path: Path) -> None:
@@ -464,7 +539,7 @@ async def test_the_debrief_prompt_holds_no_hidden_entity_and_no_untold_fact(
     tmp_path: Path,
 ) -> None:
     table = open_game(tmp_path)
-    hidden = Loner4eEntity(
+    hidden = Loner4ePerson(
         id="the-lurker", name="The Lurker", voice="other", brief="It waits.", known=False
     )
     draft = with_entity(table.state, hidden).draft()

@@ -1,22 +1,23 @@
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from copy import deepcopy
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 from random import Random
-from typing import Any, ClassVar
+from typing import Any, ClassVar, final
 
 from pydantic import BaseModel, JsonValue
 
 from rulehall.core.answer_repair import parse_with_repairs
 from rulehall.core.creation import CreationStep, Picks, check_picks
 from rulehall.core.decisions import ActionOption
-from rulehall.core.facts import Fact
+from rulehall.core.facts import Fact, Resolution
 from rulehall.core.game import (
     AnyCharacter,
     AnyScenario,
     Character,
     Check,
+    EngineHeader,
     Game,
     RoleAnswer,
     Scenario,
@@ -24,11 +25,11 @@ from rulehall.core.game import (
     WorldsmithRequest,
 )
 from rulehall.core.log import Cause, Chapter, LogEntry, SpokenLine, Voice
+from rulehall.core.narration import NarratorView
 from rulehall.core.prompt import Prompt, Sections, sections
 from rulehall.core.stores import read_cached_text, read_model
-from rulehall.core.tools import MasterTool, action, marked_methods, player_facing_texts, tool
+from rulehall.core.tools import ToolSpec, action, marked_methods, player_facing_texts, tool
 from rulehall.core.validation import (
-    EngineHeader,
     EngineId,
     Refusal,
     Slug,
@@ -37,17 +38,9 @@ from rulehall.core.validation import (
     parse_strict_json,
     slug,
 )
-from rulehall.core.views import (
-    Look,
-    MapView,
-    NarratorView,
-    Panel,
-    PlayerView,
-    Rows,
-    Sprite,
-    Surface,
-)
+from rulehall.core.views import Look, MapView, Panel, PlayerView, Rows, ScreenSlot, Sprite
 from rulehall.engines.args import Direct, JoinParty, Kill, LeaveParty, Reveal
+from rulehall.engines.battles import BattleSupport
 from rulehall.engines.packs import (
     Pack,
     PackBody,
@@ -63,13 +56,7 @@ type AnyEngine = Engine[Any, Any, Any, Any]
 
 
 @dataclass(frozen=True, slots=True)
-class Resolution:
-    facts: tuple[Fact, ...]
-    narrator_cue: str | None
-
-
-@dataclass(frozen=True, slots=True)
-class SceneHeader:
+class ViewHeader:
     place_id: Slug
     title: str
     situation: str
@@ -101,6 +88,10 @@ class Joining[W: World[Any]]:
 
 
 class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
+    """Hook order: a turn the master played first calls `after_master_turn`; each log entry
+    calls `before_log_entry`; every change, the log entry's too, calls `after_each_change`,
+    then `check_state`."""
+
     # Declared, not `ClassVar`: `type[W]` cannot be one.
     id: EngineId
     title: str
@@ -110,8 +101,11 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     sheet_help: ClassVar[Mapping[str, str]] = {}
     portraits: bool = True
     directory: Path
-    family_dir: Path
+    base_dir: Path
     assets: Path | None = None
+    battles: BattleSupport | None = None
+    rule_set_id: EngineId
+    mode_name: str
     person_model: type[P]
     world_model: type[W]
     pack_model: type[K]
@@ -124,9 +118,9 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     packs: PackSet[K]
     instructions: str
     look: Look
-    tools: dict[str, MasterTool]
-    actions: dict[str, MasterTool]
-    edits: dict[str, MasterTool]
+    tools: dict[str, ToolSpec]
+    actions: dict[str, ToolSpec]
+    edits: dict[str, ToolSpec]
     worldsmith_role: str
     opening_sections: Sections
     opening_intent: str
@@ -136,23 +130,15 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         self.packs.srd()  # an engine that ships no srd pack is a bug, not a refusal
         self.instructions = (
             f"{read_cached_text(self.directory / 'rules.md')}\n"
-            f"{read_cached_text(self.family_dir / 'rules.md')}"
+            f"{read_cached_text(self.base_dir / 'rules.md')}"
         )
         self.look = read_model(self.directory / "look.json", Look)
         self.tools = marked_methods(self, "tool")
         self.actions = marked_methods(self, "action")
         self.edits = marked_methods(self, "edit")
-        self.worldsmith_role = read_cached_text(self.family_dir / "worldsmith.md")
+        self.worldsmith_role = read_cached_text(self.base_dir / "worldsmith.md")
         self.character_model = Character[self.person_model]
         self.scenario_model = Scenario[self.opening_model]
-
-    @property
-    def door_id(self) -> EngineId:
-        return self.id
-
-    @property
-    def mode_name(self) -> str:
-        return self.title
 
     @tool
     def kill(self, draft: Game[W], args: Kill, _rng: Random) -> list[Fact]:
@@ -173,14 +159,6 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         Apply world changes through the other tools before calling direct."""
         return [Fact(trace=f"the game master directs: {args.text}", told=True)]
 
-    def install_pack(self, pack_id: Slug, pack: K) -> None:
-        packs = self.packs
-        self.packs = replace(
-            packs,
-            installed={**packs.installed, pack_id: pack},
-            written_ids=packs.written_ids | {pack_id},
-        )
-
     def preview_character(self, character: AnyCharacter) -> Rows:
         return self.player_of(character).rows()
 
@@ -190,22 +168,22 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         state = parse_json(Game[self.world_model], raw)
         if state.request is not None:
             raise Refusal("the save carries a pending request")
-        self.validate(state)
+        self.check_state(state)
         self.packs.require_joined(state.pack_id, state.extra_pack_ids)
         return state
 
-    def published(self, _state: Game[W], /) -> tuple[MasterTool, ...]:
+    def offered_tools(self, _state: Game[W], /) -> tuple[ToolSpec, ...]:
         return tuple(self.tools.values())
 
     def call_tool(self, draft: Game[W], name: str, raw: JsonValue, rng: Random) -> tuple[Fact, ...]:
         found = next(
-            (candidate for candidate in self.published(draft) if candidate.name == name), None
+            (candidate for candidate in self.offered_tools(draft) if candidate.name == name), None
         )
         if found is None:
             raise Refusal(f"{name!r} is not a tool now")
         args = parse_with_repairs(found.args, raw)
         texts = tuple(player_facing_texts(args))
-        draft.world.hear(*texts)
+        draft.world.meet_people_named(*texts)
         draft.world.refuse_unmet_names(*texts)
         return self._run_marked(draft, name, args, rng)
 
@@ -218,18 +196,21 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         method: Callable[[Game[W], BaseModel, Random], None] = getattr(self, name)
         method(draft, args, rng)
 
-    def moves(self, _state: Game[W], /) -> tuple[ActionOption, ...]:
+    def standing_options(self, _state: Game[W], /) -> tuple[ActionOption, ...]:
         return ()
 
     def allows_text(self, _state: Game[W], /) -> bool:
         return True
 
-    def surfaces(self, _state: Game[W], /) -> tuple[Surface, ...]:
+    def screen_slots(self, _state: Game[W], /) -> tuple[ScreenSlot, ...]:
         return ()
+
+    def in_battle(self, state: Game[W], /) -> bool:
+        return self.battles is not None and self.battles.in_battle(state)
 
     def narrator_view(self, state: Game[W]) -> NarratorView:
         world = state.world
-        header = self.scene_header(state)
+        header = self.view_header(state)
         here = tuple(person.subject() for person in world.here() if person.known)
         return NarratorView(
             place_id=header.place_id,
@@ -243,18 +224,18 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
 
     def player_view(self, state: Game[W]) -> PlayerView:
         player = state.world.player
-        header = self.scene_header(state)
+        header = self.view_header(state)
         pending = state.pending
         return PlayerView(
             premise=state.scenario_description.premise,
             player=player.subject(),
             scene_title=header.title,
             situation=header.situation,
-            panels=tuple(panel for panel in self.scene_panels(state) if panel is not None),
+            panels=tuple(panel for panel in self.view_panels(state) if panel is not None),
             decision=pending,
             ending=self.ending(state),
             map=header.map_view,
-            moves=self.moves(state) if pending is None else (),
+            standing_options=self.standing_options(state) if pending is None else (),
             hint=self.play_hint.format(name=player.name),
             allows_text=self.allows_text(state) if pending is None else pending.allows_text,
         )
@@ -389,7 +370,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         by_option: bool = False,
         cause: Cause | None = None,
     ) -> Game[W]:
-        self.before_record(draft)
+        self.before_log_entry(draft)
         entry = LogEntry(
             words=words,
             by_option=by_option,
@@ -400,11 +381,11 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
             context=self.context_text(draft),
         )
         draft.chapters[-1].entries.append(entry)
-        draft.world.hear(*(line.text for line in lines))
+        draft.world.meet_people_named(*(line.text for line in lines))
         return self.accept(draft)
 
-    def before_record(self, draft: Game[W], /) -> None:  # noqa: B027
-        pass
+    def before_log_entry(self, _draft: Game[W], /) -> None:
+        return None
 
     def open_chapter(self, draft: Game[W]) -> None:
         if draft.chapters and not draft.chapters[-1].entries:
@@ -413,12 +394,17 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
             Chapter(title=self.narrator_view(draft).title, context=self.context_text(draft))
         )
 
+    @final
     def accept(self, draft: Game[W]) -> Game[W]:
-        self.validate(draft)
+        self.after_each_change(draft)
+        self.check_state(draft)
         return draft.validated()
 
-    def end_turn(self, draft: Game[W], /, *, acted: bool) -> None:  # noqa: B027
-        pass
+    def after_each_change(self, _draft: Game[W], /) -> None:
+        return None
+
+    def after_master_turn(self, _draft: Game[W], /, *, acted: bool) -> None:  # noqa: ARG002
+        return None
 
     def begin(self, scenario_id: Slug, scenario: AnyScenario, character: AnyCharacter) -> Game[W]:
         if scenario.engine_id != self.id:
@@ -467,7 +453,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         check_picks(self.creation_steps(pack_id, picks), picks)
         return self.build_character(name, brief, voice, pack_id, picks)
 
-    def validate(self, state: Game[W]) -> None:
+    def check_state(self, state: Game[W]) -> None:
         if not state.chapters:
             raise Refusal(f"a {self.id!r} game has no chapter open")
         request = state.request
@@ -493,9 +479,9 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     @abstractmethod
     def context_text(self, state: Game[W], /) -> str: ...
     @abstractmethod
-    def scene_header(self, state: Game[W], /) -> SceneHeader: ...
+    def view_header(self, state: Game[W], /) -> ViewHeader: ...
     @abstractmethod
-    def scene_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]: ...
+    def view_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]: ...
 
     def request_handlers(self) -> Mapping[Slug, RequestHandler[W]]:
         return {}
@@ -507,7 +493,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         return tuple(method(draft, args, rng))
 
     def _require_offered(
-        self, marked: Mapping[str, MasterTool], chosen: ActionOption
+        self, marked: Mapping[str, ToolSpec], chosen: ActionOption
     ) -> tuple[str, BaseModel]:
         if chosen.refusal:
             raise Refusal(f"{chosen.name}: {chosen.refusal}")

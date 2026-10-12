@@ -15,11 +15,11 @@ from support.twentyfourxx import small_world as twentyfourxx_world
 
 from rulehall.core.game import AnyGame
 from rulehall.core.validation import Refusal, Slug
+from rulehall.engines.bases.scenes.world import NextProposal, SceneProposal, SceneWorld
+from rulehall.engines.bases.scenes.worldsmith import check_next
 from rulehall.engines.loner4e.engine import Loner4eEngine
-from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.loner4e.sheet import Loner4ePerson
 from rulehall.engines.loner4e.world import Loner4eWorld
-from rulehall.engines.scenes.world import NextProposal, SceneProposal, SceneWorld
-from rulehall.engines.scenes.worldsmith import check_next
 from rulehall.engines.sheet import PLAYER_ID, Person
 from rulehall.engines.twentyfourxx.engine import TwentyFourXXEngine
 from rulehall.engines.twentyfourxx.sheet import Crewmate
@@ -102,8 +102,8 @@ CASES = (
         engine=LONER4E_ENGINE,
         game=lambda: initialized()[1],
         base=LONER4E_BASE,
-        bar=_bar(NextProposal[Loner4eEntity], Loner4eWorld, LONER4E_BASE, lambda: initialized()[1]),
-        apply=_apply(SceneProposal[Loner4eEntity], LONER4E_BASE),
+        bar=_bar(NextProposal[Loner4ePerson], Loner4eWorld, LONER4E_BASE, lambda: initialized()[1]),
+        apply=_apply(SceneProposal[Loner4ePerson], LONER4E_BASE),
         player="Kael",
         met=MARA,
         unmet=TOMAS,

@@ -68,7 +68,6 @@ class PointRow(Frozen):
     points: int = Field(ge=0)
     final: int = Field(ge=0)
     mark: Literal["raised", "lowered"] | None = None
-    hint: str = ""
 
 
 class PointsField(Frozen):
@@ -118,10 +117,10 @@ class TeamBuilderView(Frozen):
     advice: tuple[Advice, ...]
     dirty: bool
     registered: bool
-    locked_reason: str = ""
+    edit_lock: str = ""
     save_lock: str = ""
-    copyable: bool = False
-    pending_team_open: bool = False
+    copy_lock: str = ""
+    unsaved_team_open: bool = False
 
 
 class ImportPreview(Frozen):

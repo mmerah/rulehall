@@ -12,7 +12,7 @@ from drive import (
     clean,
     composer,
     fits_width,
-    move,
+    option,
     placeholder,
     reach_breather,
     run,
@@ -87,24 +87,24 @@ def body(s: Session, device: Device) -> None:
         s.check(
             not page.locator(".q-header .q-badge").is_visible(), "engine badge shown on a phone"
         )
-    cells = page.locator(".game-moves .game-choice").evaluate_all(
+    cells = page.locator(".game-options .game-choice").evaluate_all(
         "cells => cells.map(cell => cell.getBoundingClientRect().height)"
     )
-    s.check(bool(cells) and min(cells) >= 42, f"move cells under 42px: {cells}")
+    s.check(bool(cells) and min(cells) >= 42, f"option cells under 42px: {cells}")
     s.check(page.evaluate(PLACEHOLDER_FITS), f"the play hint is cut: {placeholder(page)!r}")
-    # The explain toggle puts each move's help under its name and plays nothing.
+    # The explain toggle puts each option's help under its name and plays nothing.
     explain = page.locator(".game-explain")
     explain.tap()
     s.check(
-        wait_until(page, lambda: "the dice decide" in move(page, "Move on").inner_text()),
+        wait_until(page, lambda: "the dice decide" in option(page, "Move on").inner_text()),
         "no help line on Move on",
     )
-    s.check(working(page).count() == 0, "the explain toggle played a move")
+    s.check(working(page).count() == 0, "the explain toggle played an option")
     s.check(not composer(page).is_disabled(), "the explain toggle started a turn")
-    s.shot(page, "move-help")
+    s.shot(page, "option-help")
     explain.tap()
     s.check(
-        wait_until(page, lambda: "the dice decide" not in move(page, "Move on").inner_text()),
+        wait_until(page, lambda: "the dice decide" not in option(page, "Move on").inner_text()),
         "help line stayed",
     )
     # Enter is a newline on a touch screen; Send sends.
@@ -147,7 +147,7 @@ def body(s: Session, device: Device) -> None:
         sheet.get_by_text("Sheet").is_visible() != phone,
         f"the drawer button label on a {'phone' if phone else 'tablet'}",
     )
-    # A conflict exchange, then the forced breather move.
+    # A conflict exchange, then the forced breather option.
     submit(page, 'I fight.\n!ask question="Do I land it?" opponent_id=mara')
     wait_idle(page)
     s.shot(page, "conflict")
@@ -156,7 +156,7 @@ def body(s: Session, device: Device) -> None:
     s.check(reach_breather(page), "no breather after eight closes")
     s.shot(page, "composer")
     s.check(
-        page.locator(".game-moves button", has_text="Take the breather").is_visible(),
+        page.locator(".game-options button", has_text="Take the breather").is_visible(),
         "Take the breather hidden on a phone",
     )
     s.check(

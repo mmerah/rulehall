@@ -7,10 +7,12 @@ from support.journey import ENGINE, started
 
 from rulehall.core.views import Sprite
 from rulehall.engines.pokemon.battle.models import LEVEL_MAX
-from rulehall.engines.pokemon.dex import ITEMS, dex
+from rulehall.engines.pokemon.dex import dex
+from rulehall.engines.pokemon.journey.items import ITEMS
+from rulehall.engines.pokemon.journey.mon import Mon
 from rulehall.engines.pokemon.journey.panels import item_text, mon_row
 from rulehall.engines.pokemon.journey.rules import RosterSlot
-from rulehall.engines.pokemon.journey.sheet import JourneyTrainer, Mon
+from rulehall.engines.pokemon.journey.sheet import JourneyTrainer
 from rulehall.engines.pokemon.journey.world import JourneyWorld
 from rulehall.engines.pokemon.rules import TIMES
 from rulehall.engines.pokemon.sprites import ICON_SHEET

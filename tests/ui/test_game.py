@@ -17,25 +17,26 @@ from support.table import (
 )
 
 from rulehall.app.game_session import GameSession, SessionSnapshot
+from rulehall.app.speech import Speaker
 from rulehall.app.turn import Turn
 from rulehall.core.decisions import ActionOption, Decision, PlayerInput
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyGame
 from rulehall.core.log import LogEntry, SpokenLine
 from rulehall.core.validation import Slug
-from rulehall.core.views import SCENE_TAB, Panel, PanelRow, PlayerView, Subject, Surface
+from rulehall.core.views import SCENE_TAB, Panel, PanelRow, PlayerView, ScreenSlot, Subject
 from rulehall.engines.loner4e.engine import Loner4eEngine
 from rulehall.engines.loner4e.world import Loner4eGame
 from rulehall.ui.composer import Composer, composer_lock
 from rulehall.ui.drawer import DrawerTab, choosing
 from rulehall.ui.game import GamePage, game_page
-from rulehall.ui.surfaces import ScreenHost
+from rulehall.ui.screen_host import ScreenHost
 from rulehall.ui.transcript import Transcript
 from rulehall.ui.voice import VoicePlayer
 from rulehall.ui.widgets import Sounds, Speech
 
 WREN = Subject(id="player", name="Wren", brief="A quiet scout", voice="feminine")
-NOTES_SURFACE_ID: Slug = "notes"
+NOTES_SCREEN_ID: Slug = "notes"
 
 
 class HeardSpeech(Speech):
@@ -60,8 +61,8 @@ class HeardSpeech(Speech):
 
 
 class _NotesEngine(Loner4eEngine):
-    def surfaces(self, _state: Loner4eGame, /) -> tuple[Surface, ...]:
-        return (Surface(surface_id=NOTES_SURFACE_ID, live=True, tab=SCENE_TAB),)
+    def screen_slots(self, _state: Loner4eGame, /) -> tuple[ScreenSlot, ...]:
+        return (ScreenSlot(screen_id=NOTES_SCREEN_ID, live=True, tab=SCENE_TAB),)
 
 
 class _NotesScreen:
@@ -174,7 +175,7 @@ async def test_a_tick_follows_only_on_the_readers_own_move(
     assert screen.unseen_activity is True
 
 
-async def test_the_page_hosts_a_screen_for_each_surface_and_hides_the_story_while_one_shows(
+async def test_the_page_hosts_a_screen_for_each_screen_slot_and_hides_the_story_while_one_shows(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, page: Callable[[], Client]
 ) -> None:
     monkeypatch.setattr("nicegui.storage.Storage.tab", property(lambda _storage: {}))
@@ -184,12 +185,12 @@ async def test_the_page_hosts_a_screen_for_each_surface_and_hides_the_story_whil
     page()
     with pytest.raises(ValueError, match="no registered screen"):
         GamePage(table.session, {}).build()
-    screen = GamePage(table.session, {NOTES_SURFACE_ID: _NotesScreen})
+    screen = GamePage(table.session, {NOTES_SCREEN_ID: _NotesScreen})
     screen.build()
     assert screen.story.visible
 
-    _click(screen.drawer.openers[NOTES_SURFACE_ID])
-    assert screen.screens[NOTES_SURFACE_ID].shown
+    _click(screen.drawer.openers[NOTES_SCREEN_ID])
+    assert screen.screens[NOTES_SCREEN_ID].shown
     assert not screen.story.visible
 
 
@@ -491,14 +492,14 @@ async def test_the_voice_plays_landed_clips_in_order_and_a_redraw_is_flagged(
     ready = {lines[0].text, lines[2].text}
     spoken: list[SpokenLine] = []
 
-    def speak_later(_session: GameSession, said: Sequence[SpokenLine]) -> None:
+    def speak_later(_speaker: Speaker, said: Sequence[SpokenLine]) -> None:
         spoken.extend(said)
 
-    def find_clip(_session: GameSession, line: SpokenLine) -> Path | None:
+    def find_clip(_speaker: Speaker, line: SpokenLine) -> Path | None:
         return tmp_path / line.text if line.text in ready else None
 
-    monkeypatch.setattr(GameSession, "speak_later", speak_later)
-    monkeypatch.setattr(GameSession, "find_clip", find_clip)
+    monkeypatch.setattr(Speaker, "speak_later", speak_later)
+    monkeypatch.setattr(Speaker, "find_clip", find_clip)
     service = open_game(tmp_path).session
     page()
     speech = HeardSpeech()
@@ -534,14 +535,14 @@ async def test_a_replay_waits_for_a_missing_clip_and_a_stop_clears_the_wait(
     ready: set[str] = set()
     spoken: list[SpokenLine] = []
 
-    def speak_later(_session: GameSession, said: Sequence[SpokenLine]) -> None:
+    def speak_later(_speaker: Speaker, said: Sequence[SpokenLine]) -> None:
         spoken.extend(said)
 
-    def find_clip(_session: GameSession, line: SpokenLine) -> Path | None:
+    def find_clip(_speaker: Speaker, line: SpokenLine) -> Path | None:
         return tmp_path / line.text if line.text in ready else None
 
-    monkeypatch.setattr(GameSession, "speak_later", speak_later)
-    monkeypatch.setattr(GameSession, "find_clip", find_clip)
+    monkeypatch.setattr(Speaker, "speak_later", speak_later)
+    monkeypatch.setattr(Speaker, "find_clip", find_clip)
     service = open_game(tmp_path).session
     page()
     speech = HeardSpeech()
@@ -566,14 +567,14 @@ async def test_the_voice_marks_a_blocked_head_as_waiting_until_its_clip_plays(
     line = SpokenLine(text="Rain.")
     ready: set[str] = set()
 
-    def speak_later(_session: GameSession, _said: Sequence[SpokenLine]) -> None:
+    def speak_later(_speaker: Speaker, _said: Sequence[SpokenLine]) -> None:
         return None
 
-    def find_clip(_session: GameSession, line: SpokenLine) -> Path | None:
+    def find_clip(_speaker: Speaker, line: SpokenLine) -> Path | None:
         return tmp_path / line.text if line.text in ready else None
 
-    monkeypatch.setattr(GameSession, "speak_later", speak_later)
-    monkeypatch.setattr(GameSession, "find_clip", find_clip)
+    monkeypatch.setattr(Speaker, "speak_later", speak_later)
+    monkeypatch.setattr(Speaker, "find_clip", find_clip)
     service = open_game(tmp_path).session
     page()
     speech = HeardSpeech()

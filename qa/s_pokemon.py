@@ -1,6 +1,6 @@
 """The Tern Isles (Pokemon), the heaviest game page: a trainer made with a challenge, the Team tab,
-a row dialog, the map and the rival, who blocks the road until a lost battle, turns with their
-traffic, a town heal, a nickname, a wild battle, and the evil team: the first operation foiled,
+a row dialog, the map and the rival, who blocks the road until a lost battle, turns, a
+town heal, a nickname, a wild battle, and the evil team: the first operation foiled,
 two badges before the next one, which a badge makes succeed, two more lost to their leaders two
 badges apart, and the lair the scripted worldsmith writes."""
 
@@ -16,17 +16,16 @@ from drive import (
     BASE,
     PAGE_TICK_SECONDS,
     Session,
-    SocketTraffic,
     cards,
     clean,
     decision,
     drawer_text,
     log,
-    move,
     notifications,
+    option,
     run,
     select,
-    send_move,
+    send_option,
     start_turn,
     submit,
     text,
@@ -80,7 +79,6 @@ def create_trainer(s: Session, page: Page) -> None:
 def body(s: Session) -> None:
     page = s.page()
     create_trainer(s, page)
-    traffic = SocketTraffic(page)
     page.goto(GAME)
     wait_idle(page, timeout=40)
     submit(page, "I check my bag.\n!gain_item item_id=potion count=2")
@@ -113,11 +111,8 @@ def body(s: Session) -> None:
     dialog.wait_for(state="detached")
 
     # The map on the Scene tab, which stays open for the turns.
-    traffic.mark()
     page.locator(".game-rail-btn", has_text="Scene").click()
     page.locator(".game-drawer canvas").first.wait_for()
-    page.wait_for_timeout(PAGE_TICK_SECONDS * 1000)
-    s.note(f"timing pokemon open=scene-tab {traffic.mark().line()}")
     s.check(page.locator(".game-drawer canvas").count() > 0, "the Scene tab draws no map")
     s.check("Tamsin" in drawer_text(page), "the rival Tamsin is not here at the start")
 
@@ -130,11 +125,9 @@ def body(s: Session) -> None:
         return
     play_battle(s, page, "Forfeit", "rival")
 
-    # Marks sit only after an idle page, so frames that land late count toward the next turn.
     for turn, script in enumerate(TURNS, start=1):
         submit(page, f"Turn {turn} of pokemon.\n{script}")
         wait_idle(page, timeout=60)
-        s.note(f"timing pokemon turn={turn} {traffic.mark().line()}")
         if turn == 1:
             s.check(
                 any("vs DC" in card for card in cards(page)),
@@ -305,8 +298,8 @@ def play_battle(s: Session, page: Page, pick: str, shot: str) -> None:
 
 
 def more_map(s: Session, page: Page, words: str, asked: str) -> tuple[str, str]:
-    s.check(move(page, "More map").count() == 1, f"no More map offered before: {words}")
-    send_move(page, "More map", words)
+    s.check(option(page, "More map").count() == 1, f"no More map offered before: {words}")
+    send_option(page, "More map", words)
     wait_idle(page, timeout=60)
     smith = [entry for entry in log() if entry["role"] == "worldsmith"][-1]
     s.check(asked in smith["prompt"], f"the region request did not ask: {asked}")

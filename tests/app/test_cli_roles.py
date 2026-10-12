@@ -6,12 +6,14 @@ import pytest
 
 import rulehall.app.cli_roles as cli_roles
 import rulehall.app.processes as processes
-from rulehall.app.cli_roles import ClaudeDriver, CodexDriver, run_cli
+from rulehall.app.cli_roles import ClaudeDriver, CodexDriver, McpAccess, run_cli
 from rulehall.app.processes import child_environment
 from rulehall.app.roles import final_message
 from rulehall.config import RoleConfig
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal, decode
+
+MCP = McpAccess("http://localhost:1/mcp/", "token")
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,10 +21,8 @@ class _StubDriver:
     argv: tuple[str, ...]
     secrets: tuple[str, ...] = ()
 
-    def command(
-        self, config: RoleConfig, mcp_url: str | None, *, mcp_token: str | None
-    ) -> tuple[str, ...]:
-        del config, mcp_url, mcp_token
+    def command(self, config: RoleConfig, mcp: McpAccess | None) -> tuple[str, ...]:
+        del config, mcp
         return self.argv
 
     def delta(self, line: str) -> str:
@@ -72,8 +72,8 @@ CLAUDE_OUTPUT = "\n".join(
 
 def test_no_codex_role_gets_a_shell_and_only_the_master_reaches_the_tools() -> None:
     config = RoleConfig(provider="codex", model="gpt-5", effort="low")
-    master = CodexDriver().command(config, "http://localhost:1/mcp/", mcp_token=None)
-    narrator = CodexDriver().command(config, None, mcp_token=None)
+    master = CodexDriver().command(config, MCP)
+    narrator = CodexDriver().command(config, None)
 
     assert "mcp_servers.rulehall.url=http://localhost:1/mcp/" in master
     assert "mcp_servers.rulehall.default_tools_approval_mode=approve" in master
@@ -93,8 +93,8 @@ def test_no_codex_role_gets_a_shell_and_only_the_master_reaches_the_tools() -> N
 
 def test_no_claude_role_keeps_a_built_in_tool_and_only_the_master_reaches_the_tools() -> None:
     config = RoleConfig(model="haiku", effort="low")
-    master = ClaudeDriver().command(config, "http://localhost:1/mcp/", mcp_token=None)
-    narrator = ClaudeDriver().command(config, None, mcp_token=None)
+    master = ClaudeDriver().command(config, MCP)
+    narrator = ClaudeDriver().command(config, None)
 
     assert "--mcp-config" in master and "--mcp-config" not in narrator
     for argv in (master, narrator):

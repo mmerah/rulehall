@@ -20,7 +20,7 @@ TagName = Annotated[ShortName, BeforeValidator(and_for_commas)]
 Tags = Annotated[tuple[str, ...], BeforeValidator(as_tuple)]
 
 
-class Loner4eEntity(Person):
+class Loner4ePerson(Person):
     """A character is a person, an object, a vehicle or a curse."""
 
     known: SkipJsonSchema[bool] = True

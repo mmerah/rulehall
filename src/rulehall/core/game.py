@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from copy import deepcopy
 from typing import Any, Protocol, Self
 
@@ -9,7 +9,6 @@ from rulehall.core.facts import Fact
 from rulehall.core.log import Chapter, LogEntry
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import (
-    EngineHeader,
     EngineId,
     Frozen,
     Loose,
@@ -17,6 +16,7 @@ from rulehall.core.validation import (
     Refusal,
     Slug,
     parse,
+    parse_strict_json,
 )
 
 type AnyScenario = Scenario[Any]
@@ -32,15 +32,14 @@ class ScenarioDescription(Frozen):
     scope: str = Field(min_length=1)
     art_style: str = ""
 
-    def check_drift(self, other: Self) -> None:
-        fields = ScenarioDescription.model_fields
-        if drifted := [name for name in fields if getattr(self, name) != getattr(other, name)]:
-            raise Refusal(f"save scenario differs from the one on disk in: {', '.join(drifted)}")
-
 
 class PersonHeader(Loose):
     name: str
     brief: str = ""
+
+
+class EngineHeader(Loose):
+    engine_id: EngineId
 
 
 class CharacterHeader(EngineHeader):
@@ -115,3 +114,11 @@ class Game[W: BaseModel](Mutable):
             return parse(type(self), self)
         except Refusal as refused:
             raise Refusal(f"the state this leaves is invalid: {refused}") from refused
+
+
+def for_engine_of[T](raw: str, by_engine: Mapping[EngineId, T]) -> T:
+    engine_id = parse_strict_json(EngineHeader, raw).engine_id
+    found = by_engine.get(engine_id)
+    if found is None:
+        raise Refusal(f"the {engine_id!r} engine is not installed")
+    return found

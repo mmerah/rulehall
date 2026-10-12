@@ -16,7 +16,7 @@ def _view(*rows: PanelRow) -> PlayerView:
         panels=(Panel(title="Carrying", rows=rows),),
         decision=None,
         ending=None,
-        moves=(DROP,),
+        standing_options=(DROP,),
         hint="Say what Wren does.",
     )
 

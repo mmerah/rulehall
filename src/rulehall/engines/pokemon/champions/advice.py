@@ -3,15 +3,15 @@ from collections.abc import Collection, Sequence
 from functools import cache
 
 from rulehall.core.decisions import ActionOption
-from rulehall.core.validation import Frozen, Slug
+from rulehall.core.validation import Slug
 from rulehall.engines.pokemon.champions.args import PickEdit
 from rulehall.engines.pokemon.champions.data import Archetype, Role, champions_data, move_shares
 from rulehall.engines.pokemon.champions.panels import preset_option, team_option
-from rulehall.engines.pokemon.champions.pending import MOVES, PendingSet, PendingTeam
 from rulehall.engines.pokemon.champions.rules import PRESET_LETTERS
+from rulehall.engines.pokemon.champions.unsaved import MOVES, UnsavedSet, UnsavedTeam
 from rulehall.engines.pokemon.champions.views import Advice
 from rulehall.engines.pokemon.dex import Species, dex, species_name
-from rulehall.engines.pokemon.rules import IV_MAX, SPEED, STAT_NAMES, effectiveness, stats
+from rulehall.engines.pokemon.rules import effectiveness
 
 ABILITY_IMMUNITIES: dict[Slug, str] = {
     "levitate": "Ground",
@@ -29,7 +29,6 @@ ABILITY_IMMUNITIES: dict[Slug, str] = {
 WEAK_SHARE = 0.02
 WEAK_MEMBERS = 3
 THREATS_SHOWN = 5
-SPEED_TIER_SPECIES = 20
 ROLE_TIPS = {
     "speed-control": (
         "Nothing on your team controls speed. Tailwind or Icy Wind helps your slower Pokemon "
@@ -46,18 +45,11 @@ ROLE_TIPS = {
 }
 
 
-class SpeedTier(Frozen):
-    speed: int
-    name: str
-
-
-def team_advice(
-    slots: Sequence[PendingSet | None], allowed_species_ids: Collection[Slug] | None
-) -> tuple[Advice, ...]:
-    members = [(number, each) for number, each in enumerate(slots, 1) if each is not None]
+def team_advice(team: UnsavedTeam) -> tuple[Advice, ...]:
+    members = [(number, each) for number, each in enumerate(team.slots, 1) if each is not None]
     if not members:
-        return (_empty_slots_advice(slots, allowed_species_ids),)
-    errors = PendingTeam(slots=list(slots)).team_errors()
+        return (_empty_slots_advice(team),)
+    errors = team.team_errors()
     return tuple(
         advice
         for advice in (
@@ -70,23 +62,19 @@ def team_advice(
             _megas_advice(members),
             *_weakness_advice(members),
             _threats_advice(members),
-            *_weak_slot_advice(slots, members, allowed_species_ids),
-            _empty_slots_advice(slots, allowed_species_ids) if len(members) < len(slots) else None,
+            *_weak_slot_advice(team, members),
+            _empty_slots_advice(team) if len(members) < len(team.slots) else None,
         )
         if advice is not None
     )
 
 
 def suggested_species(
-    slots: Sequence[PendingSet | None],
-    count: int,
-    allowed_species_ids: Collection[Slug] | None,
-    *,
-    avoid_ids: Collection[Slug] = (),
+    team: UnsavedTeam, count: int, *, avoid_ids: Collection[Slug] = ()
 ) -> tuple[Slug, ...]:
     data = champions_data()
     legal = data.legal
-    members = [each.species_id for each in slots if each is not None]
+    members = [each.species_id for each in team.slots if each is not None]
     taken = {legal.species[species_id].base_species_id for species_id in (*members, *avoid_ids)}
 
     def score(candidate_id: Slug) -> tuple[float, float, Slug]:
@@ -98,59 +86,21 @@ def suggested_species(
         if len(suggested) == count:
             break
         base_id = legal.species[candidate_id].base_species_id
-        if base_id in taken or (
-            allowed_species_ids is not None and candidate_id not in allowed_species_ids
-        ):
+        if base_id in taken or not team.allows(candidate_id):
             continue
         taken.add(base_id)
         suggested.append(candidate_id)
     return tuple(suggested)
 
 
-def speed_hint(pending_set: PendingSet) -> str:
-    speed = _speed_of(battle_species(pending_set), pending_set.nature, tuple(pending_set.sp))
-    tiers = speed_tiers()
-    above = [tier for tier in tiers if tier.speed > speed]
-    ties = [tier for tier in tiers if tier.speed == speed]
-    below = [tier for tier in tiers if tier.speed < speed]
-    parts: list[str] = []
-    if above:
-        parts.append(f"slower than {_tier_text(above[-1])}")
-    if ties:
-        parts.append(f"ties {_tier_text(ties[0])}")
-    if below:
-        parts.append(f"outspeeds {_tier_text(below[0])}")
-    return "; ".join(parts)
-
-
-@cache
-def speed_tiers() -> tuple[SpeedTier, ...]:
-    data = champions_data()
-    pokedex = dex()
-    top_ids = sorted(data.usage, key=lambda each: -data.usage[each].usage_percent)
-    tiers: set[SpeedTier] = set()
-    for species_id in top_ids[:SPEED_TIER_SPECIES]:
-        card = data.usage[species_id]
-        forme_ids = [species_id]
-        item_id = card.items[0].item_id if card.items else None
-        if forme_id := data.legal.find_mega_forme_id(item_id, species_id):
-            forme_ids.append(forme_id)
-        for forme_id in forme_ids:
-            species = pokedex.species[forme_id]
-            for spread in data.assumed[species_id]:
-                speed = _speed_of(species, spread.nature, spread.sp)
-                tiers.add(SpeedTier(speed=speed, name=f"{spread.nature} {species.name}"))
-    return tuple(sorted(tiers, key=lambda tier: (-tier.speed, tier.name)))
-
-
-def battle_species(pending_set: PendingSet) -> Species:
+def battle_species(unsaved_set: UnsavedSet) -> Species:
     return dex().species[
-        champions_data().legal.find_mega_forme_id(pending_set.item_id, pending_set.species_id)
-        or pending_set.species_id
+        champions_data().legal.find_mega_forme_id(unsaved_set.item_id, unsaved_set.species_id)
+        or unsaved_set.species_id
     ]
 
 
-def primary_archetype(sets: Sequence[PendingSet]) -> Archetype:
+def primary_archetype(sets: Sequence[UnsavedSet]) -> Archetype:
     archetypes = champions_data().archetypes
     scored = [
         (max(_centrality(holder, sets) for holder in holders), archetype)
@@ -162,7 +112,7 @@ def primary_archetype(sets: Sequence[PendingSet]) -> Archetype:
     return max(scored, key=lambda each: each[0])[1]
 
 
-def _role_advice(role_id: Slug, members: Sequence[tuple[int, PendingSet]]) -> Advice | None:
+def _role_advice(role_id: Slug, members: Sequence[tuple[int, UnsavedSet]]) -> Advice | None:
     role = champions_data().roles[role_id]
     holders = [each for _, each in members if _fills(role, each)]
     if holders:
@@ -176,10 +126,10 @@ def _role_advice(role_id: Slug, members: Sequence[tuple[int, PendingSet]]) -> Ad
     )
 
 
-def _teach_fix(role: Role, members: Sequence[tuple[int, PendingSet]]) -> ActionOption | None:
+def _teach_fix(role: Role, members: Sequence[tuple[int, UnsavedSet]]) -> ActionOption | None:
     data = champions_data()
     legal = data.legal
-    best: tuple[float, int, PendingSet, Slug] | None = None
+    best: tuple[float, int, UnsavedSet, Slug] | None = None
     for number, member in members:
         learnable = set(role.move_ids) & set(legal.species[member.species_id].move_ids)
         shares = move_shares(member.species_id)
@@ -206,7 +156,7 @@ def _teach_fix(role: Role, members: Sequence[tuple[int, PendingSet]]) -> ActionO
     return team_option("pick", edit, name=name)
 
 
-def _archetype_advice(members: Sequence[tuple[int, PendingSet]]) -> Advice:
+def _archetype_advice(members: Sequence[tuple[int, UnsavedSet]]) -> Advice:
     sets = [each for _, each in members]
     archetype = primary_archetype(sets)
     if not _has_mechanic(archetype):
@@ -217,7 +167,7 @@ def _archetype_advice(members: Sequence[tuple[int, PendingSet]]) -> Advice:
     return Advice(advice_id="archetype", severity="info", text=text)
 
 
-def _megas_advice(members: Sequence[tuple[int, PendingSet]]) -> Advice | None:
+def _megas_advice(members: Sequence[tuple[int, UnsavedSet]]) -> Advice | None:
     mega_formes = champions_data().legal.mega_formes
     holders = [each for _, each in members if each.item_id in mega_formes]
     if len(holders) < 2:
@@ -230,7 +180,7 @@ def _megas_advice(members: Sequence[tuple[int, PendingSet]]) -> Advice | None:
     )
 
 
-def _weakness_advice(members: Sequence[tuple[int, PendingSet]]) -> list[Advice]:
+def _weakness_advice(members: Sequence[tuple[int, UnsavedSet]]) -> list[Advice]:
     advice: list[Advice] = []
     for attack in dex().type_chart:
         factors = [(each, _damage_factor(attack, each)) for _, each in members]
@@ -249,7 +199,7 @@ def _weakness_advice(members: Sequence[tuple[int, PendingSet]]) -> list[Advice]:
     return advice
 
 
-def _threats_advice(members: Sequence[tuple[int, PendingSet]]) -> Advice | None:
+def _threats_advice(members: Sequence[tuple[int, UnsavedSet]]) -> Advice | None:
     data = champions_data()
     species = data.legal.species
     on_team = {species[each.species_id].base_species_id for _, each in members}
@@ -273,11 +223,7 @@ def _threats_advice(members: Sequence[tuple[int, PendingSet]]) -> Advice | None:
     )
 
 
-def _weak_slot_advice(
-    slots: Sequence[PendingSet | None],
-    members: Sequence[tuple[int, PendingSet]],
-    allowed_species_ids: Collection[Slug] | None,
-) -> list[Advice]:
+def _weak_slot_advice(team: UnsavedTeam, members: Sequence[tuple[int, UnsavedSet]]) -> list[Advice]:
     if len(members) < 2:
         return []
     roles = champions_data().roles.values()
@@ -286,14 +232,13 @@ def _weak_slot_advice(
     for number, member in members:
         if _centrality(member, sets) >= WEAK_SHARE or any(_fills(role, member) for role in roles):
             continue
-        others = [None if index == number else each for index, each in enumerate(slots, 1)]
-        suggested = suggested_species(
-            others, 1, allowed_species_ids, avoid_ids=(member.species_id,)
-        )
+        others = team.model_copy(deep=True)
+        others.clear_slot(number)
+        suggested = suggested_species(others, 1, avoid_ids=(member.species_id,))
         name = species_name(member.species_id)
         fix = None
         if suggested:
-            index = PendingTeam(slots=others).free_preset_index(number, suggested[0])
+            index = others.free_preset_index(number, suggested[0])
             if index is not None:
                 fix = preset_option(
                     number,
@@ -311,34 +256,32 @@ def _weak_slot_advice(
     return advice
 
 
-def _empty_slots_advice(
-    slots: Sequence[PendingSet | None], allowed_species_ids: Collection[Slug] | None
-) -> Advice:
-    empty = [number for number, each in enumerate(slots, 1) if each is None]
-    suggested = suggested_species(slots, len(empty), allowed_species_ids)
+def _empty_slots_advice(team: UnsavedTeam) -> Advice:
+    empty = [number for number, each in enumerate(team.slots, 1) if each is None]
+    suggested = suggested_species(team, len(empty))
     names = ", ".join(species_name(each) for each in suggested)
     numbers = ", ".join(str(number) for number in empty)
     return Advice(
         advice_id="empty-slots",
         severity="warning",
-        text=f"Empty slots: {numbers}. An event needs {len(slots)} Pokemon."
+        text=f"Empty slots: {numbers}. An event needs {len(team.slots)} Pokemon."
         + (f" Common partners for this team: {names}." if names else ""),
         fix=team_option("fill_empty_slots") if suggested else None,
     )
 
 
-def _damage_factor(attack: str, pending_set: PendingSet) -> float:
+def _damage_factor(attack: str, unsaved_set: UnsavedSet) -> float:
     forme_id = champions_data().legal.find_mega_forme_id(
-        pending_set.item_id, pending_set.species_id
+        unsaved_set.item_id, unsaved_set.species_id
     )
-    species = battle_species(pending_set)
-    ability_ids = (pending_set.ability_id,) if forme_id is None else _ability_ids(species)
+    species = battle_species(unsaved_set)
+    ability_ids = (unsaved_set.ability_id,) if forme_id is None else _ability_ids(species)
     if any(each is not None and ABILITY_IMMUNITIES.get(each) == attack for each in ability_ids):
         return 0.0
     return effectiveness(attack, species.types)
 
 
-def _holders(archetype: Archetype, sets: Sequence[PendingSet]) -> list[PendingSet]:
+def _holders(archetype: Archetype, sets: Sequence[UnsavedSet]) -> list[UnsavedSet]:
     return [
         each
         for each in sets
@@ -347,14 +290,14 @@ def _holders(archetype: Archetype, sets: Sequence[PendingSet]) -> list[PendingSe
     ]
 
 
-def _fills(role: Role, pending_set: PendingSet) -> bool:
+def _fills(role: Role, unsaved_set: UnsavedSet) -> bool:
     return bool(
-        set(role.move_ids) & set(pending_set.move_ids)
-        or set(role.ability_ids) & set(_battle_ability_ids(pending_set))
+        set(role.move_ids) & set(unsaved_set.move_ids)
+        or set(role.ability_ids) & set(_battle_ability_ids(unsaved_set))
     )
 
 
-def _centrality(holder: PendingSet, sets: Sequence[PendingSet]) -> float:
+def _centrality(holder: UnsavedSet, sets: Sequence[UnsavedSet]) -> float:
     shares = champions_data().teammates.get(holder.species_id, {})
     mates = [each for each in sets if each is not holder]
     return sum(shares.get(each.species_id, 0.0) for each in mates) / len(mates) if mates else 0.0
@@ -364,10 +307,10 @@ def _has_mechanic(archetype: Archetype) -> bool:
     return bool(archetype.move_ids or archetype.ability_ids)
 
 
-def _battle_ability_ids(pending_set: PendingSet) -> tuple[Slug, ...]:
-    own = () if pending_set.ability_id is None else (pending_set.ability_id,)
+def _battle_ability_ids(unsaved_set: UnsavedSet) -> tuple[Slug, ...]:
+    own = () if unsaved_set.ability_id is None else (unsaved_set.ability_id,)
     forme_id = champions_data().legal.find_mega_forme_id(
-        pending_set.item_id, pending_set.species_id
+        unsaved_set.item_id, unsaved_set.species_id
     )
     return own if forme_id is None else (*own, *_ability_ids(dex().species[forme_id]))
 
@@ -380,13 +323,3 @@ def _ability_ids(species: Species) -> tuple[Slug, ...]:
 @cache
 def _ability_ids_by_name() -> dict[str, Slug]:
     return {name: ability_id for ability_id, name in dex().ability_names.items()}
-
-
-def _speed_of(species: Species, nature: str, sp: tuple[int, ...]) -> int:
-    level = champions_data().legal.level
-    ivs = (IV_MAX,) * len(STAT_NAMES)
-    return stats(species, level, nature, ivs, sp, stat_points=True)[SPEED]
-
-
-def _tier_text(tier: SpeedTier) -> str:
-    return f"{tier.name} ({tier.speed})"

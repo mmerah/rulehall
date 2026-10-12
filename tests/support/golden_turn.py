@@ -5,7 +5,7 @@ from functools import partial
 from rulehall.core.game import AnyGame
 from rulehall.core.log import Chapter, LogEntry, SpokenLine
 from rulehall.core.validation import EngineId
-from rulehall.engines.scenes.world import Scene
+from rulehall.engines.bases.scenes.world import Scene
 from rulehall.engines.sheet import PLAYER_ID
 from support.table import CHAMPIONS, POKEMON, Scripted, tool_call
 

@@ -1,11 +1,10 @@
 from collections.abc import Sequence
 from random import Random
-from typing import Protocol, TypeGuard, runtime_checkable
+from typing import Protocol
 
-from rulehall.core.facts import Fact
+from rulehall.core.facts import Fact, Resolution
 from rulehall.core.game import AnyGame, RoleAnswer
 from rulehall.core.validation import Frozen
-from rulehall.engines.engine import AnyEngine, Resolution
 
 
 class Transport(Protocol):
@@ -14,7 +13,7 @@ class Transport(Protocol):
     async def close(self) -> None: ...
 
 
-class BattleRun[G](Protocol):
+class BattleRun(Protocol):
     @property
     def log(self) -> Sequence[str]: ...
     @property
@@ -23,18 +22,13 @@ class BattleRun[G](Protocol):
     def resolution(self) -> Resolution | None: ...
     def view(self) -> Frozen: ...
     def require_command(self, command: str) -> None: ...
-    async def choose(self, draft: G, command: str, rng: Random) -> None: ...
+    async def choose(self, draft: AnyGame, command: str, rng: Random) -> None: ...
     async def close(self) -> None: ...
 
 
-@runtime_checkable
-class Battling(Protocol):
+class BattleSupport(Protocol):
     def in_battle(self, state: AnyGame, /) -> bool: ...
     def simulator_argv(self) -> tuple[str, ...]: ...
     async def open_battle(
         self, draft: AnyGame, transport: Transport, opponent: RoleAnswer | None
-    ) -> BattleRun[AnyGame]: ...
-
-
-def in_battle(engine: AnyEngine, state: AnyGame) -> TypeGuard[Battling]:
-    return isinstance(engine, Battling) and engine.in_battle(state)
+    ) -> BattleRun: ...

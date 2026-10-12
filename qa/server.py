@@ -64,7 +64,6 @@ def main() -> None:
     agents = ScriptedAgents(delay=parsed.delay)
     # The built agents are passed so a reload, which rebuilds the runtime, keeps them.
     runtime = Runtime(settings, roles=agents)
-    agents.runtime = runtime
     mount(runtime)
 
     @app.get("/qa/log")
@@ -79,10 +78,6 @@ def main() -> None:
             }
             for spoken in agents.log
         ]
-
-    @app.get("/qa/faults")
-    def _faults() -> dict[str, list[str]]:  # pyright: ignore[reportUnusedFunction]
-        return {role: list(armed) for role, armed in agents.faults.items()}
 
     # Async, so they run on the event loop that the held roles wait on.
     @app.post("/qa/faults")

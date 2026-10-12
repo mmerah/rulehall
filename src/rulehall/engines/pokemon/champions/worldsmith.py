@@ -2,6 +2,8 @@ from collections.abc import Collection
 from random import Random
 
 from rulehall.core.validation import Refusal, Slug
+from rulehall.engines.bases.maps.worldsmith import check_next as check_map_next
+from rulehall.engines.bases.maps.worldsmith import check_opening as check_map_opening
 from rulehall.engines.pokemon.champions.rules import (
     KEY_TRAINERS_MAX,
     build_key_team,
@@ -16,8 +18,6 @@ from rulehall.engines.pokemon.champions.world import (
     ChampionsWorld,
 )
 from rulehall.engines.pokemon.trainers import check_key_lines, check_rivals
-from rulehall.engines.rooms.worldsmith import check_next as check_room_map_next
-from rulehall.engines.rooms.worldsmith import check_opening as check_room_map_opening
 
 WORLDSMITH_GUIDANCE = (
     "POKEMON CHAMPIONS AUTHORING\n"
@@ -40,12 +40,12 @@ WORLDSMITH_GUIDANCE = (
 
 
 def check_opening(proposal: ChampionsOpeningProposal) -> None:
-    check_room_map_opening(proposal)
+    check_map_opening(proposal)
     _check_champions_map(proposal, opening=True, unlocked=("locals",), used_team_ids=())
 
 
 def check_next(proposal: ChampionsRegionProposal, world: ChampionsWorld) -> None:
-    check_room_map_next(proposal, world)
+    check_map_next(proposal, world)
     _check_champions_map(
         proposal,
         opening=False,

@@ -29,7 +29,7 @@ class NoArgs(Frozen):
 
 
 @dataclass(frozen=True, slots=True)
-class MasterTool:
+class ToolSpec:
     name: str
     description: str
     args: type[BaseModel]
@@ -39,13 +39,13 @@ class MasterTool:
         return deepcopy(tool_schema(self.args))
 
 
-class ToolSurface(Protocol):
+class ToolProvider(Protocol):
     @property
     def must_stop(self) -> bool: ...
     @property
     def nudge(self) -> str: ...
 
-    def published_tools(self) -> tuple[MasterTool, ...]: ...
+    def offered_tools(self) -> tuple[ToolSpec, ...]: ...
     def call_tool(self, name: str, arguments: str | dict[str, JsonValue]) -> str: ...
 
 
@@ -71,12 +71,10 @@ def edit[F: Callable[..., None]](method: F) -> F:
     return method
 
 
-def marked_methods(
-    engine: object, mark: Literal["tool", "action", "edit"]
-) -> dict[str, MasterTool]:
+def marked_methods(engine: object, mark: Literal["tool", "action", "edit"]) -> dict[str, ToolSpec]:
     marks = {"tool": _TOOLS, "action": _ACTIONS, "edit": _EDITS}[mark]
     return {
-        name: MasterTool(
+        name: ToolSpec(
             name,
             " ".join(cleandoc(function.__doc__ or "").split()) if mark == "tool" else "",
             marks[function],

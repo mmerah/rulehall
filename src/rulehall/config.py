@@ -63,7 +63,6 @@ class RoleConfig(Configured):
         gt=0.0,
         description="the time limit for the whole run: the CLI process, or the API rounds",
     )
-    max_rounds: int = Field(default=30, gt=0, description="used only with a completion API")
 
 
 class MediaConfig(Configured):
@@ -115,16 +114,11 @@ class PokemonSettings(Configured):
         default="2d",
         description="The battle sprites: 2d is the gen 5 pixel art, 3d the animated models.",
     )
-    music: bool = Field(default=True, description="Battle music and the cry of each Pokemon.")
     opponent: Literal["scripted", "model"] = Field(
         default="model",
         description="Who plays a gym leader's or the rival's side: scripted picks the move that "
         "deals the most damage, model asks the opponent role with every damage range. Other "
         "trainers always play scripted, and a wild Pokemon picks at random.",
-    )
-    expert_team_builder: bool = Field(
-        default=False,
-        description="Show the sliders, number boxes and speed hints of the team builder.",
     )
 
 

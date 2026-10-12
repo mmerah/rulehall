@@ -13,9 +13,9 @@ from support.table import (
 
 from rulehall.core.game import WorldsmithRequest
 from rulehall.core.validation import Refusal, Slug
+from rulehall.engines.bases.scenes.world import NextProposal, Scene, SceneProposal, SceneWorld
+from rulehall.engines.bases.scenes.worldsmith import check_next, check_opening
 from rulehall.engines.loner4e.world import Loner4eGame
-from rulehall.engines.scenes.world import NextProposal, Scene, SceneProposal, SceneWorld
-from rulehall.engines.scenes.worldsmith import check_next, check_opening
 from rulehall.engines.sheet import PLAYER_ID, Person
 
 PLAYER = Person(id=PLAYER_ID, name="Player", voice="masculine", brief="", known=True)
@@ -143,7 +143,7 @@ def test_a_scene_engine_refuses_a_request_kind_not_its_own() -> None:
     draft.request = WorldsmithRequest(kind="hire", detail="Hire a fixer.")
 
     with pytest.raises(Refusal, match="writes no 'hire'"):
-        engine.validate(draft)
+        engine.check_state(draft)
 
 
 def test_beginning_the_game_does_not_mutate_the_authored_scenario() -> None:

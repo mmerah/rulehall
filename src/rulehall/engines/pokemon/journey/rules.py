@@ -1,32 +1,24 @@
 import operator
 from collections.abc import Callable, Collection, Iterable, Sequence
-from typing import Annotated, Literal, Self
+from typing import Literal, Self
 
-from pydantic import AfterValidator, Field, WithJsonSchema, model_validator
+from pydantic import Field, model_validator
 
 from rulehall.core.validation import Frozen, Slug
 from rulehall.engines.pokemon.battle.models import LEVEL_MAX, MOVES_MAX, Battler
-from rulehall.engines.pokemon.dex import ITEMS, SIGNATURE_EXCLUDED, BagItem, Move, Species, dex
+from rulehall.engines.pokemon.dex import SIGNATURE_EXCLUDED, Species, dex
+from rulehall.engines.pokemon.journey.items import BagId
 from rulehall.engines.pokemon.rules import (
     EV_STAT_MAX,
     IV_MAX,
-    ItemId,
     check_species,
     effectiveness,
     is_legendary,
     max_hp,
 )
 
-# Lambda: the check sits below the models, and a direct reference fails basedpyright.
-type TmId = Annotated[str, AfterValidator(lambda item_id: _check_tm(item_id))]
-type BagId = Annotated[
-    ItemId | TmId,
-    WithJsonSchema({"anyOf": [{"enum": list(ITEMS), "type": "string"}, {"type": "string"}]}),
-]
 type Skill = Literal["athletics", "stealth", "perception", "nature", "lore", "charm"]
 type Challenge = Literal["relaxed", "hard", "nuzlocke"]
-TM_PREFIX = "tm-"
-TM_PRICE = 3000
 SKILLS: tuple[Skill, ...] = ("athletics", "stealth", "perception", "nature", "lore", "charm")
 SKILL_USES: dict[Skill, str] = {
     "athletics": "climb, swim, run, lift",
@@ -113,17 +105,6 @@ def catch_rate(foe: Battler, ball_bonus: int, *, baited: bool) -> int:
         + ball_bonus
         + (BAIT_BONUS if baited else 0)
     )
-
-
-def item_of(item_id: BagId) -> BagItem:
-    if item_id in ITEMS:
-        return ITEMS[item_id]
-    move = tm_move(item_id)
-    return BagItem(name=f"TM {move.name}", price=TM_PRICE, kind="tm")
-
-
-def tm_move(item_id: TmId) -> Move:
-    return dex().moves[item_id.removeprefix(TM_PREFIX)]
 
 
 def help_bonus(friendship: int) -> int:
@@ -256,10 +237,3 @@ def _hp_bonus(hp: int, maximum: int) -> int:
 def _levels_into(evolution: Species, level: int) -> bool:
     reached = evolution.evo_level is not None and evolution.evo_level <= level
     return evolution.evo_type is None and reached
-
-
-def _check_tm(item_id: str) -> str:
-    move = dex().moves.get(item_id.removeprefix(TM_PREFIX))
-    if not item_id.startswith(TM_PREFIX) or move is None or not move.tm:
-        raise ValueError(f"{item_id!r} is no TM. A TM is tm-<move id>, such as tm-thunderbolt")
-    return item_id

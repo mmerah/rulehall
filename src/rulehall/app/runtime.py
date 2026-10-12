@@ -4,7 +4,8 @@ from pathlib import Path
 from shutil import rmtree
 
 from rulehall.app.catalog import LauncherCatalog, SavedGameKey, check_resumes, scenario_models
-from rulehall.app.game_session import GameSession, Gate
+from rulehall.app.game_session import GameSession
+from rulehall.app.gate import Gate
 from rulehall.app.http_client import close_client
 from rulehall.app.illustration import ICON_DIR, Illustrator
 from rulehall.app.roles import ProviderRoleRunner, RoleRunner, role_answer
@@ -12,7 +13,7 @@ from rulehall.app.speech import Speaker
 from rulehall.config import LiveSettings, Settings
 from rulehall.core.documents import given_text
 from rulehall.core.game import AnyScenario, ScenarioDescription
-from rulehall.core.stores import Library, PackStore, SaveStore
+from rulehall.core.stores import Library, SaveStore
 from rulehall.core.validation import EngineId, Refusal, Slug, slug
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.registry import build_engines
@@ -23,15 +24,12 @@ LOGGER = logging.getLogger(__name__)
 class Runtime:
     def __init__(self, settings: Settings, roles: RoleRunner | None = None) -> None:
         self.live_settings = LiveSettings(settings)
-        self.gate = Gate()
-        self.roles: RoleRunner = roles or ProviderRoleRunner(
-            self.live_settings, self.gate.submissions
-        )
+        self.gate = Gate[GameSession]()
+        self.roles: RoleRunner = roles or ProviderRoleRunner(self.live_settings)
         self.engines = build_engines(settings.packs_dir)
         self.scenario_models = scenario_models(self.engines)
         self.library = Library(settings.scenarios_dir, settings.characters_dir)
         self.store = SaveStore(settings.saves_dir)
-        self.packs = PackStore(settings.packs_dir)
         self._sessions: dict[str, GameSession] = {}
 
     async def close(self) -> None:
@@ -62,8 +60,10 @@ class Runtime:
             raise Refusal(f"no rules {engine_id!r}")
         return found
 
-    def door_engines(self, door_id: EngineId) -> tuple[AnyEngine, ...]:
-        return tuple(engine for engine in self.engines.values() if engine.door_id == door_id)
+    def modes_of(self, rule_set_id: EngineId) -> tuple[AnyEngine, ...]:
+        return tuple(
+            engine for engine in self.engines.values() if engine.rule_set_id == rule_set_id
+        )
 
     async def new_scenario(
         self,
@@ -101,7 +101,7 @@ class Runtime:
     ) -> Slug:
         engine = self.require_engine(engine_id)
         source = await to_thread(given_text, premise, document)
-        pack_id = slug(name, (*engine.packs.installed, *self.packs.ids(engine.id)))
+        pack_id = engine.packs.new_id(name)
         origin = f"written in this app from {'the premise' if document is None else document.name}"
         with self.gate.creation():
             pack = await engine.write_pack(
@@ -111,8 +111,7 @@ class Runtime:
                 license=license,
                 worldsmith=role_answer(self.roles, "worldsmith"),
             )
-        self.packs.write(engine.id, pack_id, pack)
-        engine.install_pack(pack_id, pack)
+        engine.packs.write(pack_id, pack)
         LOGGER.info("pack written: engine=%s slug=%s name=%r", engine.id, pack_id, name)
         return pack_id
 
@@ -131,7 +130,7 @@ class Runtime:
             state = engine.begin(key.scenario_id, scenario, character)
         else:
             state = engine.restore(saved)
-            check_resumes(state, key.save_id, scenario.description)
+            check_resumes(state, key.save_id)
         return GameSession(
             key=key,
             scenario=scenario,
@@ -146,7 +145,7 @@ class Runtime:
             illustrator=Illustrator(
                 live_settings=self.live_settings,
                 saves=self.store.media_dir(key.save_id),
-                style=scenario.description.art_style or engine.art_style,
+                style=state.scenario_description.art_style or engine.art_style,
                 icon_dirs=(
                     self.library.scenario_folder(key.scenario_id) / ICON_DIR,
                     self.library.character_folder(key.character_id) / ICON_DIR,

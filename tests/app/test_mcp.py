@@ -6,19 +6,17 @@ from pathlib import Path
 from typing import TypedDict
 
 from httpx import ASGITransport, AsyncClient
-from pydantic import BaseModel
 from support.table import NO_PACKS, narrated, offline_settings
 
 from rulehall.app.catalog import SavedGameKey
-from rulehall.app.cli_roles import SUBMISSION_HEADER
-from rulehall.app.mcp import MountedLifespan, endpoint
+from rulehall.app.mcp import NO_TOOLS, TOOLS_HEADER, MountedLifespan, OpenToolProviders, endpoint
 from rulehall.app.role_prompts import Debrief
 from rulehall.app.runtime import Runtime
 from rulehall.app.submission import SUBMIT, Submission
-from rulehall.app.turn import Turn
 from rulehall.config import Role
 from rulehall.core.decisions import PlayerInput
 from rulehall.core.prompt import Prompt
+from rulehall.core.tools import ToolProvider
 from rulehall.core.validation import EngineId
 from rulehall.engines.loner4e.engine import Loner4eEngine
 
@@ -49,6 +47,7 @@ class HttpMaster:
     """The narrator answers directly; the master calls tools over the mounted MCP endpoint."""
 
     client: AsyncClient | None = None
+    tool_providers: OpenToolProviders = field(default_factory=OpenToolProviders)
     tools_seen: list[str] = field(default_factory=list)
     change_result: Result | None = None
 
@@ -62,25 +61,20 @@ class HttpMaster:
         del role, prompt, heard
         return narrated("You wait.")
 
-    async def play_master_turn(self, prompt: Prompt, turn: Turn) -> None:
-        del prompt, turn
+    async def play_tools(self, role: Role, prompt: Prompt, provider: ToolProvider) -> None:
+        del role, prompt
         assert self.client is not None
-        listed = await rpc(self.client, "tools/list", {})
-        self.tools_seen = [tool["name"] for tool in listed.get("result", {}).get("tools", [])]
-        called = await rpc(self.client, "tools/call", ENTER_TOMAS)
+        with self.tool_providers.open(provider) as token:
+            listed = await rpc(self.client, "tools/list", {}, token)
+            self.tools_seen = [tool["name"] for tool in listed.get("result", {}).get("tools", [])]
+            called = await rpc(self.client, "tools/call", ENTER_TOMAS, token)
         self.change_result = called.get("result")
-
-    async def submit_answer[T: BaseModel](
-        self, role: Role, prompt: Prompt, submission: Submission[T]
-    ) -> None:
-        del role, prompt, submission
-        raise AssertionError("no submission is asked here")
 
 
 async def rpc(
-    client: AsyncClient, method: str, params: dict[str, object], token: str | None = None
+    client: AsyncClient, method: str, params: dict[str, object], token: str = ""
 ) -> Reply:
-    routed = {} if token is None else {SUBMISSION_HEADER: token}
+    routed = {TOOLS_HEADER: token} if token else {}
     reply = await client.post(
         "/mcp/",
         json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params},
@@ -96,21 +90,12 @@ async def rpc(
 async def test_master_tools_over_the_mcp_endpoint(tmp_path: Path) -> None:
     master = HttpMaster()
     runtime = Runtime(offline_settings(tmp_path), roles=master)
-    asgi, manager = endpoint(runtime.gate)
+    asgi, manager = endpoint(runtime.roles.tool_providers)
     lifespan = MountedLifespan(manager)
     await lifespan.start()
     try:
         async with AsyncClient(transport=ASGITransport(app=asgi), base_url=BASE_URL) as client:
             master.client = client
-
-            # Between turns: no tools are published, and a call is refused with the wait line.
-            listed = await rpc(client, "tools/list", {})
-            assert listed.get("result", {}).get("tools") == []
-            called = await rpc(client, "tools/call", {"name": "ask", "arguments": {}})
-            result = called.get("result", {})
-            assert result.get("isError") is True
-            content = result.get("content")
-            assert content is not None and "no turn is open" in content[0]["text"]
 
             # First of the installed engines, so reading the engines instead would show it.
             toolless = Loner4eEngine(NO_PACKS)
@@ -135,18 +120,17 @@ async def test_master_tools_over_the_mcp_endpoint(tmp_path: Path) -> None:
         await lifespan.stop()
 
 
-async def test_a_lan_client_is_refused_at_the_mcp_endpoint(tmp_path: Path) -> None:
-    runtime = Runtime(offline_settings(tmp_path), roles=HttpMaster())
-    asgi, _ = endpoint(runtime.gate)
+async def test_a_lan_client_is_refused_at_the_mcp_endpoint() -> None:
+    asgi, _ = endpoint(OpenToolProviders())
     lan = ASGITransport(app=asgi, client=("192.168.1.20", 50000))
     async with AsyncClient(transport=lan, base_url=BASE_URL) as client:
         reply = await client.post("/mcp/", json={})
     assert reply.status_code == 403
 
 
-async def test_a_submission_token_routes_to_submit_alone(tmp_path: Path) -> None:
-    runtime = Runtime(offline_settings(tmp_path), roles=HttpMaster())
-    asgi, manager = endpoint(runtime.gate)
+async def test_a_submission_token_routes_to_submit_alone() -> None:
+    tool_providers = OpenToolProviders()
+    asgi, manager = endpoint(tool_providers)
     lifespan = MountedLifespan(manager)
     submission = Submission(Debrief, Debrief.check)
     debrief = {
@@ -158,7 +142,7 @@ async def test_a_submission_token_routes_to_submit_alone(tmp_path: Path) -> None
     await lifespan.start()
     try:
         async with AsyncClient(transport=ASGITransport(app=asgi), base_url=BASE_URL) as client:
-            with runtime.gate.submissions.open(submission) as token:
+            with tool_providers.open(submission) as token:
                 routed = await rpc(client, "tools/list", {}, token)
                 unrouted = await rpc(client, "tools/list", {})
                 called = await rpc(
@@ -173,3 +157,23 @@ async def test_a_submission_token_routes_to_submit_alone(tmp_path: Path) -> None
     assert called.get("result", {}).get("isError") is not True
     assert submission.accepted is not None
     assert closed.get("result", {}).get("tools") == []
+
+
+async def test_a_tool_call_without_a_token_is_refused() -> None:
+    tool_providers = OpenToolProviders()
+    asgi, manager = endpoint(tool_providers)
+    lifespan = MountedLifespan(manager)
+    await lifespan.start()
+    try:
+        async with AsyncClient(transport=ASGITransport(app=asgi), base_url=BASE_URL) as client:
+            with tool_providers.open(Submission(Debrief, Debrief.check)):
+                listed = await rpc(client, "tools/list", {})
+                called = await rpc(client, "tools/call", {"name": SUBMIT, "arguments": {}})
+    finally:
+        await lifespan.stop()
+
+    assert listed.get("result", {}).get("tools") == []
+    result = called.get("result", {})
+    assert result.get("isError") is True
+    content = result.get("content")
+    assert content is not None and content[0]["text"] == NO_TOOLS

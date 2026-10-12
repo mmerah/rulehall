@@ -1,15 +1,10 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from pathlib import Path
 from random import Random
 
-from rulehall.core.creation import (
-    CreationStep,
-    Picks,
-    find_option,
-    other_than,
-)
-from rulehall.core.decisions import ActionOption, DecisionOption
-from rulehall.core.facts import Fact
+from rulehall.core.creation import CreationStep, Picks, numbered_picks
+from rulehall.core.decisions import ActionOption, Option, find_option, other_than, unique_options
+from rulehall.core.facts import Fact, Resolution
 from rulehall.core.game import (
     AnyCharacter,
     AnyScenario,
@@ -18,12 +13,15 @@ from rulehall.core.game import (
     WorldsmithRequest,
 )
 from rulehall.core.log import Voice
+from rulehall.core.narration import NarratorView
 from rulehall.core.prompt import Sections, section_if
-from rulehall.core.tools import MasterTool, NoArgs, action, tool
+from rulehall.core.tools import NoArgs, ToolSpec, action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
-from rulehall.core.views import NarratorView, Panel
+from rulehall.core.views import Panel
 from rulehall.engines.args import Words
-from rulehall.engines.engine import Joining, RequestHandler, Resolution
+from rulehall.engines.bases.scenes.engine import SceneEngine
+from rulehall.engines.bases.scenes.worldsmith import OPENING
+from rulehall.engines.engine import Joining, RequestHandler
 from rulehall.engines.loner4e.args import (
     Ask,
     ChangeTags,
@@ -39,7 +37,7 @@ from rulehall.engines.loner4e.panels import (
     SHEET_HELP,
     growth_decision,
     living_world_decision,
-    loner_moves,
+    loner_options,
     own_ending_decision,
     proposed_ending_decision,
     scene_panel,
@@ -57,12 +55,16 @@ from rulehall.engines.loner4e.rules import (
     same_question,
 )
 from rulehall.engines.loner4e.world import (
+    DRAMATIC_SCENE_REQUEST,
     ENDING_ASKS_NOTHING,
+    LIVING_WORLD_REQUEST,
+    MEANWHILE_REQUEST,
+    QUIET_SCENE_REQUEST,
     LivingWorldProposal,
-    Loner4eEntity,
     Loner4eGame,
     Loner4eMeanwhileProposal,
     Loner4eNextProposal,
+    Loner4ePerson,
     Loner4eSceneProposal,
     Loner4eWorld,
     OracleRoll,
@@ -82,16 +84,8 @@ from rulehall.engines.loner4e.worldsmith import (
     check_living_world,
     check_meanwhile,
 )
-from rulehall.engines.packs import unique_options
-from rulehall.engines.panels import party_panel
-from rulehall.engines.scenes.engine import SceneEngine
-from rulehall.engines.scenes.worldsmith import OPENING
 from rulehall.engines.sheet import PLAYER_ID
 
-QUIET_SCENE_REQUEST = "quiet"
-DRAMATIC_SCENE_REQUEST = "dramatic"
-MEANWHILE_REQUEST = "meanwhile"
-LIVING_WORLD_REQUEST = "living-world"
 LET_PLAY_DECIDE = "Leave empty to let play decide"
 ELSEWHERE_TITLE = "MET, NOT HERE (use these ids when one of them comes back)"
 TWIST_NOTE = (
@@ -154,15 +148,9 @@ GROWTH = (
     "`change_tags`, or with `drive` for a new nemesis or the concept reworded. Drop with "
     "`change_tags` `lost` any gear on the sheet that the story gave away or lost. Then direct."
 )
-GROWTH_WAITS = (
-    "a new skill or frailty on the protagonist is the growth at the end of the adventure: it is "
-    "written only after the player picks End it; propose the end with `end_adventure`, or tell the "
-    "change in `direct`"
-)
 CONCEPT_GROWS = (
     "the concept changes only in the growth, after the player picks End it; call `direct` now"
 )
-GROWN = "the growth is one new skill or frailty, and it is written; call `direct` now"
 EPILOGUE = "The adventure is over. Tell WHAT HAPPENED as a short epilogue."
 LIVING_WORLD_UNWRITTEN = Fact(
     told=True,
@@ -177,9 +165,9 @@ ARRIVING_QUIET = (
 
 class Loner4eEngine(
     Joining[Loner4eWorld],
-    SceneEngine[Loner4eEntity, Loner4eWorld, Loner4ePack, Loner4eNextProposal],
+    SceneEngine[Loner4ePerson, Loner4eWorld, Loner4ePack, Loner4eNextProposal],
 ):
-    id = EngineId("loner4e")
+    id = rule_set_id = EngineId("loner4e")
     title = "LONER 4E"
     worldsmith_guidance = WORLDSMITH_GUIDANCE
     art_style = "Painterly illustration, muted colours, no text or lettering."
@@ -188,7 +176,7 @@ class Loner4eEngine(
     pack_head_model = Loner4eHead
     pack_body_model = Loner4eBody
     world_model = Loner4eWorld
-    person_model = Loner4eEntity
+    person_model = Loner4ePerson
     opening_model = Loner4eSceneProposal
     next_proposal_model = Loner4eNextProposal
     opening_intent = f"{OPENING} {OPENING_FRAME}"
@@ -204,14 +192,14 @@ class Loner4eEngine(
             LIVING_WORLD_REQUEST: RequestHandler(self.write_living_world, LIVING_WORLD_UNWRITTEN),
         }
 
-    def published(self, state: Loner4eGame, /) -> tuple[MasterTool, ...]:
-        tools = super().published(state)
+    def offered_tools(self, state: Loner4eGame, /) -> tuple[ToolSpec, ...]:
+        tools = super().offered_tools(state)
         if self._spends_luck(state):
             return tools
         return tuple(tool for tool in tools if tool.name != self.spend_luck.__name__)
 
-    def moves(self, state: Loner4eGame, /) -> tuple[ActionOption, ...]:
-        return loner_moves(state.world, played=_played_here(state))
+    def standing_options(self, state: Loner4eGame, /) -> tuple[ActionOption, ...]:
+        return loner_options(state.world, played=_played_here(state))
 
     def allows_text(self, state: Loner4eGame, /) -> bool:
         return not state.world.frame.breather
@@ -237,23 +225,18 @@ class Loner4eEngine(
 
     def lead_panels(self, state: Loner4eGame, /) -> tuple[Panel | None, ...]:
         world = state.world
-        return (
-            sheet_panel(world, self.sheet_help),
-            scene_panel(world),
-            # The sheet help speaks of the player: a companion's luck and goal work otherwise.
-            party_panel(world.party_members(), {}),
-        )
+        return (sheet_panel(world), scene_panel(world))
 
     def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> Loner4eWorld:
         world = super().new_game(scenario, character)
-        world.apply_scene_extras(scenario.opening)
+        world.apply_opening_extras(scenario.opening)
         return world
 
     def install_next(self, draft: Loner4eGame, proposal: Loner4eNextProposal, /) -> list[Fact]:
-        draft.world.apply_scene_extras(proposal)
+        draft.world.apply_next_extras(proposal)
         return super().install_next(draft, proposal)
 
-    def end_turn(self, draft: Loner4eGame, /, *, acted: bool) -> None:  # noqa: ARG002
+    def after_master_turn(self, draft: Loner4eGame, /, *, acted: bool) -> None:  # noqa: ARG002
         draft.world.player_question = ""
         if draft.pending is not None or draft.request is not None:
             return
@@ -390,16 +373,15 @@ class Loner4eEngine(
 
     def build_character(
         self, name: str, brief: str, voice: Voice, pack_id: Slug, picks: Picks
-    ) -> Character[Loner4eEntity]:
-        steps = self.creation_steps(pack_id, picks)
-        by_id = {step.id: step for step in steps}
-
-        def taken(step_id: Slug) -> str:
-            answer = picks.get(step_id, "")
-            chosen = find_option(by_id[step_id].options, answer)
+    ) -> Character[Loner4ePerson]:
+        def taken(step: CreationStep) -> str:
+            answer = picks.get(step.id, "")
+            chosen = find_option(step.options, answer)
             return answer.strip() if chosen is None else chosen.name
 
-        sheet = Loner4eEntity(
+        taken_picks = {step.id: taken(step) for step in self.creation_steps(pack_id, picks)}
+
+        sheet = Loner4ePerson(
             id=PLAYER_ID,
             name=name,
             brief=brief,
@@ -407,9 +389,9 @@ class Loner4eEngine(
             known=True,
             concept=picks.get("concept", ""),
             tags={
-                "skill": [taken(f"skill-{slot}") for slot in (1, 2)],
-                "frailty": [taken("frailty")],
-                "gear": [taken(f"gear-{slot}") for slot in (1, 2)],
+                "skill": list(numbered_picks(taken_picks, "skill")),
+                "frailty": [taken_picks["frailty"]],
+                "gear": list(numbered_picks(taken_picks, "gear")),
             },
             goal=picks.get("goal", ""),
             motive=picks.get("motive", ""),
@@ -456,7 +438,7 @@ class Loner4eEngine(
             return world.frame.change_details(args.gained, args.lost)
         actor, entered = world.here_or_entering(args.actor_id)
         if actor is world.player and args.kind in ("skill", "frailty") and args.gained:
-            _grow(world, args.gained)
+            world.grow(args.gained)
         return [*entered, *actor.change_tags(args.kind, args.gained, args.lost)]
 
     @tool
@@ -616,7 +598,7 @@ class Loner4eEngine(
 
 
 def _invented(
-    step_id: Slug, name: str, options: tuple[DecisionOption, ...], sheet_row: str
+    step_id: Slug, name: str, options: tuple[Option, ...], sheet_row: str
 ) -> CreationStep:
     return CreationStep(
         id=step_id, name=name, options=options, help=SHEET_HELP[sheet_row], allows_text=True
@@ -636,20 +618,12 @@ def _hand_over(draft: Loner4eGame) -> None:
         draft.request = WorldsmithRequest(kind=DRAMATIC_SCENE_REQUEST)
 
 
-def _exchange(draft: Loner4eGame, opponent: Loner4eEntity, outcome: RollOutcome) -> list[Fact]:
+def _exchange(draft: Loner4eGame, opponent: Loner4ePerson, outcome: RollOutcome) -> list[Fact]:
     facts, beaten = draft.world.strike(opponent, outcome)
     if beaten is not None:
         draft.note(DEFEATED.format(name=beaten.name))
         return facts
     return [*facts, Fact(trace=STILL_IN_IT.format(name=opponent.name))]
-
-
-def _grow(world: Loner4eWorld, gained: Sequence[str]) -> None:
-    if not world.end_why:
-        raise Refusal(GROWTH_WAITS)
-    if world.grown or len(gained) > 1:
-        raise Refusal(GROWN)
-    world.grown = True
 
 
 def _dramatic_intent(draft: Loner4eGame) -> str:

@@ -7,14 +7,12 @@ from typing import Self
 
 from pydantic import JsonValue
 
-from rulehall.core.creation import find_option
-from rulehall.core.decisions import Decision, PlayerInput
+from rulehall.core.decisions import Decision, PlayerInput, find_option
 from rulehall.core.facts import NOTHING, Fact, render_traces
 from rulehall.core.game import AnyGame
 from rulehall.core.log import SpokenLine
-from rulehall.core.tools import MasterTool
+from rulehall.core.tools import ToolSpec
 from rulehall.core.validation import Refusal, Slug, decode
-from rulehall.engines.battles import in_battle
 from rulehall.engines.engine import AnyEngine
 
 LOGGER = logging.getLogger(__name__)
@@ -36,7 +34,7 @@ ANSWERED_BY_OPTION = (
     "caused. Do not decide the option again."
 )
 BATTLE_WAIT = "a battle starts once this turn ends: stop here and exit"
-GAME_OVER = "the game is over ({ending}): the player restarts from the page"
+GAME_OVER_FOR_MASTER = "the game is over ({ending}): the player restarts from the page"
 DIRECT = "direct"
 
 
@@ -46,7 +44,7 @@ class Turn:
     draft: AnyGame
     rng: Random
     facts: list[Fact] = field(default_factory=list)
-    facts_carried_from_last_turn: list[Fact] = field(default_factory=list)
+    unnarrated: list[Fact] = field(default_factory=list)
     logged_words: str = ""
     by_option: bool = False
     master_action_text: str = ""
@@ -64,7 +62,7 @@ class Turn:
         played: tuple[Fact, ...] = (),
     ) -> Self:
         turn = cls(engine=engine, draft=state.draft(), rng=deepcopy(rng), facts=list(played))
-        turn.facts_carried_from_last_turn, turn.draft.unnarrated = turn.draft.unnarrated, []
+        turn.unnarrated, turn.draft.unnarrated = turn.draft.unnarrated, []
         consumed, turn.draft.pending = turn.draft.pending, None
         if answer.option_id is None:
             turn._answer_with_words(consumed, answer.text)
@@ -72,7 +70,7 @@ class Turn:
             turn._answer_with_option(consumed, answer.option_id, answer.text)
         turn.master_plays_this_turn = turn.draft.pending is None and turn.draft.request is None
         if turn.master_plays_this_turn:
-            fixed = (*turn.facts_carried_from_last_turn, *played)
+            fixed = (*turn.unnarrated, *played)
             held = [HELD.format(traces=render_traces(fixed))] if fixed else []
             turn.notes, turn.draft.notes = [*held, *turn.draft.notes], []
         return turn
@@ -108,16 +106,14 @@ class Turn:
 
     @property
     def told(self) -> tuple[Fact, ...]:
-        return tuple(
-            fact for fact in (*self.facts_carried_from_last_turn, *self.facts) if fact.told
-        )
+        return tuple(fact for fact in (*self.unnarrated, *self.facts) if fact.told)
 
     @property
     def needs_narration(self) -> bool:
         draft = self.draft
         if draft.pending is not None:
             return False
-        return bool(self.told) or (draft.request is None and not in_battle(self.engine, draft))
+        return bool(self.told) or (draft.request is None and not self.engine.in_battle(draft))
 
     @property
     def nudge(self) -> str:
@@ -130,7 +126,7 @@ class Turn:
             self.direct_fact is not None
             or draft.pending is not None
             or draft.request is not None
-            or in_battle(engine, draft)
+            or engine.in_battle(draft)
             or engine.ending(draft) is not None
         )
 
@@ -149,7 +145,7 @@ class Turn:
 
     def _call_tool(self, name: str, raw: JsonValue) -> str:
         if (ended := self.engine.ending(self.draft)) is not None:
-            raise Refusal(GAME_OVER.format(ending=ended.rstrip(".")))
+            raise Refusal(GAME_OVER_FOR_MASTER.format(ending=ended.rstrip(".")))
         if name == DIRECT and self.direct_fact is not None:
             raise Refusal(DIRECTED_ONCE)
         pending = self.draft.pending
@@ -161,7 +157,7 @@ class Turn:
             )
         if self.draft.request is not None:
             return REQUEST_WAIT
-        if in_battle(self.engine, self.draft):
+        if self.engine.in_battle(self.draft):
             return BATTLE_WAIT
         facts = self._apply(lambda draft, rng: self.engine.call_tool(draft, name, raw, rng))
         if name == DIRECT:
@@ -175,14 +171,14 @@ class Turn:
             lines.append(f"- {RULES_WAIT}")
         return "\n".join(lines) or NOTHING
 
-    def published_tools(self) -> tuple[MasterTool, ...]:
-        return self.engine.published(self.draft)
+    def offered_tools(self) -> tuple[ToolSpec, ...]:
+        return self.engine.offered_tools(self.draft)
 
     def finish(self, lines: tuple[SpokenLine, ...]) -> AnyGame:
         if not self.needs_narration:
             self.draft.unnarrated = list(self.told)
         if self.master_plays_this_turn:
-            self.engine.end_turn(self.draft, acted=bool(self.facts))
+            self.engine.after_master_turn(self.draft, acted=bool(self.facts))
         return self.engine.record(
             self.draft,
             lines,

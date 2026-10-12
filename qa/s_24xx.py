@@ -29,7 +29,7 @@ def body(s: Session) -> None:
     page.goto(GAME)
     wait_idle(page)
     s.check(
-        page.locator(".game-moves button", has_text="Move on").is_visible(),
+        page.locator(".game-options button", has_text="Move on").is_visible(),
         "Move on is not on the page",
     )
     submit(page, "The beacon is lit already.\n!job verb=finish")

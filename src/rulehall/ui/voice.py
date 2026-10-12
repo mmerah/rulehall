@@ -21,7 +21,7 @@ class VoicePlayer:
 
     def hear(self, finished: Sequence[tuple[SpokenLine, int]]) -> None:
         if self.auto_read and finished:
-            self.session.speak_later([line for line, _ in finished])
+            self.session.speaker.speak_later([line for line, _ in finished])
             if not self.queued:
                 self.head_queued_at = monotonic()
             self.queued.extend(finished)
@@ -35,8 +35,8 @@ class VoicePlayer:
         self.queued.append((line, bubble_id))
         self.replay_bubble_id = bubble_id
         self.head_queued_at = monotonic()
-        if self.session.find_clip(line) is None:
-            self.session.speak_later([line])
+        if self.session.speaker.find_clip(line) is None:
+            self.session.speaker.speak_later([line])
         self.drain()
 
     def show_speaking(self, bubble_id: int | None, *, off_screen: bool) -> None:
@@ -61,10 +61,10 @@ class VoicePlayer:
         timeout = self.session.live_settings.current.speech.timeout
         while self.queued:
             line, bubble_id = self.queued[0]
-            clip = self.session.find_clip(line)
+            clip = self.session.speaker.find_clip(line)
             if (
                 clip is None
-                and not self.session.clip_refused(line)
+                and not self.session.speaker.clip_refused(line)
                 and monotonic() - self.head_queued_at <= timeout
             ):
                 self.show_waiting(bubble_id)

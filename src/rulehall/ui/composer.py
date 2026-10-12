@@ -28,7 +28,7 @@ type ComposerLock = Literal["over", "battle", "answer", "choose"] | Role
 type PromptState = Literal["asking", "over"]
 type ChipCell = tuple[str, tuple[ActionOption, ...]]
 
-GAME_OVER = "The game is over. Restart it from the menu."
+GAME_OVER_PLACEHOLDER = "The game is over. Restart it from the menu."
 BATTLE_ON = "A battle is on. Finish it on the battle screen."
 ANSWER_FIRST = "Answer the question above first."
 HEARING_FAILED = failure_notice("The speech was not understood.")
@@ -37,13 +37,13 @@ HEARING_FAILED = failure_notice("The speech was not understood.")
 KEEP_FOCUS = "(e) => e.preventDefault()"
 MIC_ICONS = {True: "sym_r_stop", False: "sym_r_mic"}
 PLACEHOLDERS: dict[ComposerLock, str] = {
-    "over": GAME_OVER,
+    "over": GAME_OVER_PLACEHOLDER,
     "battle": BATTLE_ON,
     "answer": "Type your answer.",
     **{role: f"{name} is working..." for role, (name, _) in ROLE_COPY.items()},
 }
 CLOSED_REASONS: dict[ComposerLock | None, str] = {
-    "over": GAME_OVER,
+    "over": GAME_OVER_PLACEHOLDER,
     "battle": BATTLE_ON,
     "answer": ANSWER_FIRST,
     "choose": ANSWER_FIRST,
@@ -89,8 +89,8 @@ class Composer:
                 self.prompt_icon = ui.icon(PROMPT_ICONS["asking"])
                 self.prompt = ui.label()
             with ui.column().classes("w-full game-composer game-gap-0"):
-                with ui.element("div").classes("game-moves-line") as self.moves_line:
-                    self.chip_row = ui.element("div").classes("game-moves")
+                with ui.element("div").classes("game-options-line") as self.options_line:
+                    self.chip_row = ui.element("div").classes("game-options")
                     self.explain_button = (
                         ui.button(icon=HELP_ICON, on_click=self.toggle_explained, color=None)
                         .props('flat aria-label="Explain the moves" aria-pressed=false')
@@ -139,7 +139,7 @@ class Composer:
         self.lock = composer_lock(now)
         if len(now.log_entries) > len(drawn.log_entries):
             self._clear_spent_draft(now)
-        if self.armed not in self.view.moves:
+        if self.armed not in self.view.standing_options:
             self.armed = None
         if offered(self.view) != offered(drawn.view):
             self._draw_chips()
@@ -156,8 +156,8 @@ class Composer:
         self.set_input(words)
         self.words_input.run_method("focus")
 
-    def arm(self, move: ActionOption | None) -> None:
-        self.armed = move
+    def arm(self, option: ActionOption | None) -> None:
+        self.armed = option
         self._show_armed()
         self.words_input.run_method("focus")
 
@@ -200,12 +200,14 @@ class Composer:
 
     async def submit(self) -> None:
         words = entered_text(self.words_input)
-        move = self.armed or forced_move(self.view)
+        option = self.armed or forced_option(self.view)
         if not words:
-            if move is not None:
-                warn(f"Type your words, then press {move.name}.")
+            if option is not None:
+                warn(f"Type your words, then press {option.name}.")
             return
-        if await self.choose(PlayerInput(option_id=None if move is None else move.id, text=words)):
+        if await self.choose(
+            PlayerInput(option_id=None if option is None else option.id, text=words)
+        ):
             self.set_input()
             self.armed = None
             self._show_armed()
@@ -238,7 +240,7 @@ class Composer:
     async def _hear(self, event: GenericEventArguments) -> None:
         async def transcribe() -> None:
             recording = parse(Recording, event.args)
-            words = await self.session.transcribe(recording.audio, recording.mime)
+            words = await self.session.speaker.transcribe(recording.audio, recording.mime)
             draft = entered_text(self.words_input)
             self.set_input(f"{draft} {words}" if draft else words)
             self.words_input.run_method("focus")
@@ -264,9 +266,9 @@ class Composer:
                     with chip:
                         ui.tooltip(help).classes("game-help-tip")
                 self.chips.append((chip, members))
-        self.moves_line.set_visibility(bool(self.chips))
+        self.options_line.set_visibility(bool(self.chips))
         self.chip_row.classes(
-            add="game-moves-briefed" if any(lines) else "", remove="game-moves-briefed"
+            add="game-options-briefed" if any(lines) else "", remove="game-options-briefed"
         )
         options = offered(self.view)
         self.explain_button.set_visibility(any(option.refusal or option.help for option in options))
@@ -286,7 +288,7 @@ class Composer:
         view, lock = self.view, self.lock
         self.acting = not now.held_elsewhere and lock in (None, "answer", "choose")
         worded = lock != "choose" and (
-            view.allows_text or any(move.needs_words for move in view.moves)
+            view.allows_text or any(option.needs_words for option in view.standing_options)
         )
         self.input_row.set_visibility(worded)
         for widget in self.entry_controls:
@@ -309,10 +311,10 @@ class Composer:
         self._show_chips()
 
     def _show_armed(self) -> None:
-        forced = forced_move(self.view)
-        move = self.armed or forced
+        forced = forced_option(self.view)
+        option = self.armed or forced
         for chip, members in self.chips:
-            chip.classes(add="game-choice-on" if move in members else "", remove="game-choice-on")
+            chip.classes(add="game-choice-on" if option in members else "", remove="game-choice-on")
         if self.lock not in (None, "choose"):
             placeholder = PLACEHOLDERS[self.lock]
         elif self.armed is not None and forced is None:
@@ -320,30 +322,30 @@ class Composer:
         else:
             placeholder = forced.help if forced and forced.help else self.view.hint
         self.words_input.props["placeholder"] = placeholder
-        self.send_button.set_text("" if move is None else move.name)
-        if move is None:
+        self.send_button.set_text("" if option is None else option.name)
+        if option is None:
             self.send_button.props("round").classes(remove="game-send-named")
         else:
             self.send_button.props(remove="round").classes("game-send-named")
 
 
 def offered(view: PlayerView) -> tuple[ActionOption, ...]:
-    return view.decision.options if view.decision is not None else view.moves
+    return view.decision.options if view.decision is not None else view.standing_options
 
 
 def chip_cells(view: PlayerView) -> list[ChipCell]:
-    """A decision's options each get a chip; moves that share a group share one chip."""
+    """A decision's options each get a chip; standing options that share a group share one chip."""
     if view.decision is not None:
         return [(option.name, (option,)) for option in view.decision.options]
     cells: dict[str, tuple[str, list[ActionOption]]] = {}
-    for move in view.moves:
-        key = f"group:{move.group}" if move.group else move.id
-        cells.setdefault(key, (move.group or move.name, []))[1].append(move)
+    for option in view.standing_options:
+        key = f"group:{option.group}" if option.group else option.id
+        cells.setdefault(key, (option.group or option.name, []))[1].append(option)
     return [(name, tuple(members)) for name, members in cells.values()]
 
 
-def forced_move(view: PlayerView) -> ActionOption | None:
-    worded = [move for move in view.moves if move.needs_words]
+def forced_option(view: PlayerView) -> ActionOption | None:
+    worded = [option for option in view.standing_options if option.needs_words]
     return worded[0] if not view.allows_text and len(worded) == 1 else None
 
 

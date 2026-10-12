@@ -5,8 +5,8 @@ from support.table import change, refused
 
 from rulehall.engines.pokemon.battle.models import BattleResult
 from rulehall.engines.pokemon.battle.simulator import end_battle
+from rulehall.engines.pokemon.journey.mon import Mon
 from rulehall.engines.pokemon.journey.panels import pending_decision
-from rulehall.engines.pokemon.journey.sheet import Mon
 from rulehall.engines.pokemon.journey.world import JourneyGame
 
 

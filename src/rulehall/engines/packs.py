@@ -7,10 +7,10 @@ from typing import ClassVar, Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.decisions import DecisionOption
+from rulehall.core.decisions import Option
 from rulehall.core.prompt import Sections, section_if, sections
-from rulehall.core.stores import read_model
-from rulehall.core.validation import EngineId, Frozen, Refusal, Slug, content_id
+from rulehall.core.stores import read_model, write_model
+from rulehall.core.validation import EngineId, Frozen, Refusal, Slug, content_id, slug
 
 LOGGER = logging.getLogger(__name__)
 
@@ -167,11 +167,26 @@ class PackBody(Frozen):
         return self
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class PackSet[K: Pack]:
     engine_id: EngineId
+    player_dir: Path
     installed: dict[Slug, K]
-    written_ids: frozenset[Slug]
+    written_ids: set[Slug]
+
+    def new_id(self, name: str) -> Slug:
+        # Every stem on disk, slug or not: a new id must not overwrite a file the engine skipped.
+        return slug(
+            name, (*self.installed, *(path.stem for path in self.player_dir.glob("*.json")))
+        )
+
+    def path(self, pack_id: Slug) -> Path:
+        return self.player_dir / f"{pack_id}.json"
+
+    def write(self, pack_id: Slug, pack: K) -> None:
+        write_model(self.path(pack_id), pack)
+        self.installed[pack_id] = pack
+        self.written_ids.add(pack_id)
 
     def srd(self) -> K:
         found = self.installed.get(SRD_PACK)
@@ -194,13 +209,13 @@ class PackSet[K: Pack]:
         srd = self.srd()
         return (srd,) if pack_id == SRD_PACK else (srd, self.require_pack(pack_id))
 
-    def options(self) -> tuple[DecisionOption, ...]:
+    def options(self) -> tuple[Option, ...]:
         rest = tuple(
-            DecisionOption(id=pack_id, name=pack.name)
+            Option(id=pack_id, name=pack.name)
             for pack_id, pack in self.installed.items()
             if pack_id != SRD_PACK
         )
-        return (DecisionOption(id=SRD_PACK, name=self.srd().name), *rest)
+        return (Option(id=SRD_PACK, name=self.srd().name), *rest)
 
     def guidance(
         self,
@@ -224,13 +239,6 @@ def cast_entry_line(name: str, brief: str, *fields: tuple[str, str]) -> str:
     return "; ".join((f"{name} — {brief}", *(f"{key}: {value}" for key, value in fields if value)))
 
 
-def unique_options[T: DecisionOption](rows: Iterable[T]) -> tuple[T, ...]:
-    offered: dict[Slug, T] = {}
-    for row in rows:
-        offered.setdefault(row.id, row)
-    return tuple(offered.values())
-
-
 def bullets(title: str, lines: Iterable[str]) -> Sections:
     return section_if(title, "\n".join(f"- {line}" for line in lines))
 
@@ -249,13 +257,13 @@ def check_items(what: str, values: Iterable[str]) -> None:
 
 
 def read_packs[K: Pack](
-    engine_id: EngineId, shipped: Path, written: Path, model: type[K]
+    engine_id: EngineId, shipped: Path, player_dir: Path, model: type[K]
 ) -> PackSet[K]:
     shipped_packs = {
         content_id(path.stem): read_model(path, model) for path in sorted(shipped.glob("*.json"))
     }
     written_packs: dict[Slug, K] = {}
-    for path in sorted(written.glob("*.json")):
+    for path in sorted(player_dir.glob("*.json")):
         try:
             pack_id = content_id(path.stem)
             pack = read_model(path, model)
@@ -268,4 +276,4 @@ def read_packs[K: Pack](
             )
             continue
         written_packs[pack_id] = pack
-    return PackSet(engine_id, {**shipped_packs, **written_packs}, frozenset(written_packs))
+    return PackSet(engine_id, player_dir, {**shipped_packs, **written_packs}, set(written_packs))

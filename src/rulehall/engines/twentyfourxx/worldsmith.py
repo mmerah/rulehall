@@ -63,7 +63,7 @@ FLOWN = (
 
 def check_newcomer(proposal: NewcomerProposal, world: TwentyFourXXWorld) -> None:
     heard = world.model_copy(deep=True)
-    heard.hear(proposal.name, proposal.brief)
+    heard.meet_people_named(proposal.name, proposal.brief)
     heard.refuse_unmet_names(proposal.name, proposal.brief)
     if any(proposal.name.casefold() == entry.name.casefold() for entry in world.cast.values()):
         raise Refusal(f"{proposal.name!r} is already in the cast: name a new operator")

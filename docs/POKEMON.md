@@ -1,6 +1,6 @@
 # Pokemon
 
-Pokemon is one door with two modes. Journey is a Pokemon journey played as a tabletop RPG; Champions is a competitive circuit season, described under Champions mode below. This part and the rules up to Champions mode are the journey.
+Pokemon is one rule set with two modes. Journey is a Pokemon journey played as a tabletop RPG; Champions is a competitive circuit season, described under Champions mode below. This part and the rules up to Champions mode are the journey.
 
 A Pokemon journey played as a tabletop RPG. No official Pokemon tabletop game exists, so this rule set is our own: a light d20 layer for the trainer, and the real battle rules for the fights. The master runs towns, routes, people and trainer checks on a map. When a fight starts, the fight runs in the Pokemon Showdown simulator, and the player picks moves in Showdown's battle view.
 
@@ -49,16 +49,9 @@ Only the pack's species live in the region, and a Pokemon evolves only into a sp
 
 ## The tools
 
-The map tools of Tunnel Goons stay: `move`, `move_item`, `unlock_way`, `meanwhile`, `reveal`, `kill`, `join_party`, `leave_party` and `direct`. A locked way can be a Cut tree or a door the story opens. `move` also places the rival after a badge. While the rival waits at a place, `move` refuses every way but the way back; before the first move it refuses every way. `kill` and `join_party` refuse a key trainer.
+The master's tools are the `@tool` methods of `src/rulehall/engines/pokemon/journey/engine.py` and `src/rulehall/engines/pokemon/champions/engine.py`, and of their bases. Their docstrings are exactly what the model reads.
 
-- `check`: a d20 trainer check, with one team Pokemon as a helper. A success can earn an edge for the next battle here.
-- `start_battle`: fight a trainer who is here, with an optional weather and terrain from the story, alone or as a tag battle beside a party member. It ends the master's turn. The rival battles once before the first badge, then once after each badge.
-- `start_wild_battle`: fight a species from the wild table of this place, or a random one, with the same optional weather and terrain. In a Nuzlocke the table always decides. The Wild here panel does the same without the master: the player sees the wild table and picks a species or searches the grass, and in a Nuzlocke only the search.
-- `heal_team`: heal the team and the box, only in a town, at its Pokemon Center.
-- `nickname`: name a team or box Pokemon.
-- `buy`, `gain_item`, `gain_money`: the bag and the wallet. `buy` works only in a town, at its mart.
-- `use_item`: a potion, a revive, a Rare Candy, a stone or another evolution item.
-- `swap_mon`: swap a team Pokemon with a box Pokemon.
+## Player actions
 
 The player also acts without the master, from the Team tab, the Wild here panel and decisions: hold an item, teach a TM, relearn a move, send a Pokemon to the box or back, set the lead, learn or forget a move, raise a skill after a badge, and pick an evolution. Learning or forgetting a move and raising a skill resolve at once, with no master or narrator turn. An evolution stays narrated.
 
@@ -94,9 +87,9 @@ Left out: a post-game after the boss falls, the race to catch the legendary, Ter
 
 ## Champions mode
 
-Champions is the second mode of the Pokemon door, beside Journey. It is a season of VGC doubles events at level 50, in the format of the pinned Showdown (`gen9championsvgc2026regmc` now; `champions/data.json` names it in `source`). Its engine id is `pokemon-champions`; the journey keeps `pokemon`, so old saves stay valid. The master narrates the circuit, the player builds six Pokemon, and every match is a one-game doubles battle in Showdown. Journey rules do not apply: no badges, gyms, EXP, wild battles, balls, Nuzlocke or evil team.
+Champions is the second mode of the Pokemon rule set, beside Journey. It is a season of VGC doubles events at level 50, in the format of the pinned Showdown (`gen9championsvgc2026regmc` now; `champions/data.json` names it in `source`). Its engine id is `pokemon-champions`; the journey keeps `pokemon`, so old saves stay valid. The master narrates the circuit, the player builds six Pokemon, and every match is a one-game doubles battle in Showdown. Journey rules do not apply: no badges, gyms, EXP, wild battles, balls, Nuzlocke or evil team.
 
-The player picks the mode on the Pokemon door and three things at creation: the roster, the starting team and the look. The map is the Tunnel Goons map machinery. Each map is the host city of one event, with its venue, and `extend_map` moves the story to the next city and event. While an event is under way, `extend_map` and the player's extend action refuse.
+The player picks the mode on the Pokemon tile and three things at creation: the roster, the starting team and the look. The map is the shared map base. Each map is the host city of one event, with its venue, and `extend_map` moves the story to the next city and event. While an event is under way, `extend_map` and the player's extend action refuse.
 
 ### The season
 
@@ -146,16 +139,15 @@ The player picks the mode on the Pokemon door and three things at creation: the 
 
 - The banner under the story and the Team tab open the team builder: a rail of the six slots, the editor of the chosen slot and an advice column. On a narrow screen the advice folds into a Tips tab, and on a phone the overview is a grid of the six and a slot opens full screen with Set, Moves, Points and Tips tabs.
 - A slot picks its species, ability, item, nature and four moves from searchable lists with filters and sort orders: usage, name, Speed and base stat total for species; type, category, common and spread moves. The lists grey out what the rules refuse, with the reason: a species already on another slot, an item another slot holds, a Mega Stone for another species, a species not owned in a story roster. A slot also offers its presets from the Smogon usage, and the most common items and moves as chips.
-- The Stat Points editor has a stepper, a slider and a number box per stat, with the final stat at level 50, the nature's mark and, for Speed, the nearest benchmarks among the most used Pokemon. Quick spreads fill all six at once: the most used spreads of the species, then common shapes such as max Attack and Speed or Trick Room.
+- The Stat Points editor has a stepper per stat, with the final stat at level 50 and the nature's mark. Quick spreads fill all six at once: the most used spreads of the species, then common shapes such as max Attack and Speed or Trick Room.
 - Edits go to a pending team in the game state, not to the team. The pending team survives a reload and leaving the page; the banner says when it holds unsaved changes. Save team checks the whole team and saves it, or points at the first slot with a problem. Discard drops the pending team after a confirm. A quick spread, a preset, a loaded team or a fix shows an Undo.
 - While the team is registered, the builder is read-only and says why; Export still works, and Save team refuses. Copy to a new draft opens an editable pending team from the registered team; it saves once the event ends, and Discard closes it.
 - Import takes a Showdown paste in the Champions form (SP in the `EVs:` line, `Level: 50`, no Tera) and previews the six before it replaces the pending team. A set with errors still comes in and shows them on its slot; values that look like EVs, above 32 or past 66 in total, come in as 0 SP with that error. IVs and Tera are ignored with a note. Export writes the team in the same form.
 - Start from… loads one of the archetype teams or one of the real tournament teams, filtered by archetype, pool and species. In a story roster a team with species the player does not own is refused, naming them.
 - The advice reads the pending team: the clauses, empty slots, speed control, Fake Out and Intimidate, a type that hits three or more Pokemon with no answer, the Pokemon that most often beat the team, more than one Mega Stone, the team's archetype, and a slot that fits the others poorly. Some come with a Fix: fill the empty slots with suggested teammates, add a speed control move, swap in a better preset.
-- Simple or Expert is the setting Settings > pokemon > expert team builder, and the switch in the builder's head. Simple hides the sliders, number boxes and hints, and a new species takes its top preset. Expert shows everything.
-- Keys: 1 to 6 pick a slot, s, i, a, n and m open the species, item, ability, nature and move lists, Ctrl + S saves. "?" shows every key.
+- A new species takes its top preset. Each slot card's menu moves the slot up or down or clears it.
 
-The Pokemon settings sit in their own section, Settings > pokemon: the battle sprites, the battle music, the opponent (scripted or the model) and the expert team builder.
+The Pokemon settings sit in their own section, Settings > pokemon: the battle sprites and the opponent (scripted or the model).
 
 ### The opponents
 
@@ -185,7 +177,7 @@ Left out, and not yet: scouting key trainers or the rival before registration, t
 
 ## Where the rules live
 
-The shared base is `src/rulehall/engines/pokemon/`: the stat, type, nature and item rules in `rules.py`, the door's id, title and art style in `door.py`, the dex and its lookups in `dex.py`, the rival ledger with its section, the rival lookup, the rival and key-trainer checks of the worldsmith and the trainer field descriptions both modes share in `trainers.py`, the sprites and colours in `sprites.py`, the battle module in `battle/` (the driver, the choices, the opponent role, team preview and Mega, with the view models of the battle screen in `views.py`), and the Node side in `showdown/`.
+The code both modes share is in `src/rulehall/engines/pokemon/`: the stat, type, nature and item rules in `rules.py`, the base both modes extend, with the rule set's id, title, art style and battle support, in `engine.py`, the dex and its lookups in `dex.py`, the rival ledger with its section, the rival lookup, the rival and key-trainer checks of the worldsmith and the trainer field descriptions both modes share in `trainers.py`, the sprites and colours in `sprites.py`, the battle module in `battle/` (the driver, the choices, the opponent role, team preview and Mega, with the view models of the battle screen in `views.py`), and the Node side in `showdown/`.
 
 `src/rulehall/engines/pokemon/journey/`: the journey engine (`JourneyEngine`, `JourneyWorld`, `JourneyGame`, `JourneyPack`, `JourneyTrainer` and its `JourneySheet`), with the master's instructions in `rules.md`, the journey numbers in `rules.py` and the packs in `packs/`.
 
@@ -193,4 +185,4 @@ The shared base is `src/rulehall/engines/pokemon/`: the stat, type, nature and i
 
 The tests mirror this layout: `tests/pokemon/battle/` (with the recorded battles in `fixtures/`), `tests/pokemon/journey/`, `tests/pokemon/champions/` and `tests/screens/pokemon/`.
 
-The map machinery is `RoomEngine` in `src/rulehall/engines/rooms/`.
+The map machinery is `MapEngine` in `src/rulehall/engines/bases/maps/`.

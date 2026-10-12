@@ -4,11 +4,11 @@ from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.facts import Fact, roll
+from rulehall.core.facts import Fact, Resolution, roll
 from rulehall.core.game import Game
 from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, check_unique, refuse
 from rulehall.core.views import Rows
-from rulehall.engines.engine import Resolution
+from rulehall.engines.bases.maps.world import OFF_MAP_ID, MapProposal, MapWorld, RegionProposal
 from rulehall.engines.pokemon.battle.models import (
     DOUBLE_TEAM_MIN,
     LEVEL_MAX,
@@ -17,17 +17,21 @@ from rulehall.engines.pokemon.battle.models import (
     Ball,
     Battle,
     BattleBackground,
+    BattleFormat,
     BattleMusic,
     Battler,
     BattleResult,
     BattleSetup,
     Edge,
+    Policy,
     Terrain,
     Throw,
     Weather,
 )
 from rulehall.engines.pokemon.battle.world import BATTLE_OVER
-from rulehall.engines.pokemon.dex import ITEMS, dex
+from rulehall.engines.pokemon.dex import dex
+from rulehall.engines.pokemon.journey.items import ITEMS, bag_name, item_of
+from rulehall.engines.pokemon.journey.mon import Mon, built_team
 from rulehall.engines.pokemon.journey.rules import (
     ACE_BELOW_TABLE,
     BELOW_ACE,
@@ -41,7 +45,6 @@ from rulehall.engines.pokemon.journey.rules import (
     built_iv,
     catch_rate,
     evolved,
-    item_of,
     rescaled,
     rival_ev,
 )
@@ -49,14 +52,13 @@ from rulehall.engines.pokemon.journey.scheme import (
     SCHEME_STAGES,
     EvilTeam,
     Operation,
-    Outcome,
+    OperationOutcome,
     Scheme,
     SchemeDue,
 )
-from rulehall.engines.pokemon.journey.sheet import JourneySheet, JourneyTrainer, Mon, built_team
+from rulehall.engines.pokemon.journey.sheet import JourneySheet, JourneyTrainer
 from rulehall.engines.pokemon.rules import battle_seed, check_species, is_legendary
 from rulehall.engines.pokemon.trainers import RivalLedger, check_one_rival, find_rival
-from rulehall.engines.rooms.world import OFF_MAP_ID, MapProposal, RegionProposal, RoomWorld
 
 WILD = "The wild table of each new place, keyed by place id. A town or a building has no table."
 RIVAL_WAITS = (
@@ -178,7 +180,7 @@ class RivalTeam(Mutable):
         )
 
 
-class JourneyWorld(RoomWorld[JourneyTrainer]):
+class JourneyWorld(MapWorld[JourneyTrainer]):
     species_ids: tuple[Slug, ...] = Field(min_length=1)
     wild: dict[Slug, tuple[WildSlot, ...]] = Field(default_factory=dict)
     battle: Battle | None = None
@@ -312,7 +314,7 @@ class JourneyWorld(RoomWorld[JourneyTrainer]):
         self.evil_team.scheme = opening.scheme
         self.open_operation(opening.operation)
 
-    def apply_region_extras(self, region: JourneyRegionProposal) -> None:
+    def apply_next_extras(self, region: JourneyRegionProposal) -> None:
         self._add_map_extras(region)
         if region.boss_id is not None:
             self.evil_team.boss_id = region.boss_id
@@ -330,95 +332,6 @@ class JourneyWorld(RoomWorld[JourneyTrainer]):
     def drop_edge(self) -> None:
         self.pending_edge = None
 
-    def setup_battle(
-        self,
-        trainer: JourneyTrainer | None,
-        foes: tuple[Battler, ...],
-        rng: Random,
-        *,
-        weather: Weather | None,
-        terrain: Terrain | None,
-        companion: JourneyTrainer | None,
-        legendary_id: Slug | None,
-    ) -> None:
-        player = self.player
-        sheet = self.player_sheet
-        able = sheet.able()
-        if not able:
-            raise Refusal("no team Pokemon can fight: heal the team first")
-        if trainer is not None and companion is not None and len(foes) < DOUBLE_TEAM_MIN:
-            raise Refusal(
-                f"{trainer.name} has {len(foes)} Pokemon; a tag battle needs {DOUBLE_TEAM_MIN}"
-            )
-        alone = companion is None
-        if trainer is not None and trainer.double and alone and len(able) < DOUBLE_TEAM_MIN:
-            raise Refusal(
-                f"{player.name} needs {DOUBLE_TEAM_MIN} Pokemon that can fight: "
-                f"{trainer.name} battles two-on-two"
-            )
-        here = self.current.id
-        first_here = here not in self.encountered_place_ids
-        legendary = legendary_id is not None
-        catchable = trainer is None and (legendary or first_here or sheet.challenge != "nuzlocke")
-        balls = (
-            tuple(
-                Ball(item_id=item_id, name=item_of(item_id).name, count=count)
-                for item_id, count in sheet.bag.items()
-                if item_of(item_id).kind == "ball"
-            )
-            if catchable
-            else ()
-        )
-        if trainer is None and first_here and not legendary:
-            self.encountered_place_ids.append(here)
-        edge = self.pending_edge
-        self.drop_edge()
-        setup = BattleSetup(
-            policy="random"
-            if trainer is None
-            else "model"
-            if trainer.is_key(self.evil_team.key_ids())
-            else "scripted",
-            foe_style="" if trainer is None else trainer.style,
-            foe_id=None if trainer is None else trainer.id,
-            player_name=player.name,
-            foe_name=f"Wild {foes[0].name}" if trainer is None else trainer.name,
-            player_avatar_id=player.avatar_id,
-            foe_avatar_id=None if trainer is None else trainer.avatar_id,
-            seed=battle_seed(rng),
-            battle_background=self.battle_background_of(here),
-            battle_music=self._battle_music_of(trainer),
-            team=tuple(mon.battler() for mon in able),
-            foes=foes,
-            balls=balls,
-            edge=None if trainer is not None and edge == "bait" else edge,
-            weather=weather,
-            terrain=terrain,
-            format_id="doubles"
-            if trainer is not None and (trainer.double or companion is not None)
-            else "singles",
-            ally=None
-            if companion is None
-            else Ally(
-                name=companion.name,
-                style=companion.style,
-                avatar_id=companion.avatar_id,
-                team=tuple(mon.battler() for mon in self.trainer_team(companion, rng)),
-            ),
-        )
-        self.battle = Battle(setup=setup, legendary_id=legendary_id)
-
-    def _battle_music_of(self, trainer: JourneyTrainer | None) -> BattleMusic:
-        if trainer is None:
-            return "bw-trainer"
-        if trainer.rival:
-            return "bw-rival"
-        if trainer.badge:
-            return "bw2-kanto-gym-leader"
-        if trainer.id in self.evil_team.key_ids():
-            return "spl-elite4"
-        return "bw-trainer"
-
     def start_wild_battle(
         self,
         species_id: Slug | None,
@@ -431,25 +344,86 @@ class JourneyWorld(RoomWorld[JourneyTrainer]):
         row = rng.choices(rows, weights=[row.weight for row in rows])[0]
         level = rng.randint(row.lowest, row.highest)
         foe = Mon.new(row.species_id, level, rng, self.player_sheet.mon_ids())
-        self.setup_battle(
+        team = self._able_team()
+        here = self.current.id
+        first_here = here not in self.encountered_place_ids
+        catchable = first_here or self.player_sheet.challenge != "nuzlocke"
+        if first_here:
+            self.encountered_place_ids.append(here)
+        self._open_battle(
             None,
+            team,
             (foe.battler(),),
             rng,
+            policy="random",
+            format_id="singles",
+            balls=self._balls() if catchable else (),
+            edge=self.pending_edge,
             weather=weather,
             terrain=terrain,
-            companion=None,
-            legendary_id=None,
         )
         return [self.player.card_fact(f"A wild {foe.species_name} appears")]
 
-    def require_companion(self, foe: JourneyTrainer) -> JourneyTrainer:
-        companion = next(
-            (member for member in self.party_members() if member.roster and member.id != foe.id),
+    def start_legendary_battle(
+        self,
+        person: JourneyTrainer,
+        legendary_id: Slug,
+        rng: Random,
+        *,
+        weather: Weather | None,
+        terrain: Terrain | None,
+    ) -> list[Fact]:
+        sheet = self.player_sheet
+        foe = Mon.new(legendary_id, sheet.table_level(), rng, sheet.mon_ids())
+        self._open_battle(
             None,
+            self._able_team(),
+            (foe.battler(),),
+            rng,
+            policy="random",
+            format_id="singles",
+            balls=self._balls(),
+            edge=self.pending_edge,
+            weather=weather,
+            terrain=terrain,
+            legendary_person_id=person.id,
         )
-        if companion is None:
-            raise Refusal("no party member has a team to fight beside the player")
-        return companion
+        return [person.card_fact(f"The legendary {foe.species_name} appears")]
+
+    def start_trainer_battle(
+        self,
+        trainer: JourneyTrainer,
+        rng: Random,
+        *,
+        tag: bool,
+        weather: Weather | None,
+        terrain: Terrain | None,
+    ) -> list[Fact]:
+        ally = self._require_ally(trainer) if tag else None
+        foes = tuple(mon.battler() for mon in self.trainer_team(trainer, rng))
+        team = self._able_team()
+        if ally is not None and len(foes) < DOUBLE_TEAM_MIN:
+            raise Refusal(
+                f"{trainer.name} has {len(foes)} Pokemon; a tag battle needs {DOUBLE_TEAM_MIN}"
+            )
+        if trainer.double and ally is None and len(team) < DOUBLE_TEAM_MIN:
+            raise Refusal(
+                f"{self.player.name} needs {DOUBLE_TEAM_MIN} Pokemon that can fight: "
+                f"{trainer.name} battles two-on-two"
+            )
+        self._open_battle(
+            trainer,
+            team,
+            foes,
+            rng,
+            policy="model" if trainer.is_key(self.evil_team.key_ids()) else "scripted",
+            format_id="doubles" if trainer.double or ally is not None else "singles",
+            edge=None if self.pending_edge == "bait" else self.pending_edge,
+            weather=weather,
+            terrain=terrain,
+            ally=ally,
+        )
+        return [trainer.card_fact(_challenge_line(trainer.name, foes))]
 
     def player_card_fact(self, line: str) -> Fact:
         return self.player.card_fact(line)
@@ -463,9 +437,10 @@ class JourneyWorld(RoomWorld[JourneyTrainer]):
             raise Refusal(f"{ball_id!r} is no ball")
         self.player_sheet.take(ball_id)
         rate = catch_rate(foe, ball.catch_bonus, baited=battle.setup.edge == "bait")
-        rolled = roll((100,), f"{ball.name} at {foe.name}", rng, label="d100")
+        ball_name = dex().item_name(ball_id)
+        rolled = roll((100,), f"{ball_name} at {foe.name}", rng, label="d100")
         success = rolled.face == 1 or rolled.face <= rate
-        line = f"{ball.name} at {foe.name} — d100 {rolled.face} vs {rate} → " + (
+        line = f"{ball_name} at {foe.name} — d100 {rolled.face} vs {rate} → " + (
             "caught" if success else "it breaks free"
         )
         throw = Throw(
@@ -584,9 +559,106 @@ class JourneyWorld(RoomWorld[JourneyTrainer]):
         battle = self.battle
         assert battle is not None
         setup = battle.setup
+        sheet = self.player_sheet
+        facts = [*(throw.fact for throw in battle.throws), *self._settle_team(setup, result)]
+        notes: list[str] = []
+        if battle.legendary_person_id is not None:
+            facts += self._settle_legendary(self.npcs[battle.legendary_person_id], result)
+        if setup.foe_id is not None:
+            trainer = self.npcs[setup.foe_id]
+            badges = len(sheet.badges)
+            facts += self._settle_trainer(trainer, setup, result)
+            moved, notes = self._move_scheme(trainer, result, badged=len(sheet.badges) > badges)
+            facts += moved
+        if sheet.challenge == "nuzlocke":
+            facts += self._bury(setup)
+        else:
+            facts += self._settle_blackout(result)
+        self.battle = None
+        cue = BOSS_BEATEN if self.evil_team.boss_beaten else BATTLE_OVER
+        return Resolution(tuple(facts), cue), notes
+
+    def _able_team(self) -> tuple[Battler, ...]:
+        able = self.player_sheet.able()
+        if not able:
+            raise Refusal("no team Pokemon can fight: heal the team first")
+        return tuple(mon.battler() for mon in able)
+
+    def _balls(self) -> tuple[Ball, ...]:
+        return tuple(
+            Ball(item_id=item_id, name=bag_name(item_id), count=count)
+            for item_id, count in self.player_sheet.bag.items()
+            if item_of(item_id).kind == "ball"
+        )
+
+    def _open_battle(
+        self,
+        trainer: JourneyTrainer | None,
+        team: tuple[Battler, ...],
+        foes: tuple[Battler, ...],
+        rng: Random,
+        *,
+        policy: Policy,
+        format_id: BattleFormat,
+        edge: Edge | None,
+        weather: Weather | None,
+        terrain: Terrain | None,
+        balls: tuple[Ball, ...] = (),
+        ally: JourneyTrainer | None = None,
+        legendary_person_id: Slug | None = None,
+    ) -> None:
+        player = self.player
+        self.drop_edge()
+        setup = BattleSetup(
+            policy=policy,
+            foe_style="" if trainer is None else trainer.style,
+            foe_id=None if trainer is None else trainer.id,
+            player_name=player.name,
+            foe_name=f"Wild {foes[0].name}" if trainer is None else trainer.name,
+            player_avatar_id=player.avatar_id,
+            foe_avatar_id=None if trainer is None else trainer.avatar_id,
+            seed=battle_seed(rng),
+            battle_background=self.battle_background_of(self.current.id),
+            battle_music=self._battle_music_of(trainer),
+            team=team,
+            foes=foes,
+            balls=balls,
+            edge=edge,
+            weather=weather,
+            terrain=terrain,
+            format_id=format_id,
+            # After the seed: the ally's team draws from rng, and the seed keeps its place.
+            ally=None if ally is None else self._ally_of(ally, rng),
+        )
+        self.battle = Battle(setup=setup, legendary_person_id=legendary_person_id)
+
+    def _require_ally(self, foe: JourneyTrainer) -> JourneyTrainer:
+        ally = next(
+            (member for member in self.party_members() if member.roster and member.id != foe.id),
+            None,
+        )
+        if ally is None:
+            raise Refusal("no party member has a team to fight beside the player")
+        return ally
+
+    def _ally_of(self, ally: JourneyTrainer, rng: Random) -> Ally:
+        team = tuple(mon.battler() for mon in self.trainer_team(ally, rng))
+        return Ally(name=ally.name, style=ally.style, avatar_id=ally.avatar_id, team=team)
+
+    def _battle_music_of(self, trainer: JourneyTrainer | None) -> BattleMusic:
+        if trainer is None:
+            return "bw-trainer"
+        if trainer.rival:
+            return "bw-rival"
+        if trainer.badge:
+            return "bw2-kanto-gym-leader"
+        if trainer.id in self.evil_team.key_ids():
+            return "spl-elite4"
+        return "bw-trainer"
+
+    def _settle_team(self, setup: BattleSetup, result: BattleResult) -> list[Fact]:
         player = self.player
         sheet = self.player_sheet
-        facts = [throw.fact for throw in battle.throws]
         for battler in result.team:
             sheet.require_mon(battler.mon_id).apply(battler)
         caught = result.caught
@@ -597,6 +669,7 @@ class JourneyWorld(RoomWorld[JourneyTrainer]):
                 Mon.from_battler(caught, f"caught at {self.current.name} at L{caught.level}")
             )
         )
+        facts: list[Fact] = []
         if not setup.wild and result.sent_out_foes:
             facts.append(player.fact(_sent_out_line(setup, result)))
         facts += [player.fact(highlight) for highlight in result.highlights]
@@ -615,25 +688,16 @@ class JourneyWorld(RoomWorld[JourneyTrainer]):
             if clipped:
                 facts.append(player.card_fact(f"{mon.name} is at the level cap (L{cap})"))
             facts += player.grow(mon, reached, self.species_ids)
-        notes: list[str] = []
-        if battle.legendary_id is not None:
-            facts += self._settle_legendary(self.npcs[battle.legendary_id], result)
-        if setup.foe_id is not None:
-            trainer = self.npcs[setup.foe_id]
-            badges = len(sheet.badges)
-            facts += self._settle_trainer(trainer, setup, result)
-            moved, notes = self._move_scheme(trainer, result, badged=len(sheet.badges) > badges)
-            facts += moved
-        if sheet.challenge == "nuzlocke":
-            facts += self._bury(setup)
-        elif result.outcome != "won" and all(mon.fainted for mon in sheet.team):
-            lost = sheet.money // 2
-            sheet.money -= lost
-            sheet.heal_team()
-            facts.append(player.card_fact(f"You blacked out. -₽{lost}. Your team is healed."))
-        self.battle = None
-        cue = BOSS_BEATEN if self.evil_team.boss_beaten else BATTLE_OVER
-        return Resolution(tuple(facts), cue), notes
+        return facts
+
+    def _settle_blackout(self, result: BattleResult) -> list[Fact]:
+        sheet = self.player_sheet
+        if result.outcome == "won" or not all(mon.fainted for mon in sheet.team):
+            return []
+        lost = sheet.money // 2
+        sheet.money -= lost
+        sheet.heal_team()
+        return [self.player.card_fact(f"You blacked out. -₽{lost}. Your team is healed.")]
 
     def _settle_trainer(
         self, trainer: JourneyTrainer, setup: BattleSetup, result: BattleResult
@@ -691,7 +755,7 @@ class JourneyWorld(RoomWorld[JourneyTrainer]):
         return [], []
 
     def _end_operation(
-        self, operation: Operation, outcome: Outcome
+        self, operation: Operation, outcome: OperationOutcome
     ) -> tuple[list[Fact], list[str]]:
         stage_text = self.evil_team.record_outcome(outcome)
         headline = (FOILED if outcome == "foiled" else SUCCEEDED).format(
@@ -738,18 +802,18 @@ class JourneyWorld(RoomWorld[JourneyTrainer]):
 JourneyGame = Game[JourneyWorld]
 
 
-def challenge_line(trainer_name: str, foes: Sequence[Battler]) -> str:
-    team = _listed([f"{foe.species_name} (L{foe.level})" for foe in foes])
-    # The foe side always picks `team 1` at team preview, so the first foe leads.
-    return f"{trainer_name} challenges you to a battle with {team}; {foes[0].species_name} leads"
-
-
 def legendary_ids(npcs: Iterable[JourneyTrainer]) -> list[Slug]:
     return [npc.legendary_id for npc in npcs if npc.legendary_id]
 
 
 def unknown_place_ids(place_ids: Collection[Slug], known_place_ids: Collection[Slug]) -> list[Slug]:
     return sorted(place_id for place_id in place_ids if place_id not in known_place_ids)
+
+
+def _challenge_line(trainer_name: str, foes: Sequence[Battler]) -> str:
+    team = _listed([f"{foe.species_name} (L{foe.level})" for foe in foes])
+    # The foe side always picks `team 1` at team preview, so the first foe leads.
+    return f"{trainer_name} challenges you to a battle with {team}; {foes[0].species_name} leads"
 
 
 def _sent_out_line(setup: BattleSetup, result: BattleResult) -> str:

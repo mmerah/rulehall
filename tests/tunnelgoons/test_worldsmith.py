@@ -4,9 +4,9 @@ from support.table import TUNNELGOONS, game, narrowed
 from support.tunnelgoons import ENGINE, small_world
 
 from rulehall.core.validation import Refusal
-from rulehall.engines.rooms.panels import MORE_MAP
-from rulehall.engines.rooms.world import Item, MapProposal, Place, RegionProposal, Way
-from rulehall.engines.rooms.worldsmith import check_next, check_opening
+from rulehall.engines.bases.maps.panels import MORE_MAP
+from rulehall.engines.bases.maps.world import Item, MapProposal, Place, RegionProposal, Way
+from rulehall.engines.bases.maps.worldsmith import check_next, check_opening
 from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.sheet import Goon
 from rulehall.engines.tunnelgoons.world import TunnelGoonsGame
@@ -193,15 +193,15 @@ def test_a_region_reusing_an_id_already_in_the_world_is_refused() -> None:
 
 def test_more_map_waits_for_no_open_way_and_a_joined_region_begins_as_an_unexplored_way() -> None:
     draft = small_world().draft()
-    assert ENGINE.player_view(draft).moves == ()
+    assert ENGINE.player_view(draft).standing_options == ()
 
     _ = draft.world.move(HALL, ())
-    assert ENGINE.player_view(draft).moves == (MORE_MAP,)
+    assert ENGINE.player_view(draft).standing_options == (MORE_MAP,)
 
     region = _region()
     draft.world.apply_region(region)
     view = ENGINE.player_view(draft.validated())
-    assert view.moves == ()
+    assert view.standing_options == ()
     assert view.map is not None
     assert [node.name for node in view.map.nodes] == [
         "Start",

@@ -51,17 +51,14 @@ class MoveSlotEdit(SlotEdit):
 class PickEdit(SlotEdit):
     field_id: Slug
     choice_ids: tuple[Slug, ...]
-    preset: bool = False
 
 
 class PointsEdit(SlotEdit):
-    field_id: Slug
     row: int = Field(ge=0)
     points: int = Field(ge=0)
 
 
-class ChoiceEdit(SlotEdit):
-    field_id: Slug
+class QuickSpreadEdit(SlotEdit):
     choice_id: Slug
 
 

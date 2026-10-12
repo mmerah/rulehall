@@ -62,8 +62,15 @@ class SpeechModelChoice(Frozen):
         return self.feminine + self.masculine + self.other
 
 
+class SharedVoicesEntry(Frozen):
+    label: str
+    note: str
+    local_model: str | None
+    voices_of: SpeechModel
+
+
 class VoiceCatalogue(Frozen):
-    models: dict[SpeechModel, SpeechModelChoice]
+    models: dict[SpeechModel, SpeechModelChoice | SharedVoicesEntry]
 
     @model_validator(mode="after")
     def _every_speech_model(self) -> Self:
@@ -71,8 +78,19 @@ class VoiceCatalogue(Frozen):
             raise ValueError("the voice catalogue holds each speech model, and no other")
         return self
 
+    @model_validator(mode="after")
+    def _shared_voices_name_full_models(self) -> Self:
+        shared = [entry for entry in self.models.values() if isinstance(entry, SharedVoicesEntry)]
+        if any(isinstance(self.models[entry.voices_of], SharedVoicesEntry) for entry in shared):
+            raise ValueError("a model takes its voices from a model that has none")
+        return self
+
     def require_model(self, model_id: SpeechModel) -> SpeechModelChoice:
-        return self.models[model_id]
+        entry = self.models[model_id]
+        if isinstance(entry, SpeechModelChoice):
+            return entry
+        voices = self.require_model(entry.voices_of)
+        return voices.model_copy(update=entry.model_dump(exclude={"voices_of"}))
 
 
 @cache

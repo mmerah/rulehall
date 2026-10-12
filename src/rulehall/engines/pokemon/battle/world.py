@@ -1,9 +1,8 @@
 from random import Random
 from typing import Protocol
 
-from rulehall.core.facts import Fact
+from rulehall.core.facts import Fact, Resolution
 from rulehall.core.validation import Slug
-from rulehall.engines.engine import Resolution
 from rulehall.engines.pokemon.battle.models import Battle, Battler, BattleResult, Throw
 
 BATTLE_OVER = (

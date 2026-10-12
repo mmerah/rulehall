@@ -241,7 +241,6 @@
 .game-builder-title { font-size: 1.35rem; font-weight: 600; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .game-builder-pill { color: var(--game-success); font-size: .75rem; font-weight: 700; letter-spacing: .03em; white-space: nowrap }
 .game-builder-pill-dirty { color: var(--game-accent) }
-.game-builder-expert { width: auto; flex: none }
 .game-builder-tools { flex-wrap: wrap; row-gap: .25rem }
 .game-builder-tools .q-btn { padding-inline: .6rem }
 .game-builder-locked {
@@ -319,7 +318,6 @@
 .game-builder-editor-sub .game-hint { white-space: nowrap }
 .game-builder-editor-head .game-tags { margin: 0 }
 .game-builder-section { order: 0 }
-.game-builder-expert-on .game-builder-presets { order: 1 }
 .game-builder-preset-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr)); gap: .45rem; width: 100% }
 .game-builder-preset .game-sprite-frame { zoom: 1 }
 .game-builder-field {
@@ -345,12 +343,7 @@
 .game-builder-section-moves .game-builder-field { grid-template-columns: minmax(0, 1fr) }
 .game-builder-section-moves .game-builder-field > * { grid-column: 1 }
 .game-builder-move { display: flex; align-items: center; gap: .5rem; width: 100%; min-width: 0 }
-.game-builder-move[draggable="true"] { cursor: grab }
 .game-builder-move .q-btn.game-builder-pick { flex: 1 1 0 }
-.game-builder-move-key {
-  flex: none; width: 1.2rem; text-align: center;
-  color: var(--game-muted); font-size: .7rem; font-weight: 700; text-transform: uppercase;
-}
 .game-builder-move-clear { flex: none }
 .game-builder-replace { display: flex; flex-direction: column; gap: .4rem; width: 100% }
 @container editor (max-width: 26rem) {
@@ -402,24 +395,16 @@
 .game-builder-preview .game-builder-card-brief { -webkit-line-clamp: 1; display: block; white-space: nowrap; text-overflow: ellipsis }
 .game-builder-preview .game-builder-status { justify-self: end }
 .game-builder-preview-note { padding-top: .35rem }
-.game-builder-keys { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .35rem 1rem; align-items: baseline; font-size: .86rem }
-.game-builder-key {
-  justify-self: start; padding: .05rem .45rem; border-radius: .35rem; white-space: nowrap;
-  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; font-size: .78rem;
-  background: var(--game-wash); border: 1px solid var(--game-border); box-shadow: inset 0 -1px 0 var(--game-border);
-}
 
-/* Stat points: a stepper, a slider in Expert, a number box in Expert, the final stat. */
+/* Stat points: a stepper and the final stat. */
 .game-points-counter { font-size: .8rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--game-text); white-space: nowrap }
 .game-points-over { color: var(--game-danger) }
 .game-points-row { width: 100%; min-width: 0 }
 .game-points-line { display: flex; flex-wrap: nowrap; align-items: center; gap: .3rem; width: 100%; min-height: 2.5rem }
 .game-points-name { flex: none; width: 2.4rem; color: var(--game-muted); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em }
 .game-points-step { flex: none }
-.game-points-slider { flex: 1 1 0; min-width: 3rem; padding-inline: .4rem }
-.game-points-number { flex: none; width: 3.4rem }
 .game-points-value { flex: none; min-width: 1.6rem; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums }
-.game-points-final { flex: none; min-width: 2.4rem; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums }
+.game-points-final { flex: none; min-width: 2.4rem; margin-left: auto; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums }
 .game-points-marks { flex: none; width: 1.5rem }
 .game-points-marks .game-tags { margin: 0; flex-wrap: nowrap }
 .game-points-hint { padding-left: 2.7rem; color: var(--game-muted); font-size: .72rem; line-height: 1.3; overflow-wrap: anywhere }
@@ -427,10 +412,6 @@
 .game-points-flash { color: var(--game-danger); font-weight: 700; animation: game-page-in var(--game-fast) var(--game-ease) both }
 .game-points-invalid .game-points-counter { color: var(--game-danger) }
 .game-points-quick { display: flex; flex-wrap: wrap; gap: .35rem; width: 100% }
-.game-builder-simple .game-points-slider, .game-builder-simple .game-points-number,
-.game-builder-simple .game-points-hint:not(.game-points-flash) { display: none }
-.game-builder-simple .game-points-final { margin-left: auto }
-.game-builder-expert-on .game-points-value { display: none }
 
 /* The catalog picker: a dialog on a desktop, a bottom sheet on a phone. */
 .q-dialog .game-card.game-picker-card { width: 36rem; max-width: 100%; height: min(85vh, 46rem); padding: 0; overflow: hidden; align-items: stretch }
@@ -497,7 +478,7 @@
 /* Narrow: the overview is the rail and the advice; a slot opens alone, in panes, with a docked foot. */
 @container builder (max-width: 39.99rem) {
   .game-builder-tools .q-btn { padding-inline: .45rem }
-  .game-builder-save, .game-builder-keys-button { display: none }
+  .game-builder-save { display: none }
   .game-builder-grid { grid-template-columns: minmax(0, 1fr); gap: .6rem }
   .game-builder-rail, .game-builder-advice { position: static; padding: .6rem }
   .game-builder-advice { grid-column: 1; grid-row: auto }

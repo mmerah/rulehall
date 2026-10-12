@@ -1,7 +1,7 @@
 from support.showdown import CHARMANDER, PIKACHU, RATTATA, WILD_SETUP
 
 from rulehall.engines.pokemon.battle.header import battle_header
-from rulehall.engines.pokemon.battle.models import Ally, BattleSetup, DumpMon
+from rulehall.engines.pokemon.battle.models import Ally, BattleSetup, MonSnapshot
 
 TRAINER_SETUP = BattleSetup.model_validate(
     {
@@ -46,13 +46,17 @@ def test_a_tag_header_splits_the_pips_and_shows_the_fielded_pokemon() -> None:
     setup = TRAINER_SETUP.model_copy(update={"format_id": "doubles", "ally": ally})
     raised = {"atk": 2, "def": 0, "spe": -1}
     p1 = (
-        DumpMon(
+        MonSnapshot(
             slot=2, hp=26, status="", pp=(56, 40), out=1, held=True, active=True, boosts=raised
         ),
-        DumpMon(slot=0, hp=0, status="fnt", pp=(48, 64), out=1, held=True, active=True, boosts={}),
-        DumpMon(slot=1, hp=15, status="", pp=(56,), out=0, held=True, active=False, boosts={}),
+        MonSnapshot(
+            slot=0, hp=0, status="fnt", pp=(48, 64), out=1, held=True, active=True, boosts={}
+        ),
+        MonSnapshot(slot=1, hp=15, status="", pp=(56,), out=0, held=True, active=False, boosts={}),
     )
-    p2 = (DumpMon(slot=0, hp=10, status="", pp=(56,), out=1, held=True, active=True, boosts={}),)
+    p2 = (
+        MonSnapshot(slot=0, hp=10, status="", pp=(56,), out=1, held=True, active=True, boosts={}),
+    )
 
     header = battle_header(setup, p1, p2, ("|c|Mira|Go!",), 0)
 

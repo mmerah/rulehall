@@ -4,8 +4,8 @@ from functools import partial
 from rulehall.core.game import ScenarioDescription
 from rulehall.core.log import Chapter
 from rulehall.core.validation import EngineId, Slug
+from rulehall.engines.bases.scenes.world import Scene
 from rulehall.engines.packs import SRD_PACK
-from rulehall.engines.scenes.world import Scene
 from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.twentyfourxx.engine import TwentyFourXXEngine
 from rulehall.engines.twentyfourxx.rules import SkillDie

@@ -16,7 +16,7 @@ from support.twentyfourxx import small_world as twentyfourxx_world
 from rulehall.core.game import AnyGame, WorldsmithRequest
 from rulehall.core.validation import Refusal, Slug
 from rulehall.engines.engine import AnyEngine
-from rulehall.engines.hiring import HIRE, SIGNED_ON
+from rulehall.engines.hiring import HIRE_REQUEST, SIGNED_ON
 from rulehall.engines.tunnelgoons.sheet import GoonSheet
 from rulehall.engines.tunnelgoons.world import TunnelGoonsGame
 from rulehall.engines.twentyfourxx.world import TwentyFourXXGame
@@ -83,7 +83,9 @@ def _join_party(case: HireCase, draft: AnyGame, terms: str) -> None:
 def test_join_party_with_terms_files_the_hire_and_without_joins_at_once(case: HireCase) -> None:
     hiring = case.game().draft()
     _join_party(case, hiring, TERMS)
-    assert hiring.request == WorldsmithRequest(kind=HIRE, detail=TERMS, target_id=case.member)
+    assert hiring.request == WorldsmithRequest(
+        kind=HIRE_REQUEST, detail=TERMS, target_id=case.member
+    )
     assert case.member not in hiring.world.party_ids
 
     joining = case.game().draft()
@@ -106,8 +108,8 @@ def test_hiring_a_member_let_go_brings_them_back_with_their_sheet(case: HireCase
 @pytest.mark.parametrize("case", CASES, ids=_case_id)
 async def test_advance_on_a_hire_installs_the_sheet_and_joins_the_party(case: HireCase) -> None:
     draft = case.game().draft()
-    request = WorldsmithRequest(kind=HIRE, detail=TERMS, target_id=case.member)
-    resolution = await case.engine.request_handlers()[HIRE].write(
+    request = WorldsmithRequest(kind=HIRE_REQUEST, detail=TERMS, target_id=case.member)
+    resolution = await case.engine.request_handlers()[HIRE_REQUEST].write(
         draft, request, stub_worldsmith(case.answer)
     )
     world = draft.world

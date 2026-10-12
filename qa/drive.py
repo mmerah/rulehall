@@ -12,11 +12,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NotRequired, TypedDict
 
-from playwright.sync_api import Browser, Locator, Page, ViewportSize, WebSocket, sync_playwright
+from playwright.sync_api import Browser, Locator, Page, ViewportSize, sync_playwright
 
 BASE = f"http://localhost:{os.environ.get('QA_PORT', '8123')}"
-# A socket.io event frame starts with its packet digits: `42[...]`.
-SOCKET_EVENT = re.compile(r"^\d+(?=\[)")
 SCROLLED_DOWN = "box => box.scrollTop + box.clientHeight >= box.scrollHeight - 2"
 # Loops such as the working dots never end, so they do not count.
 ANIMATIONS_DONE = """selector => document.querySelector(selector)
@@ -122,50 +120,6 @@ class Session:
     def note(self, message: str) -> None:
         self.notes.append(message)
         print("NOTE:", message)
-
-
-@dataclass(frozen=True)
-class Sample:
-    frames: int
-    kilobytes: float
-    elements: int
-
-    def line(self) -> str:
-        return f"frames={self.frames} kb={self.kilobytes:.1f} elements={self.elements}"
-
-
-class SocketTraffic:
-    """What the server sends one page over its websockets, counted from the page's side.
-
-    Sync Playwright hands over frames only inside its own calls, so a caller waits with
-    `page.wait_for_timeout`, never `time.sleep`, before it marks.
-    """
-
-    def __init__(self, page: Page) -> None:
-        self.total = Sample(frames=0, kilobytes=0, elements=0)
-        self.marked = self.total
-        page.on("websocket", self.attach)
-
-    def attach(self, socket: WebSocket) -> None:
-        socket.on("framereceived", self.count)
-
-    def count(self, payload: str | bytes) -> None:
-        binary = isinstance(payload, bytes)
-        self.total = Sample(
-            frames=self.total.frames + 1,
-            kilobytes=self.total.kilobytes + len(payload if binary else payload.encode()) / 1024,
-            elements=self.total.elements + (0 if binary else updated_elements(payload)),
-        )
-
-    def mark(self) -> Sample:
-        """The traffic since the last mark."""
-        total, marked = self.total, self.marked
-        self.marked = total
-        return Sample(
-            frames=total.frames - marked.frames,
-            kilobytes=total.kilobytes - marked.kilobytes,
-            elements=total.elements - marked.elements,
-        )
 
 
 def run(name: str, body: Callable[[Session], None]) -> None:
@@ -302,7 +256,7 @@ def waiting_on_player(page: Page) -> Locator:
 
 
 def choose(page: Page, name: str) -> None:
-    start_turn(decision(page).locator(".game-moves button", has_text=name).first)
+    start_turn(decision(page).locator(".game-options button", has_text=name).first)
     wait_idle(page)
 
 
@@ -335,8 +289,8 @@ def cut_names(page: Page) -> list[str]:
     )
 
 
-def move(page: Page, name: str) -> Locator:
-    return page.locator(".game-moves button.game-choice", has_text=name)
+def option(page: Page, name: str) -> Locator:
+    return page.locator(".game-options button.game-choice", has_text=name)
 
 
 def wait_working(page: Page, timeout: float = 5) -> bool:
@@ -361,7 +315,7 @@ def submit(page: Page, text: str, *, enter: bool = False, wait: bool = True) -> 
 
 
 def start_turn(target: Locator) -> bool:
-    """Click a move or an option; returns whether the server took a turn."""
+    """Click an option; returns whether the server took a turn."""
     started = time.monotonic()
     target.click()
     return wait_started(started)
@@ -377,7 +331,7 @@ def bubbles(page: Page) -> list[str]:
 
 def reach_breather(page: Page, tries: int = 8) -> bool:
     """Close Loner scenes until the transition rolls a quiet one; the dice are seeded per game."""
-    if move(page, "Take the breather").count():
+    if option(page, "Take the breather").count():
         return True
     return bool(close_until(page, "quiet", tries))
 
@@ -385,7 +339,7 @@ def reach_breather(page: Page, tries: int = 8) -> bool:
 def close_until(page: Page, wanted: str, tries: int = 12) -> str:
     """Close Loner scenes until the close card names `wanted`, taking each breather on the way."""
     for attempt in range(tries):
-        if move(page, "Take the breather").count():
+        if option(page, "Take the breather").count():
             take_breather(page, f'I rest ({attempt}).\n!direct text="He rests."')
         submit(page, f'Onward ({attempt}).\n!close_scene reason=resolved\n!direct text="On."')
         wait_idle(page, timeout=60)
@@ -408,19 +362,19 @@ def text(page: Page, label: str, value: str) -> None:
 
 
 def use_move(page: Page, name: str) -> None:
-    start_turn(move(page, name))
+    start_turn(option(page, name))
     wait_idle(page, timeout=60)
 
 
-def send_move(page: Page, name: str, words: str) -> bool:
+def send_option(page: Page, name: str, words: str) -> bool:
     if name not in send(page).inner_text():
-        move(page, name).click()
+        option(page, name).click()
         send(page).filter(has_text=name).wait_for()
     return submit(page, words)
 
 
 def take_breather(page: Page, words: str) -> None:
-    send_move(page, "Take the breather", words)
+    send_option(page, "Take the breather", words)
     # The quiet scene's write and the aim's own turn run back to back: wait for the aim's turn.
     aim = words.splitlines()[0]
     deadline = time.time() + 60
@@ -483,17 +437,6 @@ def notified(page: Page, words: str, timeout: float = 5) -> bool:
 def still(page: Page, selector: str = "body") -> None:
     """Every finite animation in `selector` has ended, for a screenshot worth looking at."""
     page.wait_for_function(ANIMATIONS_DONE, arg=selector)
-
-
-def updated_elements(frame: str) -> int:
-    """The element entries of a NiceGUI `update` event: `42["update",{"<id>":{…},"_id":7}]`."""
-    head = SOCKET_EVENT.match(frame)
-    if head is None:
-        return 0
-    event = json.loads(frame[head.end() :])
-    if event[0] != "update":
-        return 0
-    return sum(1 for key in event[1] if key != "_id")
 
 
 def _post(path: str, **query: str) -> None:

@@ -5,8 +5,9 @@ from support.game import character, initialized, scenario
 from support.table import ENGINES_BUILT, LONER4E, NO_SHIPPED, SCENARIO_MODELS, updated
 
 from rulehall.core.facts import Fact
-from rulehall.core.log import Line, LogEntry, partial_lines
-from rulehall.core.stores import ENCODING, Library, SaveStore, publish, write_text
+from rulehall.core.log import LogEntry
+from rulehall.core.narration import Line, partial_lines
+from rulehall.core.stores import ENCODING, Library, SaveStore, write_atomically, write_text
 from rulehall.core.validation import EngineId, Refusal
 
 MIRROR = EngineId("mirror")
@@ -157,7 +158,7 @@ def test_a_write_that_fails_midway_leaves_the_old_file_and_no_staged_file(tmp_pa
         raise OSError("disk full")
 
     with pytest.raises(Refusal, match="cannot be written"):
-        publish(path, _broken)
+        write_atomically(path, _broken)
 
     assert path.read_text(encoding=ENCODING) == "old"
     assert list(tmp_path.iterdir()) == [path]

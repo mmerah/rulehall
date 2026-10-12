@@ -7,7 +7,7 @@ from typing import Literal
 
 from nicegui import app, ui
 
-from rulehall.app.game_session import Busy
+from rulehall.app.gate import Busy
 from rulehall.core.facts import Fact
 from rulehall.core.validation import Refusal
 from rulehall.core.views import Look

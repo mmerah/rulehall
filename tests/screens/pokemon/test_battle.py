@@ -1,18 +1,16 @@
 from asyncio import Task, gather, get_running_loop
 from collections.abc import Callable
 from pathlib import Path
-from random import Random
 from typing import cast
 
 from nicegui import Client, background_tasks
+from support.journey import into_wild_battle
 from support.showdown import ScriptedSimulator, started
-from support.table import POKEMON, narrated, open_table, play_turn, tool_call
 
 from rulehall.app.game_session import SessionSnapshot
-from rulehall.engines.battles import Battling
-from rulehall.engines.pokemon.journey.world import JourneyGame
+from rulehall.engines.battles import BattleSupport
 from rulehall.screens.pokemon.battle import BattleScreen
-from rulehall.ui.surfaces import ScreenHost
+from rulehall.ui.screen_host import ScreenHost
 from rulehall.ui.widgets import Sounds
 
 NO_BLOCK_LEFT = "the scripted simulator has no block left"
@@ -21,20 +19,12 @@ NO_BLOCK_LEFT = "the scripted simulator has no block left"
 async def test_a_refused_command_keeps_the_battle_screen_and_only_a_refused_opening_leaves_it(
     tmp_path: Path, page: Callable[[], Client], notified: list[str]
 ) -> None:
-    table = open_table(tmp_path, engine_id=POKEMON, state_type=JourneyGame, rng=Random(1))
-    _ = await play_turn(
-        table,
-        "I walk into the tall grass.",
-        tool_call("start_wild_battle", species_id="pidgey"),
-        tool_call("direct", text="A wild Pidgey flies at the player."),
-        narration="A wild Pidgey bursts out of the grass.",
-        then=(narrated("You slip away from the Pidgey."),),
-    )
+    table = await into_wild_battle(tmp_path, "You slip away from the Pidgey.")
     battle = table.state.world.battle
     assert battle is not None
     simulator = ScriptedSimulator(started(battle.setup))
 
-    async def start(_engine: Battling) -> ScriptedSimulator:
+    async def start(_battles: BattleSupport) -> ScriptedSimulator:
         return simulator
 
     table.session.start_transport = start
@@ -47,7 +37,7 @@ async def test_a_refused_command_keeps_the_battle_screen_and_only_a_refused_open
     panel.show()
     drawn = await _synced(panel, drawn)
     drawn = await _synced(panel, drawn)
-    assert drawn.battle_run is not None
+    assert drawn.battle is not None
 
     await panel._choose("leave")  # pyright: ignore[reportPrivateUsage]
     assert notified == [NO_BLOCK_LEFT]

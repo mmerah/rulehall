@@ -4,9 +4,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from random import Random
 
-from rulehall.core.facts import Fact
+from rulehall.core.facts import Fact, Resolution
 from rulehall.core.validation import Refusal, Slug
-from rulehall.engines.engine import Resolution
 from rulehall.engines.pokemon.battle.models import (
     Battle,
     BattleMove,
@@ -349,6 +348,15 @@ def ended(setup: BattleSetup, *, foe_hp: int) -> list[Block]:
         ("update", f"|win|{setup.player_name}", _dumped(setup, out=1, foe_hp=foe_hp)),
         ("end", "{}"),
     ]
+
+
+def won(setup: BattleSetup) -> BattleResult:
+    return BattleResult(
+        outcome="won",
+        team=setup.team,
+        sent_out_foes=tuple(foe.model_copy(update={"hp": 0}) for foe in setup.foes),
+        on_field_mon_ids=(setup.team[0].mon_id,),
+    )
 
 
 def _update(setup: BattleSetup) -> Block:

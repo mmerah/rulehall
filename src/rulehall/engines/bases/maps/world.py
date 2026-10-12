@@ -11,6 +11,7 @@ from rulehall.engines.world import IS_DEAD, UNKNOWN_ID, OpeningProposal, World, 
 
 MEANWHILE_EVERY = 4
 OFF_MAP_ID: Slug = "off-map"
+EXTEND_REQUEST: Slug = "extend"
 
 
 class Dweller(Person):
@@ -47,7 +48,7 @@ class Region(Mutable):
         return self
 
 
-class RoomMap[P: Dweller](Mutable):
+class MapContents[P: Dweller](Mutable):
     places: dict[Slug, Place] = Field(default_factory=dict)
     ways: dict[Slug, list[Way]] = Field(default_factory=dict)
     npcs: dict[Slug, P] = Field(default_factory=dict)
@@ -135,7 +136,7 @@ class RoomMap[P: Dweller](Mutable):
         self.ways.setdefault(from_id, []).append(Way(to_id=to_id))
 
 
-class MapProposal[P: Dweller](RoomMap[P], OpeningProposal):
+class MapProposal[P: Dweller](MapContents[P], OpeningProposal):
     start_id: Slug = Field(description="Exact id of the place this map starts from.")
     region_name: str = Field(
         min_length=1,
@@ -157,7 +158,7 @@ class RegionProposal[P: Dweller](MapProposal[P]):
     )
 
 
-class RoomWorld[P: Dweller](RoomMap[P], World[P]):
+class MapWorld[P: Dweller](MapContents[P], World[P]):
     visited_place_ids: list[Slug] = Field(min_length=1)
     regions: list[Region] = Field(min_length=1)
     turns_since_meanwhile: int = Field(default=0, ge=0)

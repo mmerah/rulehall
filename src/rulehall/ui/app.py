@@ -27,8 +27,8 @@ from rulehall.ui.routes import (
     SOUNDS,
     assets_route,
 )
+from rulehall.ui.screen_host import ScreenFactories
 from rulehall.ui.settings import SettingsForm
-from rulehall.ui.surfaces import ScreenFactories
 from rulehall.ui.widgets import ICONS_DIR, SOUNDS_DIR, refused_page
 
 type EnginePage = Callable[[Runtime, EngineId], object]
@@ -46,7 +46,7 @@ def mount(runtime: Runtime, screen_factories: ScreenFactories, styles: Sequence[
         (NEW_PACK, PackForm),
         (PACKS, packs_page),
     )
-    asgi, manager = endpoint(runtime.gate)
+    asgi, manager = endpoint(runtime.roles.tool_providers)
     app.mount(MOUNT_PATH, asgi)
     app.get("/status")(runtime.gate.status)
     app.add_static_files(SOUNDS, SOUNDS_DIR)

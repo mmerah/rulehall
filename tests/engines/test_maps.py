@@ -26,10 +26,17 @@ from support.tunnelgoons import (
 from rulehall.core.facts import Fact, told_cards
 from rulehall.core.game import WorldsmithRequest
 from rulehall.core.validation import Refusal
-from rulehall.engines.rooms.args import MOVED_CARD, MOVES_OFFSCREEN
-from rulehall.engines.rooms.panels import EXTEND, map_view
-from rulehall.engines.rooms.world import MEANWHILE_EVERY, OFF_MAP_ID, Place, RegionProposal, Way
-from rulehall.engines.rooms.worldsmith import check_next
+from rulehall.engines.bases.maps.engine import MOVED_CARD, MOVES_OFFSCREEN
+from rulehall.engines.bases.maps.panels import map_view
+from rulehall.engines.bases.maps.world import (
+    EXTEND_REQUEST,
+    MEANWHILE_EVERY,
+    OFF_MAP_ID,
+    Place,
+    RegionProposal,
+    Way,
+)
+from rulehall.engines.bases.maps.worldsmith import check_next
 from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
 from rulehall.engines.tunnelgoons.sheet import Goon
@@ -102,7 +109,7 @@ def test_extend_map_is_refused_with_a_frontier_and_requests_the_region_at_the_ed
     assert not draft.world.has_frontier()
     _ = change(ENGINE, draft, "extend_map", heading="north")
 
-    assert draft.request == WorldsmithRequest(kind=EXTEND, detail="north")
+    assert draft.request == WorldsmithRequest(kind=EXTEND_REQUEST, detail="north")
 
 
 def test_a_known_way_into_an_unknown_place_is_a_stub_that_hides_its_end() -> None:
@@ -258,11 +265,11 @@ def test_drop_here_puts_a_carried_item_in_this_place_and_refuses_one_on_the_floo
         _ = run_action(ENGINE, draft, "drop_here", item_id=LANTERN)
 
 
-def _walked(begun_room: TunnelGoonsGame) -> TunnelGoonsGame:
+def _walked(begun_map: TunnelGoonsGame) -> TunnelGoonsGame:
     """At CELLAR, having walked GATE and YARD: every power has something legal."""
-    begun_room.world.move(YARD, ())
-    begun_room.world.move(CELLAR, ())
-    return begun_room.draft()
+    begun_map.world.move(YARD, ())
+    begun_map.world.move(CELLAR, ())
+    return begun_map.draft()
 
 
 def _all_three(engine: TunnelGoonsEngine, draft: TunnelGoonsGame) -> list[Fact]:
@@ -347,11 +354,11 @@ def test_a_region_with_an_npc_off_the_map_is_refused() -> None:
 def test_the_clock_counts_only_a_turn_that_acted_and_arms_at_the_tempo() -> None:
     draft = _walked(keep())
 
-    ENGINE.end_turn(draft, acted=False)
+    ENGINE.after_master_turn(draft, acted=False)
     assert draft.world.turns_since_meanwhile == 0
 
     for _ in range(MEANWHILE_EVERY):
-        ENGINE.end_turn(draft, acted=True)
+        ENGINE.after_master_turn(draft, acted=True)
 
     assert (draft.world.turns_since_meanwhile, draft.world.meanwhile_due) == (0, True)
 
@@ -360,17 +367,17 @@ def test_a_counted_turn_spends_the_armed_flag() -> None:
     draft = _walked(keep())
     draft.world.meanwhile_due = True
 
-    ENGINE.end_turn(draft, acted=True)
+    ENGINE.after_master_turn(draft, acted=True)
 
     assert not draft.world.meanwhile_due
 
 
 def test_the_arc_reaches_the_master_and_the_worldsmith_and_nobody_else() -> None:
-    begun_room = keep()
+    begun_map = keep()
     arc = "The Warden answers to the Gremlin Queen."
-    begun_room.world.arc = arc
+    begun_map.world.arc = arc
 
-    assert arc in str(ENGINE.master_sections(begun_room))
-    assert arc in str(ENGINE.worldsmith_sections(begun_room))
-    assert arc not in str(ENGINE.narrator_view(begun_room).model_dump())
-    assert arc not in str(ENGINE.player_view(begun_room).model_dump())
+    assert arc in str(ENGINE.master_sections(begun_map))
+    assert arc in str(ENGINE.worldsmith_sections(begun_map))
+    assert arc not in str(ENGINE.narrator_view(begun_map).model_dump())
+    assert arc not in str(ENGINE.player_view(begun_map).model_dump())

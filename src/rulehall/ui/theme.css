@@ -918,29 +918,29 @@ a.game-chip { display: inline-flex; align-items: center; min-height: 2.4rem; pad
 .game-action-prompt { color: var(--game-text); font-size: .95rem; font-weight: 600; line-height: 1.45 }
 .game-action-prompt .q-icon { flex: none; margin-top: .1rem; font-size: 1.1rem; color: var(--game-accent) }
 .game-action-over .game-action-prompt, .game-action-over .game-action-prompt .q-icon { color: var(--game-danger) }
-/* The moves are a strip of equal cells on top of the composer; each cell's shadow draws its edges. */
-.game-moves-line {
+/* The options are a strip of equal cells on top of the composer; each cell's shadow draws its edges. */
+.game-options-line {
   display: flex; width: 100%; border-bottom: 1px solid var(--game-border-soft);
   --game-cell-edges: 1px 0 0 var(--game-border-soft), 0 1px 0 var(--game-border-soft);
 }
-.game-moves-line:has(+ .game-composer-line.hidden) { border-bottom: 0 }
-.game-moves { display: flex; flex-wrap: wrap; gap: 1px; flex: 1 1 0; min-width: 0 }
-.game-moves > .q-btn.game-choice { flex: 1 1 5rem }
-.game-moves-briefed > .q-btn.game-choice { flex-basis: 10rem }
+.game-options-line:has(+ .game-composer-line.hidden) { border-bottom: 0 }
+.game-options { display: flex; flex-wrap: wrap; gap: 1px; flex: 1 1 0; min-width: 0 }
+.game-options > .q-btn.game-choice { flex: 1 1 5rem }
+.game-options-briefed > .q-btn.game-choice { flex-basis: 10rem }
 .q-btn.game-explain { flex: none; width: 2.25rem; min-width: 0; padding: 0; border-radius: 0; box-shadow: var(--game-cell-edges) }
 .q-btn.game-explain.game-explain-on { color: var(--game-accent) !important; background: var(--game-accent-soft) }
-.game-moves .q-btn.game-choice {
+.game-options .q-btn.game-choice {
   min-height: 2.625rem; min-width: 0; padding: .3rem .45rem; border-radius: 0;
   box-shadow: var(--game-cell-edges);
   font-size: .8rem; line-height: 1.2; text-align: center; background: transparent !important;
 }
-.game-moves .game-choice:before { border: 0 }
-.game-moves .game-choice .q-btn__content, .game-moves .game-choice-head { justify-content: center }
-.game-moves .game-choice .nicegui-column { align-items: center }
-.game-moves .game-choice:not(.disabled):hover { transform: none; box-shadow: var(--game-cell-edges); background: var(--game-wash) !important }
-.game-moves .game-choice:focus-visible { outline: 2px solid var(--game-accent); outline-offset: -2px }
-.game-moves .q-btn.game-choice.game-choice-on { background: var(--game-accent-soft) !important; box-shadow: inset 0 -2px 0 var(--game-accent), var(--game-cell-edges) }
-.game-asking.game-enter .game-moves { animation: game-enter var(--game-medium) var(--game-ease) both }
+.game-options .game-choice:before { border: 0 }
+.game-options .game-choice .q-btn__content, .game-options .game-choice-head { justify-content: center }
+.game-options .game-choice .nicegui-column { align-items: center }
+.game-options .game-choice:not(.disabled):hover { transform: none; box-shadow: var(--game-cell-edges); background: var(--game-wash) !important }
+.game-options .game-choice:focus-visible { outline: 2px solid var(--game-accent); outline-offset: -2px }
+.game-options .q-btn.game-choice.game-choice-on { background: var(--game-accent-soft) !important; box-shadow: inset 0 -2px 0 var(--game-accent), var(--game-cell-edges) }
+.game-asking.game-enter .game-options { animation: game-enter var(--game-medium) var(--game-ease) both }
 .q-btn.game-send.game-send-named { width: auto; padding: 0 1rem 0 .8rem; border-radius: 1.375rem }
 .game-send-named .q-btn__content { flex-wrap: nowrap; white-space: nowrap }
 .game-row-line { display: flex; flex-wrap: wrap; align-items: center; column-gap: .75rem; width: 100%; padding: .3rem 0 }
@@ -958,7 +958,7 @@ a.game-chip { display: inline-flex; align-items: center; min-height: 2.4rem; pad
 }
 @media (max-width: 599.98px) {
   .game-wide { padding: 1rem .9rem 1.5rem }
-  .game-moves:not(.game-moves-briefed) > .q-btn.game-choice { flex-basis: 3.5rem; padding-inline: .25rem }
+  .game-options:not(.game-options-briefed) > .q-btn.game-choice { flex-basis: 3.5rem; padding-inline: .25rem }
   .game-section-title { font-size: 1.3rem; margin-top: .25rem }
   .game-continue:has(.game-recent) { grid-template-columns: minmax(0, 1fr); gap: .6rem }
   .game-hero { min-height: 14rem; padding: 1.1rem 1.1rem 1.2rem }
@@ -1057,7 +1057,7 @@ a.game-chip { display: inline-flex; align-items: center; min-height: 2.4rem; pad
 }
 @media (prefers-reduced-motion: reduce) {
   .game-die-live, .game-die-live .game-die-value, .game-enter, .nicegui-content,
-  .game-asking.game-enter .game-moves, .q-btn.game-jump, .game-jump-news .q-icon, .q-btn.game-mic.game-mic-on, .game-working:before, .game-working:after,
+  .game-asking.game-enter .game-options, .q-btn.game-jump, .game-jump-news .q-icon, .q-btn.game-mic.game-mic-on, .game-working:before, .game-working:after,
   .game-message[data-voice] .q-message-text, .game-message[data-voice] .game-read-aloud .q-btn__content:after { animation: none }
   .game-dots span { animation: none; opacity: .7 }
   .game-message[data-voice="waiting"] .q-message-text { border-style: dashed; border-color: color-mix(in srgb, var(--game-accent) 45%, transparent) }

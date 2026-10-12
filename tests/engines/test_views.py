@@ -7,17 +7,9 @@ from support.tunnelgoons import ENGINE as TUNNELGOONS_ENGINE
 from support.tunnelgoons import MIRA as TUNNELGOONS_MIRA
 from support.tunnelgoons import small_world as tunnelgoons_world
 
+from rulehall.core.narration import NarratorView
 from rulehall.core.validation import Slug
-from rulehall.core.views import NarratorView, Subject
-from rulehall.engines.loner4e.sheet import Loner4eEntity
-
-OBJECT = Loner4eEntity(
-    id="a-locked-chest",
-    name="A Locked Chest",
-    voice="other",
-    brief="Iron-bound, and shut fast.",
-    known=True,
-)
+from rulehall.core.views import Subject
 
 
 def test_the_narrator_view_names_nobody_the_player_has_not_met() -> None:

@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Self
 
 from rulehall.app.illustration import ICON_DIR, find_cover, find_image
-from rulehall.core.game import AnyGame, AnyScenario, ScenarioDescription
+from rulehall.core.game import AnyGame, AnyScenario, for_engine_of
 from rulehall.core.stores import Library, SaveStore
-from rulehall.core.validation import EngineId, Refusal, Slug, for_engine_of
+from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.sheet import PLAYER_ID
 
@@ -139,11 +139,10 @@ def scenario_models(engines: Mapping[EngineId, AnyEngine]) -> dict[EngineId, typ
     return {engine_id: engine.scenario_model for engine_id, engine in engines.items()}
 
 
-def check_resumes(state: AnyGame, save_id: str, description: ScenarioDescription) -> SavedGameKey:
+def check_resumes(state: AnyGame, save_id: str) -> SavedGameKey:
     key = SavedGameKey(scenario_id=state.scenario_id, character_id=state.character_id)
     if key.save_id != save_id:
         raise Refusal(f"save is {key.save_id!r}, filed as {save_id!r}")
-    state.scenario_description.check_drift(description)
     return key
 
 
@@ -166,8 +165,8 @@ def _save_option(
     if scenario is None or scenario.engine_id != state.engine_id or title is None:
         raise Refusal("its scenario or character is gone")
     return SaveOption(
-        key=check_resumes(state, save_id, scenario.description),
-        scenario_label=state.scenario_description.title,
+        key=check_resumes(state, save_id),
+        scenario_label=scenario.description.title,
         character_label=title,
         turn=len(state.log_entries()),
         engine_id=engine.id,

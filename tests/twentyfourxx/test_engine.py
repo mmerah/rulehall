@@ -9,8 +9,12 @@ from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.packs import SRD_PACK
-from rulehall.engines.twentyfourxx.engine import COMPLICATION, DEPARTURE, FLIGHT
-from rulehall.engines.twentyfourxx.world import TwentyFourXXGame
+from rulehall.engines.twentyfourxx.world import (
+    COMPLICATION_REQUEST,
+    DEPARTURE_REQUEST,
+    FLIGHT_REQUEST,
+    TwentyFourXXGame,
+)
 
 COMM = "comm"
 CLIMBING_GEAR = "climbing-gear"
@@ -48,11 +52,11 @@ async def test_the_ship_stays_where_it_docked_unless_the_crew_flies_it() -> None
         request = WorldsmithRequest(kind=kind, detail="Onward.")
         _ = await handlers[kind].write(draft, request, stub_worldsmith(answer))
 
-    await go(DEPARTURE, "The outer moon")
+    await go(DEPARTURE_REQUEST, "The outer moon")
     assert not draft.world.ship_here()
-    await go(DEPARTURE, "The cargo station")
+    await go(DEPARTURE_REQUEST, "The cargo station")
     assert draft.world.ship_here()
-    await go(FLIGHT, "The outer moon")
+    await go(FLIGHT_REQUEST, "The outer moon")
     assert draft.world.ship_here()
 
 
@@ -65,9 +69,9 @@ async def test_install_next_appends_a_run_ends_brief_hindrances_and_returns_the_
     draft.chapters[-1].entries.append(LogEntry(words="They wait.", lines=()))
     chapters_before = len(draft.chapters)
     recap = "They leave the mess behind and press on toward what waits next."
-    resolution = await ENGINE.request_handlers()[DEPARTURE].write(
+    resolution = await ENGINE.request_handlers()[DEPARTURE_REQUEST].write(
         draft,
-        WorldsmithRequest(kind=DEPARTURE, detail="Onward."),
+        WorldsmithRequest(kind=DEPARTURE_REQUEST, detail="Onward."),
         stub_worldsmith({**NEXT_FIELDS, "recap": recap}),
     )
     assert len(draft.chapters) == chapters_before + 1
@@ -81,9 +85,9 @@ async def test_install_next_appends_a_run_ends_brief_hindrances_and_returns_the_
 async def test_the_arrival_cue_carries_neither_the_pursuit_nor_the_players_words() -> None:
     draft = small_world().draft()
     draft.chapters[-1].entries.append(LogEntry(words="They slip out to the fuel tender.", lines=()))
-    resolution = await ENGINE.request_handlers()[DEPARTURE].write(
+    resolution = await ENGINE.request_handlers()[DEPARTURE_REQUEST].write(
         draft,
-        WorldsmithRequest(kind=DEPARTURE, detail="fly the tender out to the platform"),
+        WorldsmithRequest(kind=DEPARTURE_REQUEST, detail="fly the tender out to the platform"),
         stub_worldsmith({**NEXT_FIELDS, "recap": "They fled."}),
     )
     assert resolution.narrator_cue is not None
@@ -91,9 +95,9 @@ async def test_the_arrival_cue_carries_neither_the_pursuit_nor_the_players_words
     assert "platform" not in resolution.narrator_cue
     assert "own ship" not in resolution.narrator_cue
 
-    flight = await ENGINE.request_handlers()[FLIGHT].write(
+    flight = await ENGINE.request_handlers()[FLIGHT_REQUEST].write(
         draft,
-        WorldsmithRequest(kind=FLIGHT, detail="fly out to the platform"),
+        WorldsmithRequest(kind=FLIGHT_REQUEST, detail="fly out to the platform"),
         stub_worldsmith({**NEXT_FIELDS, "recap": "They flew."}),
     )
     assert flight.narrator_cue is not None
@@ -109,8 +113,8 @@ async def test_a_complication_that_names_a_new_location_is_refused() -> None:
         return answer
 
     with pytest.raises(Refusal, match="a complication happens where the player is"):
-        _ = await ENGINE.request_handlers()[COMPLICATION].write(
+        _ = await ENGINE.request_handlers()[COMPLICATION_REQUEST].write(
             small_world().draft(),
-            WorldsmithRequest(kind=COMPLICATION, detail="A crew breaks in."),
+            WorldsmithRequest(kind=COMPLICATION_REQUEST, detail="A crew breaks in."),
             travelling,
         )

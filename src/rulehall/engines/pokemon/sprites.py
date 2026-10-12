@@ -1,11 +1,9 @@
 from pathlib import Path
 
-from rulehall.core.creation import CreationStep
-from rulehall.core.decisions import DecisionOption
 from rulehall.core.validation import Slug
 from rulehall.core.views import Meter, Sprite, Tag
-from rulehall.engines.pokemon.dex import Move, Species, avatars
-from rulehall.engines.pokemon.rules import STAT_NAMES, ItemId, nature_effect
+from rulehall.engines.pokemon.dex import Species
+from rulehall.engines.pokemon.rules import STAT_NAMES, nature_effect
 
 AVATAR = "avatar"
 ICON_SHEET = Path("sprites/pokemonicons-sheet.png")
@@ -54,22 +52,12 @@ def mon_sprite(species: Species) -> Sprite:
     return Sprite(path=ICON_SHEET, x=x, y=y, width=ICON_WIDTH, height=ICON_HEIGHT)
 
 
-def item_sprite(item_id: ItemId) -> Sprite:
+def item_sprite(item_id: Slug) -> Sprite:
     return Sprite(path=ITEM_SPRITES / f"{item_id}.png")
 
 
 def trainer_sprite(avatar_id: Slug) -> Sprite:
     return Sprite(path=Path(f"sprites/trainers/{avatar_id}.png"))
-
-
-def look_step() -> CreationStep:
-    looks = tuple(
-        DecisionOption(
-            id=avatar_id, name=avatar_id.title(), sprite=str(trainer_sprite(avatar_id).path)
-        )
-        for avatar_id in avatars().player
-    )
-    return CreationStep(id=AVATAR, name="Look", options=looks)
 
 
 def type_tag(kind: str) -> Tag:
@@ -95,20 +83,6 @@ def pp_meter(current: int, maximum: int) -> Meter:
         STAT_COLOUR if current > maximum * PP_LOW_SHARE else LOW_COLOUR if current else OUT_COLOUR
     )
     return Meter(name="PP", current=current, maximum=maximum, colour=colour)
-
-
-def move_stats(move: Move) -> str:
-    accuracy = "sure hit" if move.accuracy is None else f"{move.accuracy}%"
-    return " · ".join((*((f"{move.power} BP",) if move.power else ()), accuracy))
-
-
-def move_brief(move: Move, pp: int | None = None) -> str:
-    left = f"PP {move.pp}" if pp is None else f"PP {pp}/{move.pp}"
-    return " · ".join((move.type, move.category, move_stats(move), left))
-
-
-def move_summary(move: Move) -> str:
-    return f"{move_stats(move)} · {move.text}" if move.text else move_stats(move)
 
 
 def nature_tag(nature: str) -> Tag:

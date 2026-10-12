@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from dataclasses import dataclass
 from random import Random
 from typing import Self
 
@@ -33,6 +34,12 @@ class Fact(Frozen):
     told: bool = False
     card: str = ""
     dice: tuple[DiceEvent, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class Resolution:
+    facts: tuple[Fact, ...]
+    narrator_cue: str | None
 
 
 class Rolled(Frozen):

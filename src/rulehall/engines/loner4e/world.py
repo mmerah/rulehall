@@ -10,6 +10,12 @@ from rulehall.core.game import Game
 from rulehall.core.log import Voice
 from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, as_tuple
 from rulehall.engines.args import BE_SHORT
+from rulehall.engines.bases.scenes.world import (
+    NEXT_ARC_DESCRIPTION,
+    NextProposal,
+    SceneProposal,
+    SceneWorld,
+)
 from rulehall.engines.loner4e.rules import (
     DIE_FACE,
     DOUBLES_PER_TWIST,
@@ -31,16 +37,20 @@ from rulehall.engines.loner4e.rules import (
     same_question,
     transition_for,
 )
-from rulehall.engines.loner4e.sheet import Loner4eEntity, TagName, Tags
-from rulehall.engines.scenes.world import (
-    NEXT_ARC_DESCRIPTION,
-    NextProposal,
-    SceneProposal,
-    SceneWorld,
-)
+from rulehall.engines.loner4e.sheet import Loner4ePerson, TagName, Tags
 from rulehall.engines.sheet import Gauge, changed_tags, tag_card, tag_delta
 from rulehall.engines.world import IS_DEAD
 
+QUIET_SCENE_REQUEST: Slug = "quiet"
+DRAMATIC_SCENE_REQUEST: Slug = "dramatic"
+MEANWHILE_REQUEST: Slug = "meanwhile"
+LIVING_WORLD_REQUEST: Slug = "living-world"
+GROWTH_WAITS = (
+    "a new skill or frailty on the protagonist is the growth at the end of the adventure: it is "
+    "written only after the player picks End it; propose the end with `end_adventure`, or tell the "
+    "change in `direct`"
+)
+GROWN = "the growth is one new skill or frailty, and it is written; call `direct` now"
 SCENE_CLOSED = "the scene has closed: change nothing more in it; call `direct` now"
 NO_SUCH_TAG = (
     "no such tag here: {missing}; cite exact tags from SCENE, the sheet or who is here, or cite "
@@ -55,7 +65,7 @@ MEANWHILE_HINT = (
 )
 
 
-class Loner4eSceneProposal(SceneProposal[Loner4eEntity]):
+class Loner4eSceneProposal(SceneProposal[Loner4ePerson]):
     goal: str = Field(
         min_length=1,
         description="What the protagonist is here for in this scene, in one line the player "
@@ -75,7 +85,7 @@ class Loner4eSceneProposal(SceneProposal[Loner4eEntity]):
         return self
 
 
-class Loner4eNextProposal(Loner4eSceneProposal, NextProposal[Loner4eEntity]):
+class Loner4eNextProposal(Loner4eSceneProposal, NextProposal[Loner4ePerson]):
     # Declared again: the first base would hand down the opening's `arc`.
     arc: str = Field(default="", description=NEXT_ARC_DESCRIPTION)
 
@@ -233,7 +243,7 @@ class Frame(Mutable):
         return f"closing: next {self.handover}"
 
 
-class Loner4eWorld(SceneWorld[Loner4eEntity]):
+class Loner4eWorld(SceneWorld[Loner4ePerson]):
     twist: Gauge = Field(default_factory=lambda: Gauge(current=0, maximum=DOUBLES_PER_TWIST))
     frame: Frame = Field(default_factory=Frame)
     opponent_ids: list[Slug] = Field(default_factory=list)
@@ -247,10 +257,19 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         _check_scene_id_unfiled(self.cast)
         return self
 
-    def apply_scene_extras(self, proposal: Loner4eSceneProposal) -> None:
+    def apply_opening_extras(self, proposal: Loner4eSceneProposal) -> None:
         self.frame = Frame(
             kind=self.frame.coming, goal=proposal.goal, details=list(proposal.details)
         )
+
+    apply_next_extras = apply_opening_extras
+
+    def grow(self, gained: Sequence[str]) -> None:
+        if not self.end_why:
+            raise Refusal(GROWTH_WAITS)
+        if self.grown or len(gained) > 1:
+            raise Refusal(GROWN)
+        self.grown = True
 
     def close(self, reason: ClosedBy, rng: Random) -> list[Fact]:
         frame = self.frame
@@ -411,8 +430,8 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         question, self.player_question = self.player_question, ""
         return question
 
-    def here_or_entering(self, entity_id: Slug) -> tuple[Loner4eEntity, list[Fact]]:
-        known = self.find_entity(entity_id)
+    def here_or_entering(self, entity_id: Slug) -> tuple[Loner4ePerson, list[Fact]]:
+        known = self.find_by_id_or_name(entity_id)
         if known is not None and (known is self.player or known.id in self.scene.here_ids):
             return self.require_living_here(known.id), []
         facts = self.enter(entity_id, None)
@@ -441,7 +460,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         self.twist.current = 0 if reached == DOUBLES_PER_TWIST else reached
         return reached
 
-    def engage(self, opponent: Loner4eEntity) -> list[Fact]:
+    def engage(self, opponent: Loner4ePerson) -> list[Fact]:
         if opponent.id in self.opponent_ids:
             # Last in the list is the one fought last: an `ask` with no `opponent_id` engages them.
             self.opponent_ids.remove(opponent.id)
@@ -452,8 +471,8 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         return [*opened, *opponent.refill("the conflict begins")]
 
     def strike(
-        self, opponent: Loner4eEntity, outcome: RollOutcome
-    ) -> tuple[list[Fact], Loner4eEntity | None]:
+        self, opponent: Loner4ePerson, outcome: RollOutcome
+    ) -> tuple[list[Fact], Loner4ePerson | None]:
         hit, striker = (opponent, self.player) if outcome.harm > 0 else (self.player, opponent)
         why = f"{striker.name} gets the better of the exchange"
         facts = hit.change(hit.luck, -abs(outcome.harm), "Luck", why)
@@ -462,8 +481,8 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
         return [*facts, *self.knock_out(hit)], hit
 
     def spend(
-        self, spender: Loner4eEntity, amount: int, why: str
-    ) -> tuple[list[Fact], Loner4eEntity | None]:
+        self, spender: Loner4ePerson, amount: int, why: str
+    ) -> tuple[list[Fact], Loner4ePerson | None]:
         facts = spender.spend_luck(amount, why)
         fighting = spender.id in self.opponent_ids or (
             spender is self.player and bool(self.opponent_ids)
@@ -472,7 +491,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
             return facts, None
         return [*facts, *self.knock_out(spender)], spender
 
-    def knock_out(self, loser: Loner4eEntity) -> list[Fact]:
+    def knock_out(self, loser: Loner4ePerson) -> list[Fact]:
         if loser is self.player:
             return self.end_conflict(f"{loser.name} is out of luck")
         return self.drop_opponent(loser.id)
@@ -502,7 +521,7 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
 
     def leave(self, entity_id: Slug) -> list[Fact]:
         self.require_open()
-        known = self.find_entity(entity_id)
+        known = self.find_by_id_or_name(entity_id)
         if known is None or known.id not in self.scene.here_ids:
             return []
         return [*super().leave(known.id), *self.drop_opponent(known.id)]
@@ -515,6 +534,6 @@ class Loner4eWorld(SceneWorld[Loner4eEntity]):
 Loner4eGame = Game[Loner4eWorld]
 
 
-def _check_scene_id_unfiled(cast: Mapping[Slug, Loner4eEntity]) -> None:
+def _check_scene_id_unfiled(cast: Mapping[Slug, Loner4ePerson]) -> None:
     if SCENE_ID in cast:
         raise ValueError(f"no cast entry filed under `{SCENE_ID}`: that id names the scene")

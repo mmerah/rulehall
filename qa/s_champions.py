@@ -94,9 +94,6 @@ def champions_team_builder(s: Session, page: Page, name: str) -> None:
     page.locator(".game-builder-section-moves .game-builder-pick").first.click()
     shoot_picker(s, page, f"{name}-champions-moves-picker")
 
-    expert = page.locator(".game-builder-expert")
-    expert.click()
-    page.locator(".game-builder-expert-on").wait_for()
     show_pane(page, "Points")
     scroll_to_top(page.locator(".game-builder-section-points"))
     still(page, ".game-builder")
@@ -126,8 +123,6 @@ def champions_team_builder(s: Session, page: Page, name: str) -> None:
     dialog.wait_for(state="detached")
     tools.get_by_role("button", name="Start from").click()
     shoot_picker(s, page, f"{name}-champions-start-from")
-    expert.click()
-    page.locator(".game-builder-simple").wait_for()
 
 
 def show_pane(page: Page, label: str) -> None:

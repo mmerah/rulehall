@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from rulehall.core.prompt import Prompt, lines_of, sections
 from rulehall.core.tools import render_schema
 from rulehall.core.validation import Slug
-from rulehall.engines.pokemon.battle.choices import Hand
+from rulehall.engines.pokemon.battle.choices import TeamPositions
 from rulehall.engines.pokemon.battle.models import Battler, BattleSetup, RoleSeat
 from rulehall.engines.pokemon.battle.opponent import Offer, OpponentAnswer, opponent_system
 from rulehall.engines.pokemon.dex import Species, dex
@@ -57,9 +57,13 @@ def matchup_score(own: Battler, foe: Species) -> float:
 
 
 def preview_picks(
-    own: Sequence[Battler], foes: Sequence[Species], hand: Hand, size: int, leads: int
+    own: Sequence[Battler],
+    foes: Sequence[Species],
+    team_positions: TeamPositions,
+    size: int,
+    leads: int,
 ) -> tuple[int, ...]:
-    scores = {at: sum(matchup_score(own[at], foe) for foe in foes) for at in sorted(hand)}
+    scores = {at: sum(matchup_score(own[at], foe) for foe in foes) for at in sorted(team_positions)}
     ranked = sorted(scores, key=lambda at: -scores[at])
     brought = ranked[:size]
     holder = next((at for at in ranked if own[at].holds_mega_stone), None)
@@ -70,9 +74,13 @@ def preview_picks(
 
 
 def scripted_preview(
-    own: Sequence[Battler], foes: Sequence[Species], hand: Hand, size: int, leads: int
+    own: Sequence[Battler],
+    foes: Sequence[Species],
+    team_positions: TeamPositions,
+    size: int,
+    leads: int,
 ) -> tuple[str, ...]:
-    return tuple(f"team {at + 1}" for at in preview_picks(own, foes, hand, size, leads))
+    return tuple(f"team {at + 1}" for at in preview_picks(own, foes, team_positions, size, leads))
 
 
 def render_preview(
@@ -80,21 +88,24 @@ def render_preview(
     seat: RoleSeat,
     offers: Sequence[Offer],
     own: Sequence[Battler],
-    hand: Hand,
+    team_positions: TeamPositions,
     foes: Sequence[Species],
 ) -> Prompt:
     leads = setup.format_spec().active_slots
-    picks = scripted_preview(own, foes, hand, len(offers), leads)
-    names = {f"team {at + 1}": own[at].name for at in hand}
-    mega = any(own[at].holds_mega_stone for at in hand)
+    picks = scripted_preview(own, foes, team_positions, len(offers), leads)
+    names = {f"team {at + 1}": own[at].name for at in team_positions}
+    mega = any(own[at].holds_mega_stone for at in team_positions)
     team_preview = TEAM_PREVIEW.format(
         size=len(offers), leads=leads, mega=TEAM_PREVIEW_MEGA if mega else ""
     )
     parts = (
         ("TEAM PREVIEW", team_preview),
-        ("YOUR POKEMON", "\n".join(_own_block(at, own[at]) for at in sorted(hand))),
+        ("YOUR POKEMON", "\n".join(_own_block(at, own[at]) for at in sorted(team_positions))),
         ("FOE TEAM", lines_of(f"- {foe.name}: {foe.types_text()}" for foe in foes)),
-        ("MATCHUPS", "\n".join((MATCHUPS, *(_matchup_line(own[at], foes) for at in sorted(hand))))),
+        (
+            "MATCHUPS",
+            "\n".join((MATCHUPS, *(_matchup_line(own[at], foes) for at in sorted(team_positions)))),
+        ),
         (
             "BY MATCHUP",
             "\n".join(

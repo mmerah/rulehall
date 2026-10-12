@@ -5,8 +5,9 @@ from nicegui import Client, app
 from support.table import CHAMPIONS, open_table, play_turn, tool_call
 
 from rulehall.engines.pokemon.champions.world import ChampionsGame
-from rulehall.screens.pokemon.team_builder import TeamBuilderScreen, moved, picked_ids
-from rulehall.ui.surfaces import ScreenHost
+from rulehall.screens.pokemon.slot_editor import picked_ids
+from rulehall.screens.pokemon.team_builder import TeamBuilderScreen
+from rulehall.ui.screen_host import ScreenHost
 from rulehall.ui.widgets import Sounds
 
 
@@ -18,11 +19,6 @@ def test_a_pick_fills_the_open_slot_or_replaces_the_one_aimed_at() -> None:
 def test_a_move_already_in_the_set_swaps_places_instead_of_doubling() -> None:
     assert picked_ids(("protect", "fakeout"), 0, "fakeout") == ("fakeout", "protect")
     assert picked_ids(("protect", "fakeout"), 2, "fakeout") == ("protect", "fakeout")
-
-
-def test_a_dragged_move_lands_where_it_is_dropped() -> None:
-    assert moved(("a", "b", "c", "d"), 0, 2) == ("b", "c", "a", "d")
-    assert moved(("a", "b", "c", "d"), 3, 0) == ("d", "a", "b", "c")
 
 
 async def test_the_banner_shows_until_the_team_is_registered(

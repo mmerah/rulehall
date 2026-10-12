@@ -1,16 +1,15 @@
-from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import cache
 
 from rulehall.core.validation import Refusal, Slug
-from rulehall.core.views import Surface
+from rulehall.core.views import ScreenSlot
 from rulehall.engines.pokemon.battle.models import Nature
 from rulehall.engines.pokemon.champions.advice import (
     battle_species,
-    speed_hint,
     suggested_species,
     team_advice,
 )
-from rulehall.engines.pokemon.champions.args import ChoiceEdit, TemplateEdit
+from rulehall.engines.pokemon.champions.args import QuickSpreadEdit, TemplateEdit
 from rulehall.engines.pokemon.champions.data import (
     CompetitiveSet,
     UsageCard,
@@ -18,20 +17,19 @@ from rulehall.engines.pokemon.champions.data import (
     move_shares,
 )
 from rulehall.engines.pokemon.champions.panels import TEAM_TAB, preset_option, team_option
-from rulehall.engines.pokemon.champions.paste import parse_paste
-from rulehall.engines.pokemon.champions.pending import (
+from rulehall.engines.pokemon.champions.paste import export_paste, parse_paste
+from rulehall.engines.pokemon.champions.rules import PRESET_LETTERS, require_template
+from rulehall.engines.pokemon.champions.unsaved import (
     ABILITY,
     ITEM,
     MOVES,
     NATURE,
     SP,
     SPECIES,
-    PendingSet,
-    PendingTeam,
+    UnsavedSet,
+    UnsavedTeam,
     item_refusal,
-    unowned_refusal,
 )
-from rulehall.engines.pokemon.champions.rules import PRESET_LETTERS, require_template
 from rulehall.engines.pokemon.champions.views import (
     Catalog,
     CatalogOrder,
@@ -45,7 +43,7 @@ from rulehall.engines.pokemon.champions.views import (
     TeamBuilderSlot,
     TeamBuilderView,
 )
-from rulehall.engines.pokemon.champions.world import ChampionsWorld
+from rulehall.engines.pokemon.champions.world import ChampionsGame, ChampionsWorld
 from rulehall.engines.pokemon.dex import NATURES, dex
 from rulehall.engines.pokemon.rules import IV_MAX, STAT_NAMES, nature_effect, stats
 from rulehall.engines.pokemon.sprites import (
@@ -56,7 +54,7 @@ from rulehall.engines.pokemon.sprites import (
     type_tag,
 )
 
-TEAM_BUILDER_SURFACE_ID: Slug = "pokemon-team"
+TEAM_BUILDER_SCREEN_ID: Slug = "pokemon-team"
 TITLE = "Team builder"
 SPECIES_CATALOG = "species"
 ITEMS_CATALOG = "items"
@@ -82,45 +80,42 @@ SPREAD_SHAPES: dict[Slug, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
 }
 
 
-def team_builder_surface(world: ChampionsWorld, *, live: bool) -> Surface:
-    view = team_builder_view(world) if live else None
-    return Surface(surface_id=TEAM_BUILDER_SURFACE_ID, live=live, tab=TEAM_TAB, view=view)
+def team_builder_screen_slot(world: ChampionsWorld, *, live: bool) -> ScreenSlot:
+    return ScreenSlot(
+        screen_id=TEAM_BUILDER_SCREEN_ID, live=live, tab=TEAM_TAB, view=team_builder_view(world)
+    )
 
 
 def team_builder_view(world: ChampionsWorld) -> TeamBuilderView:
     shown = world.shown_team()
-    saved = PendingTeam.of_team(world.player_sheet.team)
-    allowed_species_ids = world.player_sheet.allowed_species_ids
+    saved = world.saved_team()
     return TeamBuilderView(
         title=TITLE,
         slots=tuple(
-            _roster_slot(shown, number, allowed_species_ids, edited=each != saved.slots[number - 1])
+            _roster_slot(shown, number, edited=each != saved.slots[number - 1])
             for number, each in enumerate(shown.slots, 1)
         ),
-        advice=team_advice(shown.slots, allowed_species_ids),
-        dirty=world.pending_team_dirty(),
+        advice=team_advice(shown),
+        dirty=world.unsaved_team_dirty(),
         registered=world.player_sheet.registered is not None,
-        locked_reason=world.pending_team_lock(),
-        save_lock=world.team_lock(),
-        copyable=not world.copy_lock(),
-        pending_team_open=world.pending_team is not None and not world.season_over(),
+        edit_lock=world.edit_lock(),
+        save_lock=world.save_lock(),
+        copy_lock=world.copy_lock(),
+        unsaved_team_open=world.pending_team is not None and not world.season_over(),
     )
 
 
 def team_builder_catalog(world: ChampionsWorld, slot: int, catalog_id: Slug) -> Catalog:
     team = world.shown_team()
-    allowed_species_ids = world.player_sheet.allowed_species_ids
     if catalog_id == SPECIES_CATALOG:
-        return _species_catalog(
-            _species_refusal(team, slot, allowed_species_ids), allowed_species_ids
-        )
+        return _species_catalog(team, slot)
     if catalog_id == ITEMS_CATALOG:
         species_id = team.require_set(slot).species_id
         return _refused(_items_catalog(species_id), _item_refusal(team, slot, species_id))
     if catalog_id == NATURES_CATALOG:
         return _natures_catalog()
     if catalog_id == TEMPLATES_CATALOG:
-        return _templates_catalog(allowed_species_ids)
+        return _templates_catalog(team)
     if catalog_id.startswith(ABILITIES_PREFIX):
         return _abilities_catalog(_catalog_species(catalog_id, ABILITIES_PREFIX))
     if catalog_id.startswith(MOVES_PREFIX):
@@ -128,15 +123,17 @@ def team_builder_catalog(world: ChampionsWorld, slot: int, catalog_id: Slug) -> 
     raise Refusal(f"{catalog_id!r} is no catalog of the team builder")
 
 
-def import_preview(world: ChampionsWorld, text: str) -> ImportPreview:
+def team_catalog(state: ChampionsGame, slot: int, catalog_id: Slug) -> Catalog:
+    return team_builder_catalog(state.world, slot, catalog_id)
+
+
+def team_import_preview(state: ChampionsGame, text: str) -> ImportPreview:
     rows = parse_paste(text)
-    sets = [row.pending_set for row in rows]
-    allowed_species_ids = world.player_sheet.allowed_species_ids
-    size = champions_data().legal.team_size
-    team = PendingTeam(slots=[*sets, *[None] * (size - len(sets))])
-    unowned = unowned_refusal((each.species_id for each in sets if each), allowed_species_ids)
+    sets = [row.unsaved_set for row in rows]
+    team = state.world.unsaved_team_of(sets)
+    unowned = team.disallowed_refusal(each.species_id for each in sets if each)
     previews = tuple(
-        _roster_slot(team, number, allowed_species_ids, edited=False, parsed=row.errors)
+        _roster_slot(team, number, edited=False, parsed=row.errors)
         for number, row in enumerate(rows, 1)
     )
     notes = dict.fromkeys(note for row in rows for note in row.notes)
@@ -147,32 +144,31 @@ def import_preview(world: ChampionsWorld, text: str) -> ImportPreview:
     )
 
 
-def quick_spread(pending_set: PendingSet, choice_id: Slug) -> tuple[Nature, tuple[int, ...]]:
+def team_export_text(state: ChampionsGame) -> str:
+    return export_paste(state.world.shown_team().slots)
+
+
+def quick_spread(unsaved_set: UnsavedSet, choice_id: Slug) -> tuple[Nature, tuple[int, ...]]:
     if choice_id == CLEAR:
-        return pending_set.nature, (0,) * len(STAT_NAMES)
+        return unsaved_set.nature, (0,) * len(STAT_NAMES)
     if choice_id in SPREAD_SHAPES:
-        return pending_set.nature, _shape_points(choice_id)
+        return unsaved_set.nature, _shape_points(choice_id)
     spreads = (
-        _usage_card(pending_set.species_id).spreads if choice_id.startswith(USAGE_PREFIX) else ()
+        _usage_card(unsaved_set.species_id).spreads if choice_id.startswith(USAGE_PREFIX) else ()
     )
     number = choice_id.removeprefix(USAGE_PREFIX)
     if not (number.isdecimal() and 1 <= int(number) <= min(len(spreads), QUICK_USAGE)):
-        raise Refusal(f"{choice_id!r} is no quick spread of {pending_set.species_id}")
+        raise Refusal(f"{choice_id!r} is no quick spread of {unsaved_set.species_id}")
     spread = spreads[int(number) - 1]
     return spread.nature, spread.sp
 
 
 def _roster_slot(
-    team: PendingTeam,
-    number: int,
-    allowed_species_ids: Collection[Slug] | None,
-    *,
-    edited: bool,
-    parsed: Sequence[str] = (),
+    team: UnsavedTeam, number: int, *, edited: bool, parsed: Sequence[str] = ()
 ) -> TeamBuilderSlot:
-    pending_set = team.find_set(number)
-    if pending_set is None:
-        suggested = suggested_species(team.slots, SUGGESTED, allowed_species_ids)
+    unsaved_set = team.find_set(number)
+    if unsaved_set is None:
+        suggested = suggested_species(team, SUGGESTED)
         species = _species_choices()
         field = PickField(
             field_id=SPECIES,
@@ -181,7 +177,7 @@ def _roster_slot(
             picked=(),
             pinned=_with_refusals(
                 (species[species_id] for species_id in suggested),
-                _species_refusal(team, number, allowed_species_ids),
+                _species_refusal(team, number),
             ),
         )
         return TeamBuilderSlot(
@@ -195,30 +191,30 @@ def _roster_slot(
             fields=(field,),
         )
     pokedex = dex()
-    species = pokedex.species[pending_set.species_id]
+    species = pokedex.species[unsaved_set.species_id]
     errors = team.field_errors(number)
     return TeamBuilderSlot(
         name=species.name,
         sprite=mon_sprite(species),
         tags=tuple(type_tag(kind) for kind in species.types),
-        brief=" · ".join(pokedex.moves[move_id].name for move_id in pending_set.move_ids),
+        brief=" · ".join(pokedex.moves[move_id].name for move_id in unsaved_set.move_ids),
         filled=True,
         edited=edited,
         error="; ".join((*parsed, *errors.values())),
-        fields=_fields(team, pending_set, number, errors),
+        fields=_fields(team, unsaved_set, number, errors),
         presets=tuple(
             choice.model_copy(
                 update={"option": preset_option(number, choice.choice_id, choice.name)}
             )
-            for choice in _preset_choices(pending_set.species_id)
+            for choice in _preset_choices(unsaved_set.species_id)
         ),
     )
 
 
 def _fields(
-    team: PendingTeam, pending_set: PendingSet, number: int, errors: Mapping[Slug, str]
+    team: UnsavedTeam, unsaved_set: UnsavedSet, number: int, errors: Mapping[Slug, str]
 ) -> tuple[TeamBuilderField, ...]:
-    species_id = pending_set.species_id
+    species_id = unsaved_set.species_id
     items = _item_choices(species_id)
     moves = _move_choices(species_id)
     card = champions_data().usage.get(species_id)
@@ -236,14 +232,14 @@ def _fields(
             field_id=ABILITY,
             label="Ability",
             catalog_id=f"{ABILITIES_PREFIX}{species_id}",
-            picked=_picked(_ability_choices(species_id), (pending_set.ability_id,)),
+            picked=_picked(_ability_choices(species_id), (unsaved_set.ability_id,)),
             error=errors.get(ABILITY, ""),
         ),
         PickField(
             field_id=ITEM,
             label="Item",
             catalog_id=ITEMS_CATALOG,
-            picked=_picked(items, (pending_set.item_id,)),
+            picked=_picked(items, (unsaved_set.item_id,)),
             pinned=_with_refusals(
                 _picked(items, (each.item_id for each in common_items[:PINNED])),
                 _item_refusal(team, number, species_id),
@@ -254,37 +250,35 @@ def _fields(
             field_id=NATURE,
             label="Nature",
             catalog_id=NATURES_CATALOG,
-            picked=(_nature_choices()[pending_set.nature.lower()],),
+            picked=(_nature_choices()[unsaved_set.nature.lower()],),
         ),
         PickField(
             field_id=MOVES,
             label="Moves",
             catalog_id=f"{MOVES_PREFIX}{species_id}",
-            picked=_picked(moves, pending_set.move_ids),
+            picked=_picked(moves, unsaved_set.move_ids),
             picks=champions_data().legal.moves_max,
             pinned=_picked(moves, (each.move_id for each in common_moves[:PINNED])),
             error=errors.get(MOVES, ""),
         ),
-        _points_field(pending_set, number, errors.get(SP, "")),
+        _points_field(unsaved_set, number, errors.get(SP, "")),
     )
 
 
-def _points_field(pending_set: PendingSet, number: int, error: str) -> PointsField:
+def _points_field(unsaved_set: UnsavedSet, number: int, error: str) -> PointsField:
     legal = champions_data().legal
-    species = battle_species(pending_set)
+    species = battle_species(unsaved_set)
     ivs = (IV_MAX,) * len(STAT_NAMES)
     finals = stats(
-        species, legal.level, pending_set.nature, ivs, tuple(pending_set.sp), stat_points=True
+        species, legal.level, unsaved_set.nature, ivs, tuple(unsaved_set.sp), stat_points=True
     )
-    raised, lowered = nature_effect(pending_set.nature) or (None, None)
-    speed = STAT_NAMES.index("Spe")
+    raised, lowered = nature_effect(unsaved_set.nature) or (None, None)
     rows = tuple(
         PointRow(
             name=name,
-            points=pending_set.sp[index],
+            points=unsaved_set.sp[index],
             final=finals[index],
             mark="raised" if index == raised else "lowered" if index == lowered else None,
-            hint=speed_hint(pending_set) if index == speed else "",
         )
         for index, name in enumerate(STAT_NAMES)
     )
@@ -299,13 +293,13 @@ def _points_field(pending_set: PendingSet, number: int, error: str) -> PointsFie
                 update={
                     "option": team_option(
                         "apply_quick",
-                        ChoiceEdit(slot=number, field_id=SP, choice_id=choice.choice_id),
+                        QuickSpreadEdit(slot=number, choice_id=choice.choice_id),
                         name=choice.name,
                         option_id=f"apply-quick-{number}-{choice.choice_id}",
                     )
                 }
             )
-            for choice in _quick_choices(pending_set.species_id)
+            for choice in _quick_choices(unsaved_set.species_id)
         ),
         error=error,
     )
@@ -327,20 +321,16 @@ def _with_refusals(choices: Iterable[Choice], refusal: Callable[[Slug], str]) ->
     )
 
 
-def _species_refusal(
-    team: PendingTeam, slot: int, allowed_species_ids: Collection[Slug] | None
-) -> Callable[[Slug], str]:
-    return lambda species_id: team.species_refusal(slot, species_id, allowed_species_ids)
+def _species_refusal(team: UnsavedTeam, slot: int) -> Callable[[Slug], str]:
+    return lambda species_id: team.species_refusal(slot, species_id)
 
 
-def _item_refusal(team: PendingTeam, slot: int, species_id: Slug) -> Callable[[Slug], str]:
+def _item_refusal(team: UnsavedTeam, slot: int, species_id: Slug) -> Callable[[Slug], str]:
     return lambda item_id: item_refusal(species_id, item_id) or team.item_clash(slot, item_id)
 
 
-def _species_catalog(
-    refusal: Callable[[Slug], str], allowed_species_ids: Collection[Slug] | None
-) -> Catalog:
-    owned = () if allowed_species_ids is None else ("owned",)
+def _species_catalog(team: UnsavedTeam, slot: int) -> Catalog:
+    refusal = _species_refusal(team, slot)
     choices = tuple(
         choice.model_copy(
             update={
@@ -349,8 +339,7 @@ def _species_catalog(
                     *choice.facets,
                     *(
                         (Facet(name="owned", value="yes"),)
-                        if allowed_species_ids is not None
-                        and choice.choice_id in allowed_species_ids
+                        if team.restricted and team.allows(choice.choice_id)
                         else ()
                     ),
                 ),
@@ -362,7 +351,7 @@ def _species_catalog(
         catalog_id=SPECIES_CATALOG,
         title="Choose a Pokemon",
         choices=choices,
-        facets=("type", "mega", "common", *owned),
+        facets=("type", "mega", "common", *_owned_facet(team)),
         orders=_species_orders(),
     )
 
@@ -551,16 +540,15 @@ def _nature_choices() -> Mapping[Slug, Choice]:
     }
 
 
-def _templates_catalog(allowed_species_ids: Collection[Slug] | None) -> Catalog:
+def _templates_catalog(team: UnsavedTeam) -> Catalog:
     choices = _template_choices()
-    if allowed_species_ids is not None:
+    if team.restricted:
         choices = tuple(
             choice.model_copy(
                 update={
                     "refusal": (
-                        refusal := unowned_refusal(
-                            (each.species_id for each in require_template(choice.choice_id)),
-                            allowed_species_ids,
+                        refusal := team.disallowed_refusal(
+                            each.species_id for each in require_template(choice.choice_id)
                         )
                     ),
                     "facets": (
@@ -575,12 +563,7 @@ def _templates_catalog(allowed_species_ids: Collection[Slug] | None) -> Catalog:
         catalog_id=TEMPLATES_CATALOG,
         title="Start from a team",
         choices=choices,
-        facets=(
-            "archetype",
-            "pool",
-            "species",
-            *(() if allowed_species_ids is None else ("owned",)),
-        ),
+        facets=("archetype", "pool", "species", *_owned_facet(team)),
         orders=(CatalogOrder(name="Placing", choice_ids=tuple(c.choice_id for c in choices)),),
     )
 
@@ -696,6 +679,10 @@ def _shape_points(shape_id: Slug) -> tuple[int, ...]:
     spare, extra = divmod(legal.sp_total - legal.sp_max * len(maxed), len(leftover))
     shares = {name: spare + (index < extra) for index, name in enumerate(leftover)}
     return tuple(legal.sp_max if name in maxed else shares.get(name, 0) for name in STAT_NAMES)
+
+
+def _owned_facet(team: UnsavedTeam) -> tuple[str, ...]:
+    return ("owned",) if team.restricted else ()
 
 
 def _catalog_species(catalog_id: Slug, prefix: str) -> Slug:

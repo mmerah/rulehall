@@ -8,7 +8,7 @@ from rulehall.core.game import Character, Scenario
 from rulehall.core.validation import Slug
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.loner4e.engine import Loner4eEngine
-from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.loner4e.sheet import Loner4ePerson
 from rulehall.engines.loner4e.world import Loner4eGame, Loner4eSceneProposal
 from support.table import (
     ENGINES_BUILT,
@@ -41,7 +41,7 @@ class Dice(Random):
         return self.faces.pop(0)
 
 
-def with_entity(state: Loner4eGame, entity: Loner4eEntity) -> Loner4eGame:
+def with_entity(state: Loner4eGame, entity: Loner4ePerson) -> Loner4eGame:
     """A met entity joins the scene too: a Loner scene holds nobody unmet."""
     draft = state.draft()
     draft.world.cast[entity.id] = entity
@@ -50,7 +50,7 @@ def with_entity(state: Loner4eGame, entity: Loner4eEntity) -> Loner4eGame:
     return draft.validated()
 
 
-def loner_sheet(state: Loner4eGame, entity_id: Slug) -> Loner4eEntity:
+def loner_sheet(state: Loner4eGame, entity_id: Slug) -> Loner4ePerson:
     return state.world.require_entity(entity_id)
 
 
@@ -59,9 +59,9 @@ def scenario() -> Scenario[Loner4eSceneProposal]:
     return narrowed(scenario, Scenario[Loner4eSceneProposal])
 
 
-def character() -> Character[Loner4eEntity]:
+def character() -> Character[Loner4ePerson]:
     character = LIBRARY.read_character("kael", ENGINE.id, ENGINE.character_model)
-    return narrowed(character, Character[Loner4eEntity])
+    return narrowed(character, Character[Loner4ePerson])
 
 
 def initialized() -> tuple[AnyEngine, Loner4eGame]:

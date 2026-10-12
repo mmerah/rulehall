@@ -1,4 +1,4 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 
 from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.facts import notation
@@ -8,7 +8,7 @@ from rulehall.engines.panels import character_panel
 from rulehall.engines.twentyfourxx.args import DefendHit, Roll
 from rulehall.engines.twentyfourxx.rules import DEFAULT_DIE, HINDERED_DIE, LADDER, next_die
 from rulehall.engines.twentyfourxx.sheet import Crewmate, CrewSheet, Gear, GearMark
-from rulehall.engines.twentyfourxx.world import WORK_AT, TwentyFourXXWorld
+from rulehall.engines.twentyfourxx.world import NEWCOMER_REQUEST, WORK_AT, TwentyFourXXWorld
 
 SHEET_HELP = {
     "Specialty": "Your trade: it set your starting skills and gear.",
@@ -46,16 +46,15 @@ MOVE_ON = ActionOption(
     action_name="move_on",
     needs_words=True,
 )
-NEWCOMER: Slug = "newcomer"
 RAISE_PROMPT = "The job is done. Which skill do you raise? Pick one, or name a new one."
 NEWCOMER_PROMPT = "{name} is dead. Who joins the crew? Describe them in your own words."
 CANNOT_SUCCEED = "Cannot succeed without help."
 
 
-def sheet_panel(world: TwentyFourXXWorld, sheet_help: Mapping[str, str]) -> Panel:
+def sheet_panel(world: TwentyFourXXWorld) -> Panel:
     player = world.player
     return character_panel(
-        player.subject(), player.rows(), *gear_rows(world, player), sheet_help=sheet_help
+        player.subject(), player.rows(), *gear_rows(world, player), sheet_help=SHEET_HELP
     )
 
 
@@ -154,7 +153,7 @@ def job_panel(world: TwentyFourXXWorld) -> Panel | None:
     return Panel(title="Job", rows=(PanelRow(name=shown, brief=""),), help=JOB_HELP)
 
 
-def look_again_move(world: TwentyFourXXWorld) -> tuple[ActionOption, ...]:
+def look_again_option(world: TwentyFourXXWorld) -> tuple[ActionOption, ...]:
     where = world.work_found_at
     if not where or world.player.require_sheet().credits < 1:
         return ()
@@ -171,7 +170,7 @@ def look_again_move(world: TwentyFourXXWorld) -> tuple[ActionOption, ...]:
 
 def newcomer_decision(dead: Crewmate) -> Decision:
     return Decision(
-        kind=NEWCOMER,
+        kind=NEWCOMER_REQUEST,
         prompt=NEWCOMER_PROMPT.format(name=dead.name),
         options=(),
         allows_text=True,

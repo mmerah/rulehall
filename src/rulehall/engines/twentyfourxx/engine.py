@@ -3,21 +3,20 @@ from functools import partial
 from pathlib import Path
 from random import Random
 
-from rulehall.core.creation import CreationStep, Picks, find_option
-from rulehall.core.decisions import ActionOption, DecisionOption
-from rulehall.core.facts import Fact, roll
+from rulehall.core.creation import CreationStep, Picks, numbered_picks
+from rulehall.core.decisions import ActionOption, find_option, unique_options
+from rulehall.core.facts import Fact, Resolution, roll
 from rulehall.core.game import AnyCharacter, AnyScenario, Character, RoleAnswer, WorldsmithRequest
 from rulehall.core.log import Voice
-from rulehall.core.prompt import Sections, lines_of, ref_of, section_if
+from rulehall.core.narration import NarratorView
+from rulehall.core.prompt import Sections, section_if
 from rulehall.core.tools import action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
-from rulehall.core.views import NarratorView, Panel, Rows
+from rulehall.core.views import Panel, PanelRow, Rows
 from rulehall.engines.args import Words
-from rulehall.engines.engine import RequestHandler, Resolution, Revealing
+from rulehall.engines.bases.scenes.engine import SceneEngine
+from rulehall.engines.engine import RequestHandler, Revealing
 from rulehall.engines.hiring import HIRE_PENDING, HIRE_UNWRITTEN, Hiring, signed_on
-from rulehall.engines.packs import unique_options
-from rulehall.engines.panels import party_panel
-from rulehall.engines.scenes.engine import SceneEngine
 from rulehall.engines.sheet import PLAYER_ID, joined
 from rulehall.engines.twentyfourxx.args import (
     BringIn,
@@ -48,13 +47,12 @@ from rulehall.engines.twentyfourxx.pack import (
 )
 from rulehall.engines.twentyfourxx.panels import (
     MOVE_ON,
-    NEWCOMER,
     SHEET_HELP,
     SKILL_INCREASE_HELP,
     commit_decision,
     crew_rows,
     job_panel,
-    look_again_move,
+    look_again_option,
     newcomer_decision,
     raise_decision,
     sheet_panel,
@@ -66,17 +64,21 @@ from rulehall.engines.twentyfourxx.rules import (
     NO_TROUBLE,
     SIGNS_OF_TROUBLE,
     TROUBLE,
-    next_die,
     outcome_band,
 )
-from rulehall.engines.twentyfourxx.sheet import Crewmate, CrewSheet, Gear, Kit, items_from_kits
+from rulehall.engines.twentyfourxx.sheet import Crewmate, CrewSheet
 from rulehall.engines.twentyfourxx.world import (
+    COMPLICATION_REQUEST,
+    DEPARTURE_REQUEST,
+    FLIGHT_REQUEST,
+    NEWCOMER_REQUEST,
     NewcomerProposal,
     SheetProposal,
     TwentyFourXXGame,
     TwentyFourXXNextProposal,
     TwentyFourXXSceneProposal,
     TwentyFourXXWorld,
+    gear_lines,
 )
 from rulehall.engines.twentyfourxx.worldsmith import (
     COMPLICATING,
@@ -89,9 +91,6 @@ from rulehall.engines.twentyfourxx.worldsmith import (
 )
 from rulehall.engines.world import IS_DEAD
 
-DEPARTURE: Slug = "departure"
-FLIGHT: Slug = "flight"
-COMPLICATION: Slug = "complication"
 MOVING_ON = (
     "The player moves on. PLAYER ACTION says where the player means to go. Play the leaving if "
     "nothing stops the player. Then call `next_scene` with `pursuit` in the player's own words. "
@@ -153,10 +152,10 @@ NO_TROUBLE_COMES = "no bad luck: the trouble does not come; play on"
 
 class TwentyFourXXEngine(
     Revealing[TwentyFourXXWorld],
-    Hiring[Crewmate, TwentyFourXXWorld, TwentyFourXXPack, TwentyFourXXNextProposal, SheetProposal],
+    Hiring[Crewmate, TwentyFourXXWorld, SheetProposal],
     SceneEngine[Crewmate, TwentyFourXXWorld, TwentyFourXXPack, TwentyFourXXNextProposal],
 ):
-    id = EngineId("twentyfourxx")
+    id = rule_set_id = EngineId("twentyfourxx")
     title = "24XX"
     worldsmith_guidance = WORLDSMITH_GUIDANCE
     art_style = (
@@ -173,25 +172,25 @@ class TwentyFourXXEngine(
     next_proposal_model = TwentyFourXXNextProposal
     hire_model = SheetProposal
     hire_intent = HIRING
-    sheet_help = SHEET_HELP
+    sheet_help = party_help = SHEET_HELP
 
     def request_handlers(self) -> Mapping[Slug, RequestHandler[TwentyFourXXWorld]]:
         return {
             **super().request_handlers(),
-            DEPARTURE: RequestHandler(self.leave_for_next_place, WAY_UNWRITTEN),
-            FLIGHT: RequestHandler(self.leave_for_next_place, WAY_UNWRITTEN),
-            COMPLICATION: RequestHandler(self.complicate, COMPLICATION_UNWRITTEN),
-            NEWCOMER: RequestHandler(self.write_newcomer, HIRE_UNWRITTEN),
+            DEPARTURE_REQUEST: RequestHandler(self.leave_for_next_place, WAY_UNWRITTEN),
+            FLIGHT_REQUEST: RequestHandler(self.leave_for_next_place, WAY_UNWRITTEN),
+            COMPLICATION_REQUEST: RequestHandler(self.complicate, COMPLICATION_UNWRITTEN),
+            NEWCOMER_REQUEST: RequestHandler(self.write_newcomer, HIRE_UNWRITTEN),
         }
 
-    def before_record(self, draft: TwentyFourXXGame, /) -> None:
+    def before_log_entry(self, draft: TwentyFourXXGame, /) -> None:
         if draft.pending is None and draft.request is None:
             self._succession(draft)
         if draft.pending is None and draft.request is None and draft.world.raise_owed:
             draft.pending = raise_decision(draft.world.player.require_sheet())
 
-    def moves(self, state: TwentyFourXXGame, /) -> tuple[ActionOption, ...]:
-        return (MOVE_ON, *look_again_move(state.world))
+    def standing_options(self, state: TwentyFourXXGame, /) -> tuple[ActionOption, ...]:
+        return (MOVE_ON, *look_again_option(state.world))
 
     def hire_guidance(self, draft: TwentyFourXXGame) -> str:
         specialties, origins = self._offered(draft.pack_id)
@@ -201,7 +200,7 @@ class TwentyFourXXEngine(
                 *(specialty.line() for specialty in specialties),
                 "Origins:",
                 *(origin.line() for origin in origins),
-                f"Skills: {', '.join(self._rulebook_skills())}",
+                f"Skills: {', '.join(self.packs.srd().rulebook_skills())}",
             )
         )
 
@@ -269,9 +268,9 @@ class TwentyFourXXEngine(
             specialty_skills=picks.get("specialty-choice", ""),
             weapon=picks.get("weapon", ""),
             origin=picks.get("origin", ""),
-            traits=_numbered(picks, "trait"),
+            traits=numbered_picks(picks, "trait"),
             body=picks.get("body", ""),
-            increases=_numbered(picks, "increase"),
+            increases=numbered_picks(picks, "increase"),
         )
         player = Crewmate(
             id=PLAYER_ID,
@@ -284,35 +283,7 @@ class TwentyFourXXEngine(
         return self.character_of(name, player)
 
     def build_sheet(self, pack_id: Slug, proposal: SheetProposal) -> CrewSheet:
-        specialties, origins = self._offered(pack_id)
-        specialty = _chosen(specialties, proposal.specialty, "specialty")
-        origin = _chosen(origins, proposal.origin, "origin")
-        skill_choice = _chosen_if_offered(
-            specialty.choice, proposal.specialty_skills, "specialty skills"
-        )
-        weapon = _chosen_if_offered(specialty.kit_choice, proposal.weapon, "weapon")
-        body = _chosen_if_offered(origin.choice, proposal.body, "body")
-        _require_count(proposal.traits, origin.invents, "traits to invent")
-        _require_count(proposal.increases, origin.increases, "skill increases")
-
-        kits: list[Kit] = [*self.packs.srd().starting_kit, *specialty.kit]
-        if weapon is not None:
-            kits.append(weapon.kit)
-        if body is not None and body.kit is not None:
-            kits.append(body.kit)
-        sheet = CrewSheet(
-            specialty=specialty.name,
-            origin=origin.name,
-            traits=(*proposal.traits, *(() if body is None else (body.name,))),
-            skills={**specialty.skills, **({} if skill_choice is None else skill_choice.skills)},
-            items=items_from_kits(kits),
-        )
-        for wanted in proposal.increases:
-            skill = sheet.match_skill(wanted, self._rulebook_skills()) or wanted
-            if (raised_die := next_die(sheet.skills.get(skill))) is None:
-                raise Refusal(f"{skill} is already at d12")
-            sheet.skills[skill] = raised_die
-        return sheet
+        return proposal.build_sheet(*self._offered(pack_id), self.packs.srd())
 
     def preview_character(self, character: AnyCharacter) -> Rows:
         sheet = self.player_of(character).require_sheet()
@@ -322,11 +293,11 @@ class TwentyFourXXEngine(
         world = state.world
         return (
             ("YOU PLAY FOR", world.player.line(gear=False)),
-            ("GEAR", _item_lines(world.player.require_sheet().items)),
+            ("GEAR", gear_lines(world.player.require_sheet().items)),
             *section_if("THE JOB", world.job),
             *section_if("RAISE", RAISE_OWED if world.raise_owed else ""),
-            ("THE SHIP", _item_lines(world.ship)),
-            ("THE HOLD", f"{world.ship_line()}\n{_item_lines(world.hold)}"),
+            ("THE SHIP", gear_lines(world.ship)),
+            ("THE HOLD", f"{world.ship_line()}\n{gear_lines(world.hold)}"),
         )
 
     def context_text(self, state: TwentyFourXXGame) -> str:
@@ -341,14 +312,10 @@ class TwentyFourXXEngine(
 
     def lead_panels(self, state: TwentyFourXXGame, /) -> tuple[Panel | None, ...]:
         world = state.world
-        return (
-            sheet_panel(world, self.sheet_help),
-            job_panel(world),
-            ship_panel(world),
-            party_panel(
-                world.party_members(), self.sheet_help, lambda member: crew_rows(world, member)
-            ),
-        )
+        return (sheet_panel(world), job_panel(world), ship_panel(world))
+
+    def member_rows(self, world: TwentyFourXXWorld, member: Crewmate, /) -> tuple[PanelRow, ...]:
+        return crew_rows(world, member)
 
     @tool
     def change_hindrances(
@@ -381,20 +348,7 @@ class TwentyFourXXEngine(
     def spend(self, draft: TwentyFourXXGame, args: Spend, _rng: Random) -> list[Fact]:
         """Pay the actor's credits for a thing that is not an item and not a repair, or pay
         someone with `to_id`."""
-        world = draft.world
-        actor = world.require_actor(args.actor_id)
-        if args.to_id is None:
-            return actor.spend(args.amount, args.why)
-        if args.to_id == actor.id:
-            raise Refusal(f"{actor.name} cannot pay themselves")
-        person = world.find_person(args.to_id)
-        if args.to_id == world.player.id or (
-            person and person.has_sheet and person.id in world.party_ids
-        ):
-            taker = world.require_actor(args.to_id)
-            return [*actor.spend(args.amount, args.why), *taker.earn(args.amount, giver=actor)]
-        taker_name = args.to_id if person is None else person.name
-        return actor.spend(args.amount, f"{args.why}, to {taker_name}")
+        return draft.world.spend(args.actor_id, args.to_id, args.amount, args.why)
 
     @action
     def take_lead(self, draft: TwentyFourXXGame, args: TakeLead, _rng: Random) -> list[Fact]:
@@ -436,7 +390,7 @@ class TwentyFourXXEngine(
         if args.pursuit:
             if args.by_ship:
                 draft.world.require_ship_here()
-            kind = FLIGHT if args.by_ship else DEPARTURE
+            kind = FLIGHT_REQUEST if args.by_ship else DEPARTURE_REQUEST
             draft.request = WorldsmithRequest(kind=kind, detail=args.pursuit)
             draft.note(SCENE_LEFT)
             return [Fact(trace=f"the player leaves {draft.world.scene.title}", told=True)]
@@ -451,7 +405,7 @@ class TwentyFourXXEngine(
             draft.world.player.card_fact(f"Bad luck — d6 → {band}", (rolled.event,)),
         ]
         if band == TROUBLE:
-            draft.request = WorldsmithRequest(kind=COMPLICATION, detail=trouble)
+            draft.request = WorldsmithRequest(kind=COMPLICATION_REQUEST, detail=trouble)
             return [*tested, Fact(trace=TROUBLE_COMES.format(trouble=trouble))]
         if band == SIGNS_OF_TROUBLE:
             return [*tested, Fact(trace=SIGNS_SHOW.format(trouble=trouble))]
@@ -466,7 +420,7 @@ class TwentyFourXXEngine(
         self, draft: TwentyFourXXGame, request: WorldsmithRequest, worldsmith: RoleAnswer
     ) -> Resolution:
         world = draft.world
-        by_ship = request.kind == FLIGHT
+        by_ship = request.kind == FLIGHT_REQUEST
         left = world.scene.title
         facts = await self.write_and_install_next(
             draft,
@@ -527,7 +481,7 @@ class TwentyFourXXEngine(
             raise Refusal(
                 "a new operator joins only when the lead is dead and no hired member lives"
             )
-        draft.request = WorldsmithRequest(kind=NEWCOMER, detail=args.who)
+        draft.request = WorldsmithRequest(kind=NEWCOMER_REQUEST, detail=args.who)
         return [Fact(trace=HIRE_PENDING.format(name="the new operator", terms=args.who))]
 
     async def write_newcomer(
@@ -543,7 +497,7 @@ class TwentyFourXXEngine(
             lambda proposal: check_newcomer(proposal, world),
             guidance=self.hire_guidance(draft),
         )
-        world.hear(answer.name, answer.brief)
+        world.meet_people_named(answer.name, answer.brief)
         newcomer = Crewmate(
             id=PLAYER_ID,
             name=answer.name,
@@ -561,7 +515,7 @@ class TwentyFourXXEngine(
     def roll(self, draft: TwentyFourXXGame, args: Roll, rng: Random) -> list[Fact]:
         """Roll only to avoid a risk. The engine checks the dice and asks the player to
         commit, unless `committed` is set; then it rolls and reads the result."""
-        pool = DicePool.build(draft.world, args, self._rulebook_skills())
+        pool = DicePool.build(draft.world, args, self.packs.srd().rulebook_skills())
         if args.committed:
             return self._rolled(draft, pool, rng)
         draft.pending = commit_decision(args, pool.lines()[1], pool.actor, pool.faces)
@@ -569,7 +523,7 @@ class TwentyFourXXEngine(
 
     @action
     def defend_hit(self, draft: TwentyFourXXGame, args: DefendHit, _rng: Random) -> list[Fact]:
-        pool = DicePool.build(draft.world, args.roll, self._rulebook_skills())
+        pool = DicePool.build(draft.world, args.roll, self.packs.srd().rulebook_skills())
         return defend_or_land(draft, pool, args.rolled, args.choices)
 
     def _rolled(self, draft: TwentyFourXXGame, pool: DicePool, rng: Random) -> list[Fact]:
@@ -638,44 +592,5 @@ class TwentyFourXXEngine(
         return [*facts, Fact(trace=JOB_PAID)]
 
     def _raise(self, actor: Crewmate, skill: str) -> list[Fact]:
-        matched = actor.require_sheet().match_skill(skill, self._rulebook_skills())
+        matched = actor.require_sheet().match_skill(skill, self.packs.srd().rulebook_skills())
         return actor.raise_skill(matched or skill)
-
-    def _rulebook_skills(self) -> tuple[str, ...]:
-        return tuple(option.name for option in self.packs.srd().skills)
-
-
-def _item_lines(items: Mapping[Slug, Gear]) -> str:
-    return lines_of(
-        f"- {ref_of(item.name, key)}" + (f" — {detail}" if (detail := item.notes()) else "")
-        for key, item in items.items()
-    )
-
-
-def _numbered(picks: Picks, prefix: str) -> tuple[str, ...]:
-    numbered = (f"{prefix}-{number}" for number in range(1, len(picks) + 1))
-    return tuple(picks[key] for key in numbered if key in picks)
-
-
-def _chosen[T: DecisionOption](options: Sequence[T], answer: str, what: str) -> T:
-    folded = answer.casefold()
-    chosen = next(
-        (option for option in options if folded in (option.id, option.name.casefold())), None
-    )
-    if chosen is None:
-        names = " / ".join(option.name for option in options)
-        raise Refusal(f"{what}: {answer!r} is not one of {names}")
-    return chosen
-
-
-def _chosen_if_offered[T: DecisionOption](options: Sequence[T], answer: str, what: str) -> T | None:
-    if options:
-        return _chosen(options, answer, what)
-    if answer:
-        raise Refusal(f"{what}: none is on offer here, so leave it empty")
-    return None
-
-
-def _require_count(answers: Sequence[str], offered: int, what: str) -> None:
-    if len(answers) != offered or not all(answer.strip() for answer in answers):
-        raise Refusal(f"the origin takes exactly {offered} {what}, each one named")

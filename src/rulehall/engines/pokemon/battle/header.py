@@ -6,9 +6,9 @@ from rulehall.engines.pokemon.battle.models import (
     WEATHERS,
     Battler,
     BattleSetup,
-    DumpMon,
     FieldCondition,
     FormatSpec,
+    MonSnapshot,
 )
 from rulehall.engines.pokemon.battle.views import BattleHeader, BattleMon, BattleSide
 from rulehall.engines.pokemon.dex import dex, showdown_id
@@ -37,8 +37,8 @@ BOOST_UP, BOOST_DOWN = "#3f9f5a", "#c0504a"
 
 def battle_header(
     setup: BattleSetup,
-    p1: Sequence[DumpMon],
-    p2: Sequence[DumpMon],
+    p1: Sequence[MonSnapshot],
+    p2: Sequence[MonSnapshot],
     log: Sequence[str],
     deciding_slot: int | None,
 ) -> BattleHeader:
@@ -114,7 +114,7 @@ def battle_header(
 
 def _fielded(
     battler: Battler,
-    dumped: DumpMon,
+    snapshot: MonSnapshot,
     spec: FormatSpec,
     megas: Mapping[str, tuple[str, str]],
     *,
@@ -125,7 +125,7 @@ def _fielded(
     return BattleMon(
         name=battler.name,
         sprite=mon_sprite(species.get(forme_id) or species[battler.species_id]),
-        hp=hp_meter(dumped.hp, max_hp(battler, stat_points=spec.stat_points)),
+        hp=hp_meter(snapshot.hp, max_hp(battler, stat_points=spec.stat_points)),
         tags=(
             Tag(name=f"Lv{battler.level}"),
             *(
@@ -133,13 +133,13 @@ def _fielded(
                 if stone
                 else ()
             ),
-            *((status_tag(dumped.status),) if dumped.status in STATUS_COLOURS else ()),
+            *((status_tag(snapshot.status),) if snapshot.status in STATUS_COLOURS else ()),
             *(
                 Tag(
                     name=f"{BOOST_NAMES[stat]} {stage:+}",
                     colour=BOOST_UP if stage > 0 else BOOST_DOWN,
                 )
-                for stat, stage in dumped.boosts.items()
+                for stat, stage in snapshot.boosts.items()
                 if stage and stat in BOOST_NAMES
             ),
         ),

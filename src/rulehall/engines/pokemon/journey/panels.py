@@ -2,18 +2,17 @@ from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.validation import Slug
 from rulehall.core.views import Meter, Panel, PanelRow, Sprite, Tag
 from rulehall.engines.pokemon.battle.models import FRIENDSHIP_MAX, LEVEL_MAX
-from rulehall.engines.pokemon.dex import ITEMS, dex
+from rulehall.engines.pokemon.dex import dex, move_brief, move_summary
+from rulehall.engines.pokemon.journey.items import ITEMS, BagId, bag_name, item_of, tm_move
+from rulehall.engines.pokemon.journey.mon import Learning, Mon, MoveSlot
 from rulehall.engines.pokemon.journey.rules import (
     FRIENDSHIP_EVOLVE,
     HELP_BONUSES,
     SKILL_USES,
-    BagId,
     help_bonus,
-    item_of,
-    tm_move,
 )
 from rulehall.engines.pokemon.journey.scheme import SCHEME_STAGES
-from rulehall.engines.pokemon.journey.sheet import JourneySheet, Learning, Mon, MoveSlot
+from rulehall.engines.pokemon.journey.sheet import JourneySheet
 from rulehall.engines.pokemon.journey.world import JourneyWorld
 from rulehall.engines.pokemon.rules import STAT_NAMES, TIMES
 from rulehall.engines.pokemon.sprites import (
@@ -24,8 +23,6 @@ from rulehall.engines.pokemon.sprites import (
     category_tag,
     hp_meter,
     item_sprite,
-    move_brief,
-    move_summary,
     nature_arrows,
     nature_tag,
     nature_text,
@@ -203,7 +200,7 @@ def mon_row(mon: Mon, cap: int, options: tuple[ActionOption, ...] = ()) -> Panel
             *(type_tag(kind) for kind in mon.species.types),
             *((status_tag(status),) if status else ()),
             nature_tag(mon.nature),
-            *((Tag(name=ITEMS[mon.item_id].name),) if mon.item_id else ()),
+            *((Tag(name=dex().item_name(mon.item_id)),) if mon.item_id else ()),
             Tag(
                 name=f"♥ {mon.friendship} · help +{help_bonus(mon.friendship)}",
                 help=FRIENDSHIP_HELP,
@@ -235,7 +232,7 @@ def bag_row(item_id: BagId, world: JourneyWorld) -> PanelRow:
     sheet = world.player_sheet
     item = item_of(item_id)
     return PanelRow(
-        name=item.name,
+        name=bag_name(item_id),
         brief=item_text(item_id),
         icon_id=item_id,
         tags=(Tag(name=f"{TIMES}{sheet.bag[item_id]}"), Tag(name=POCKETS[item.kind])),
@@ -272,7 +269,7 @@ def mon_options(mon: Mon, world: JourneyWorld, bag: list[BagId]) -> tuple[Action
         else (
             ActionOption(
                 id=f"take-{mon.mon_id}",
-                name=f"Take the {ITEMS[mon.item_id].name} from {name}",
+                name=f"Take the {dex().item_name(mon.item_id)} from {name}",
                 action_name="hold_item",
                 args={"mon_id": mon.mon_id, "item_id": None},
                 group=ITEMS_GROUP,
@@ -332,14 +329,22 @@ def item_option(mon: Mon, item_id: BagId, world: JourneyWorld) -> ActionOption:
     brief = help_text = ""
     match item.kind:
         case "held":
-            label, action_name, group = f"Give the {item.name} to {name}", "hold_item", ITEMS_GROUP
+            label, action_name, group = (
+                f"Give the {bag_name(item_id)} to {name}",
+                "hold_item",
+                ITEMS_GROUP,
+            )
         case "tm":
             move = tm_move(item_id)
             label, action_name = f"Teach {move.name} to {name}", "teach_move"
             group = LEARN_GROUP
             brief, help_text = move_brief(move), move.text
         case _:
-            label, action_name, group = f"Use the {item.name} on {name}", "use_item", ITEMS_GROUP
+            label, action_name, group = (
+                f"Use the {bag_name(item_id)} on {name}",
+                "use_item",
+                ITEMS_GROUP,
+            )
     return ActionOption(
         id=f"{item_id}-{mon.mon_id}",
         name=label,
@@ -487,7 +492,7 @@ def _mon_detail(mon: Mon, stat_lines: tuple[StatLine, ...]) -> tuple[Panel, ...]
         if mon.item_id is None
         else (
             PanelRow(
-                name=ITEMS[mon.item_id].name, brief=item_text(mon.item_id), icon_id=mon.item_id
+                name=dex().item_name(mon.item_id), brief=item_text(mon.item_id), icon_id=mon.item_id
             ),
         )
     )
@@ -546,8 +551,7 @@ def _mon_detail(mon: Mon, stat_lines: tuple[StatLine, ...]) -> tuple[Panel, ...]
 
 
 def _pocket_key(item_id: BagId) -> tuple[int, str]:
-    item = item_of(item_id)
-    return POCKET_ORDER.index(POCKETS[item.kind]), item.name
+    return POCKET_ORDER.index(POCKETS[item_of(item_id).kind]), bag_name(item_id)
 
 
 def _bag_ids(world: JourneyWorld) -> list[BagId]:

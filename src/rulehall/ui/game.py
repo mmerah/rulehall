@@ -7,7 +7,8 @@ from nicegui import ui
 from nicegui.events import GenericEventArguments, ScrollEventArguments
 
 from rulehall.app.catalog import SavedGameKey
-from rulehall.app.game_session import Busy, GameSession, SessionSnapshot
+from rulehall.app.game_session import GameSession, SessionSnapshot
+from rulehall.app.gate import Busy
 from rulehall.app.runtime import Runtime
 from rulehall.core.decisions import ActionOption, PlayerInput
 from rulehall.core.validation import Frozen, Refusal, Slug, content_id, parse
@@ -17,11 +18,11 @@ from rulehall.ui.composer import CLOSED_REASONS, Composer, composer_lock
 from rulehall.ui.drawer import Drawer
 from rulehall.ui.panel_parts import CHOICES_ROW, choice_groups, panel_row
 from rulehall.ui.routes import hall_path
-from rulehall.ui.surfaces import (
+from rulehall.ui.screen_host import (
     Screen,
     ScreenFactories,
     ScreenHost,
-    check_surfaces,
+    check_screen_slots,
     require_screens,
 )
 from rulehall.ui.transcript import Transcript
@@ -109,7 +110,7 @@ class Speaking(Frozen):
     off_screen: bool
 
 
-class SceneHeaderView:
+class HeaderCard:
     def __init__(self, session: GameSession, now: SessionSnapshot) -> None:
         self.session = session
         self.art = session.scene_art()
@@ -149,10 +150,10 @@ class GamePage:
         self.screen_factories = screen_factories
         self.screens: dict[Slug, Screen]
         self.drawn: SessionSnapshot
-        self.scene: SceneHeaderView
+        self.scene: HeaderCard
         self.composer: Composer
         self.drawer: Drawer
-        self.parts: tuple[SceneHeaderView | Transcript | Composer | Drawer | Screen, ...]
+        self.parts: tuple[HeaderCard | Transcript | Composer | Drawer | Screen, ...]
         self.story: ui.element
         self.sounds: Sounds
         self.sound: ui.button
@@ -178,15 +179,15 @@ class GamePage:
         now = self.drawn = session.snapshot()
         self.sounds = Sounds()
         self.sounds.on("sound", self.sound_state)
-        host = ScreenHost(session=session, sounds=self.sounds, on_toggle=self.surface_toggled)
-        self.screens = require_screens(self.screen_factories, host, now.surfaces)
+        host = ScreenHost(session=session, sounds=self.sounds, on_toggle=self.screen_toggled)
+        self.screens = require_screens(self.screen_factories, host, now.screen_slots)
         self.drawer = Drawer(
             session,
             now.view,
             self.open_row,
             self.pick_option,
             lambda words: self.composer.prefill(words),
-            self.open_surface,
+            self.open_screen,
             self.screens,
         )
         if session.live_settings.current.speech.enabled:
@@ -205,7 +206,7 @@ class GamePage:
                 .style("min-width: 0")
             ):
                 with ui.element("div").style(PASS_THROUGH) as self.story:
-                    self.scene = SceneHeaderView(session, now)
+                    self.scene = HeaderCard(session, now)
                     # No padding class: NiceGUI pads the scroll content; twice would misalign.
                     with ui.scroll_area().classes("w-full flex-grow game-transcript") as scroll:
                         self.transcript = Transcript(
@@ -236,7 +237,7 @@ class GamePage:
 
     def tick(self) -> None:
         now, drawn = self.session.snapshot(), self.drawn
-        check_surfaces(self.screens, now.surfaces)
+        check_screen_slots(self.screens, now.screen_slots)
         if now.working_role != drawn.working_role:
             self.row_dialog.close()
         for part in self.parts:
@@ -254,10 +255,10 @@ class GamePage:
             self.follow(now, drawn)
         self.drawn = now
 
-    def open_surface(self, surface_id: Slug) -> None:
-        self.screens[surface_id].show()
+    def open_screen(self, screen_id: Slug) -> None:
+        self.screens[screen_id].show()
 
-    def surface_toggled(self) -> None:
+    def screen_toggled(self) -> None:
         if self.voice_player is not None:
             self.voice_player.stop()
         self.tick()

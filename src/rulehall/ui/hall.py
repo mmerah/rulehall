@@ -51,7 +51,7 @@ class Hall:
     def __init__(self, runtime: Runtime, engine_id: EngineId, chosen_id: str | None) -> None:
         self.runtime = runtime
         self.engine = runtime.require_engine(engine_id)
-        self.modes = runtime.door_engines(self.engine.door_id)
+        self.modes = runtime.modes_of(self.engine.rule_set_id)
         self.catalog = runtime.catalog()
         self.characters = self.catalog.characters_for(engine_id)
         written = [character.id for character in self.characters]

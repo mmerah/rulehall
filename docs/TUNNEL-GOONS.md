@@ -30,14 +30,7 @@ Packs. A Tunnel Goons pack holds items, factions, people with their `hp`, monste
 
 ## The tools
 
-Every tool makes one change, rolls dice, opens a decision, or ends the turn.
-
-- `reveal`, `move_item`, `kill`, `leave_party`, `unlock_way` (open a locked way once the story has dealt with it; the map then names the place beyond) and `rest` (heal the player and every party member to full Health in a safe spot).
-- `move` — carry the player, the party, and any NPCs named in `with_ids`, through an unlocked way listed in WAYS OUT.
-- `meanwhile` — move a dweller, move a loose item and shut a known way, offscreen, on a turn ELSEWHERE is shown.
-- `roll` — 2d6 plus an ability and helpful items, against a Difficulty Score or an npc; `actor_id` when a hired member acts instead of the player.
-- `level_up` — raise one ability and either Health or Inventory by 1, once per game: the player first, then each hired member in turn. The player keeps the level in the next game.
-- `join_party` — someone here travels with the player. With `terms`, the player hires them to work: the worldsmith writes their sheet once the turn ends, and they join the party.
+The master's tools are the `@tool` methods of `src/rulehall/engines/tunnelgoons/engine.py` and its bases. Their docstrings are exactly what the model reads.
 
 ## Deviations in this repo
 
@@ -50,4 +43,4 @@ Every entity has `known`, and a `Way` is known unless it is a secret the story m
 
 ## Where the rules live
 
-`src/rulehall/engines/tunnelgoons/`, instructions in `rules.md`. The room machinery is `RoomEngine` in `src/rulehall/engines/rooms/`.
+`src/rulehall/engines/tunnelgoons/`, instructions in `rules.md`. The map machinery is `MapEngine` in `src/rulehall/engines/bases/maps/`.

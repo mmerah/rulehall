@@ -1,3 +1,4 @@
+from collections.abc import Iterable, Sequence
 from typing import Self
 
 from pydantic import Field, JsonValue, model_validator
@@ -5,14 +6,14 @@ from pydantic import Field, JsonValue, model_validator
 from rulehall.core.validation import Frozen, Refusal, Slug, check_unique
 
 
-class DecisionOption(Frozen):
+class Option(Frozen):
     id: Slug
     name: str = Field(min_length=1)
     brief: str = ""
     sprite: str = ""
 
 
-class ActionOption(DecisionOption):
+class ActionOption(Option):
     help: str = ""
     action_name: str = Field(min_length=1)
     args: dict[str, JsonValue] = Field(default_factory=dict)
@@ -54,3 +55,18 @@ class PlayerInput(Frozen):
         if self.option_id is None and not self.text:
             raise ValueError("an answer is a chosen option, written text, or both")
         return self
+
+
+def other_than(options: Sequence[Option], taken: str) -> tuple[Option, ...]:
+    return tuple(option for option in options if taken not in (option.id, option.name))
+
+
+def find_option[T: Option](options: Sequence[T], chosen: str) -> T | None:
+    return next((option for option in options if option.id == chosen), None)
+
+
+def unique_options[T: Option](rows: Iterable[T]) -> tuple[T, ...]:
+    offered: dict[Slug, T] = {}
+    for row in rows:
+        offered.setdefault(row.id, row)
+    return tuple(offered.values())

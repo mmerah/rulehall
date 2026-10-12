@@ -14,8 +14,8 @@ from pydantic import TypeAdapter
 
 from rulehall.app.catalog import SavedGameKey
 from rulehall.app.runtime import Runtime
-from rulehall.core.creation import CreationStep, drop_stale, find_option
-from rulehall.core.decisions import DecisionOption
+from rulehall.core.creation import CreationStep, drop_stale
+from rulehall.core.decisions import Option, find_option
 from rulehall.core.documents import SOURCE_SUFFIXES
 from rulehall.core.game import ScenarioDescription
 from rulehall.core.log import Voice
@@ -401,7 +401,8 @@ class PackForm:
                 self.engine_id, name, premise, document, entered_text(self.license)
             )
             LOGGER.info("pack created: engine=%s slug=%s", self.engine_id, pack_id)
-            done(f"Wrote {name}. Edit it in {self.runtime.packs.path(self.engine_id, pack_id)}.")
+            path = self.runtime.require_engine(self.engine_id).packs.path(pack_id)
+            done(f"Wrote {name}. Edit it in {path}.")
             ui.navigate.to(hall_path(self.engine_id))
 
         _ = await attempt(writing, failed=PACK_FAILED, loading=self.button)
@@ -414,7 +415,7 @@ def packs_page(runtime: Runtime, engine_id: EngineId) -> None:
         page_intro(engine.title, "Packs", "The tables these rules roll on.")
         with ui.column().classes("w-full game-gap-xl"):
             for pack in runtime.catalog().packs_for(engine.id):
-                sub = f"Edit it in {runtime.packs.path(engine.id, pack.id)}" if pack.written else ""
+                sub = f"Edit it in {engine.packs.path(pack.id)}" if pack.written else ""
                 entry_card(PACK_ICON, pack.name, sub)
         with action_bar():
             ui.button(
@@ -441,7 +442,7 @@ def _append_help(field: ui.input | ui.select, text: str) -> None:
 
 
 def _pack_select(
-    offered: tuple[DecisionOption, ...],
+    offered: tuple[Option, ...],
     chosen_id: Slug,
     on_change: Callable[[ValueChangeEventArguments[str]], None],
 ) -> None:

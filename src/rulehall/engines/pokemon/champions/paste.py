@@ -3,7 +3,7 @@ from collections.abc import Sequence
 
 from rulehall.core.validation import Frozen, Refusal, Slug
 from rulehall.engines.pokemon.champions.data import champions_data
-from rulehall.engines.pokemon.champions.pending import PendingSet
+from rulehall.engines.pokemon.champions.unsaved import UnsavedSet
 from rulehall.engines.pokemon.dex import NATURES, dex, showdown_id
 from rulehall.engines.pokemon.rules import STAT_NAMES
 
@@ -14,12 +14,12 @@ TERA_IGNORED = "Tera types are ignored: Champions has no Terastallization"
 
 
 class ParsedRow(Frozen):
-    pending_set: PendingSet | None
+    unsaved_set: UnsavedSet | None
     errors: tuple[str, ...]
     notes: tuple[str, ...]
 
 
-def export_paste(slots: Sequence[PendingSet | None]) -> str:
+def export_paste(slots: Sequence[UnsavedSet | None]) -> str:
     return "\n\n".join(_export_set(each) for each in slots if each is not None) + "\n"
 
 
@@ -42,24 +42,24 @@ def parse_paste(text: str) -> tuple[ParsedRow, ...]:
     return tuple(_parse_set(block) for block in sets)
 
 
-def _export_set(pending_set: PendingSet) -> str:
+def _export_set(unsaved_set: UnsavedSet) -> str:
     pokedex = dex()
-    name = pokedex.species[pending_set.species_id].name
-    item = "" if pending_set.item_id is None else f" @ {pokedex.item_names[pending_set.item_id]}"
+    name = pokedex.species[unsaved_set.species_id].name
+    item = "" if unsaved_set.item_id is None else f" @ {pokedex.item_names[unsaved_set.item_id]}"
     points = " / ".join(
-        f"{points} {STAT_NAMES[index]}" for index, points in enumerate(pending_set.sp) if points
+        f"{points} {STAT_NAMES[index]}" for index, points in enumerate(unsaved_set.sp) if points
     )
     lines = (
         f"{name}{item}",
         *(
             ()
-            if pending_set.ability_id is None
-            else (f"Ability: {pokedex.ability_names[pending_set.ability_id]}",)
+            if unsaved_set.ability_id is None
+            else (f"Ability: {pokedex.ability_names[unsaved_set.ability_id]}",)
         ),
         f"Level: {champions_data().legal.level}",
         *((f"EVs: {points}",) if points else ()),
-        f"{pending_set.nature} Nature",
-        *(f"- {pokedex.moves[move_id].name}" for move_id in pending_set.move_ids),
+        f"{unsaved_set.nature} Nature",
+        *(f"- {pokedex.moves[move_id].name}" for move_id in unsaved_set.move_ids),
     )
     return "\n".join(lines)
 
@@ -74,7 +74,7 @@ def _parse_set(lines: Sequence[str]) -> ParsedRow:
     species_id = showdown_id(species_name)
     if species_id not in legal.species:
         return ParsedRow(
-            pending_set=None, errors=(f"{species_name} is not legal in the format",), notes=()
+            unsaved_set=None, errors=(f"{species_name} is not legal in the format",), notes=()
         )
     errors: list[str] = []
     notes: list[str] = []
@@ -107,7 +107,7 @@ def _parse_set(lines: Sequence[str]) -> ParsedRow:
                 nature = "Serious"
         elif line.startswith("-"):
             _add_move(line.removeprefix("-").strip(), move_ids, errors)
-    pending_set = PendingSet(
+    unsaved_set = UnsavedSet(
         species_id=species_id,
         ability_id=ability_id,
         item_id=item_id,
@@ -115,7 +115,7 @@ def _parse_set(lines: Sequence[str]) -> ParsedRow:
         nature=nature,
         sp=sp,
     )
-    return ParsedRow(pending_set=pending_set, errors=tuple(errors), notes=tuple(notes))
+    return ParsedRow(unsaved_set=unsaved_set, errors=tuple(errors), notes=tuple(notes))
 
 
 def _add_move(name: str, move_ids: list[Slug], errors: list[str]) -> None:

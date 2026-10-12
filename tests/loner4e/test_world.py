@@ -5,7 +5,7 @@ from support.table import change
 from support.table import refused as change_refused
 
 from rulehall.engines.loner4e.rules import DOUBLES_PER_TWIST, position_for
-from rulehall.engines.loner4e.sheet import Loner4eEntity
+from rulehall.engines.loner4e.sheet import Loner4ePerson
 from rulehall.engines.loner4e.world import Loner4eGame
 from rulehall.engines.sheet import PLAYER_ID
 
@@ -91,7 +91,7 @@ def test_tags_net_to_one_die_at_most(helps: int, hinders: int, position: str) ->
 
 
 def test_a_comma_inside_a_tag_reads_as_and() -> None:
-    entity = Loner4eEntity(
+    entity = Loner4ePerson(
         id="fen", name="Fen", voice="masculine", brief="", tags={"frailty": ["Proud, Stubborn"]}
     )
     assert entity.tags == {"frailty": ["Proud and Stubborn"]}

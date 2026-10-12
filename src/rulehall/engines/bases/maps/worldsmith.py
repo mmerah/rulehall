@@ -1,14 +1,14 @@
 from rulehall.core.prompt import Sections
 from rulehall.core.validation import Refusal
-from rulehall.engines.name_leaks import leaked_names, names_in
-from rulehall.engines.rooms.world import (
+from rulehall.engines.bases.maps.world import (
     OFF_MAP_ID,
     Dweller,
+    MapContents,
     MapProposal,
+    MapWorld,
     RegionProposal,
-    RoomMap,
-    RoomWorld,
 )
+from rulehall.engines.name_leaks import leaked_names, names_in
 from rulehall.engines.sheet import PLAYER_ID
 
 MAP_ASK = "Write the opening map."
@@ -26,7 +26,7 @@ def check_opening[P: Dweller](proposal: MapProposal[P]) -> None:
         raise Refusal("the map needs " + "; ".join(needs))
 
 
-def check_next[P: Dweller](proposal: RegionProposal[P], world: RoomWorld[P]) -> None:
+def check_next[P: Dweller](proposal: RegionProposal[P], world: MapWorld[P]) -> None:
     if not proposal.places:
         raise Refusal("the extension needs at least one new place")
     if needs := (
@@ -71,7 +71,7 @@ def _standing_needs[P: Dweller](proposal: MapProposal[P]) -> list[str]:
     return []
 
 
-def _overlap_needs[P: Dweller](proposal: MapProposal[P], world: RoomMap[P]) -> list[str]:
+def _overlap_needs[P: Dweller](proposal: MapProposal[P], world: MapContents[P]) -> list[str]:
     existing = {*world.places, *world.npcs, *world.items}
     added = {*proposal.places, *proposal.npcs, *proposal.items}
     if overlap := sorted(existing & added):
@@ -79,7 +79,7 @@ def _overlap_needs[P: Dweller](proposal: MapProposal[P], world: RoomMap[P]) -> l
     return []
 
 
-def _region_name_needs[P: Dweller](proposal: MapProposal[P], world: RoomWorld[P]) -> list[str]:
+def _region_name_needs[P: Dweller](proposal: MapProposal[P], world: MapWorld[P]) -> list[str]:
     if proposal.region_name.casefold() in {region.name.casefold() for region in world.regions}:
         return [f"a region name not already on the map: {proposal.region_name!r}"]
     return []

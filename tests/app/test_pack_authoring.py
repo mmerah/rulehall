@@ -108,7 +108,7 @@ async def test_a_body_that_never_lands_leaves_no_pack_written(tmp_path: Path) ->
         _ = await runtime.new_pack(LONER4E, "Salt and Ash", PREMISE, None, "")
 
     assert not (tmp_path / "packs").exists()
-    assert runtime.engines[LONER4E].packs.written_ids == frozenset()
+    assert runtime.engines[LONER4E].packs.written_ids == set()
 
 
 def _runtime(tmp_path: Path, answers: list[str]) -> tuple[Runtime, ScriptedRoles]:

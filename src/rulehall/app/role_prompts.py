@@ -5,12 +5,11 @@ from pydantic import Field
 
 from rulehall.core.facts import Fact, render_traces
 from rulehall.core.game import AnyGame
-from rulehall.core.log import Narration
+from rulehall.core.narration import Narration, NarratorView
 from rulehall.core.prompt import Prompt, Sections, lines_of, render_log, section_if, sections
 from rulehall.core.stores import read_cached_text
 from rulehall.core.tools import render_schema
 from rulehall.core.validation import Frozen, Refusal
-from rulehall.core.views import NarratorView
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 MASTER_ROLE = PROMPTS_DIR / "master.md"

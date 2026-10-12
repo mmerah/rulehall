@@ -7,8 +7,6 @@ from rulehall.core.validation import Refusal
 from rulehall.engines.twentyfourxx.sheet import Crewmate
 from rulehall.engines.twentyfourxx.world import TwentyFourXXSceneProposal
 
-SRD = ENGINE.packs.srd()
-
 
 def _proposal(**fields: object) -> TwentyFourXXSceneProposal:
     return TwentyFourXXSceneProposal.model_validate(dict(SCENE_BASE) | fields)

@@ -12,11 +12,14 @@ from pathlib import Path
 
 from pydantic import JsonValue
 
+from rulehall.app.mcp import OpenToolProviders
 from rulehall.app.role_prompts import OPENING_NARRATION
+from rulehall.app.submission import SUBMIT
 from rulehall.app.turn import Turn
 from rulehall.config import Role
-from rulehall.core.log import Line
+from rulehall.core.narration import Line
 from rulehall.core.prompt import Prompt
+from rulehall.core.tools import ToolProvider
 from rulehall.core.validation import Frozen, Refusal
 
 LOGGER = logging.getLogger(__name__)
@@ -59,6 +62,7 @@ class DemoScript(Frozen):
 class DemoRoles:
     script: DemoScript
     queued: list[tuple[Line, ...]] = field(default_factory=list)
+    tool_providers: OpenToolProviders = field(default_factory=OpenToolProviders)
 
     async def answer(
         self,
@@ -70,16 +74,22 @@ class DemoRoles:
         match role:
             case "narrator":
                 answer = _narrated(self._narration(prompt))
-            case "worldsmith":
-                answer = json.dumps(self._worldsmith(prompt))
-            case "master" | "opponent":
+            case "master" | "opponent" | "worldsmith":
                 raise _unscripted(role, prompt)
         LOGGER.info("scripted %s answer: %s", role, answer)
         if heard is not None:
             heard(answer)
         return answer
 
-    async def play_master_turn(self, prompt: Prompt, turn: Turn) -> None:
+    async def play_tools(self, role: Role, prompt: Prompt, provider: ToolProvider) -> None:
+        del role
+        with self.tool_providers.open(provider):
+            if isinstance(provider, Turn):
+                self._play_master_turn(prompt, provider)
+            else:
+                _ = provider.call_tool(SUBMIT, self._worldsmith(prompt))
+
+    def _play_master_turn(self, prompt: Prompt, turn: Turn) -> None:
         self.queued.clear()
         words = turn.logged_words.strip()
         scripted = next((each for each in self.script.turns if each.action == words), None)

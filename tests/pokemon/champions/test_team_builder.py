@@ -11,9 +11,9 @@ from rulehall.engines.pokemon.champions.args import PickEdit, TeamEdit
 from rulehall.engines.pokemon.champions.data import champions_data
 from rulehall.engines.pokemon.champions.panels import team_option
 from rulehall.engines.pokemon.champions.paste import export_paste, parse_paste
-from rulehall.engines.pokemon.champions.pending import SPECIES, PendingSet, PendingTeam
 from rulehall.engines.pokemon.champions.season import Finish
 from rulehall.engines.pokemon.champions.team_builder import team_builder_catalog, team_builder_view
+from rulehall.engines.pokemon.champions.unsaved import SPECIES, UnsavedSet, UnsavedTeam
 from rulehall.engines.pokemon.champions.views import (
     Catalog,
     CatalogOrder,
@@ -23,8 +23,8 @@ from rulehall.engines.pokemon.champions.views import (
 )
 from rulehall.engines.pokemon.champions.world import (
     NOT_LOCKED,
-    PENDING_OPEN,
     TEAM_FINAL,
+    UNSAVED_TEAM_OPEN,
     ChampionsGame,
     ChampionsWorld,
 )
@@ -36,8 +36,9 @@ FIELD_IDS = ("species", "ability", "item", "nature", "moves", "sp")
 
 def test_a_pick_refuses_the_clauses_a_foreign_mega_stone_and_an_unowned_species() -> None:
     sets = champions_data().archetypes[0].team.sets
-    team = PendingTeam.of_team(sets)
     allowed_species_ids = [each.species_id for each in sets]
+    team = UnsavedTeam.of_team(sets)
+    team.allowed_species_ids = allowed_species_ids
     outsider = next(each for each in champions_data().presets if each not in allowed_species_ids)
     stone_id, holders = next(
         (stone_id, holders)
@@ -58,10 +59,10 @@ def test_a_pick_refuses_the_clauses_a_foreign_mega_stone_and_an_unowned_species(
     )
     for field_id, choice_id, refusal in cases:
         with pytest.raises(Refusal, match=refusal):
-            team.pick(2, field_id, (choice_id,), allowed_species_ids)
+            team.pick(2, field_id, (choice_id,))
 
 
-def test_save_team_refuses_an_incomplete_pending_team_and_saves_a_completed_one() -> None:
+def test_save_team_refuses_an_incomplete_unsaved_team_and_saves_a_completed_one() -> None:
     engine, state = game(CHAMPIONS)
     draft = state.draft()
     world = narrowed(draft.world, ChampionsWorld)
@@ -74,7 +75,7 @@ def test_save_team_refuses_an_incomplete_pending_team_and_saves_a_completed_one(
     assert (world.player_sheet.team, world.pending_team) == (list(rain.team.sets), None)
 
 
-def test_a_locked_team_copies_to_a_pending_team_that_saves_once_the_event_ends() -> None:
+def test_a_locked_team_copies_to_an_unsaved_team_that_saves_once_the_event_ends() -> None:
     engine, state = game(CHAMPIONS)
     draft = state.draft()
     world = narrowed(draft.world, ChampionsWorld)
@@ -83,13 +84,13 @@ def test_a_locked_team_copies_to_a_pending_team_that_saves_once_the_event_ends()
     _ = change(engine, draft, "register_team")
     registered = world.player_sheet.registered
     run_edit(engine, draft, "copy_registered_team")
-    with pytest.raises(Refusal, match=PENDING_OPEN):
+    with pytest.raises(Refusal, match=UNSAVED_TEAM_OPEN):
         run_edit(engine, draft, "copy_registered_team")
-    assert team_builder_view(world).pending_team_open
+    assert team_builder_view(world).unsaved_team_open
     run_edit(engine, draft, "discard")
     run_edit(engine, draft, "copy_registered_team")
     run_edit(engine, draft, "load_template", template_id="rain")
-    assert world.pending_team_dirty()
+    assert world.unsaved_team_dirty()
     with pytest.raises(Refusal, match="locked"):
         run_edit(engine, draft, "save")
     assert world.player_sheet.registered == registered
@@ -110,12 +111,12 @@ def test_after_worlds_the_saved_team_shows_and_no_copy_opens() -> None:
     world.player_sheet.finishes.append(
         Finish(event_name="Worlds", tier="worlds", placing=1, record="3-0", cp=0)
     )
-    assert world.shown_team() == PendingTeam.of_team(world.player_sheet.team)
+    assert world.shown_team() == world.saved_team()
     with pytest.raises(Refusal, match=TEAM_FINAL):
         run_edit(engine, draft, "copy_registered_team")
 
 
-def test_a_species_pick_with_preset_places_its_top_preset_and_one_undo_restores(
+def test_a_species_pick_places_its_top_preset_and_one_undo_restores(
     tmp_path: Path,
 ) -> None:
     table = open_table(tmp_path, engine_id=CHAMPIONS, state_type=ChampionsGame)
@@ -128,20 +129,20 @@ def test_a_species_pick_with_preset_places_its_top_preset_and_one_undo_restores(
         if species_id not in {each.species_id for each in team}
         and presets[0].item_id not in held_ids
     )
-    pick = PickEdit(slot=1, field_id=SPECIES, choice_ids=(species_id,), preset=True)
+    pick = PickEdit(slot=1, field_id=SPECIES, choice_ids=(species_id,))
 
     table.session.edit(team_option("pick", pick))
 
-    assert table.state.world.shown_team().require_set(1) == PendingSet.of_set(presets[0])
+    assert table.state.world.shown_team().require_set(1) == UnsavedSet.of_set(presets[0])
     table.session.undo_edit()
     assert table.state == before
 
 
 def test_a_paste_round_trips_every_archetype_team() -> None:
     for archetype in champions_data().archetypes:
-        slots = [PendingSet.of_set(each) for each in archetype.team.sets]
+        slots = [UnsavedSet.of_set(each) for each in archetype.team.sets]
         rows = parse_paste(export_paste(slots))
-        assert [row.pending_set for row in rows] == slots
+        assert [row.unsaved_set for row in rows] == slots
         assert all(not row.errors for row in rows)
 
 
@@ -150,9 +151,9 @@ def test_a_paste_with_evs_zeroes_the_stat_points_and_flags_an_unknown_move() -> 
         "Gardevoir @ Choice Scarf\nAbility: Trace\nEVs: 252 SpA / 4 SpD / 252 Spe\n"
         "Timid Nature\n- Moonblast\n- Not A Move\n"
     )
-    assert row.pending_set is not None
-    assert row.pending_set.sp == [0] * 6
-    assert row.pending_set.move_ids == ["moonblast"]
+    assert row.unsaved_set is not None
+    assert row.unsaved_set.sp == [0] * 6
+    assert row.unsaved_set.move_ids == ["moonblast"]
     assert any("EVs" in error for error in row.errors)
     assert any("Not A Move" in error for error in row.errors)
 
@@ -163,15 +164,15 @@ def test_stat_points_clamp_at_the_budget_and_show_the_final_stats() -> None:
     world = narrowed(draft.world, ChampionsWorld)
     legal = champions_data().legal
     for row in range(6):
-        run_edit(engine, draft, "set_points", slot=1, field_id="sp", row=row, points=99)
-    pending_set = world.editing_team().require_set(1)
-    assert sum(pending_set.sp) == legal.sp_total
-    assert max(pending_set.sp) == legal.sp_max
+        run_edit(engine, draft, "set_points", slot=1, row=row, points=99)
+    unsaved_set = world.editing_team().require_set(1)
+    assert sum(unsaved_set.sp) == legal.sp_total
+    assert max(unsaved_set.sp) == legal.sp_max
     points = team_builder_view(world).slots[0].fields[-1]
     assert isinstance(points, PointsField)
-    species = battle_species(pending_set)
+    species = battle_species(unsaved_set)
     final = stats(
-        species, 50, pending_set.nature, (31,) * 6, tuple(pending_set.sp), stat_points=True
+        species, 50, unsaved_set.nature, (31,) * 6, tuple(unsaved_set.sp), stat_points=True
     )
     assert tuple(row.final for row in points.rows) == final
 

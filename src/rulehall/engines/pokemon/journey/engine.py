@@ -2,7 +2,7 @@ from pathlib import Path
 from random import Random
 
 from rulehall.core.creation import CreationStep, Picks
-from rulehall.core.decisions import DecisionOption
+from rulehall.core.decisions import Option
 from rulehall.core.facts import Fact, roll
 from rulehall.core.game import AnyCharacter, AnyScenario, Character
 from rulehall.core.log import Voice
@@ -10,10 +10,9 @@ from rulehall.core.prompt import Sections, lines_of, ref_of, section_if, sentenc
 from rulehall.core.tools import NoArgs, action, tool
 from rulehall.core.validation import Refusal, Slug
 from rulehall.core.views import Panel, Sprite
-from rulehall.engines.engine import Joining
-from rulehall.engines.pokemon.battle.battling import ShowdownBattling
-from rulehall.engines.pokemon.dex import ITEMS, dex
-from rulehall.engines.pokemon.door import ART_STYLE, DOOR_ID, TITLE
+from rulehall.engines.bases.maps.args import MoveTo
+from rulehall.engines.pokemon.dex import dex
+from rulehall.engines.pokemon.engine import RULE_SET_ID, PokemonEngine
 from rulehall.engines.pokemon.journey.args import (
     DIFFICULTY,
     ChosenMon,
@@ -33,6 +32,8 @@ from rulehall.engines.pokemon.journey.args import (
     UseItem,
     WildPick,
 )
+from rulehall.engines.pokemon.journey.items import ITEMS, bag_name
+from rulehall.engines.pokemon.journey.mon import Mon
 from rulehall.engines.pokemon.journey.pack import JourneyHead, JourneyPack
 from rulehall.engines.pokemon.journey.panels import (
     SHEET_HELP,
@@ -60,15 +61,13 @@ from rulehall.engines.pokemon.journey.rules import (
     Skill,
     counter_pick,
     help_bonus,
-    item_of,
 )
-from rulehall.engines.pokemon.journey.sheet import JourneySheet, JourneyTrainer, Mon
+from rulehall.engines.pokemon.journey.sheet import JourneySheet, JourneyTrainer
 from rulehall.engines.pokemon.journey.world import (
     JourneyGame,
     JourneyOpeningProposal,
     JourneyRegionProposal,
     JourneyWorld,
-    challenge_line,
 )
 from rulehall.engines.pokemon.journey.worldsmith import (
     DUE_ASKS,
@@ -77,9 +76,8 @@ from rulehall.engines.pokemon.journey.worldsmith import (
     check_opening,
 )
 from rulehall.engines.pokemon.rules import TIMES, succeeds
-from rulehall.engines.pokemon.sprites import AVATAR, look_step, mon_sprite, trainer_sprite
-from rulehall.engines.rooms.args import MoveTo
-from rulehall.engines.rooms.engine import RoomEngine
+from rulehall.engines.pokemon.sprites import AVATAR, mon_sprite, trainer_sprite
+from rulehall.engines.pokemon.trainers import look_step
 from rulehall.engines.sheet import PLAYER_ID
 
 SCHEME = "THE SCHEME"
@@ -92,15 +90,11 @@ EDGE_LINE = "{edge}: the next battle here starts with it. It is lost when the pl
 
 
 class JourneyEngine(
-    ShowdownBattling[JourneyTrainer, JourneyWorld, JourneyPack, JourneyRegionProposal],
-    Joining[JourneyWorld],
-    RoomEngine[JourneyTrainer, JourneyWorld, JourneyPack, JourneyRegionProposal],
+    PokemonEngine[JourneyTrainer, JourneyWorld, JourneyPack, JourneyRegionProposal]
 ):
-    id = DOOR_ID
-    title = TITLE
+    id = RULE_SET_ID
+    mode_name = "Journey"
     worldsmith_guidance = WORLDSMITH_GUIDANCE
-    art_style = ART_STYLE
-    portraits = False
     directory = Path(__file__).parent
     pack_model = JourneyPack
     pack_head_model = JourneyHead
@@ -110,10 +104,6 @@ class JourneyEngine(
     next_proposal_model = JourneyRegionProposal
     sheet_help = SHEET_HELP
 
-    @property
-    def mode_name(self) -> str:
-        return "Journey"
-
     def creation_steps(self, pack_id: Slug, picks: Picks) -> tuple[CreationStep, ...]:
         ranks = _rank_picks(picks)
         rank_steps = tuple(
@@ -122,7 +112,7 @@ class JourneyEngine(
                 name=f"Skill rank {number}",
                 help=SHEET_HELP["Skills"],
                 options=tuple(
-                    DecisionOption(id=skill, name=skill.title(), brief=SKILL_USES[skill])
+                    Option(id=skill, name=skill.title(), brief=SKILL_USES[skill])
                     for skill in SKILLS
                     if ranks[: number - 1].count(skill) < RANKS_PER_SKILL_AT_CREATION
                 ),
@@ -130,11 +120,11 @@ class JourneyEngine(
             for number in range(1, RANKS_AT_CREATION + 1)
         )
         starters = tuple(
-            DecisionOption(id=species_id, name=dex().require_species(species_id).name)
+            Option(id=species_id, name=dex().require_species(species_id).name)
             for species_id in self.packs.require_pack(pack_id).starters
         )
         challenges = tuple(
-            DecisionOption(id=challenge, name=challenge.title(), brief=brief)
+            Option(id=challenge, name=challenge.title(), brief=brief)
             for challenge, brief in CHALLENGES.items()
         )
         return (
@@ -201,7 +191,7 @@ class JourneyEngine(
 
     def install_next(self, draft: JourneyGame, proposal: JourneyRegionProposal, /) -> list[Fact]:
         facts = super().install_next(draft, proposal)
-        draft.world.apply_region_extras(proposal)
+        draft.world.apply_next_extras(proposal)
         return facts
 
     def worldsmith_sections(self, draft: JourneyGame, /) -> Sections:
@@ -252,17 +242,17 @@ class JourneyEngine(
             (
                 "THE BAG",
                 lines_of(
-                    f"- {ref_of(item_of(item_id).name, item_id)} {TIMES}{count}"
+                    f"- {ref_of(bag_name(item_id), item_id)} {TIMES}{count}"
                     for item_id, count in sheet.bag.items()
                 ),
             ),
             *section_if("WILD HERE", wild),
         )
 
-    def scene_panels(self, state: JourneyGame, /) -> tuple[Panel | None, ...]:
+    def view_panels(self, state: JourneyGame, /) -> tuple[Panel | None, ...]:
         world = state.world
         return (
-            *super().scene_panels(state),
+            *super().view_panels(state),
             scheme_panel(world),
             team_panel(world),
             box_panel(world),
@@ -278,9 +268,8 @@ class JourneyEngine(
             return TEAM_FALLEN
         return super().ending(state)
 
-    def accept(self, draft: JourneyGame) -> JourneyGame:
+    def after_each_change(self, draft: JourneyGame, /) -> None:
         draft.pending = pending_decision(draft.world.player_sheet)
-        return super().accept(draft)
 
     @tool
     def check(self, draft: JourneyGame, args: SkillCheck, rng: Random) -> list[Fact]:
@@ -413,33 +402,15 @@ class JourneyEngine(
             raise Refusal(f"{trainer.name} is beaten and gives no rematch")
         if trainer.last_battle_visit == len(world.visited_place_ids):
             raise Refusal(f"{trainer.name} already battled you on this visit; come back later")
-        if legendary_id is not None:
-            if args.tag:
-                raise Refusal(f"{trainer.name} battles alone; leave `tag` false")
-            sheet = world.player_sheet
-            foe = Mon.new(legendary_id, sheet.table_level(), rng, sheet.mon_ids())
-            world.setup_battle(
-                None,
-                (foe.battler(),),
-                rng,
-                weather=args.weather,
-                terrain=args.terrain,
-                companion=None,
-                legendary_id=trainer.id,
+        if legendary_id is None:
+            return world.start_trainer_battle(
+                trainer, rng, tag=args.tag, weather=args.weather, terrain=args.terrain
             )
-            return [trainer.card_fact(f"The legendary {foe.species_name} appears")]
-        companion = world.require_companion(trainer) if args.tag else None
-        foes = tuple(mon.battler() for mon in world.trainer_team(trainer, rng))
-        world.setup_battle(
-            trainer,
-            foes,
-            rng,
-            weather=args.weather,
-            terrain=args.terrain,
-            companion=companion,
-            legendary_id=None,
+        if args.tag:
+            raise Refusal(f"{trainer.name} battles alone; leave `tag` false")
+        return world.start_legendary_battle(
+            trainer, legendary_id, rng, weather=args.weather, terrain=args.terrain
         )
-        return [trainer.card_fact(challenge_line(trainer.name, foes))]
 
     @tool
     def start_wild_battle(

@@ -1,4 +1,4 @@
-from collections.abc import Collection, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 from typing import Self
 
 from pydantic import Field, model_validator
@@ -17,7 +17,7 @@ MOVES = "moves"
 SP = "sp"
 
 
-class PendingSet(Mutable):
+class UnsavedSet(Mutable):
     species_id: Slug
     ability_id: Slug | None = None
     item_id: Slug | None = None
@@ -72,14 +72,14 @@ class PendingSet(Mutable):
 
     def errors(self) -> dict[Slug, str]:
         found = {
-            ABILITY: self._ability_error(),
+            ABILITY: self.ability_error(),
             ITEM: self._item_error(),
-            MOVES: self._moves_error(),
+            MOVES: self.moves_error(),
             SP: self._sp_error(),
         }
         return {field_id: error for field_id, error in found.items() if error}
 
-    def _ability_error(self) -> str:
+    def ability_error(self) -> str:
         if self.ability_id is None:
             return "pick an ability"
         if self.ability_id not in champions_data().legal.species[self.species_id].ability_ids:
@@ -91,7 +91,7 @@ class PendingSet(Mutable):
             return "pick an item"
         return item_refusal(self.species_id, self.item_id)
 
-    def _moves_error(self) -> str:
+    def moves_error(self) -> str:
         if not self.move_ids:
             return "pick at least one move"
         learnable = champions_data().legal.species[self.species_id].move_ids
@@ -105,38 +105,37 @@ class PendingSet(Mutable):
         return f"{used} stat points spent, above {budget}" if used > budget else ""
 
 
-class PendingTeam(Mutable):
-    slots: list[PendingSet | None]
+class UnsavedTeam(Mutable):
+    slots: list[UnsavedSet | None]
+    # The player recruits while a draft is open, so the world sets it on use and no save keeps it.
+    allowed_species_ids: list[Slug] | None = Field(default=None, exclude=True)
 
     @model_validator(mode="after")
     def _a_team_of_slots(self) -> Self:
         size = champions_data().legal.team_size
         if len(self.slots) != size:
-            raise ValueError(f"a pending team has {size} slots, not {len(self.slots)}")
+            raise ValueError(f"an unsaved team has {size} slots, not {len(self.slots)}")
         return self
 
     @classmethod
-    def of_team(cls, sets: Sequence[CompetitiveSet]) -> Self:
+    def of_slots(cls, slots: Sequence[UnsavedSet | None]) -> Self:
         size = champions_data().legal.team_size
-        slots: list[PendingSet | None] = [PendingSet.of_set(each) for each in sets]
-        return cls(slots=slots + [None] * (size - len(slots)))
+        return cls(slots=[*slots, *[None] * (size - len(slots))])
 
-    def find_set(self, slot: int) -> PendingSet | None:
+    @classmethod
+    def of_team(cls, sets: Sequence[CompetitiveSet]) -> Self:
+        return cls.of_slots([UnsavedSet.of_set(each) for each in sets])
+
+    def find_set(self, slot: int) -> UnsavedSet | None:
         return self.slots[self._index(slot)]
 
-    def require_set(self, slot: int) -> PendingSet:
+    def require_set(self, slot: int) -> UnsavedSet:
         found = self.find_set(slot)
         if found is None:
             raise Refusal(f"slot {slot} is empty")
         return found
 
-    def pick(
-        self,
-        slot: int,
-        field_id: Slug,
-        choice_ids: Sequence[Slug],
-        allowed_species_ids: Collection[Slug] | None,
-    ) -> None:
+    def pick(self, slot: int, field_id: Slug, choice_ids: Sequence[Slug]) -> None:
         if field_id == MOVES:
             self._pick_moves(slot, choice_ids)
             return
@@ -144,44 +143,36 @@ class PendingTeam(Mutable):
             raise Refusal(f"pick one {field_id}")
         chosen = choice_ids[0]
         if field_id == SPECIES:
-            self._pick_species(slot, chosen, allowed_species_ids)
+            self._pick_species(slot, chosen)
             return
-        pending_set = self.require_set(slot)
+        unsaved_set = self.require_set(slot)
         if field_id == ABILITY:
-            if chosen not in champions_data().legal.species[pending_set.species_id].ability_ids:
-                raise Refusal(
-                    f"{species_name(pending_set.species_id)} cannot have {_ability_name(chosen)}"
-                )
-            pending_set.ability_id = chosen
+            unsaved_set.ability_id = chosen
+            refuse(unsaved_set.ability_error())
         elif field_id == ITEM:
-            self._refuse_item(slot, pending_set.species_id, chosen)
-            pending_set.item_id = chosen
+            self._refuse_item(slot, unsaved_set.species_id, chosen)
+            unsaved_set.item_id = chosen
         elif field_id == NATURE:
-            pending_set.nature = nature_of(chosen)
+            unsaved_set.nature = nature_of(chosen)
         else:
             raise Refusal(f"{field_id!r} is no field of a set")
 
-    def place(
-        self,
-        slot: int,
-        competitive_set: CompetitiveSet,
-        allowed_species_ids: Collection[Slug] | None,
-    ) -> None:
-        refuse(self.species_refusal(slot, competitive_set.species_id, allowed_species_ids))
-        self.slots[self._index(slot)] = PendingSet.of_set(competitive_set)
+    def place(self, slot: int, competitive_set: CompetitiveSet) -> None:
+        refuse(self.species_refusal(slot, competitive_set.species_id))
+        self.slots[self._index(slot)] = UnsavedSet.of_set(competitive_set)
 
     def set_points(self, slot: int, row: int, points: int) -> None:
-        pending_set = self.require_set(slot)
+        unsaved_set = self.require_set(slot)
         if row >= len(STAT_NAMES):
             raise Refusal(f"a set has {len(STAT_NAMES)} stats, not row {row}")
         legal = champions_data().legal
-        others = sum(pending_set.sp) - pending_set.sp[row]
-        pending_set.sp[row] = max(0, min(points, legal.sp_max, legal.sp_total - others))
+        others = sum(unsaved_set.sp) - unsaved_set.sp[row]
+        unsaved_set.sp[row] = max(0, min(points, legal.sp_max, legal.sp_total - others))
 
     def apply_spread(self, slot: int, nature: Nature, sp: Sequence[int]) -> None:
-        pending_set = self.require_set(slot)
-        pending_set.nature = nature
-        pending_set.sp = list(sp)
+        unsaved_set = self.require_set(slot)
+        unsaved_set.nature = nature
+        unsaved_set.sp = list(sp)
 
     def move_slot(self, slot: int, to_slot: int) -> None:
         index, to_index = self._index(slot), self._index(to_slot)
@@ -212,14 +203,14 @@ class PendingTeam(Mutable):
         return (*species, *held)
 
     def field_errors(self, slot: int) -> dict[Slug, str]:
-        pending_set = self.find_set(slot)
-        if pending_set is None:
+        unsaved_set = self.find_set(slot)
+        if unsaved_set is None:
             return {}
         clashes = {
-            SPECIES: self.species_clash(slot, pending_set.species_id),
-            ITEM: "" if pending_set.item_id is None else self.item_clash(slot, pending_set.item_id),
+            SPECIES: self.species_clash(slot, unsaved_set.species_id),
+            ITEM: "" if unsaved_set.item_id is None else self.item_clash(slot, unsaved_set.item_id),
         }
-        found = pending_set.errors()
+        found = unsaved_set.errors()
         return found | {
             field_id: clash
             for field_id, clash in clashes.items()
@@ -228,13 +219,13 @@ class PendingTeam(Mutable):
 
     def completed(self) -> tuple[CompetitiveSet, ...]:
         sets: list[CompetitiveSet] = []
-        for number, pending_set in enumerate(self.slots, 1):
-            if pending_set is None:
+        for number, unsaved_set in enumerate(self.slots, 1):
+            if unsaved_set is None:
                 raise Refusal(f"slot {number} is empty")
             if errors := self.field_errors(number):
                 field_id, error = next(iter(errors.items()))
                 raise Refusal(f"slot {number}, {field_id}: {error}")
-            competitive_set = pending_set.competitive()
+            competitive_set = unsaved_set.competitive()
             if competitive_set is None:
                 raise Refusal(f"slot {number} is incomplete")
             sets.append(competitive_set)
@@ -273,40 +264,44 @@ class PendingTeam(Mutable):
         number = next(numbers, None)
         return "" if number is None else f"{dex().item_names[item_id]} is held by slot {number}"
 
-    def species_refusal(
-        self, slot: int, species_id: Slug, allowed_species_ids: Collection[Slug] | None
-    ) -> str:
-        if allowed_species_ids is not None and species_id not in allowed_species_ids:
+    @property
+    def restricted(self) -> bool:
+        return self.allowed_species_ids is not None
+
+    def allows(self, species_id: Slug) -> bool:
+        return self.allowed_species_ids is None or species_id in self.allowed_species_ids
+
+    def species_refusal(self, slot: int, species_id: Slug) -> str:
+        if not self.allows(species_id):
             return f"{species_name(species_id)} is not recruited"
         return self.species_clash(slot, species_id)
 
-    def _pick_species(
-        self, slot: int, species_id: Slug, allowed_species_ids: Collection[Slug] | None
-    ) -> None:
+    def disallowed_refusal(self, species_ids: Iterable[Slug]) -> str:
+        missing = dict.fromkeys(each for each in species_ids if not self.allows(each))
+        return "needs: " + ", ".join(map(species_name, missing)) if missing else ""
+
+    def _pick_species(self, slot: int, species_id: Slug) -> None:
         legal = champions_data().legal
         _ = legal.require_species(species_id)
-        refuse(self.species_refusal(slot, species_id, allowed_species_ids))
+        refuse(self.species_refusal(slot, species_id))
         index = self._index(slot)
         old = self.slots[index]
         if old is not None and old.species_id == species_id:
             return
         kept = old.ability_id if old is not None else None
         ability_id = kept if kept in legal.species[species_id].ability_ids else None
-        self.slots[index] = PendingSet(species_id=species_id, ability_id=ability_id)
+        self.slots[index] = UnsavedSet(species_id=species_id, ability_id=ability_id)
 
     def _pick_moves(self, slot: int, move_ids: Sequence[Slug]) -> None:
-        pending_set = self.require_set(slot)
+        unsaved_set = self.require_set(slot)
         moves_max = champions_data().legal.moves_max
         if len(move_ids) > moves_max:
             raise Refusal(f"a set has at most {moves_max} moves")
         if len(set(move_ids)) != len(move_ids):
             raise Refusal("a set knows each move once")
-        learnable = champions_data().legal.species[pending_set.species_id].move_ids
-        if unknown := [move_id for move_id in move_ids if move_id not in learnable]:
-            raise Refusal(
-                f"{species_name(pending_set.species_id)} cannot learn {_move_names(unknown)}"
-            )
-        pending_set.move_ids = list(move_ids)
+        unsaved_set.move_ids = list(move_ids)
+        if move_ids:
+            refuse(unsaved_set.moves_error())
 
     def _refuse_item(self, slot: int, species_id: Slug, item_id: Slug) -> None:
         if item_id not in dex().item_names:
@@ -327,15 +322,6 @@ def item_refusal(species_id: Slug, item_id: Slug) -> str:
     if holders and species_id not in holders:
         return "only " + " or ".join(species_name(holder_id) for holder_id in holders)
     return ""
-
-
-def unowned_refusal(
-    species_ids: Iterable[Slug], allowed_species_ids: Collection[Slug] | None
-) -> str:
-    if allowed_species_ids is None:
-        return ""
-    missing = dict.fromkeys(each for each in species_ids if each not in allowed_species_ids)
-    return "needs: " + ", ".join(map(species_name, missing)) if missing else ""
 
 
 def nature_of(choice_id: Slug) -> Nature:

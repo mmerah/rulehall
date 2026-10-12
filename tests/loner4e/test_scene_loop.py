@@ -23,6 +23,7 @@ from rulehall.core.game import Check, RoleAnswer, WorldsmithRequest
 from rulehall.core.log import LogEntry
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal
+from rulehall.engines.bases.scenes.worldsmith import check_opening
 from rulehall.engines.loner4e.args import CloseScene
 from rulehall.engines.loner4e.engine import ELSEWHERE_TITLE
 from rulehall.engines.loner4e.panels import MOVE_ON, TAKE_BREATHER
@@ -33,7 +34,6 @@ from rulehall.engines.loner4e.world import (
     Loner4eNextProposal,
     Loner4eSceneProposal,
 )
-from rulehall.engines.scenes.worldsmith import check_opening
 
 GOAL = "Find the stair down"
 NEXT_SCENE: dict[str, object] = {
@@ -144,11 +144,11 @@ async def test_move_on_rolls_the_transition_and_the_worldsmith_writes_the_next_s
     assert (state.world.frame.goal, state.world.scene.place_id) == (GOAL, "cloister")
 
 
-async def test_end_turn_requests_the_dramatic_scene_and_the_handler_installs_its_goal() -> None:
+async def test_after_master_turn_requests_the_dramatic_scene_and_installs_its_goal() -> None:
     _, state = initialized()
     draft = _closed(state)
 
-    ENGINE.end_turn(draft, acted=True)
+    ENGINE.after_master_turn(draft, acted=True)
 
     request = draft.request
     assert request is not None
@@ -159,12 +159,12 @@ async def test_end_turn_requests_the_dramatic_scene_and_the_handler_installs_its
     assert (frame.kind, frame.goal, frame.open) == ("dramatic", GOAL, True)
 
 
-def test_end_turn_requests_nothing_while_a_decision_waits() -> None:
+def test_after_master_turn_requests_nothing_while_a_decision_waits() -> None:
     _, state = initialized()
     draft = _closed(state)
     draft.pending = Decision(kind="test", prompt="Wait?", options=(), allows_text=True)
 
-    ENGINE.end_turn(draft, acted=True)
+    ENGINE.after_master_turn(draft, acted=True)
 
     assert draft.request is None
 
@@ -246,7 +246,7 @@ def test_a_six_rolls_the_ally_question_and_a_second_six_reads_as_dramatic() -> N
     assert any(
         f.card.startswith("Scene closes: resolved. Next: meanwhile, then dramatic.") for f in facts
     )
-    ENGINE.end_turn(draft, acted=True)
+    ENGINE.after_master_turn(draft, acted=True)
     assert draft.request == WorldsmithRequest(kind="meanwhile", detail="dramatic")
 
 

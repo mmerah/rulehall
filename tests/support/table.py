@@ -11,15 +11,16 @@ from pydantic_settings import SettingsConfigDict
 
 from rulehall.app.catalog import SavedGameKey
 from rulehall.app.game_session import GameSession
+from rulehall.app.mcp import OpenToolProviders
 from rulehall.app.runtime import Runtime
-from rulehall.app.submission import SUBMIT, Submission
-from rulehall.app.turn import Turn
+from rulehall.app.submission import SUBMIT
 from rulehall.config import ProviderConfig, Providers, Role, Settings
 from rulehall.core.decisions import ActionOption, PlayerInput
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyGame, Check, RoleAnswer
 from rulehall.core.prompt import Prompt
 from rulehall.core.stores import Library
+from rulehall.core.tools import ToolProvider
 from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.engines.engine import AnyEngine
 from rulehall.engines.registry import build_engines
@@ -131,6 +132,8 @@ class ScriptedRoles:
     prompts: list[tuple[Role, str]] = field(default_factory=list)
     submitted: list[tuple[Role, str]] = field(default_factory=list)
     hooks: list[Callable[[Role, str], Awaitable[None]]] = field(default_factory=list)
+    tool_providers: OpenToolProviders = field(default_factory=OpenToolProviders)
+    token: str = ""
 
     async def answer(
         self,
@@ -148,28 +151,32 @@ class ScriptedRoles:
             heard(answer)
         return answer
 
-    async def play_master_turn(self, prompt: Prompt, turn: Turn) -> None:
-        del turn
-        await self._record("master", prompt)
-        if self.turns:
-            self.turns.pop(0)()
-
-    async def submit_answer[T: BaseModel](
-        self, role: Role, prompt: Prompt, submission: Submission[T]
-    ) -> None:
+    async def play_tools(self, role: Role, prompt: Prompt, provider: ToolProvider) -> None:
         await self._record(role, prompt)
-        answers = self.answers.get(role, [])
-        while answers and not submission.must_stop:
+        with self.tool_providers.open(provider) as token:
+            outer, self.token = self.token, token
             try:
-                result = submission.call_tool(SUBMIT, answers.pop(0))
-            except Refusal as refused:
-                result = str(refused)
-            self.submitted.append((role, result))
+                self._play(role, provider)
+            finally:
+                self.token = outer
 
     def prompt(self, role: Role, nth: int = 0) -> str:
         """The nth prompt the role was given; the golden prompts come from here."""
         matches = (text for name, text in self.prompts if name == role)
         return next(islice(matches, nth, None))
+
+    def _play(self, role: Role, provider: ToolProvider) -> None:
+        if role == "master":
+            if self.turns:
+                self.turns.pop(0)()
+            return
+        answers = self.answers.get(role, [])
+        while answers and not provider.must_stop:
+            try:
+                result = provider.call_tool(SUBMIT, answers.pop(0))
+            except Refusal as refused:
+                result = str(refused)
+            self.submitted.append((role, result))
 
     async def _record(self, role: Role, prompt: Prompt) -> None:
         for hook in self.hooks:
@@ -186,7 +193,7 @@ def stub_worldsmith(answer: Mapping[str, object]) -> RoleAnswer:
 
 @dataclass(slots=True)
 class Table[G: AnyGame]:
-    """A live game and the tool surface a scripted game master plays it through."""
+    """A live game and the tool provider a scripted game master plays it through."""
 
     runtime: Runtime
     session: GameSession
@@ -199,7 +206,7 @@ class Table[G: AnyGame]:
     def call(self, name: str, args: dict[str, JsonValue]) -> str:
         """A refusal is an error result the CLI reads and carries on from, not a crash."""
         try:
-            answered = self.runtime.gate.require_turn().call_tool(name, args)
+            answered = self.roles.tool_providers.require(self.roles.token).call_tool(name, args)
         except Refusal as refused:
             self.refusals.append(str(refused))
             answered = str(refused)

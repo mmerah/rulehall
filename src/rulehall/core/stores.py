@@ -10,13 +10,12 @@ from tempfile import mkstemp
 
 from pydantic import BaseModel
 
-from rulehall.core.game import AnyCharacter, AnyGame, AnyScenario, CharacterHeader
+from rulehall.core.game import AnyCharacter, AnyGame, AnyScenario, CharacterHeader, for_engine_of
 from rulehall.core.validation import (
     EngineId,
     Refusal,
     Slug,
     content_id,
-    for_engine_of,
     parse_json,
     parse_strict_json,
 )
@@ -166,30 +165,12 @@ class Library:
         return self.characters / content_id(character.id) / f"{character.engine_id}.json"
 
 
-@dataclass(frozen=True, slots=True)
-class PackStore:
-    directory: Path
-
-    def ids(self, engine_id: EngineId) -> tuple[str, ...]:
-        """Every stem, slug or not: a new id must not overwrite a file the engine skipped."""
-        folder = self.directory / engine_id
-        if not folder.is_dir():
-            return ()
-        return tuple(path.stem for path in sorted(folder.glob("*.json")))
-
-    def path(self, engine_id: EngineId, pack_id: Slug) -> Path:
-        return self.directory / engine_id / f"{pack_id}.json"
-
-    def write(self, engine_id: EngineId, pack_id: Slug, pack: BaseModel) -> None:
-        write_model(self.path(engine_id, pack_id), pack)
-
-
 @cache
 def read_cached_text(path: Path) -> str:
     return path.read_text(encoding=ENCODING)
 
 
-def publish(path: Path, write: Callable[[Path], object]) -> None:
+def write_atomically(path: Path, write: Callable[[Path], object]) -> None:
     staged: Path | None = None
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -206,7 +187,7 @@ def publish(path: Path, write: Callable[[Path], object]) -> None:
 
 
 def write_text(path: Path, body: str) -> None:
-    publish(path, lambda staged: staged.write_text(body, encoding=ENCODING))
+    write_atomically(path, lambda staged: staged.write_text(body, encoding=ENCODING))
 
 
 def write_model(path: Path, model: BaseModel) -> None:

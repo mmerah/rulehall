@@ -1,6 +1,8 @@
 from collections.abc import Collection
 
 from rulehall.core.validation import Refusal, Slug, check_unique
+from rulehall.engines.bases.maps.worldsmith import check_next as check_map_next
+from rulehall.engines.bases.maps.worldsmith import check_opening as check_map_opening
 from rulehall.engines.pokemon.battle.models import DOUBLE_TEAM_MIN
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.journey.rules import (
@@ -22,8 +24,6 @@ from rulehall.engines.pokemon.journey.world import (
 )
 from rulehall.engines.pokemon.rules import is_legendary
 from rulehall.engines.pokemon.trainers import check_key_lines, check_rivals
-from rulehall.engines.rooms.worldsmith import check_next as check_room_map_next
-from rulehall.engines.rooms.worldsmith import check_opening as check_room_map_opening
 
 LATER_ACES = ", ".join(str(level) for level in BADGE_LEVELS[3:-1])
 WORLDSMITH_GUIDANCE = (
@@ -84,7 +84,7 @@ DUE_ASKS: dict[SchemeDue, str] = {
 
 
 def check_opening(proposal: JourneyOpeningProposal, species_ids: Collection[Slug]) -> None:
-    check_room_map_opening(proposal)
+    check_map_opening(proposal)
     _check_journey_map(
         proposal,
         species_ids,
@@ -97,7 +97,7 @@ def check_opening(proposal: JourneyOpeningProposal, species_ids: Collection[Slug
 
 
 def check_next(proposal: JourneyRegionProposal, world: JourneyWorld) -> None:
-    check_room_map_next(proposal, world)
+    check_map_next(proposal, world)
     due = world.scheme_due()
     operation_due, lair_due = due == "operation", due == "lair"
     if (proposal.operation is not None) != operation_due:
