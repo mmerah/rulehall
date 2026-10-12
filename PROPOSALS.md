@@ -1,3 +1,62 @@
+# Implementation results (2026-10-12)
+
+All 18 accepted proposals are implemented, one commit each, on `claude/simplification-proposals`. Every commit passes `pytest`, `ruff check`, `ruff format --check` and `basedpyright`.
+
+Each change followed the same steps:
+1. An implementer wrote it from a brief.
+2. I checked it against its Proof line.
+3. One or two adversarial reviewers read the diff. Every finding was either fixed or refuted with a reason.
+4. A live QA run checked the changes that affect behaviour (P1, P5, D4, P6, P7).
+
+Goldens are byte-identical throughout, apart from the item names P9 pinned with a new test.
+
+| Proposal | Commit | Proof | Notes |
+|---|---|---|---|
+| D10 dead bits | 24cee0f | met | tests −131 lines (target ~140, within 20%) |
+| D9 docs/QA trim | eb2c426 | met | −309 lines; the player-action doc paragraphs kept after review |
+| D1 voices | a7d5a23 | met | voices.json −231 lines |
+| D7 defensive checks | 5c08194 | **reworked** | JSON depth walker **kept**: Python 3.14 `json` decodes 12,000-deep input, so the deep-answer test fails without it. Only `check_drift` removed |
+| P4 vocabulary | 37f126b | met | renames and moves only; glossary added to CLAUDE.md |
+| P10 core names | 95f08c0 | met | renames and moves only |
+| P2 composition (C) | 27b2414 | **partly** | engine headers 13 bases / 44 type args → 9 / 29 (target 7 / 20). `join_party` cannot move onto `Engine` without a type ignore, because `HireOrJoin` narrows `JoinParty` |
+| P3 hooks | 370d58c | met | `accept` is final; no `noqa: B027` |
+| P1 tool route | 6bdf4e7 | met (−28 vs −30) | an MCP call without a token is now refused; checked live |
+| D8 demo kit | 054f049 | met | |
+| P5 GameSession | 5d1aed8 | met (bug fixed) | the restart-rewind regression test fails before and passes after; three edge flows tightened (see the commit) |
+| D4 team builder inputs | ec283ef | met | −396 lines; focus restore kept |
+| D6 settings | d4be651 | met | after rework: a stale-key rewording (+22 lines) was reverted |
+| P8 sibling engines | e5d4859 | **partly** | net +4 lines (target ≤ 0); kept for consistency: extension-point names 5 → 3, rules moved to their owners, 3 numbered-pick loops → 0 |
+| R1 packs | 5ee02e2 | met (−10 vs −15) | pack-folder owners 3 → 1 |
+| P9 Pokemon | a15c29a | **partly** | net +22 lines, `opponent.py` 754 (target 650); kept: `setup_battle` gone, `journey/sheet.py` 892 → 445, `allowed_species_ids` 54 → 7 |
+| P6 engine → screen | 6587bb6 | met | −17 lines; the screen no longer reads the world |
+| P7 split | bb4e6cc | **partly** | the class 871 → 449 (target met); glue +124 lines (target ≤ 100, fallback threshold 150) |
+
+**Overall, against the baseline (src):**
+
+| Metric | Before | After | Change |
+|---|---|---|---|
+| Code lines | 25,663 | 25,493 | −170 |
+| Raw lines (git diff) | | | +3,614 / −4,066 |
+| Base classes | 377 | 373 | −4 |
+| Functions over 40 lines | 33 | 27 | −6 |
+| Classes over 300 lines | 13 | 12 | −1 |
+| Largest class | 1,055 | 617 | −438 |
+| Classes | 424 | 432 | +8 |
+| Protocols | 11 | 14 | +3 |
+| Type parameters | 40 | 41 | +1 |
+
+The class, protocol and type-parameter increases come from small value and callback types that replaced loose fields and keyword pairs: `Change`, the route classes, `BattleSnapshot`, `McpAccess`, `SlotEditorCallbacks` and the keyword protocols.
+
+Across the whole repo the diff is +4,443 / −5,175 lines.
+
+So the series met the overall goals on lines and base classes. It did not meet them on class count or type parameters.
+
+**Known and left open, outside these proposals:**
+- `qa/s_champions.py` has no branch for "battle simulator not installed". `qa/s_pokemon.py` has one.
+- The Showdown simulator is not installed in this container, so battle screens were tested only up to the battle start.
+
+---
+
 # Simplification proposals
 
 > **Review closed (2026-10-11).** Part 1 accepted: P1–P10 and R1; not taken: R2–R5. Part 2 (deletions) accepted: D1 (C), D4 (A), D6 (B), D7, D8 (B), D9 (B), D10 (A); declined: D2, D3, D5. The chosen option is marked on each decision.
