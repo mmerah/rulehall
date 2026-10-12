@@ -6,7 +6,8 @@ from nicegui import background_tasks, ui
 from rulehall.app.game_session import SessionSnapshot
 from rulehall.core.facts import Fact
 from rulehall.core.views import require_view
-from rulehall.engines.pokemon.battle.battling import BATTLE_SURFACE_ID
+from rulehall.engines.battles import BattleRun
+from rulehall.engines.pokemon.battle.battling import BATTLE_SCREEN_ID
 from rulehall.engines.pokemon.battle.views import (
     BattleChoice,
     BattleHeader,
@@ -17,7 +18,7 @@ from rulehall.engines.pokemon.battle.views import (
 from rulehall.ui import transcript
 from rulehall.ui.panel_parts import avatar, choice_button, meter_grid, tag_row, tint
 from rulehall.ui.routes import assets_route
-from rulehall.ui.surfaces import ScreenHost
+from rulehall.ui.screen_host import ScreenHost, screen_banner
 from rulehall.ui.widgets import attempt, failure_notice, heading, help_tip
 
 BATTLE_FAILED = failure_notice("The battle did not start.")
@@ -51,18 +52,7 @@ class BattleScreen:
         self.cards: ui.element
 
     def build_banner(self) -> None:
-        with (
-            ui.column().classes(
-                "game-card game-decision game-banner w-full game-gap-lg"
-            ) as self.banner,
-            ui.row().classes("w-full items-center no-wrap game-banner-head game-gap-xl"),
-        ):
-            ui.icon(self.opener_icon).classes("game-card-icon")
-            with ui.column().classes("game-banner-text game-gap-3xs"):
-                ui.label("battle").classes("game-banner-label")
-                ui.label("A battle waits for you.").classes("game-banner-body")
-            with ui.row().classes("items-center no-wrap game-banner-actions game-gap-md"):
-                ui.button(self.opener_label, on_click=self.show).props("outline")
+        self.banner, _ = screen_banner(self, "battle", "A battle waits for you.")
 
     def build(self, now: SessionSnapshot) -> None:
         view = _battle_view(now)
@@ -83,18 +73,17 @@ class BattleScreen:
                     self.draw_fielded(_header(view))
                     self.draw_choices(_choices(view))
         self.column.set_visibility(False)
-        self._draw_cards(now.battle_facts)
+        self._draw_cards(_facts(now))
 
     def show(self) -> None:
         self.shown = True
         self.host.on_toggle()
 
     def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
-        live = now.require_surface(BATTLE_SURFACE_ID).live and now.working_role is None
-        run = now.battle_run
-        closed = run is None and drawn.battle_run is not None and not self.opening
+        live = now.require_screen_slot(BATTLE_SCREEN_ID).live and now.working_role is None
+        closed = now.battle is None and drawn.battle is not None and not self.opening
         self.shown = self.shown and live and not closed
-        if self.shown and not self.column.visible and run is None:
+        if self.shown and not self.column.visible and now.battle is None:
             self._open()
         self.column.set_visibility(self.shown)
         self.banner.set_visibility(live and not self.shown)
@@ -110,7 +99,7 @@ class BattleScreen:
         element.props.update(
             {
                 "base": assets_route(self.session.engine.id),
-                "lines": list(now.battle_log),
+                "lines": list(_lines(now)),
                 "sprites": settings.sprites,
                 "dock": f"#{self.log_dock.html_id}",
                 "battle-background": view.background,
@@ -195,21 +184,20 @@ class BattleScreen:
     def _draw(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
         view, before = _battle_view(now), _battle_view(drawn)
         header, choices = _header(view), _choices(view)
-        self.hint.set_visibility(now.battle_run is None)
-        lines = transcript.appended_since(now.battle_log, drawn.battle_log)
-        fresh = transcript.appended_since(now.battle_facts, drawn.battle_facts)
-        if now.battle_run is not drawn.battle_run or lines is None or fresh is None:
-            closing = drawn.battle_run
+        self.hint.set_visibility(now.battle is None)
+        lines = transcript.appended_since(_lines(now), _lines(drawn))
+        fresh = transcript.appended_since(_facts(now), _facts(drawn))
+        if _run(now) is not _run(drawn) or lines is None or fresh is None:
             # A throw that ends the battle closes the run before this sync; its die plays here.
-            if closing is not None:
-                self.host.sounds.roll_dice(closing.facts[len(drawn.battle_facts) :])
+            if (closing := drawn.battle) is not None:
+                self.host.sounds.roll_dice(closing.run.facts[len(closing.facts) :])
             self.draw_header.refresh(header)
             self.draw_battle_screen.refresh(now)
             self.draw_speech.refresh(header)
             self.draw_fielded.refresh(header)
             self._refresh_choices(choices)
             self.cards.clear()
-            self._draw_cards(now.battle_facts)
+            self._draw_cards(_facts(now))
             return
         if self.battle_view_element is not None and lines:
             self.battle_view_element.run_method("add", list(lines))
@@ -323,7 +311,19 @@ class BattleScreen:
 
 
 def _battle_view(now: SessionSnapshot) -> BattleView | None:
-    return None if now.battle_view is None else require_view(now.battle_view, BattleView)
+    return None if now.battle is None else require_view(now.battle.view, BattleView)
+
+
+def _run(now: SessionSnapshot) -> BattleRun | None:
+    return None if now.battle is None else now.battle.run
+
+
+def _lines(now: SessionSnapshot) -> tuple[str, ...]:
+    return () if now.battle is None else now.battle.log
+
+
+def _facts(now: SessionSnapshot) -> tuple[Fact, ...]:
+    return () if now.battle is None else now.battle.facts
 
 
 def _header(view: BattleView | None) -> BattleHeader | None:

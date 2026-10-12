@@ -2,7 +2,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import cache
 
 from rulehall.core.validation import Refusal, Slug
-from rulehall.core.views import Surface
+from rulehall.core.views import ScreenSlot
 from rulehall.engines.pokemon.battle.models import Nature
 from rulehall.engines.pokemon.champions.advice import (
     battle_species,
@@ -17,7 +17,7 @@ from rulehall.engines.pokemon.champions.data import (
     move_shares,
 )
 from rulehall.engines.pokemon.champions.panels import TEAM_TAB, preset_option, team_option
-from rulehall.engines.pokemon.champions.paste import parse_paste
+from rulehall.engines.pokemon.champions.paste import export_paste, parse_paste
 from rulehall.engines.pokemon.champions.rules import PRESET_LETTERS, require_template
 from rulehall.engines.pokemon.champions.unsaved import (
     ABILITY,
@@ -43,7 +43,7 @@ from rulehall.engines.pokemon.champions.views import (
     TeamBuilderSlot,
     TeamBuilderView,
 )
-from rulehall.engines.pokemon.champions.world import ChampionsWorld
+from rulehall.engines.pokemon.champions.world import ChampionsGame, ChampionsWorld
 from rulehall.engines.pokemon.dex import NATURES, dex
 from rulehall.engines.pokemon.rules import IV_MAX, STAT_NAMES, nature_effect, stats
 from rulehall.engines.pokemon.sprites import (
@@ -54,7 +54,7 @@ from rulehall.engines.pokemon.sprites import (
     type_tag,
 )
 
-TEAM_BUILDER_SURFACE_ID: Slug = "pokemon-team"
+TEAM_BUILDER_SCREEN_ID: Slug = "pokemon-team"
 TITLE = "Team builder"
 SPECIES_CATALOG = "species"
 ITEMS_CATALOG = "items"
@@ -80,9 +80,10 @@ SPREAD_SHAPES: dict[Slug, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
 }
 
 
-def team_builder_surface(world: ChampionsWorld, *, live: bool) -> Surface:
-    view = team_builder_view(world) if live else None
-    return Surface(surface_id=TEAM_BUILDER_SURFACE_ID, live=live, tab=TEAM_TAB, view=view)
+def team_builder_screen_slot(world: ChampionsWorld, *, live: bool) -> ScreenSlot:
+    return ScreenSlot(
+        screen_id=TEAM_BUILDER_SCREEN_ID, live=live, tab=TEAM_TAB, view=team_builder_view(world)
+    )
 
 
 def team_builder_view(world: ChampionsWorld) -> TeamBuilderView:
@@ -122,10 +123,14 @@ def team_builder_catalog(world: ChampionsWorld, slot: int, catalog_id: Slug) -> 
     raise Refusal(f"{catalog_id!r} is no catalog of the team builder")
 
 
-def import_preview(world: ChampionsWorld, text: str) -> ImportPreview:
+def team_catalog(state: ChampionsGame, slot: int, catalog_id: Slug) -> Catalog:
+    return team_builder_catalog(state.world, slot, catalog_id)
+
+
+def team_import_preview(state: ChampionsGame, text: str) -> ImportPreview:
     rows = parse_paste(text)
     sets = [row.unsaved_set for row in rows]
-    team = world.unsaved_team_of(sets)
+    team = state.world.unsaved_team_of(sets)
     unowned = team.disallowed_refusal(each.species_id for each in sets if each)
     previews = tuple(
         _roster_slot(team, number, edited=False, parsed=row.errors)
@@ -137,6 +142,10 @@ def import_preview(world: ChampionsWorld, text: str) -> ImportPreview:
         notes=(*notes, *((unowned,) if unowned else ())),
         importable=not unowned and any(sets),
     )
+
+
+def team_export_text(state: ChampionsGame) -> str:
+    return export_paste(state.world.shown_team().slots)
 
 
 def quick_spread(unsaved_set: UnsavedSet, choice_id: Slug) -> tuple[Nature, tuple[int, ...]]:

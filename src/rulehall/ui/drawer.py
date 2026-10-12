@@ -17,7 +17,7 @@ from rulehall.core.views import (
 from rulehall.ui.composer import composer_lock
 from rulehall.ui.panel_parts import PickOption, panel_row
 from rulehall.ui.scene_map import SceneMap
-from rulehall.ui.surfaces import Screen
+from rulehall.ui.screen_host import Screen
 from rulehall.ui.widgets import icon_button, section
 
 SCENE_TAB_ICON = "sym_r_map"
@@ -121,14 +121,14 @@ class Drawer:
         open_row: Callable[[PanelRow], None],
         pick: PickOption,
         prefill: Callable[[str], None],
-        open_surface: Callable[[Slug], None],
+        open_screen: Callable[[Slug], None],
         screens: Mapping[Slug, Screen],
     ) -> None:
         names = dict.fromkeys((SCENE_TAB, *(panel.tab for panel in view.panels)))
         self.session = session
         self.tabs = tuple(DrawerTab(session, name, open_row, pick) for name in names)
         self.prefill = prefill
-        self.open_surface = open_surface
+        self.open_screen = open_screen
         self.screens = screens
         self.openers: dict[Slug, ui.button] = {}
         self.scene_map = SceneMap(session, self.prefill_from_map)
@@ -169,30 +169,30 @@ class Drawer:
                     ):
                         if tab.name == SCENE_TAB:
                             self.scene_map.draw(now.view.map)
-                        for surface in now.surfaces:
-                            if surface.tab == tab.name:
-                                self.draw_opener(surface.surface_id)
+                        for screen_slot in now.screen_slots:
+                            if screen_slot.tab == tab.name:
+                                self.draw_opener(screen_slot.screen_id)
                         tab.draw_panels(now.view, enabled=choosing(now))
         self.enable_openers(now)
 
-    def draw_opener(self, surface_id: Slug) -> None:
-        screen = self.screens[surface_id]
+    def draw_opener(self, screen_id: Slug) -> None:
+        screen = self.screens[screen_id]
 
         def opened() -> None:
-            self.open_surface(surface_id)
+            self.open_screen(screen_id)
             self.hide_on_phone()
 
-        self.openers[surface_id] = (
+        self.openers[screen_id] = (
             ui.button(screen.opener_label, icon=screen.opener_icon, on_click=opened)
             .props("outline")
             .classes("w-full")
         )
 
     def enable_openers(self, now: SessionSnapshot) -> None:
-        for surface in now.surfaces:
-            opener = self.openers.get(surface.surface_id)
-            if opener is not None and opener.enabled != surface.live:
-                opener.set_enabled(surface.live)
+        for screen_slot in now.screen_slots:
+            opener = self.openers.get(screen_slot.screen_id)
+            if opener is not None and opener.enabled != screen_slot.live:
+                opener.set_enabled(screen_slot.live)
 
     def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
         self.enable_openers(now)

@@ -6,7 +6,7 @@ from support.table import CHAMPIONS, open_table, play_turn, tool_call
 
 from rulehall.engines.pokemon.champions.world import ChampionsGame
 from rulehall.screens.pokemon.team_builder import TeamBuilderScreen, picked_ids
-from rulehall.ui.surfaces import ScreenHost
+from rulehall.ui.screen_host import ScreenHost
 from rulehall.ui.widgets import Sounds
 
 

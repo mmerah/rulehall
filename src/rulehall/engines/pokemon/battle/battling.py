@@ -6,7 +6,7 @@ from rulehall.engines.battles import Transport
 from rulehall.engines.pokemon.battle.simulator import SHOWDOWN, ShowdownRun
 from rulehall.engines.pokemon.battle.world import BattleGame
 
-BATTLE_SURFACE_ID: Slug = "pokemon-battle"
+BATTLE_SCREEN_ID: Slug = "pokemon-battle"
 SIMULATOR = SHOWDOWN / "node_modules" / "pokemon-showdown" / "pokemon-showdown"
 ASSETS = Path(__file__).parents[5] / "vendor" / "showdown"
 ASSETS_COMPLETE = ASSETS / "complete"

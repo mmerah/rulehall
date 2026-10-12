@@ -10,7 +10,7 @@ from support.showdown import ScriptedSimulator, started
 from rulehall.app.game_session import SessionSnapshot
 from rulehall.engines.battles import BattleSupport
 from rulehall.screens.pokemon.battle import BattleScreen
-from rulehall.ui.surfaces import ScreenHost
+from rulehall.ui.screen_host import ScreenHost
 from rulehall.ui.widgets import Sounds
 
 NO_BLOCK_LEFT = "the scripted simulator has no block left"
@@ -37,7 +37,7 @@ async def test_a_refused_command_keeps_the_battle_screen_and_only_a_refused_open
     panel.show()
     drawn = await _synced(panel, drawn)
     drawn = await _synced(panel, drawn)
-    assert drawn.battle_run is not None
+    assert drawn.battle is not None
 
     await panel._choose("leave")  # pyright: ignore[reportPrivateUsage]
     assert notified == [NO_BLOCK_LEFT]

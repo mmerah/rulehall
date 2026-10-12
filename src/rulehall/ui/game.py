@@ -18,11 +18,11 @@ from rulehall.ui.composer import CLOSED_REASONS, Composer, composer_lock
 from rulehall.ui.drawer import Drawer
 from rulehall.ui.panel_parts import CHOICES_ROW, choice_groups, panel_row
 from rulehall.ui.routes import hall_path
-from rulehall.ui.surfaces import (
+from rulehall.ui.screen_host import (
     Screen,
     ScreenFactories,
     ScreenHost,
-    check_surfaces,
+    check_screen_slots,
     require_screens,
 )
 from rulehall.ui.transcript import Transcript
@@ -179,15 +179,15 @@ class GamePage:
         now = self.drawn = session.snapshot()
         self.sounds = Sounds()
         self.sounds.on("sound", self.sound_state)
-        host = ScreenHost(session=session, sounds=self.sounds, on_toggle=self.surface_toggled)
-        self.screens = require_screens(self.screen_factories, host, now.surfaces)
+        host = ScreenHost(session=session, sounds=self.sounds, on_toggle=self.screen_toggled)
+        self.screens = require_screens(self.screen_factories, host, now.screen_slots)
         self.drawer = Drawer(
             session,
             now.view,
             self.open_row,
             self.pick_option,
             lambda words: self.composer.prefill(words),
-            self.open_surface,
+            self.open_screen,
             self.screens,
         )
         if session.live_settings.current.speech.enabled:
@@ -237,7 +237,7 @@ class GamePage:
 
     def tick(self) -> None:
         now, drawn = self.session.snapshot(), self.drawn
-        check_surfaces(self.screens, now.surfaces)
+        check_screen_slots(self.screens, now.screen_slots)
         if now.working_role != drawn.working_role:
             self.row_dialog.close()
         for part in self.parts:
@@ -255,10 +255,10 @@ class GamePage:
             self.follow(now, drawn)
         self.drawn = now
 
-    def open_surface(self, surface_id: Slug) -> None:
-        self.screens[surface_id].show()
+    def open_screen(self, screen_id: Slug) -> None:
+        self.screens[screen_id].show()
 
-    def surface_toggled(self) -> None:
+    def screen_toggled(self) -> None:
         if self.voice_player is not None:
             self.voice_player.stop()
         self.tick()

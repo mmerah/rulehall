@@ -38,7 +38,7 @@ from rulehall.core.validation import (
     parse_strict_json,
     slug,
 )
-from rulehall.core.views import Look, MapView, Panel, PlayerView, Rows, Sprite, Surface
+from rulehall.core.views import Look, MapView, Panel, PlayerView, Rows, ScreenSlot, Sprite
 from rulehall.engines.args import Direct, JoinParty, Kill, LeaveParty, Reveal
 from rulehall.engines.battles import BattleSupport
 from rulehall.engines.packs import (
@@ -202,7 +202,7 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     def allows_text(self, _state: Game[W], /) -> bool:
         return True
 
-    def surfaces(self, _state: Game[W], /) -> tuple[Surface, ...]:
+    def screen_slots(self, _state: Game[W], /) -> tuple[ScreenSlot, ...]:
         return ()
 
     def in_battle(self, state: Game[W], /) -> bool:

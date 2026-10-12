@@ -8,10 +8,11 @@ from nicegui import app, ui
 from nicegui.events import ValueChangeEventArguments
 from pydantic import Field, TypeAdapter
 
-from rulehall.app.game_session import GameSession, SessionSnapshot
+from rulehall.app.game_session import SessionSnapshot
 from rulehall.core.decisions import ActionOption
+from rulehall.core.game import AnyGame
 from rulehall.core.validation import Frozen, Refusal, Slug, parse
-from rulehall.core.views import Sprite, Surface, require_view
+from rulehall.core.views import ScreenSlot, Sprite, require_view
 from rulehall.engines.pokemon.champions.args import (
     MoveSlotEdit,
     PasteEdit,
@@ -22,14 +23,13 @@ from rulehall.engines.pokemon.champions.args import (
 )
 from rulehall.engines.pokemon.champions.data import champions_data
 from rulehall.engines.pokemon.champions.panels import team_option
-from rulehall.engines.pokemon.champions.paste import export_paste
 from rulehall.engines.pokemon.champions.team_builder import (
     SLOT_CATALOGS,
-    TEAM_BUILDER_SURFACE_ID,
+    TEAM_BUILDER_SCREEN_ID,
     TEMPLATES_CATALOG,
-    import_preview,
-    team_builder_catalog,
-    team_builder_view,
+    team_catalog,
+    team_export_text,
+    team_import_preview,
 )
 from rulehall.engines.pokemon.champions.unsaved import ITEM, SPECIES
 from rulehall.engines.pokemon.champions.views import (
@@ -43,12 +43,11 @@ from rulehall.engines.pokemon.champions.views import (
     TeamBuilderSlot,
     TeamBuilderView,
 )
-from rulehall.engines.pokemon.champions.world import ChampionsWorld
 from rulehall.engines.pokemon.sprites import item_sprite
 from rulehall.screens.pokemon.catalog_picker import CatalogPicker
 from rulehall.screens.pokemon.points_editor import PointsEditor
 from rulehall.ui.panel_parts import avatar, choice_button, tag_row
-from rulehall.ui.surfaces import ScreenHost
+from rulehall.ui.screen_host import ScreenHost, screen_banner
 from rulehall.ui.widgets import (
     Confirm,
     alert,
@@ -93,7 +92,7 @@ class TeamBuilderPlace(Frozen):
 
 @dataclass(slots=True)
 class CatalogMemo:
-    world: ChampionsWorld
+    state: AnyGame
     catalogs: dict[tuple[int | None, Slug], Catalog] = field(default_factory=dict)
 
 
@@ -150,27 +149,11 @@ class TeamBuilderScreen:
         self.replace_box: ui.element
 
     def build_banner(self) -> None:
-        with (
-            ui.column().classes(
-                "game-card game-decision game-banner w-full game-gap-lg"
-            ) as self.banner,
-            ui.row().classes("w-full items-center no-wrap game-banner-head game-gap-xl"),
-        ):
-            ui.icon(self.opener_icon).classes("game-card-icon")
-            with ui.column().classes("game-banner-text game-gap-3xs"):
-                ui.label("team").classes("game-banner-label")
-                self.banner_text = ui.label().classes("game-banner-body")
-            with ui.row().classes("items-center no-wrap game-banner-actions game-gap-md"):
-                ui.button(self.opener_label, on_click=self.show).props("outline")
+        self.banner, self.banner_text = screen_banner(self, "team", "")
         self.banner.set_visibility(False)
 
     def build(self, now: SessionSnapshot) -> None:
-        surface = now.require_surface(TEAM_BUILDER_SURFACE_ID)
-        self.view = (
-            _team_builder_view(surface)
-            if surface.live
-            else team_builder_view(_require_champions_world(self.session))
-        )
+        self.view = _team_builder_view(now.require_screen_slot(TEAM_BUILDER_SCREEN_ID))
         self.slot = min(self.slot, len(self.view.slots))
         self.enabled = _enabled(self.view, now)
         self.build_dialogs()
@@ -237,10 +220,9 @@ class TeamBuilderScreen:
         self.host.on_toggle()
 
     def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:  # noqa: ARG002
-        surface = now.require_surface(TEAM_BUILDER_SURFACE_ID)
-        live = surface.live
-        view = _team_builder_view(surface) if live else None
-        if self.shown and not live:
+        screen_slot = now.require_screen_slot(TEAM_BUILDER_SCREEN_ID)
+        view = _team_builder_view(screen_slot) if screen_slot.live else None
+        if self.shown and not screen_slot.live:
             self.shown = False
             self.remember()
         self.column.set_visibility(self.shown)
@@ -743,13 +725,13 @@ class TeamBuilderScreen:
         )
 
     def catalog(self, catalog_id: Slug) -> Catalog:
-        world = _require_champions_world(self.session)
-        if self.catalog_memo is None or self.catalog_memo.world is not world:
-            self.catalog_memo = CatalogMemo(world)
+        state = self.session.state
+        if self.catalog_memo is None or self.catalog_memo.state is not state:
+            self.catalog_memo = CatalogMemo(state)
         catalogs = self.catalog_memo.catalogs
         key = (self.slot if catalog_id in SLOT_CATALOGS else None, catalog_id)
         if key not in catalogs:
-            catalogs[key] = team_builder_catalog(world, self.slot, catalog_id)
+            catalogs[key] = team_catalog(state, self.slot, catalog_id)
         return catalogs[key]
 
     async def pick(self, pick: PickField, index: int | None, choice_id: Slug) -> None:
@@ -870,7 +852,7 @@ class TeamBuilderScreen:
         if not text:
             return
         try:
-            preview = import_preview(_require_champions_world(self.session), text)
+            preview = team_import_preview(self.session.state, text)
         except Refusal as refused:
             alert(str(refused))
             return
@@ -919,7 +901,7 @@ class TeamBuilderScreen:
         await self.edit("copy_registered_team", undo="Draft opened.")
 
     def export_text(self) -> str:
-        return export_paste(_require_champions_world(self.session).shown_team().slots)
+        return team_export_text(self.session.state)
 
     def start_from(self) -> None:
         try:
@@ -957,7 +939,7 @@ class TeamBuilderScreen:
 
     def apply_edited(self) -> None:
         now = self.session.snapshot()
-        view = _team_builder_view(now.require_surface(TEAM_BUILDER_SURFACE_ID))
+        view = _team_builder_view(now.require_screen_slot(TEAM_BUILDER_SCREEN_ID))
         self.apply(view, enabled=_enabled(view, now))
 
     def offer_undo(self, text: str) -> None:
@@ -1001,15 +983,8 @@ def picked_ids(current: Sequence[Slug], index: int, choice_id: Slug) -> tuple[Sl
     return tuple(ids)
 
 
-def _require_champions_world(session: GameSession) -> ChampionsWorld:
-    world = session.state.world
-    if not isinstance(world, ChampionsWorld):
-        raise TypeError(f"the team builder edits a ChampionsWorld, not {type(world).__name__}")
-    return world
-
-
-def _team_builder_view(surface: Surface) -> TeamBuilderView:
-    return require_view(surface.view, TeamBuilderView)
+def _team_builder_view(screen_slot: ScreenSlot) -> TeamBuilderView:
+    return require_view(screen_slot.view, TeamBuilderView)
 
 
 def _enabled(view: TeamBuilderView, now: SessionSnapshot) -> bool:

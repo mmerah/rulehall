@@ -41,7 +41,7 @@ from rulehall.core.game import AnyGame, WorldsmithRequest
 from rulehall.core.stores import SaveStore
 from rulehall.core.tools import edit
 from rulehall.core.validation import Frozen, Refusal
-from rulehall.core.views import PlayerView, Surface, require_view
+from rulehall.core.views import PlayerView, ScreenSlot, require_view
 from rulehall.engines.loner4e.engine import Loner4eEngine
 from rulehall.engines.loner4e.panels import ASK_ORACLE, TAKE_BREATHER
 from rulehall.engines.loner4e.sheet import Loner4ePerson
@@ -50,7 +50,7 @@ from rulehall.engines.pokemon.journey.world import JourneyGame
 from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.twentyfourxx.sheet import STARTING_CREDITS
 
-NOTES_SURFACE_ID = "notes"
+NOTES_SCREEN_ID = "notes"
 WORDED = ActionOption(id="worded", name="Worded", action_name="take_breather", needs_words=True)
 TOLD = ActionOption(id="told", name="Told", action_name="move_on", told_in_turn=True)
 QUIET = ActionOption(id="quiet", name="Quiet", action_name="move_on")
@@ -78,10 +78,10 @@ class _SlotEdit(Frozen):
 
 
 class _EditingEngine(Loner4eEngine):
-    def surfaces(self, state: Loner4eGame, /) -> tuple[Surface, ...]:
+    def screen_slots(self, state: Loner4eGame, /) -> tuple[ScreenSlot, ...]:
         return (
-            Surface(
-                surface_id=NOTES_SURFACE_ID, live=True, view=_NotesView(dirty=bool(state.notes))
+            ScreenSlot(
+                screen_id=NOTES_SCREEN_ID, live=True, view=_NotesView(dirty=bool(state.notes))
             ),
         )
 
@@ -113,7 +113,7 @@ def _clear_slot(slot: int, *, refusal: str = "") -> ActionOption:
 
 def _notes_dirty(table: Table[Loner4eGame]) -> bool:
     return require_view(
-        table.session.snapshot().require_surface(NOTES_SURFACE_ID).view, _NotesView
+        table.session.snapshot().require_screen_slot(NOTES_SCREEN_ID).view, _NotesView
     ).dirty
 
 

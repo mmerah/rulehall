@@ -145,11 +145,11 @@ class Look(Frozen):
     pattern: Literal["dots", "grid", "scanlines", "rings"]
 
 
-class Surface(Frozen):
-    """A screen the engine asks the page to host. An engine lists every surface it has, in every
+class ScreenSlot(Frozen):
+    """A screen the engine asks the page to host. An engine lists every screen slot it has, in every
     state: the page builds its screens once."""
 
-    surface_id: Slug
+    screen_id: Slug
     live: bool
     tab: str = ""
     view: Frozen | None = None
@@ -161,5 +161,5 @@ def nonblank_rows(*pairs: tuple[str, str]) -> Rows:
 
 def require_view[V: Frozen](view: Frozen | None, model: type[V]) -> V:
     if not isinstance(view, model):
-        raise TypeError(f"the surface shows {type(view).__name__}, not {model.__name__}")
+        raise TypeError(f"the engine shows {type(view).__name__}, not {model.__name__}")
     return view

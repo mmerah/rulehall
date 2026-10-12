@@ -29,7 +29,7 @@ from rulehall.core.log import Cause, LogEntry, SpokenLine
 from rulehall.core.narration import Narration, NarratorView, partial_lines
 from rulehall.core.stores import Library, SaveStore
 from rulehall.core.validation import Frozen, Refusal, Slug
-from rulehall.core.views import PlayerView, Sprite, Surface
+from rulehall.core.views import PlayerView, ScreenSlot, Sprite
 from rulehall.engines.battles import BattleRun, BattleSupport, Transport
 from rulehall.engines.engine import AnyEngine
 
@@ -70,6 +70,14 @@ type Route = SilentOption | OptionIntoTurn | PlainTurn
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
+class BattleSnapshot:
+    run: BattleRun = field(compare=False)
+    log: tuple[str, ...]
+    facts: tuple[Fact, ...]
+    view: Frozen
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
 class SessionSnapshot:
     view: PlayerView
     log_entries: tuple[LogEntry, ...]
@@ -80,16 +88,13 @@ class SessionSnapshot:
     held_elsewhere: bool
     in_battle: bool
     can_rewind: bool
-    battle_run: BattleRun | None = field(compare=False)
-    battle_log: tuple[str, ...]
-    battle_facts: tuple[Fact, ...]
-    battle_view: Frozen | None
-    surfaces: tuple[Surface, ...]
+    battle: BattleSnapshot | None
+    screen_slots: tuple[ScreenSlot, ...]
 
-    def require_surface(self, surface_id: Slug) -> Surface:
-        found = next((each for each in self.surfaces if each.surface_id == surface_id), None)
+    def require_screen_slot(self, screen_id: Slug) -> ScreenSlot:
+        found = next((each for each in self.screen_slots if each.screen_id == screen_id), None)
         if found is None:
-            raise ValueError(f"the engine shows no surface {surface_id!r}")
+            raise ValueError(f"the engine shows no screen slot {screen_id!r}")
         return found
 
 
@@ -98,7 +103,7 @@ class CachedViews:
     state: AnyGame
     view: PlayerView
     log_entries: tuple[LogEntry, ...]
-    surfaces: tuple[Surface, ...]
+    screen_slots: tuple[ScreenSlot, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -233,11 +238,12 @@ class GameSession:
             held_elsewhere=admitted is not None and admitted is not self,
             in_battle=self.engine.in_battle(self.state),
             can_rewind=self._find_rewind() is not None,
-            battle_run=run,
-            battle_log=() if run is None else tuple(run.log),
-            battle_facts=() if run is None else tuple(run.facts),
-            battle_view=None if run is None else run.view(),
-            surfaces=self.surfaces(),
+            battle=None
+            if run is None
+            else BattleSnapshot(
+                run=run, log=tuple(run.log), facts=tuple(run.facts), view=run.view()
+            ),
+            screen_slots=self.screen_slots(),
         )
 
     def edit(self, option: ActionOption) -> None:
@@ -255,8 +261,8 @@ class GameSession:
             raise Refusal(NOTHING_TO_UNDO)
         self.save(change.before)
 
-    def surfaces(self) -> tuple[Surface, ...]:
-        return self._cached_views().surfaces
+    def screen_slots(self) -> tuple[ScreenSlot, ...]:
+        return self._cached_views().screen_slots
 
     def player_view(self) -> PlayerView:
         return self._cached_views().view
@@ -476,7 +482,7 @@ class GameSession:
                 state,
                 self.engine.player_view(state),
                 state.log_entries(),
-                self.engine.surfaces(state),
+                self.engine.screen_slots(state),
             )
         return self.view_cache
 

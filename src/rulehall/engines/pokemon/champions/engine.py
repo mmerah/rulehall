@@ -9,7 +9,7 @@ from rulehall.core.log import Voice
 from rulehall.core.prompt import Sections, lines_of, section_if
 from rulehall.core.tools import NoArgs, action, edit, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
-from rulehall.core.views import Panel, Sprite, Surface
+from rulehall.core.views import Panel, ScreenSlot, Sprite
 from rulehall.engines.args import Attempt, Words
 from rulehall.engines.bases.maps.args import ExtendMap
 from rulehall.engines.pokemon.champions.advice import suggested_species
@@ -47,7 +47,10 @@ from rulehall.engines.pokemon.champions.rules import (
     require_template,
 )
 from rulehall.engines.pokemon.champions.sheet import ChampionsSheet, ChampionsTrainer, Roster
-from rulehall.engines.pokemon.champions.team_builder import quick_spread, team_builder_surface
+from rulehall.engines.pokemon.champions.team_builder import (
+    quick_spread,
+    team_builder_screen_slot,
+)
 from rulehall.engines.pokemon.champions.unsaved import SPECIES, UnsavedSet
 from rulehall.engines.pokemon.champions.world import (
     ChampionsGame,
@@ -238,10 +241,10 @@ class ChampionsEngine(
             return (NEXT_EVENT,)
         return super().standing_options(state)
 
-    def surfaces(self, state: ChampionsGame, /) -> tuple[Surface, ...]:
+    def screen_slots(self, state: ChampionsGame, /) -> tuple[ScreenSlot, ...]:
         return (
-            *super().surfaces(state),
-            team_builder_surface(state.world, live=not self.in_battle(state)),
+            *super().screen_slots(state),
+            team_builder_screen_slot(state.world, live=not self.in_battle(state)),
         )
 
     def ending(self, state: ChampionsGame) -> str | None:

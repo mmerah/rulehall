@@ -1,15 +1,11 @@
 from pathlib import Path
 
-from rulehall.screens.pokemon.registry import SCREEN_FACTORIES as POKEMON_SCREEN_FACTORIES
-from rulehall.screens.pokemon.registry import STYLES as POKEMON_STYLES
-from rulehall.ui.surfaces import ScreenFactories
+from rulehall.screens.pokemon.battle import BATTLE_SCREEN_ID, BattleScreen
+from rulehall.screens.pokemon.team_builder import TEAM_BUILDER_SCREEN_ID, TeamBuilderScreen
+from rulehall.ui.screen_host import ScreenFactories
 
-STYLES: tuple[Path, ...] = (*POKEMON_STYLES,)
-
-
-def build_screen_factories() -> ScreenFactories:
-    packages = (POKEMON_SCREEN_FACTORIES,)
-    ids = [surface_id for package in packages for surface_id in package]
-    if len(set(ids)) != len(ids):
-        raise ValueError(f"surface ids are not unique: {ids}")
-    return {surface_id: factory for package in packages for surface_id, factory in package.items()}
+SCREEN_FACTORIES: ScreenFactories = {
+    BATTLE_SCREEN_ID: BattleScreen,
+    TEAM_BUILDER_SCREEN_ID: TeamBuilderScreen,
+}
+STYLES = (Path(__file__).parent / "pokemon" / "pokemon.css",)
