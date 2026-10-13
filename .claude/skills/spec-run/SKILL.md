@@ -1,6 +1,6 @@
 ---
 name: spec-run
-description: Build a phased spec one item at a time. Runs the full /feature workflow on the next item of the spec's phase table, questions included, and stops with the item staged for the user to review and commit. After the last item, it deletes the spec and rewrites the rules doc in the shape of its siblings. Use when the user says "/spec-run <spec>", or wants to build a spec that has phases.
+description: Build a phased spec one item at a time. Runs the full /feature workflow on the next item of the spec's phase table, questions included, and stops with the item staged for the user to review and commit. After the last item, it deletes the spec. Use when the user says "/spec-run <spec>", or wants to build a spec that has phases.
 argument-hint: <path to the spec> [item]
 ---
 
@@ -49,15 +49,9 @@ Then stop. The user reviews, commits, and starts the next run.
 ## 3. The close
 
 When every item of the phase table has a commit, the next run is the close. It builds no code.
-The code is the reference now, and a spec beside it would drift.
+The code is the reference now, and a spec beside it would drift. Any doc that must change at the
+end is an item of the spec, not part of the close.
 
-1. Delete the spec. Keep nothing of it elsewhere.
-2. Rewrite the rules file that the spec names, if any, in the shape of its siblings in `docs/`
-   (for an engine: `docs/TUNNEL-GOONS.md`, `docs/LONER-4E.md`, `docs/24XX.md`). Read them first.
-   - Keep: the sources, the licence and attribution, the pack sources, the scope in a few lines,
-     the deviations from the source rules with their reasons, and what the AI game master adds.
-   - Remove every implementation detail: file names, classes, fields, ids, commands, phases and
-     tests. Point to the code where the rules live, as the siblings do.
-   - Check each rule that stays against the code. The code wins. Tell the user each difference.
-3. Remove any link to the spec from other docs.
-4. Stage the result and stop, as for an item, with the commit message `<spec name>: close`.
+1. Delete the spec.
+2. Remove any link to the spec from other docs.
+3. Stage the result and stop, as for an item, with the commit message `<spec name>: close`.
