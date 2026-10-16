@@ -741,7 +741,7 @@
                     "null"
                   ],
                   "default": null,
-                  "description": "Exact id of the hired party member who gets it. Null for the player."
+                  "description": "Exact id of the class companion who gets it. Null for the player."
                 },
                 "reason": {
                   "description": "The bold or fitting choice.",

@@ -124,6 +124,10 @@ SEAR_DIE = 8
 UNDEAD: tuple[CreatureType, ...] = ("undead", "swarm of tiny undead")
 SHOVE_SAVES: tuple[Ability, ...] = ("strength", "dexterity")
 USE_UNITS: dict[FeatureUse, str] = {"focus": "Focus Point", "sorcery-points": "Sorcery Point"}
+TURNED: tuple[Rider, ...] = tuple(
+    Rider(rider_id="condition", condition=condition, effect_id=TURN_UNDEAD, ends_on=("damage",))
+    for condition in ("frightened", "incapacitated")
+)
 
 
 class Aim(Frozen):
@@ -492,20 +496,39 @@ class Throw(ActionHandler):
 class Drink(ActionHandler):
     def aims(self, use: Use) -> list[Aim]:
         return [
-            Aim(row=use.row, action_id=key, name=f"Drink {gear_name(key)}")
+            self._aim(use, key)
             for key, count in use.require_sheet().gear.items()
             if count > 0 and is_drinkable(key)
         ]
 
     def play(self, use: Use) -> list[Fact]:
         fight, member, key = use.fight, use.member, use.action_id
+        drinker = use.target if use.targets else member
         healing = use.require_sheet().spend_drink(key)
-        facts = [told(f"{fight.name_of(member)} drinks {gear_name(key)}")]
+        if drinker.combatant_id == member.combatant_id:
+            facts = [told(f"{fight.name_of(member)} drinks {gear_name(key)}")]
+        else:
+            facts = [
+                told(f"{fight.name_of(member)} gives {fight.name_of(drinker)} {gear_name(key)}")
+            ]
         if key == ANTITOXIN:
             facts.extend(lay(fight, member, member, Rider(rider_id="effect"), ANTITOXIN, None))
         if healing is not None:
-            facts.extend(heal(fight, member, gear_name(key), healing))
+            facts.extend(heal(fight, drinker, gear_name(key), healing))
         return facts
+
+    def _aim(self, use: Use, key: Slug) -> Aim:
+        if key not in srd().gear.magic_items:
+            return Aim(row=use.row, action_id=key, name=f"Drink {gear_name(key)}")
+        fight, member = use.fight, use.member
+        drinker_ids = tuple(
+            ally.combatant_id
+            for ally in fight.battle.member_combatants()
+            if fight.in_battle(ally) and band_between(fight, member, ally) == "close"
+        )
+        return Aim(
+            row=use.row, action_id=key, name=f"Use {gear_name(key)}", target_ids=drinker_ids, cap=1
+        )
 
 
 class HealersKit(ActionHandler):
@@ -570,7 +593,6 @@ class TurnUndead(ActionHandler):
         sear_part = DamagePart(dice=sear_dice, bonus=0, damage_type="radiant")
         sears = SEAR_UNDEAD in sheet.feature_ids()
         sear: DamageRoll | None = None
-        turned = Rider(rider_id="effect", effect_id=TURN_UNDEAD, ends_on=("damage",))
         facts = [told(f"{fight.name_of(member)} turns the undead")]
         for foe in fight.battle.foes():
             if (
@@ -590,9 +612,9 @@ class TurnUndead(ActionHandler):
                 if not fight.is_standing(foe):
                     continue
             foe.row = "back"
-            facts.extend(lay(fight, member, foe, turned, TURN_UNDEAD, None))
             facts.append(told(f"{foe.name} is turned and flees to its back row"))
-            facts.extend(ended_facts(fight, fight.battle.release_grapples(foe.combatant_id)))
+            for rider in TURNED:
+                facts.extend(lay(fight, member, foe, rider, TURN_UNDEAD, None))
         return facts
 
 
@@ -858,6 +880,8 @@ def take_action(fight: Fight, aim: Aim, picks: Sequence[str]) -> list[Fact]:
     if not counted or any(target_id not in aim.target_ids for target_id in target_ids):
         offered = ", ".join(aim.target_ids) or "no target"
         raise Refusal(f"{aim.name} takes up to {aim.target_cap(picks)} of: {offered}")
+    if not aim.repeats and len(set(target_ids)) < len(target_ids):
+        raise Refusal(f"{aim.name} takes each target once")
     if aim.slot_levels and slot_level not in aim.slot_levels:
         raise Refusal(f"{aim.name} takes a slot of level {', '.join(map(str, aim.slot_levels))}")
     targets = tuple(fight.battle.require_combatant(target_id) for target_id in target_ids)

@@ -2,13 +2,13 @@ from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
-from support.lite5e import ScriptedDice
+from support.lite5e import ScriptedDice, hero, sheet_proposal
 from support.table import CHARACTERS
 
 from rulehall.core.game import Character
 from rulehall.core.stores import read_model
 from rulehall.core.validation import Refusal, Slug
-from rulehall.engines.lite5e.data import DATA_DIR, Ability, LevelPickKind, StartingGear
+from rulehall.engines.lite5e.data import DATA_DIR, Ability, LevelPickKind, StartingGear, srd
 from rulehall.engines.lite5e.hire import SheetProposal
 from rulehall.engines.lite5e.pack import Background, Lite5ePack
 from rulehall.engines.lite5e.rules import DEATH_SAVE_DC, AbilityMethod
@@ -59,9 +59,7 @@ def build(
         scores=scores,
         increases={"strength": 2, "constitution": 1} if increases is None else increases,
     )
-    sheet.finish(
-        level=level, background=SOLDIER, category_gear_ids={"holy-symbols": "amulet"}, picks={}
-    )
+    sheet.finish(level=level, background=SOLDIER, category_gear_ids={}, picks={})
     return sheet
 
 
@@ -189,6 +187,30 @@ def test_a_lineage_cantrip_is_not_offered_again_as_a_magic_initiate_cantrip() ->
     drow = _drow_wizard(SOLDIER.model_copy(update={"feat_id": "magic-initiate"}))
     _ = drow.level_pick("initiate-list", "wizard")
     assert "dancing-lights" not in drow.level_pick_options("initiate-cantrip")
+
+
+def test_a_lineage_spell_is_never_a_prepared_pick() -> None:
+    proposal = sheet_proposal("wizard", "elf", "sage", subspecies_id="elven-lineage-high-elf")
+    wizard = hero(proposal, 3).require_sheet()
+    assert "detect-magic" in wizard.lineage_spell_ids()
+    assert "detect-magic" not in (*wizard.prepared_pool(), *wizard.pick_ids("prepared"))
+
+
+def test_a_level_up_drops_a_prepared_pick_the_lineage_now_grants() -> None:
+    proposal = sheet_proposal(
+        "warlock", "tiefling", "sage", subspecies_id="fiendish-legacy-abyssal"
+    )
+    warlock = hero(proposal, 4).require_sheet()
+    warlock.picks["prepared"][0] = "hold-person"
+    warlock.level_to(5)
+    assert "hold-person" not in warlock.pick_ids("prepared")
+
+
+def test_a_finesse_dart_uses_the_better_of_strength_and_dexterity() -> None:
+    fighter = build()
+    assert fighter.modifier("strength") > fighter.modifier("dexterity")
+    dart = srd().gear.weapons["dart"]
+    assert fighter.weapon_modifier(dart, pact=False) == fighter.modifier("strength")
 
 
 def test_a_drow_s_darkvision_replaces_the_elf_s_and_raises_darkness_one_step() -> None:

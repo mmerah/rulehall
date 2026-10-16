@@ -27,7 +27,7 @@ DIFFICULTY = " ".join(
     f"{word} is DC {DIFFICULTY_DC[word]}: {meaning}" for word, meaning in DIFFICULTY_MEANING.items()
 )
 TARGETS = "Exact ids of the party members it hits. 'player' for the player."
-RECEIVER = "Exact id of the hired party member who gets it. Null for the player."
+RECEIVER = "Exact id of the class companion who gets it. Null for the player."
 DAMAGE_TYPE = "The damage type, such as fire or bludgeoning."
 GEAR_ID = (
     "Exact id of SRD gear or of a magic item. Magic armor and magic weapons join the magic item "

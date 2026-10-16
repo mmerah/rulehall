@@ -69,3 +69,9 @@ def test_a_long_rest_brings_hp_hit_dice_and_inspiration_back_and_one_exhaustion_
     assert sheet.vitals.hp.current == sheet.vitals.hp.maximum
     assert (sheet.temp_hp, sheet.hit_dice_spent, sheet.exhaustion) == (0, 0, 1)
     assert sheet.inspiration
+
+
+def test_a_hostile_person_who_joins_the_party_blocks_no_rest() -> None:
+    built = world(person(BANDITS, HALL, "bandit", hostile=True))
+    _ = built.join(built.npcs[BANDITS])
+    _ = built.rest("short", NO_DICE)

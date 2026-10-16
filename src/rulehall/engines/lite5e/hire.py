@@ -1,7 +1,7 @@
 from collections.abc import Sequence
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from rulehall.core.decisions import find_option
 from rulehall.core.validation import Frozen, Refusal, Slug
@@ -15,6 +15,7 @@ from rulehall.engines.lite5e.data import (
 )
 from rulehall.engines.lite5e.pack import Background
 from rulehall.engines.lite5e.rules import (
+    ABILITIES,
     CASTING_ABILITIES,
     STANDARD_ARRAY,
     AbilityMethod,
@@ -53,6 +54,12 @@ class SheetProposal(Frozen):
         default_factory=dict,
         description="The pick of each gear category, such as a holy symbol. Empty: the first.",
     )
+
+    @model_validator(mode="after")
+    def _scores_every_ability_or_none(self) -> Self:
+        if self.scores and len(self.scores) != len(ABILITIES):
+            raise ValueError("give a score for each of the six abilities, or none")
+        return self
 
     def build_sheet(self, level: int, backgrounds: Sequence[Background]) -> Lite5eSheet:
         background = self.require_background(backgrounds)

@@ -651,7 +651,9 @@ class Lite5eWorld(MapWorld[Lite5ePerson, Lite5eItem, Lite5ePlace, Lite5eWay]):
         ]
 
     def join(self, person: Lite5ePerson) -> list[Fact]:
-        return [*super().join(person), *self.level_up()]
+        facts = super().join(person)
+        person.hostile = False
+        return [*facts, *self.level_up()]
 
     def die(self, person: Lite5ePerson) -> str:
         card = super().die(person)

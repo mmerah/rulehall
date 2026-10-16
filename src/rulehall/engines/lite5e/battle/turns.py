@@ -395,13 +395,13 @@ def _start_turn(fight: Fight, combatant: Combatant) -> tuple[list[Fact], bool]:
     if isinstance(combatant, FoeCombatant):
         facts.extend(start_of_turn_regeneration(fight, combatant))
     if isinstance(combatant, MemberCombatant) and fight.hp_of(combatant).current == 0:
-        return [*facts, *_death_save(fight, combatant)], False
+        facts.extend(_death_save(fight, combatant))
     if not fight.is_standing(combatant):
         return facts, False
     command = find_command(fight, combatant)
     if command is not None:
         return [*facts, *obey_command(fight, command)], False
-    if holds_effect(fight, combatant_id, TURN_UNDEAD) or battle.is_incapacitated(combatant_id):
+    if battle.is_incapacitated(combatant_id):
         return [*facts, told(f"{name} cannot act")], False
     if holds_effect(fight, combatant_id, FEAR):
         return [*facts, *flee(fight, combatant)], False

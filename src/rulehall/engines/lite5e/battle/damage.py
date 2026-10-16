@@ -114,6 +114,7 @@ EMPOWERED_SPELL = "Empowered Spell"
 FORM_ABILITIES: frozenset[Ability] = frozenset({"strength", "dexterity", "constitution"})
 UNDEAD_FORTITUDE_BASE = 5
 CONCENTRATION_DC_MIN = 10
+CONCENTRATION_DC_MAX = 30
 NO_HEALING = "no-healing"
 NO_OPPORTUNITY_ATTACK = "no-opportunity-attack"
 SAVE_FAILING: tuple[Condition, ...] = ("paralyzed", "petrified", "stunned", "unconscious")
@@ -340,8 +341,9 @@ def take_damage(
         elif taken.dropped:
             facts.append(told(f"{name} falls"))
             facts.extend(lay(fight, target, target, PRONE, FALLEN, None))
-        if fight.hp_of(target).current == 0 and (taken.dropped or taken.died):
+        if taken.died:
             facts.extend(ended_facts(fight, fight.battle.stop_turns(target.combatant_id)))
+        if fight.hp_of(target).current == 0 and (taken.dropped or taken.died):
             facts.extend(release_incapacitated(fight, target))
     if amount > 0:
         facts.extend(ended_facts(fight, fight.battle.end_effects_on(target.combatant_id, "damage")))
@@ -1305,7 +1307,9 @@ def _concentration(fight: Fight, target: Combatant, amount: int) -> list[Fact]:
         return lose_concentration(fight, target)
     if amount <= 0:
         return []
-    save = SaveSpec(ability="constitution", dc=max(CONCENTRATION_DC_MIN, amount // 2))
+    save = SaveSpec(
+        ability="constitution", dc=min(max(CONCENTRATION_DC_MIN, amount // 2), CONCENTRATION_DC_MAX)
+    )
     edge: Edge = "advantage" if ELDRITCH_MIND in sheet.pick_ids("invocation") else "none"
     test = roll_save(fight, target, save, against=None, spell=False, edge=edge)
     facts = save_facts(fight, target, save, test)

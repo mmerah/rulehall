@@ -143,6 +143,17 @@ def test_bless_turns_a_failed_death_save_into_a_success() -> None:
     assert f.require_member("player").require_vitals().death_successes == 1
 
 
+def test_a_natural_20_on_a_death_save_lets_the_member_act_at_once() -> None:
+    bo = member("bo", "rogue")
+    f = fight([(_hero(), "front"), (bo, "front")], [foe("wolf", "wolf")], SteadyDice(20))
+    f.battle.order = ["bo", "player", "wolf"]
+    _down(f, "player")
+    _ = end_turn(f)
+    _ = asyncio.run(play_next(f, scripted_plans))
+    assert f.require_member("player").require_vitals().hp.current == 1
+    assert current_combatant(f).combatant_id == "player"
+
+
 def test_a_natural_1_on_a_death_save_keeps_the_bardic_die() -> None:
     bard = member("bo", "bard")
     f = fight([(_hero(), "front"), (bard, "front")], [foe("wolf", "wolf")], ScriptedDice(4, 1))

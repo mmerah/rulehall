@@ -2,7 +2,7 @@ from random import Random
 
 import pytest
 from support.lite5e import ScriptedDice
-from support.lite5e_battle import fight, foe, lay, member, play_first_pick
+from support.lite5e_battle import fight, foe, lay, member, play, play_first_pick
 
 from rulehall.core.validation import Refusal
 from rulehall.engines.lite5e.battle.actions import member_aims
@@ -48,17 +48,16 @@ def _damage(amount: int) -> DamageRoll:
     return DamageRoll(dealt=(Dealt(amount=amount, damage_type="slashing"),), dice=())
 
 
-@pytest.mark.parametrize(("amount", "dc"), [(4, 10), (30, 15)])
-def test_the_concentration_dc_is_the_higher_of_10_and_half_the_damage(amount: int, dc: int) -> None:
+@pytest.mark.parametrize(("amount", "dc"), [(4, 10), (30, 15), (70, 30)])
+def test_the_concentration_dc_is_half_the_damage_from_10_to_30(amount: int, dc: int) -> None:
     f = _bandits(ScriptedDice(20))
     at = f.battle.require_combatant
     sheet = f.require_member("cleo").require_sheet()
     sheet.concentration_spell_id = "bless"
-    sheet.temp_hp = 40
+    sheet.temp_hp = 70
     _, facts = take_damage(f, at("bandit-1"), at("cleo"), _damage(amount))
     traces = [fact.trace for fact in facts]
     assert any("constitution save" in trace and trace.endswith(f"vs DC {dc}") for trace in traces)
-    assert sheet.concentration_spell_id == "bless"
 
 
 def test_one_slot_per_turn() -> None:
@@ -123,3 +122,11 @@ def test_true_strike_on_a_pact_weapon_attacks_with_charisma() -> None:
         charisma + sheet.proficiency_bonus(),
         charisma,
     )
+
+
+def test_an_area_spell_takes_each_target_once() -> None:
+    wiz = member("player", "wizard", level=3)
+    wiz.require_sheet().picks.setdefault("prepared", []).append("burning-hands")
+    f = fight([(wiz, "front")], [foe("ogre", "ogre")], Random(5))
+    with pytest.raises(Refusal, match="each target once"):
+        _ = play(f, "act burning-hands", "ogre", "ogre", slot_level=1)

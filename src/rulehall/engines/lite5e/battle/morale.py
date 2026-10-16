@@ -75,7 +75,7 @@ def check_morale(fight: Fight, group_id: str, cause: MoraleCause) -> list[Fact]:
         )
     ]
     if test.success:
-        return [*facts, told(f"{group_name} holds firm")]
+        return [*facts, told(f"{group_name} hold firm")]
     fled = cause != "rout" and block.creature_type in FLEEING_TYPES
     for foe in foes:
         if fight.is_standing(foe) and not battle.is_incapacitated(foe.combatant_id):

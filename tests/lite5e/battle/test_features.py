@@ -1,8 +1,9 @@
 from random import Random
 
-from support.lite5e_battle import fight, foe, lay, member, play_first_pick
+from support.lite5e_battle import SteadyDice, fight, foe, lay, member, play, play_first_pick
 
 from rulehall.engines.lite5e.battle.actions import HANDLERS, member_aims
+from rulehall.engines.lite5e.battle.rows import engaged_enemies
 from rulehall.engines.lite5e.battle.specs import SpellNumbers
 from rulehall.engines.lite5e.battle.state import Effect, Fight, MemberCombatant
 from rulehall.engines.lite5e.data import srd
@@ -120,3 +121,24 @@ def test_a_healer_s_kit_stabilizes_and_stays_in_the_pack() -> None:
     _ = play_first_pick(f, kit)
     assert downed.require_sheet().vitals.stable
     assert hero.require_sheet().gear["healers-kit"] == 1
+
+
+def test_a_potion_heals_a_dying_ally_close_by() -> None:
+    hero, downed = member("player"), member("cy")
+    hero.require_sheet().add_gear("potion-of-healing", 1)
+    f = fight([(hero, "front"), (downed, "front")], [foe("ogre", "ogre")], Random(1))
+    downed.require_sheet().vitals.hp.current = 0
+    potion = next(aim for aim in member_aims(f, _player(f)) if aim.action_id == "potion-of-healing")
+    _ = play(f, potion.command(), "cy")
+    assert downed.require_sheet().vitals.hp.current > 0
+    assert "potion-of-healing" not in hero.require_sheet().gear
+
+
+def test_a_turned_undead_is_frightened_incapacitated_and_engages_no_one() -> None:
+    cleric, ally = member("player", "cleric", level=3), member("ally")
+    zombie = foe("zombie", "zombie")
+    f = fight([(cleric, "front"), (ally, "front")], [zombie], SteadyDice(2))
+    _ = play(f, "act turn-undead")
+    assert f.battle.has_condition("zombie", "frightened")
+    assert f.battle.is_incapacitated("zombie")
+    assert engaged_enemies(f, f.battle.require_combatant("ally")) == []

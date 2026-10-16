@@ -224,6 +224,18 @@
         ]
       },
       "rogue": {
+        "skill_options": [
+          "acrobatics",
+          "athletics",
+          "deception",
+          "insight",
+          "intimidation",
+          "investigation",
+          "perception",
+          "persuasion",
+          "sleight-of-hand",
+          "stealth"
+        ],
         "weapon_proficiencies": [
           "simple",
           "martial-finesse-or-light"

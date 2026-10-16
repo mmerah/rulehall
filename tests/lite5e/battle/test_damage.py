@@ -7,6 +7,7 @@ from rulehall.engines.lite5e.battle.attack import resisted
 from rulehall.engines.lite5e.battle.damage import (
     DamageRoll,
     Dealt,
+    lay,
     repeat_saves,
     resolve,
     roll_damage,
@@ -22,7 +23,7 @@ from rulehall.engines.lite5e.battle.state import (
     Effect,
     Fight,
 )
-from rulehall.engines.lite5e.data import srd
+from rulehall.engines.lite5e.data import Rider, srd
 from rulehall.engines.lite5e.rules import FormationRow
 
 
@@ -132,3 +133,15 @@ def test_ghoul_claws_spare_an_elf() -> None:
     claw = stat_block_action(srd().require_stat_block("ghoul").require_action("claw"))
     _ = resolve(f, f.battle.require_combatant("ghoul"), claw, [f.battle.require_combatant("ann")])
     assert not f.battle.has_condition("ann", "paralyzed")
+
+
+def test_a_member_who_drops_keeps_the_effects_it_laid() -> None:
+    f = _fight(SteadyDice(10), ("ogre", "ogre", "front"), ("goblin", "goblin-warrior", "front"))
+    at = f.battle.require_combatant
+    stun = Rider(rider_id="condition", condition="stunned", ends="source-next-turn-start")
+    _ = lay(f, at("bo"), at("ogre"), stun, "stunning-strike", None)
+    hp = f.require_member("bo").require_vitals().hp.current
+    dealt = DamageRoll(dealt=(Dealt(amount=hp, damage_type="slashing"),), dice=())
+    _ = take_damage(f, at("goblin"), at("bo"), dealt)
+    assert f.require_member("bo").require_vitals().hp.current == 0
+    assert f.battle.has_condition("ogre", "stunned")

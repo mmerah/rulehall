@@ -673,11 +673,9 @@ class Lite5eSheet(Mutable):
         return 1 + self.bonus_to("attacks")
 
     def prepared_pool(self) -> list[Slug]:
-        initiate = self.initiate_spell_ids()
-        if self.srd_class().spellbook:
-            return [spell_id for spell_id in self.spellbook_ids() if spell_id not in initiate]
-        taken = (*self.always_prepared_ids(), *initiate)
-        return [spell_id for spell_id in self.class_list_ids() if spell_id not in taken]
+        known = self.castable_spell_ids()
+        offered = self.spellbook_ids() if self.srd_class().spellbook else self.class_list_ids()
+        return [spell_id for spell_id in offered if spell_id not in known]
 
     def changes_all_prepared(self) -> bool:
         return self.pick_limit("prepared") > 0 and self.srd_class().prepared_swap is None
@@ -1165,10 +1163,10 @@ class Lite5eSheet(Mutable):
         slot_totals = self.class_level().slots
         if pact_spent and slot_totals is not None:
             self.slots_spent = {_top_slot_level(slot_totals): pact_spent}
-        self.drop_always_prepared()
+        self.drop_granted_spells()
 
-    def drop_always_prepared(self) -> None:
-        always = self.always_prepared_ids()
+    def drop_granted_spells(self) -> None:
+        granted = (*self.always_prepared_ids(), *self.lineage_spell_ids())
         kinds: tuple[LevelPickKind, ...] = (
             "cantrip",
             "prepared",
@@ -1177,7 +1175,7 @@ class Lite5eSheet(Mutable):
         )
         for kind in kinds:
             if kind in self.picks:
-                self.picks[kind][:] = [found for found in self.picks[kind] if found not in always]
+                self.picks[kind][:] = [found for found in self.picks[kind] if found not in granted]
 
     def _mark_replacement(self, kind: LevelPickKind, *, due: bool) -> None:
         if kind in self.replacements_due:
@@ -1245,10 +1243,14 @@ class Lite5eSheet(Mutable):
         background: Background,
         category_gear_ids: Mapping[Slug, Slug],
     ) -> None:
+        categories = srd_class.gear_option_a.gear_categories
+        offered_ids = {category.category_id for category in categories}
+        if strays := sorted(set(category_gear_ids) - offered_ids):
+            raise Refusal(f"{srd_class.name} starts with no gear category {strays}")
         for part in (*srd_class.gear_option_a.gear, *background.gear):
             self.add_gear(part.gear_id, part.count)
         gear = srd().gear
-        for category in srd_class.gear_option_a.gear_categories:
+        for category in categories:
             offered = gear.categories[category.category_id]
             picked = next(
                 (tool_id for tool_id in self.pick_ids("tool") if tool_id in offered),
@@ -1271,9 +1273,10 @@ class Lite5eSheet(Mutable):
     def weapon_modifier(self, weapon: Weapon, *, pact: bool) -> int:
         strength, dexterity = self.modifier("strength"), self.modifier("dexterity")
         martial_arts = is_monk_weapon(weapon) and self.find_martial_arts_die() is not None
-        nimble = martial_arts or "finesse" in weapon.properties
-        chosen = max(strength, dexterity) if nimble else strength
-        chosen = dexterity if weapon.kind == "ranged" else chosen
+        if martial_arts or "finesse" in weapon.properties:
+            chosen = max(strength, dexterity)
+        else:
+            chosen = dexterity if weapon.kind == "ranged" else strength
         return max(chosen, self.modifier("charisma")) if pact else chosen
 
     def _proficient_with(self, weapon: Weapon) -> bool:
@@ -1622,7 +1625,7 @@ def level_pick_rules() -> Mapping[LevelPickKind, LevelPickRule]:
             noun="land",
             vocabulary="class-option",
             pool=lambda sheet: _class_option_pool(sheet, "land"),
-            take=lambda sheet, _pick_id: sheet.drop_always_prepared(),
+            take=lambda sheet, _pick_id: sheet.drop_granted_spells(),
         ),
         "cantrip": LevelPickRule(noun="cantrip", vocabulary="spell", pool=_cantrip_pool),
         "spellbook": LevelPickRule(
