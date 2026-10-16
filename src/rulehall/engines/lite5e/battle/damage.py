@@ -32,6 +32,7 @@ from rulehall.engines.lite5e.battle.rows import (
     enemies_of,
     engaged_enemies,
     is_charmed_by,
+    leaves_the_front,
     reaches,
     require_reach,
     row_of,
@@ -48,6 +49,7 @@ from rulehall.engines.lite5e.battle.state import (
     HELD_IN_PLACE,
     INCAPACITATING,
     RAGE,
+    REACTION,
     SIZES,
     WILD_SHAPE,
     Combatant,
@@ -82,6 +84,7 @@ from rulehall.engines.lite5e.data import (
     srd,
 )
 from rulehall.engines.lite5e.rules import (
+    CHECK_DISADVANTAGE_CONDITIONS,
     ELDRITCH_MIND,
     FIEND_PATRON,
     FRENZY,
@@ -126,6 +129,8 @@ NET: Slug = "net"
 ANTITOXIN: Slug = "antitoxin"
 RAMPAGE: Slug = "rampage"
 REGENERATION_STOPPED = Rider(rider_id="effect", ends="target-next-turn-end")
+PRONE = Rider(rider_id="condition", condition="prone")
+FALLEN: Slug = "fallen"
 HILLS_TUMBLE: Slug = "hills-tumble"
 FIRE_AURA: SpecialId = "fire-aura"
 HILLS_TUMBLE_SIZE: Size = "large"
@@ -334,6 +339,7 @@ def take_damage(
             facts.append(told(f"{name} dies"))
         elif taken.dropped:
             facts.append(told(f"{name} falls"))
+            facts.extend(lay(fight, target, target, PRONE, FALLEN, None))
         if fight.hp_of(target).current == 0 and (taken.dropped or taken.died):
             facts.extend(ended_facts(fight, fight.battle.stop_turns(target.combatant_id)))
             facts.extend(release_incapacitated(fight, target))
@@ -526,7 +532,7 @@ def change_row(
     freed = battle.release_holds(combatant.combatant_id, HELD_IN_PLACE) if teleport else []
     if battle.is_held(combatant.combatant_id):
         return [told(f"{name} is held in place")]
-    provokes = provoking and not teleport and combatant.row == "front"
+    provokes = provoking and not teleport and leaves_the_front(fight, combatant)
     facts = opportunity_attack(fight, combatant, provoking=provokes)
     if not fight.is_standing(combatant):
         return facts
@@ -837,11 +843,11 @@ def roll_check(
 ) -> TestRoll:
     held = fight.battle.effects_on(combatant.combatant_id)
     mighty = ability == "strength" and any(e.effect_id in (LARGE_FORM, RAGE) for e in held)
-    poisoned = any(effect.condition == "poisoned" for effect in held)
+    hindered = any(effect.condition in CHECK_DISADVANTAGE_CONDITIONS for effect in held)
     edge = combined_edge(
         edge,
         "advantage" if mighty else "none",
-        "disadvantage" if poisoned else "none",
+        "disadvantage" if hindered else "none",
     )
     if isinstance(combatant, MemberCombatant):
         member = fight.require_member(combatant.combatant_id)
@@ -976,10 +982,12 @@ def _life_drain(
     if drain is None or drain.action_id != action.action_id:
         return []
     drained = resisted(fight, target, damage.totals().get("necrotic", 0), "necrotic")
-    hp = fight.hp_of(target)
-    cut = min(drained, hp.maximum)
-    if cut <= 0:
+    if drained <= 0:
         return []
+    hp = fight.hp_of(target)
+    dies = drained >= hp.maximum
+    # A member dies at a maximum of 0; the maximum stops at 1 so its HP still renders.
+    cut = min(drained, hp.maximum - 1)
     sheet = fight.sheet_of(target)
     if sheet is not None:
         sheet.cut_hp_maximum(cut)
@@ -989,6 +997,11 @@ def _life_drain(
     name = fight.name_of(target)
     if isinstance(target, FoeCombatant):
         facts = [told(f"{name}'s life is drained")]
+    elif dies:
+        fight.require_member(target.combatant_id).require_vitals().die()
+        facts = [told(f"{name}: HP maximum drained to 0"), told(f"{name} dies")]
+        facts.extend(ended_facts(fight, fight.battle.stop_turns(target.combatant_id)))
+        facts.extend(release_incapacitated(fight, target))
     else:
         facts = [told(f"{name}: HP maximum -{cut} → {fight.hp_of(target)}")]
     if drain.heals_self:
@@ -1349,14 +1362,14 @@ def _storms_thunder(fight: Fight, source: Combatant, target: Combatant, amount: 
         or sheet is None
         or not isinstance(target, MemberCombatant)
         or source is target
-        or fight.battle.used_once(target, "storms-thunder")
+        or fight.battle.used_once(target, REACTION)
         or sheet.uses_left("storms-thunder") <= 0
         or fight.hp_of(target).current == 0
         or not fight.is_standing(source)
     ):
         return []
     sheet.spend_use("storms-thunder")
-    fight.battle.use_once(target, "storms-thunder")
+    fight.battle.use_once(target, REACTION)
     line = f"{fight.name_of(target)}: Storm's Thunder strikes {fight.name_of(source)}"
     return deal_extra(fight, target, source, [STORMS_THUNDER], "Storm's Thunder", line)
 
@@ -1374,11 +1387,10 @@ def _giant_ancestry(fight: Fight, user: Combatant, target: Combatant, dealt: int
         fight.size_of(target), HILLS_TUMBLE_SIZE
     ):
         return []
-    prone = Rider(rider_id="condition", condition="prone")
-    if _immunity(fight, target, prone, HILLS_TUMBLE):
+    if _immunity(fight, target, PRONE, HILLS_TUMBLE):
         return []
     sheet.spend_use("hills-tumble")
-    return [told(f"{name}: Hill's Tumble"), *lay(fight, user, target, prone, HILLS_TUMBLE, None)]
+    return [told(f"{name}: Hill's Tumble"), *lay(fight, user, target, PRONE, HILLS_TUMBLE, None)]
 
 
 def _rampage(fight: Fight, user: Combatant, target: Combatant) -> list[Fact]:

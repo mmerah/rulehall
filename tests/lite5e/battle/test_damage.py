@@ -53,6 +53,17 @@ def test_resistance_immunity_and_vulnerability() -> None:
     assert resisted(f, at("skeleton"), 9, "bludgeoning") == 18
     assert resisted(f, at("skeleton"), 9, "poison") == 0
     assert resisted(f, at("ann"), 9, "poison") == 9
+    f.battle.effects.append(Effect(holder_id="skeleton", source_id="skeleton", effect_id="rage"))
+    assert resisted(f, at("skeleton"), 9, "bludgeoning") == 8
+
+
+def test_a_member_who_drops_to_0_hp_stays_prone_once_healed() -> None:
+    f = _fight(Random(1), ("bandit", "bandit", "front"))
+    hp = f.require_member("bo").require_vitals().hp.current
+    blow = DamageRoll(dealt=(Dealt(amount=hp, damage_type="slashing"),), dice=())
+    _ = take_damage(f, f.battle.require_combatant("bandit"), f.battle.require_combatant("bo"), blow)
+    _ = f.require_member("bo").require_vitals().heal(5)
+    assert f.battle.has_condition("bo", "prone")
 
 
 def test_a_fireball_rolls_once_hits_every_goblin_and_then_checks_morale() -> None:

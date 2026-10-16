@@ -103,7 +103,10 @@ def start_battle(world: Lite5eWorld, args: StartBattle, rng: Random) -> list[Fac
     facts.extend(_fiendish_vigor_facts(members))
     world.battle.facts.extend(facts)
     world.long_rest_earned = True
-    return [*facts, *roll_initiative(fight, surprised)]
+    facts.extend(roll_initiative(fight, surprised))
+    # The master's turn records the opening; the battle's end records the rest.
+    world.battle.opening_fact_count = len(world.battle.facts)
+    return facts
 
 
 def require_fight(world: Lite5eWorld, rng: Random) -> Fight:
@@ -135,7 +138,7 @@ def settle_battle(world: Lite5eWorld, end: BattleEnd, rng: Random) -> tuple[Reso
         "escape": "The party escapes",
         "defeat": "The party yields" if end.yielded else "Defeat",
     }[end.outcome]
-    facts = [told(outcome), *_fates(battle)]
+    facts = [told(outcome)]
     facts.extend(_battle_xp(world, fight))
     facts.extend(_settle_groups(world, battle, rng))
     facts.extend(_drop_gear(world, battle))
@@ -179,7 +182,8 @@ def _require_foe_here(world: Lite5eWorld, foe_id: Slug, *, ambush: bool) -> Lite
     person = world.require_dweller(foe_id)
     if person.place_id != world.current.id:
         raise Refusal(f"{person.name} is not here with the player")
-    _ = person.stat_block()
+    if person.sheet is not None:
+        raise Refusal(f"{person.name} is a former class companion and never fights the party")
     if ambush and person.known:
         raise Refusal(f"{person.name} is not hidden: a foe ambush takes hidden foes only")
     if not ambush and not person.known:
@@ -312,15 +316,6 @@ def _foe_ambush(
 def _battle_groups(world: Lite5eWorld, battle: Battle) -> list[Lite5ePerson]:
     group_ids = dict.fromkeys(foe.person_id for foe in battle.foes())
     return [world.npcs[group_id] for group_id in group_ids if world.npcs[group_id].alive]
-
-
-def _fates(battle: Battle) -> list[Fact]:
-    # The battle facts already showed each fate as a card; the narrator still reads it here.
-    return [
-        Fact(trace=f"{foe.name} {fate}", told=True)
-        for foe in battle.foes()
-        if (fate := _fate(foe)) is not None
-    ]
 
 
 def _battle_xp(world: Lite5eWorld, fight: Fight) -> list[Fact]:

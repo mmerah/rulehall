@@ -162,7 +162,7 @@ def test_the_rival_counter_picks_squirtle_against_charmander() -> None:
 def test_creation_refuses_a_third_rank_in_one_skill() -> None:
     picks = TWO_NATURE_RANKS | {"rank-3": "nature"}
 
-    with pytest.raises(Refusal, match="'rank-3' offers no 'nature'"):
+    with pytest.raises(Refusal, match="Skill rank 3 offers no 'nature'"):
         _ = ENGINE.create_character("Kael", "A trainer.", "masculine", "srd", picks)
 
 

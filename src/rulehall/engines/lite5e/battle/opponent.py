@@ -9,7 +9,7 @@ from rulehall.core.validation import Frozen, Refusal, Slug
 from rulehall.engines.lite5e.battle.foes import bare_plan, gauge_band, health_band
 from rulehall.engines.lite5e.battle.state import Battle, Fight, FoeCombatant, MemberCombatant
 from rulehall.engines.lite5e.battle.turns import ROUND
-from rulehall.engines.lite5e.data import DamagePart, StatBlock, StatBlockAction
+from rulehall.engines.lite5e.data import StatBlock, StatBlockAction
 from rulehall.engines.lite5e.rules import ABILITIES
 from rulehall.engines.sheet import Gauge
 
@@ -217,7 +217,7 @@ def _entry_text(entry: StatBlockAction) -> str:
             f"reach {entry.reach_feet} ft" if entry.reach_feet is not None else ""
         ) or f"range {entry.range_feet} ft"
         head = f"{entry.name} [{entry.action_id}]: {entry.kind}, +{entry.to_hit} to hit, {reach}"
-    damage = " + ".join(_damage_text(part) for part in entry.damage)
+    damage = " + ".join(part.text() for part in entry.damage)
     riders = ", ".join(
         " ".join(filter(None, (rider.rider_id, rider.condition))) for rider in entry.riders
     )
@@ -226,10 +226,3 @@ def _entry_text(entry: StatBlockAction) -> str:
         *(() if entry.usage.uses_per_day is None else (f"{entry.usage.uses_per_day}/day",)),
     )
     return ", ".join(part for part in (head, damage, riders and f"also {riders}", *limits) if part)
-
-
-def _damage_text(part: DamagePart) -> str:
-    amount = part.dice or ""
-    if part.bonus:
-        amount = f"{amount}{part.bonus:+d}" if amount else str(part.bonus)
-    return f"{amount} {part.damage_type}" if part.damage_type else amount

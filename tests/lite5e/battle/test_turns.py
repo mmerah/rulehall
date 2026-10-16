@@ -175,6 +175,21 @@ def test_fear_makes_a_foe_flee_instead_of_acting() -> None:
     assert f.require_member("player").require_vitals().hp.shortfall == 0
 
 
+def test_a_multiattack_turns_to_a_standing_member_once_its_target_drops() -> None:
+    hero = _hero()
+    hero.require_vitals().hp.current = 1
+    f = fight(
+        [(hero, "front"), (member("bo"), "back")],
+        [foe("captain", "bandit-captain")],
+        SteadyDice(15),
+    )
+    f.battle.order = ["player", "captain", "bo"]
+    _ = end_turn(f)
+    _ = asyncio.run(play_next(f, scripted_plans))
+    assert f.require_member("player").require_vitals().death_failures == 0
+    assert f.require_member("bo").require_vitals().hp.shortfall > 0
+
+
 def test_a_dash_from_the_back_row_leaves_the_battle_and_ends_it_as_an_escape() -> None:
     bo = member("bo", "rogue")
     f = fight([(_hero(), "back"), (bo, "front")], [foe("wolf", "wolf")], Random(1))

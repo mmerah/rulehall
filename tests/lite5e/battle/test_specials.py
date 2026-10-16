@@ -2,6 +2,7 @@ from collections.abc import Awaitable, Callable
 from typing import get_args
 
 import pytest
+from support.lite5e import ScriptedDice
 from support.lite5e_battle import (
     SteadyDice,
     bonus_plan_texts,
@@ -34,6 +35,7 @@ from rulehall.engines.lite5e.battle.state import (
     FoeCombatant,
 )
 from rulehall.engines.lite5e.battle.turns import end_turn, play_next
+from rulehall.engines.lite5e.battle.views import battle_view
 from rulehall.engines.lite5e.data import SpecialId, srd
 from rulehall.engines.lite5e.rules import FormationRow
 
@@ -154,6 +156,15 @@ async def _life_drain() -> None:
     maximum = f.require_member("player").require_sheet().vitals.hp.maximum
     _ = _strike(f, "life-drain", "player")
     assert f.require_member("player").require_sheet().vitals.hp.maximum < maximum
+
+
+def test_a_life_drain_that_takes_the_whole_maximum_kills() -> None:
+    hero = member("player", "wizard", weapon_ids=("dagger",))
+    f = fight([(hero, "front")], [foe("it", "specter")], ScriptedDice(15, 6, 6))
+    _ = _strike(f, "life-drain", "player")
+    vitals = f.require_member("player").require_vitals()
+    assert vitals.is_dead
+    _ = battle_view(f, live=True, thinking=False, aiming="", picks=[])
 
 
 def _leaves_unharmed(stat_block_id: str) -> None:

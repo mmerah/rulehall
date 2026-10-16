@@ -37,7 +37,7 @@ const RIDER_DEFAULTS = {
   spared_species_ids: [],
   on_success: false,
 };
-const OVERRIDE_DEFAULTS = { monsters: {}, multiattacks: {}, spells: {}, species: {}, classes: {}, prices: {}, pack_contents: {}, armor_categories: {} };
+const OVERRIDE_DEFAULTS = { monsters: {}, multiattacks: {}, spells: {}, species: {}, classes: {}, prices: {}, pack_contents: {}, armor_categories: {}, weapon_damage: {} };
 const DATA = path.join(__dirname, "..", "data");
 const SHORT_DESCRIPTION = 200;
 const RARITY_LINE = /^(Common|Uncommon|Rare|Very Rare|Legendary)\b[^.]*$/;

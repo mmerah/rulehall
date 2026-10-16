@@ -147,6 +147,14 @@ def test_a_natural_20_on_a_death_save_brings_back_1_hp() -> None:
     assert (sheet.vitals.hp.current, sheet.vitals.death_failures) == (1, 0)
 
 
+def test_a_hit_die_heals_at_least_1_hp() -> None:
+    frail: dict[Ability, int] = {**ARRAY, "constitution": 8, "charisma": 13}
+    sheet = build(scores=frail, increases={"strength": 2, "dexterity": 1})
+    sheet.vitals.hp.current = 1
+    _ = sheet.spend_hit_die(ScriptedDice(1))
+    assert sheet.vitals.hp.current == 2
+
+
 def test_untrained_armor_is_refused() -> None:
     wizard = build("wizard")
     wizard.add_gear("leather-armor", 1)
@@ -160,18 +168,33 @@ def test_untrained_armor_is_refused() -> None:
     assert build().wears_heavy_armor()
 
 
-def test_a_lineage_cantrip_is_not_offered_again_as_a_class_cantrip() -> None:
-    drow = Lite5eSheet.start(
+def _drow_wizard(background: Background = SOLDIER) -> Lite5eSheet:
+    return Lite5eSheet.start(
         class_id="wizard",
         species_id="elf",
         subspecies_id="elven-lineage-drow",
         species_ability="intelligence",
-        background=SOLDIER,
+        background=background,
         method="array",
         scores=ARRAY,
         increases={"strength": 2, "constitution": 1},
     )
-    assert "dancing-lights" not in drow.level_pick_options("cantrip")
+
+
+def test_a_lineage_cantrip_is_not_offered_again_as_a_class_cantrip() -> None:
+    assert "dancing-lights" not in _drow_wizard().level_pick_options("cantrip")
+
+
+def test_a_lineage_cantrip_is_not_offered_again_as_a_magic_initiate_cantrip() -> None:
+    drow = _drow_wizard(SOLDIER.model_copy(update={"feat_id": "magic-initiate"}))
+    _ = drow.level_pick("initiate-list", "wizard")
+    assert "dancing-lights" not in drow.level_pick_options("initiate-cantrip")
+
+
+def test_a_drow_s_darkvision_replaces_the_elf_s_and_raises_darkness_one_step() -> None:
+    drow = _drow_wizard()
+    assert "darkvision-60" not in drow.trait_ids()
+    assert drow.light_seen("dark", party_lit=False) == "dim"
 
 
 def test_a_saved_sheet_with_an_unknown_pick_is_refused() -> None:

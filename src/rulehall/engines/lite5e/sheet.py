@@ -65,6 +65,7 @@ from rulehall.engines.lite5e.rules import (
     ABILITIES,
     AID_HP,
     CASTING_ABILITIES,
+    CHECK_DISADVANTAGE_CONDITIONS,
     CRITICAL_FACE,
     DEATH_SAVES,
     DIM_PASSIVE_PENALTY,
@@ -79,7 +80,6 @@ from rulehall.engines.lite5e.rules import (
     LUCKY,
     MADE_SLOT_COST,
     MADE_SLOT_SORCERER_LEVEL,
-    MAGE_ARMOR_BASE,
     MAGIC_INITIATE_ABILITY,
     MARTIAL_ARTS,
     MAX_EXHAUSTION,
@@ -218,6 +218,11 @@ class Vitals(Mutable):
             self.stable = True
             return DeathSave(outcome="stable", dice=dice)
         return DeathSave(outcome="success" if test.success else "failure", dice=dice)
+
+    def die(self) -> None:
+        _ = self.hp.adjust(-self.hp.current)
+        self.stable = False
+        self.death_failures = DEATH_SAVES
 
     def clear_death_saves(self) -> None:
         self.death_successes = 0
@@ -418,9 +423,12 @@ class Lite5eSheet(Mutable):
     def has_short_rest_slots(self) -> bool:
         return PACT_MAGIC in self.feature_ids()
 
-    def modifiers_of[ModifierT: Frozen](self, kind: type[ModifierT]) -> list[ModifierT]:
+    def modifiers_of[ModifierT: Frozen](
+        self, kind: type[ModifierT], effect_ids: Collection[str] = ()
+    ) -> list[ModifierT]:
         rules = srd().battle_effects.effects
-        held = (rules[effect.effect_id] for effect in self.effects if effect.effect_id in rules)
+        held_ids = (*(effect.effect_id for effect in self.effects), *effect_ids)
+        held = (rules[effect_id] for effect_id in dict.fromkeys(held_ids) if effect_id in rules)
         sources = (*self.boons(), *held)
         return [found for kept in sources for found in kept.modifiers if isinstance(found, kind)]
 
@@ -470,13 +478,12 @@ class Lite5eSheet(Mutable):
         body = next(((armor, bonus) for armor, bonus in worn if armor.category != "shield"), None)
         dexterity = self.modifier("dexterity")
         if body is None:
-            mage_armor = "mage-armor" in effect_ids or self.has_effect("mage-armor")
             shield = self.holds_shield()
             bases = [
-                MAGE_ARMOR_BASE if mage_armor else NO_UNARMORED_BASE,
+                NO_UNARMORED_BASE,
                 *(
                     base.base + (0 if base.ability is None else self.modifier(base.ability))
-                    for base in self.modifiers_of(ArmorBase)
+                    for base in self.modifiers_of(ArmorBase, effect_ids)
                     if not (base.shieldless and shield)
                 ),
             ]
@@ -675,14 +682,19 @@ class Lite5eSheet(Mutable):
     def changes_all_prepared(self) -> bool:
         return self.pick_limit("prepared") > 0 and self.srd_class().prepared_swap is None
 
-    def level_pick_options(self, kind: LevelPickKind) -> list[Slug]:
+    def picks_left(self, kind: LevelPickKind) -> int:
         rule = level_pick_rules()[kind]
         if rule.replaces is not None:
-            due = rule.replaces in self.replacements_due
-            return [KEEP, *self.pick_ids(rule.replaces)] if due else []
-        held = self.pick_ids(kind)
-        if len(held) >= self.pick_limit(kind):
+            return self.replacements_due.count(rule.replaces)
+        return max(self.pick_limit(kind) - len(self.pick_ids(kind)), 0)
+
+    def level_pick_options(self, kind: LevelPickKind) -> list[Slug]:
+        rule = level_pick_rules()[kind]
+        if not self.picks_left(kind):
             return []
+        if rule.replaces is not None:
+            return [KEEP, *self.pick_ids(rule.replaces)]
+        held = self.pick_ids(kind)
         return [pick_id for pick_id in rule.pool(self) if rule.repeats or pick_id not in held]
 
     def level_pick_name(self, kind: LevelPickKind, pick_id: Slug) -> str:
@@ -714,7 +726,7 @@ class Lite5eSheet(Mutable):
             if rule.take is not None:
                 rule.take(self, pick_id)
         self._refresh_hp()
-        return f"{rule.noun}: {self.level_pick_name(kind, pick_id)}"
+        return f"{rule.label()}: {self.level_pick_name(kind, pick_id)}"
 
     def default_pick_ids(self, kind: LevelPickKind) -> tuple[Slug, ...]:
         return (
@@ -1059,7 +1071,7 @@ class Lite5eSheet(Mutable):
             raise Refusal("no Hit Die is left")
         self.hit_dice_spent += 1
         rolled = roll((self.srd_class().hit_die,), "Hit Die", rng)
-        _ = self.vitals.heal(max(rolled.total + self.modifier("constitution"), 0))
+        _ = self.vitals.heal(max(rolled.total + self.modifier("constitution"), 1))
         return rolled
 
     def short_rest(self) -> list[str]:
@@ -1457,8 +1469,8 @@ class Lite5ePerson(Sheeted[Lite5eSheet], Dweller):
         bardic_die: int | None,
         in_battle: bool,
     ) -> TestRoll:
-        poisoned: Edge = "disadvantage" if self.has_condition("poisoned") else "none"
-        edge = combined_edge(edge, poisoned)
+        hindered = any(map(self.has_condition, CHECK_DISADVANTAGE_CONDITIONS))
+        edge = combined_edge(edge, "disadvantage" if hindered else "none")
         if self.sheet is not None:
             return self.sheet.roll_check(
                 ability,
@@ -1531,6 +1543,9 @@ class LevelPickRule:
     take: Callable[[Lite5eSheet, Slug], None] | None = None
     repeats: bool = False
     replaces: LevelPickKind | None = None
+
+    def label(self) -> str:
+        return self.noun[0].upper() + self.noun[1:]
 
 
 @cache
@@ -1858,11 +1873,11 @@ def _initiate_pool(sheet: Lite5eSheet, spell_level: int) -> list[Slug]:
     if spell_list is None:
         return []
     data = srd()
-    taken = (*sheet.pick_ids("cantrip"), *sheet.always_prepared_ids())
+    known = sheet.castable_spell_ids()
     return [
         spell_id
         for spell_id in data.spell_ids(spell_list, spell_level)
-        if data.require_spell(spell_id).level == spell_level and spell_id not in taken
+        if data.require_spell(spell_id).level == spell_level and spell_id not in known
     ]
 
 

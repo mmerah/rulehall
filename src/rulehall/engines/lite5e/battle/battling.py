@@ -56,7 +56,7 @@ class Lite5eRun:
         fight = require_fight(draft.world, Random())
         end = battle_end(fight)
         if end is not None:
-            run._settle(draft, fight, end, ())
+            run._settle(draft, fight, end)
         return run
 
     def view(self, state: Lite5eGame, /) -> Lite5eBattleView:
@@ -81,7 +81,6 @@ class Lite5eRun:
 
     async def choose(self, draft: Lite5eGame, command: str, rng: Random) -> None:
         fight = require_fight(draft.world, rng)
-        seen = len(fight.battle.facts)
         word, _, rest = command.partition(" ")
         end: BattleEnd | None = None
         match word:
@@ -112,7 +111,7 @@ class Lite5eRun:
                 raise ValueError(f"unknown battle command {command!r}")
         end = end or battle_end(fight)
         if end is not None:
-            self._settle(draft, fight, end, fight.battle.facts[seen:])
+            self._settle(draft, fight, end)
 
     async def close(self) -> None:
         self.thinking = False
@@ -156,15 +155,14 @@ class Lite5eRun:
             for offer, command in zip(offers, answer.commands, strict=True)
         }
 
-    def _settle(
-        self, draft: Lite5eGame, fight: Fight, end: BattleEnd, unseen: Sequence[Fact]
-    ) -> None:
+    def _settle(self, draft: Lite5eGame, fight: Fight, end: BattleEnd) -> None:
         self.settled = fight.battle
         self.aiming, self.picks = "", []
+        played = fight.battle.played_facts()
         settled, notes = settle_battle(draft.world, end, fight.rng)
         for note in notes:
             draft.note(note)
-        self.resolution = Resolution((*unseen, *settled.facts), settled.narrator_cue)
+        self.resolution = Resolution((*played, *settled.facts), settled.narrator_cue)
 
     def _battle(self, state: Lite5eGame) -> Battle:
         battle = state.world.battle or self.settled

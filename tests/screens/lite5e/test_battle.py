@@ -61,6 +61,30 @@ async def test_the_screen_draws_the_battle_plays_the_foe_turns_by_itself_and_sen
     assert panel.column.visible
 
 
+async def test_a_closed_page_leaves_the_foe_turn_to_the_pages_still_open(
+    tmp_path: Path, page: Callable[[], Client]
+) -> None:
+    table = _in_battle(tmp_path)
+    client = page()
+    panel = Lite5eBattleScreen(
+        ScreenHost(session=table.session, sounds=Sounds(), on_toggle=lambda: None)
+    )
+    panel.build_banner()
+    drawn = table.session.snapshot()
+    panel.build(drawn)
+    panel.show()
+    panel.sync(table.session.snapshot(), drawn)
+    await panel._open_battle()  # pyright: ignore[reportPrivateUsage]
+    turn = _battle(table).turn_index
+
+    panel.sync(table.session.snapshot(), drawn)
+    client.delete()
+    _ = await _synced_tasks()
+
+    assert _battle(table).turn_index == turn
+    assert not panel.sending
+
+
 async def test_the_screen_draws_a_carded_fact_the_narrator_is_not_told(
     tmp_path: Path, page: Callable[[], Client]
 ) -> None:
@@ -110,6 +134,10 @@ def _classed(panel: Lite5eBattleScreen, name: str) -> list[ui.element]:
 async def _synced(panel: Lite5eBattleScreen, drawn: SessionSnapshot) -> SessionSnapshot:
     now = panel.session.snapshot()
     panel.sync(now, drawn)
-    loop, tasks = get_running_loop(), cast(set[Task[object]], background_tasks.running_tasks)
-    await gather(*(task for task in tasks.copy() if task.get_loop() is loop))
+    _ = await _synced_tasks()
     return now
+
+
+async def _synced_tasks() -> list[object]:
+    loop, tasks = get_running_loop(), cast(set[Task[object]], background_tasks.running_tasks)
+    return await gather(*(task for task in tasks.copy() if task.get_loop() is loop))

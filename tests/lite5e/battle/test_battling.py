@@ -108,14 +108,14 @@ async def test_a_reload_in_the_middle_of_a_block_plays_on_from_the_pending_plans
 async def test_a_recorded_battle_keeps_its_fact_log() -> None:
     draft = _game(PLAYER_FIRST, count=1)
     run = Lite5eRun.start(draft, None)
+    opening = list(_battle(draft).facts)
     rng = Random(1)
-    shown = 0
     while run.resolution is None:
-        shown = len(run.facts(draft))
         commands = [choice.command for choice in run.view(draft).choices]
         await run.choose(draft, _scripted_command(commands), rng)
 
-    told = [*run.facts(draft)[:shown], *run.resolution.facts]
+    assert len([fact for fact in run.resolution.facts if fact.trace.endswith(" drops")]) == 1
+    told = [*opening, *run.resolution.facts]
     lines = [fact.card for fact in told if fact.told and fact.card]
     golden(FIXTURES / "battles" / "lite5e" / "victory.txt", "\n".join(lines) + "\n")
 

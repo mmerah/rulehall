@@ -2361,7 +2361,7 @@
       },
       "damage": {
         "bonus": 0,
-        "damage_type": "piercing",
+        "damage_type": "bludgeoning",
         "dice": "1d4"
       },
       "kind": "ranged",
@@ -2413,7 +2413,7 @@
       "damage": {
         "bonus": 0,
         "damage_type": "piercing",
-        "dice": "1d6"
+        "dice": "1d8"
       },
       "kind": "melee",
       "name": "Trident",
@@ -2431,7 +2431,7 @@
       "versatile_damage": {
         "bonus": 0,
         "damage_type": "piercing",
-        "dice": "1d8"
+        "dice": "1d10"
       }
     },
     "war-pick": {

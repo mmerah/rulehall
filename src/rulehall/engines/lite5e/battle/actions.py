@@ -13,6 +13,7 @@ from rulehall.engines.lite5e.battle.damage import (
     ANTITOXIN,
     NET,
     NO_HEALING,
+    PRONE,
     DamageRoll,
     end_wild_shape,
     escape,
@@ -395,8 +396,7 @@ class Shove(ActionHandler):
             if target.row == "back":
                 return [*facts, told(f"{name} is already in its back row")]
             return [*facts, *push_back(fight, target)]
-        prone = Rider(rider_id="condition", condition="prone")
-        return [*facts, *lay(fight, member, target, prone, SHOVE, None)]
+        return [*facts, *lay(fight, member, target, PRONE, SHOVE, None)]
 
 
 class Demand(ActionHandler):

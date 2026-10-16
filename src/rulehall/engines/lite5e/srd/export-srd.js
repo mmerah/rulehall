@@ -188,6 +188,26 @@ function applyPrices(gear, prices) {
   }
 }
 
+function applyWeaponDamage(gear, damages) {
+  for (const [id, damage] of Object.entries(damages)) {
+    const weapon = gear.weapons[id];
+    if (weapon === undefined) fail("overrides.json weapon_damage for no weapon", [id]);
+    shape(damage, ["damage"], ["versatile_damage"], `overrides.json weapon_damage ${id}`);
+    const own = {
+      damage: ownDamageOf(damage.damage, id),
+      versatile_damage: damage.versatile_damage === undefined ? weapon.versatile_damage : ownDamageOf(damage.versatile_damage, id),
+    };
+    const same = JSON.stringify(own) === JSON.stringify({ damage: weapon.damage, versatile_damage: weapon.versatile_damage });
+    fail("overrides.json weapon_damage equals the source", same ? [id] : []);
+    Object.assign(weapon, own);
+  }
+}
+
+function ownDamageOf(damage, where) {
+  shape(damage, ["dice", "damage_type"], [], `overrides.json weapon_damage ${where}`);
+  return { ...diceOf(damage.dice, `overrides.json weapon_damage ${where}`), damage_type: damage.damage_type };
+}
+
 function applyArmorCategories(gear, categories) {
   for (const [id, category] of Object.entries(categories)) {
     const armor = gear.armor[id];
@@ -262,7 +282,7 @@ function materialsOf(rows) {
   return materials;
 }
 
-function buildGear(prices, packContents, armorCategories) {
+function buildGear(prices, packContents, armorCategories, weaponDamage) {
   const table = withDefaults(readTable("items.json"), [], ITEM_TABLE_DEFAULTS, "items.json");
   const equipment = new Map(readSource("Equipment").map((entry) => [entry.index, entry]));
   const combatGear = combatGearOf(table.combat_gear, equipment);
@@ -293,6 +313,7 @@ function buildGear(prices, packContents, armorCategories) {
   );
   applyPrices(gear, prices);
   applyArmorCategories(gear, armorCategories);
+  applyWeaponDamage(gear, weaponDamage);
   fail("items.json light source not in gear.json", table.light_sources.filter((id) => !(id in gear.gear)));
   for (const id of table.light_sources) gear.gear[id].light_source = true;
   fail("items.json magic item base not an armor", Object.values(gear.magic_items).flatMap((item) => item.base_armor_id ?? []).filter((id) => !(id in gear.armor)));
@@ -604,8 +625,10 @@ function classOf(entry, levels, gear, categoryMembers, classSpecificKeys, useFie
     .map((level) => levelOf(level, classSpecificKeys, useFields));
   const found = own.map((level) => level.level).join();
   fail(`${entry.index} class levels`, found === LEVELS.join() ? [] : [found]);
-  const classOverride = shape(override ?? {}, [], ["weapon_proficiencies", "gear_option_a", "cut_tool_choices"], `overrides.json ${entry.index}`);
+  const classOverride = shape(override ?? {}, [], ["weapon_proficiencies", "gear_option_a", "cut_tool_choices", "skill_options"], `overrides.json ${entry.index}`);
   const choices = proficiencyChoicesOf(entry.proficiency_choices, proficiencies, gear, categoryMembers, classOverride.cut_tool_choices ?? [], entry.index);
+  const skillOptions = classOverride.skill_options ?? choices.skill_choices.skill_ids;
+  fail("overrides.json skill_options equal the source", classOverride.skill_options !== undefined && skillOptions.join() === choices.skill_choices.skill_ids.join() ? [entry.index] : []);
   const { level_grants: levelGrants = {}, ...classRow } = shape(ownRow, ["defaults"], ["level_grants", "prepared_swap", "spellbook"], `classes.json ${entry.index}`);
   const firstGrants = { "class-skill": choices.skill_choices.choose, tool: choices.tool_choices?.choose ?? 0 };
   return {
@@ -613,7 +636,7 @@ function classOf(entry, levels, gear, categoryMembers, classSpecificKeys, useFie
     hit_die: entry.hit_die,
     spell_ability: entry.spellcasting === undefined ? null : ABILITIES[entry.spellcasting.spellcasting_ability.index],
     saving_throws: entry.saving_throws.map((ability) => ABILITIES[ability.index]),
-    skill_options: choices.skill_choices.skill_ids,
+    skill_options: skillOptions,
     tool_options: choices.tool_choices?.tool_ids ?? [],
     tool_ids: entry.proficiencies
       .map((proficiency) => proficiencies.get(proficiency.index))
@@ -879,7 +902,7 @@ function backgroundDifferences(entry, background, categoryMembers) {
 
 function main() {
   const overrides = readOverrides();
-  const gear = buildGear(overrides.prices, overrides.pack_contents, overrides.armor_categories);
+  const gear = buildGear(overrides.prices, overrides.pack_contents, overrides.armor_categories, overrides.weapon_damage);
   const categoryMembers = categoryMembersOf();
   const characterOptions = buildCharacterOptions(gear, overrides, categoryMembers, spells.cutSpellIds());
   checkBackgrounds(categoryMembers);

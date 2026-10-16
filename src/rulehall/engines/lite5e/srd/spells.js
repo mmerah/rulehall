@@ -45,6 +45,7 @@ const AREAS = /(\d+)-foot(?:[- ]radius)?[- ](Cone|Cube|Line|Sphere|Emanation)/gi
 const STORY_ROW = ["save_ability", "story_condition", "story_boon", "story_targets"];
 const BATTLE_ROW = [
   "name",
+  "description",
   "casting_time",
   "range_feet",
   "save_ability",
@@ -137,7 +138,7 @@ function spellOf(entry, ownRow) {
     ritual: entry.ritual,
     components: componentsOf(entry),
     attack_type: entry.attack_type ?? null,
-    description: foldDashes(entry.description.trim()),
+    description: foldDashes((row.description ?? entry.description).trim()),
     ...groupOf(row, entry),
   };
 }
@@ -182,13 +183,14 @@ function sourceDamageOf(entry) {
 function groupOf(row, entry) {
   const where = entry.index;
   const prose = proseOf(entry);
-  const { group, name, casting_time, range_feet, save_ability, effect, riders = [], ...rest } = shape(
+  const { group, name, casting_time, range_feet, description: _, save_ability, effect, riders = [], ...rest } = shape(
     row,
     ["group"],
     row.group === "story" ? STORY_ROW : BATTLE_ROW,
     `spell_groups.json ${where}`,
   );
   const saveAbility = derivedOf(row, "save_ability", proseSaveAbility(prose), where);
+  fail(`spell_groups.json ${where} description equals the source`, row.description === entry.description ? [where] : []);
   if (group === "story") {
     if (row.story_condition !== undefined) shape(row.story_condition, ["condition", "tier"], [], `${where} story condition`);
     const derivedTargets = storyTargetsOf(prose, entry.range);

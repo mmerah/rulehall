@@ -5,6 +5,7 @@ from rulehall.core.facts import Fact
 from rulehall.core.validation import Frozen, Refusal, Slug
 from rulehall.engines.lite5e.battle.attack import cast_through, innate_sorcery
 from rulehall.engines.lite5e.battle.damage import (
+    PRONE,
     change_row,
     follow_up,
     lay,
@@ -205,8 +206,7 @@ def obey_command(fight: Fight, command: Effect) -> list[Fact]:
     match word:
         case "grovel":
             source = battle.require_combatant(command.source_id)
-            prone = Rider(rider_id="condition", condition="prone")
-            return [told(f"{name} grovels"), *lay(fight, source, holder, prone, COMMAND, None)]
+            return [told(f"{name} grovels"), *lay(fight, source, holder, PRONE, COMMAND, None)]
         case "halt":
             return [told(f"{name} halts")]
         case "flee":

@@ -225,31 +225,48 @@ class Lite5eEngine(
                     ),
                 )
             )
+        method = picks.get(METHOD, "")
         steps.append(
             CreationStep(
                 id=METHOD,
                 name="Ability scores",
                 options=tuple(
-                    Option(id=method, name=method.replace("-", " ").capitalize())
-                    for method in get_args(AbilityMethod.__value__)
+                    Option(id=offered, name=offered.replace("-", " ").capitalize())
+                    for offered in get_args(AbilityMethod.__value__)
                 ),
+                hint=_points_spent(picks) if method == "point-buy" else "",
                 help=METHOD_HELP,
             )
         )
-        if (method := picks.get(METHOD, "")) in ("array", "point-buy"):
-            values = STANDARD_ARRAY if method == "array" else tuple(POINT_BUY_COST)
-            chosen = [picks.get(ability, "") for ability in ABILITIES] if method == "array" else []
+        if method == "array":
+            chosen = [picks.get(ability, "") for ability in ABILITIES]
             steps.extend(
                 CreationStep(
                     id=ability,
                     name=ability.title(),
                     options=tuple(
                         Option(id=str(value), name=str(value))
-                        for value in values
+                        for value in STANDARD_ARRAY
                         if str(value) not in chosen[:index]
                     ),
                 )
                 for index, ability in enumerate(ABILITIES)
+            )
+        if method == "point-buy":
+            steps.extend(
+                CreationStep(
+                    id=ability,
+                    name=ability.title(),
+                    options=tuple(
+                        Option(
+                            id=str(value),
+                            name=str(value),
+                            brief=f"{cost} point{'' if cost == 1 else 's'}",
+                        )
+                        for value, cost in POINT_BUY_COST.items()
+                    ),
+                )
+                for ability in ABILITIES
             )
         class_id = picks.get(CLASS, "")
         if class_id not in options.classes or background is None or species is None:
@@ -364,9 +381,10 @@ class Lite5eEngine(
         """Roll one ability check for a party member. Roll only when the result is uncertain
         and a failure costs something. A difficulty word or a target sets the DC.
         A target is a hidden thing (perception or investigation), a locked way
-        (thieves-tools, or athletics to force it), a trap (thieves-tools or sleight-of-hand to
-        disarm it), or a person (deception, intimidation, performance, persuasion, insight,
-        stealth, sleight-of-hand, or animal-handling on a beast or a monstrosity).
+        (thieves-tools with no skill, or athletics to force it), a trap (thieves-tools with no
+        skill, or sleight-of-hand to disarm it), or a person (deception, intimidation,
+        performance, persuasion, insight, stealth, sleight-of-hand, or animal-handling on a beast
+        or a monstrosity).
         A success applies itself: a search reveals the hidden thing, a lock check unlocks the
         way, and a disarm removes the trap. An intimidation success against a routed group here
         makes it a captive group with no battle: it is the one check on a person that changes
@@ -452,7 +470,8 @@ class Lite5eEngine(
     @tool
     def start_battle(self, draft: Lite5eGame, args: StartBattle, rng: Random) -> list[Fact]:
         """Start a battle with persons here as the foes. Any person here can fight, a friend too:
-        the hostile flag does not limit it. A group fights whole. Pick how it opens:
+        the hostile flag does not limit it. A former class companion never fights the party.
+        A group fights whole. Pick how it opens:
         face_to_face, party_ambush when the party strikes first from hiding, or foe_ambush when
         hidden persons here strike first (only hidden foes can). The engine rolls the opening
         and Initiative, and the battle screen plays the battle: your turn ends here."""
@@ -473,8 +492,8 @@ class Lite5eEngine(
         world = draft.world
         person = world.require_person_here(args.target_id)
         hiring = bool(args.terms) or person.has_sheet
-        full = len(world.hired_party_members()) >= MAX_COMPANIONS
-        if hiring and full and person.id not in world.party_ids:
+        hired_ids = {member.id for member in world.hired_party_members()}
+        if hiring and len(hired_ids) >= MAX_COMPANIONS and person.id not in hired_ids:
             raise Refusal(f"the party holds {MAX_COMPANIONS} hired companions at most")
         if person.count == 1:
             return super().join_party(draft, args, rng)
@@ -572,8 +591,7 @@ def _level_pick_steps(sheet: Lite5eSheet, picks: Picks) -> list[CreationStep]:
         ]
         if not offered:
             continue
-        count = sheet.pick_limit(kind) - len(sheet.pick_ids(kind))
-        kind_steps = _numbered(kind, rule.noun[0].upper() + rule.noun[1:], offered, count, picks)
+        kind_steps = _numbered(kind, rule.label(), offered, sheet.picks_left(kind), picks)
         steps.extend(kind_steps)
         for step in kind_steps:
             if (answer := picks.get(step.id, "")) in sheet.level_pick_options(kind):
@@ -583,6 +601,15 @@ def _level_pick_steps(sheet: Lite5eSheet, picks: Picks) -> list[CreationStep]:
 
 def _look_id(species_id: Slug, lineage_id: Slug | None, class_id: Slug) -> Slug:
     return "-".join(part for part in (species_id, lineage_id, class_id) if part)
+
+
+def _points_spent(picks: Picks) -> str:
+    spent = sum(
+        POINT_BUY_COST.get(int(score), 0)
+        for ability in ABILITIES
+        if (score := picks.get(ability, "")).isdigit()
+    )
+    return f"{spent} of {POINT_BUY_TOTAL} points spent"
 
 
 def _increase_splits(abilities: Sequence[Ability]) -> dict[Slug, dict[Ability, int]]:

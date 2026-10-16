@@ -151,6 +151,11 @@ def next_target_id(fight: Fight, combatant: Combatant, action_id: Slug) -> Slug 
     return _aimed(fight, plans).strikes[0].target_ids[0] if plans else None
 
 
+def standing_target(fight: Fight, user: Combatant, action: ActionSpec) -> Combatant | None:
+    reached = [enemy for enemy in _up(fight, user) if reaches(fight, user, enemy, action)]
+    return min(reached, key=lambda enemy: nearest_key(fight, user, enemy), default=None)
+
+
 def nearest_key(fight: Fight, user: Combatant, target: Combatant) -> tuple[int, int, int]:
     return BANDS.index(band_between(fight, user, target)), *_aim_key(fight, target)
 

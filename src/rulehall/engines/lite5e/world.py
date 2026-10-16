@@ -650,6 +650,9 @@ class Lite5eWorld(MapWorld[Lite5ePerson, Lite5eItem, Lite5ePlace, Lite5eWay]):
             ),
         ]
 
+    def join(self, person: Lite5ePerson) -> list[Fact]:
+        return [*super().join(person), *self.level_up()]
+
     def die(self, person: Lite5ePerson) -> str:
         card = super().die(person)
         return f"{person.name} are dead" if person.count > 1 else card
@@ -849,6 +852,8 @@ class Lite5eWorld(MapWorld[Lite5ePerson, Lite5eItem, Lite5ePlace, Lite5eWay]):
 
     def _world_rows(self, person: Lite5ePerson) -> Rows:
         if person.id != self.player.id and person.id not in self.party_ids:
+            if person.sheet is not None:
+                return ()
             return (("difficulty", f"{self.group_difficulty(person)} for the party"),)
         seen = (
             ("passive Perception", str(self.passive_perception(person))),
@@ -894,8 +899,8 @@ class Lite5eWorld(MapWorld[Lite5ePerson, Lite5eItem, Lite5ePlace, Lite5eWay]):
         if (way := self.find_way(here.id, target_id)) is not None:
             if not way.locked or way.lock is None:
                 raise Refusal("that way has no lock to open: give a difficulty instead")
-            if tool_id != THIEVES_TOOLS and skill != "athletics":
-                raise Refusal("pick a lock with thieves-tools, or force it with athletics")
+            if (tool_id, skill) not in ((THIEVES_TOOLS, None), (None, "athletics")):
+                raise Refusal("pick a lock with thieves-tools alone, or force it with athletics")
             return DIFFICULTY_DC[way.lock], "lock"
         entity = self.require_entity(target_id)
         if (
@@ -915,8 +920,8 @@ class Lite5eWorld(MapWorld[Lite5ePerson, Lite5eItem, Lite5ePlace, Lite5eWay]):
                 raise Refusal(f"{entity.name} has no find DC: reveal it when the story finds it")
             return find_dc, "find"
         if isinstance(entity, Lite5eItem) and (hazard := entity.trap) is not None:
-            if tool_id != THIEVES_TOOLS and skill != "sleight-of-hand":
-                raise Refusal("disarm a trap with thieves-tools or sleight-of-hand")
+            if (tool_id, skill) not in ((THIEVES_TOOLS, None), (None, "sleight-of-hand")):
+                raise Refusal("disarm a trap with thieves-tools alone, or with sleight-of-hand")
             return DIFFICULTY_DC[hazard.disarm], "disarm"
         if not isinstance(entity, Lite5ePerson):
             raise Refusal(f"{entity.name} sets no DC: give a difficulty instead")

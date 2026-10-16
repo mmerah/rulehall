@@ -34,6 +34,7 @@ from rulehall.engines.lite5e.battle.foes import (
     plans_of,
     scripted_pick,
     scripted_plan,
+    standing_target,
 )
 from rulehall.engines.lite5e.battle.rows import hide_refusal, is_active, meets_requirements
 from rulehall.engines.lite5e.battle.specs import (
@@ -585,6 +586,9 @@ def _strikes(fight: Fight, combatant: Combatant, picked: Plan) -> list[Fact]:
         if not targets and block is None:
             found_id = next_target_id(fight, combatant, strike.action_id)
             targets = [] if found_id is None else [fight.battle.require_combatant(found_id)]
+        if targets and not any(fight.is_standing(target) for target in targets):
+            standing = standing_target(fight, combatant, action)
+            targets = targets if standing is None else [standing]
         unheld = [t for t in targets if not meets_requirements(fight, combatant, t, action)]
         facts.extend(
             told(f"{fight.name_of(combatant)} cannot use {action.name} on {fight.name_of(t)}")

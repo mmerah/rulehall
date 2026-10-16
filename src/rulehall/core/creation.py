@@ -34,11 +34,11 @@ def check_picks(steps: Sequence[CreationStep], picks: Picks) -> None:
         if not answer.strip():
             if step.optional:
                 continue
-            raise Refusal(f"{step.id!r} is unanswered")
+            raise Refusal(f"{step.name} is unanswered")
         if len(answer) > ANSWER_MAX:
-            raise Refusal(f"{step.id!r} takes at most {ANSWER_MAX} characters")
+            raise Refusal(f"{step.name} takes at most {ANSWER_MAX} characters")
         if not step.offers(answer):
-            raise Refusal(f"{step.id!r} offers no {answer!r}")
+            raise Refusal(f"{step.name} offers no {answer!r}")
 
 
 def drop_stale(build_steps: StepBuilder, picks: dict[Slug, str]) -> None:

@@ -200,6 +200,19 @@
           ]
         }
       },
+      "fighter": {
+        "skill_options": [
+          "acrobatics",
+          "animal-handling",
+          "athletics",
+          "history",
+          "insight",
+          "intimidation",
+          "perception",
+          "persuasion",
+          "survival"
+        ]
+      },
       "monk": {
         "weapon_proficiencies": [
           "simple",
@@ -237,6 +250,17 @@
             }
           ]
         }
+      },
+      "wizard": {
+        "skill_options": [
+          "arcana",
+          "history",
+          "insight",
+          "investigation",
+          "medicine",
+          "nature",
+          "religion"
+        ]
       }
     },
     "prices": {
@@ -315,6 +339,15 @@
     },
     "armor_categories": {
       "hide-armor": "medium"
+    },
+    "weapon_damage": {
+      "sling": {
+        "damage": {"dice": "1d4", "damage_type": "bludgeoning"}
+      },
+      "trident": {
+        "damage": {"dice": "1d8", "damage_type": "piercing"},
+        "versatile_damage": {"dice": "1d10", "damage_type": "piercing"}
+      }
     }
   }
 }

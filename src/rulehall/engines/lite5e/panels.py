@@ -74,7 +74,6 @@ SHEET_HELP = {
     "Price": "What the shop asks for it. A shop pays half.",
     "Row": "The row this member starts a battle in. The front row fights in melee.",
 }
-SPELL_RANGES = {"self": "Self", "touch": "Touch", "long": "Long range"}
 LEVEL_UP = "level-up"
 FORMATION_ROWS: tuple[FormationRow, ...] = ("front", "back")
 
@@ -170,24 +169,13 @@ def level_pick_option(sheet: Lite5eSheet, kind: LevelPickKind, pick_id: Slug) ->
     return Option(
         id=pick_id,
         name=sheet.level_pick_name(kind, pick_id),
-        brief=spell_brief(pick_id) if spell else "",
+        brief=srd().require_spell(pick_id).brief() if spell else "",
     )
-
-
-def spell_brief(spell_id: Slug) -> str:
-    spell = srd().require_spell(spell_id)
-    level = (
-        f"{spell.school.title()} cantrip"
-        if spell.level == 0
-        else f"Level {spell.level} {spell.school}"
-    )
-    reach = f"{spell.range_feet} ft" if spell.range == "feet" else SPELL_RANGES[spell.range]
-    return " · ".join((level, spell.casting_time.replace("-", " "), reach))
 
 
 def _spell_tag(spell_id: Slug) -> Tag:
     spell = srd().require_spell(spell_id)
-    return described_tag(spell.name, spell.description, stat_line=spell_brief(spell_id))
+    return described_tag(spell.name, spell.description, stat_line=spell.brief())
 
 
 def _gear_tag(gear_id: Slug, count: int = 1) -> Tag:
@@ -199,15 +187,10 @@ def _gear_tag(gear_id: Slug, count: int = 1) -> Tag:
 
 
 def _gear_summary(gear_id: Slug) -> str:
-    gear = srd().gear
     item = srd().require_gear(gear_id)
     match item:
-        case Weapon():
-            return _weapon_summary(item)
-        case Armor():
-            return _armor_summary(item)
-        case MagicItem(base_armor_id=str(base_id)):
-            return f"{_armor_summary(gear.armor[base_id])}, +{item.bonus} AC"
+        case Weapon() | Armor() | MagicItem(base_armor_id=str()):
+            return _gear_stats(gear_id)
         case MagicItem():
             return first_sentence(item.description)
         case Gear() if item.description:
@@ -218,9 +201,21 @@ def _gear_summary(gear_id: Slug) -> str:
             return f"{item.group.replace('-', ' ').capitalize()}."
 
 
+def _gear_stats(gear_id: Slug) -> str:
+    item = srd().require_gear(gear_id)
+    match item:
+        case Weapon():
+            return _weapon_summary(item)
+        case Armor():
+            return _armor_summary(item)
+        case MagicItem(base_armor_id=str(base_id)):
+            return f"{_armor_summary(srd().gear.armor[base_id])}, +{item.bonus} AC"
+        case MagicItem() | Gear():
+            return ""
+
+
 def _weapon_summary(weapon: Weapon) -> str:
-    amount = weapon.damage.dice or str(weapon.damage.bonus)
-    parts = [f"{amount} {weapon.damage.damage_type or ''}".strip()]
+    parts = [weapon.damage.text()]
     if weapon.versatile_damage is not None:
         parts.append(f"versatile {weapon.versatile_damage.dice}")
     parts.extend(found.replace("-", " ") for found in weapon.properties if found != "versatile")
@@ -607,6 +602,7 @@ def _gear_row(
     price = PanelRow(
         name="Price", brief=coins_text(item.cost.copper()) + bundle, help=SHEET_HELP["Price"]
     )
+    stats = _gear_stats(gear_id)
     return PanelRow(
         name=gear_name(gear_id),
         brief=f"{member.name} · x{count}" + (" · equipped" if equipped else ""),
@@ -615,7 +611,11 @@ def _gear_row(
         detail=(
             Panel(
                 title=gear_name(gear_id),
-                rows=(price, *text_rows("About", "", _gear_text(gear_id))),
+                rows=(
+                    *((PanelRow(name="Stats", brief=stats),) if stats else ()),
+                    price,
+                    *text_rows("About", "", _gear_text(gear_id)),
+                ),
             ),
         ),
     )
@@ -659,9 +659,11 @@ def _level_pick_decision(member: Lite5ePerson) -> Decision | None:
     if kind is None:
         return None
     picks = (level_pick_option(sheet, kind, pick_id) for pick_id in sheet.level_pick_options(kind))
+    left = sheet.picks_left(kind)
     return Decision(
         kind=LEVEL_UP,
-        prompt=f"{member.name}: Pick one: {level_pick_rules()[kind].noun}.",
+        prompt=f"{member.name}, {level_pick_rules()[kind].label()}: pick one"
+        + (f" ({left} left)." if left > 1 else "."),
         options=tuple(
             ActionOption(
                 id=f"level-pick-{member.id}-{kind}-{pick.id}",
@@ -723,7 +725,7 @@ def _unprepare_option(member: Lite5ePerson, spell_id: Slug) -> ActionOption:
     return ActionOption(
         id=f"unprepare-{member.id}-{spell_id}",
         name=f"{member.name}: drop {srd().require_spell(spell_id).name}",
-        brief=spell_brief(spell_id),
+        brief=srd().require_spell(spell_id).brief(),
         action_name="unprepare",
         args={"actor_id": member.id, "drop_id": spell_id},
     )

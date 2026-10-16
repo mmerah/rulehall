@@ -61,9 +61,7 @@ type Side = Literal["foes", "party"]
 type Withdrawal = Literal["left", "fled", "surrendered"]
 type MoraleMark = Literal["first-drop", "half-hp", "demand"]
 type TurnEdge = Literal["start", "end"]
-ROUND_MARKS: frozenset[OnceMark] = frozenset(
-    {"stones-endurance", "uncanny-dodge", "deflect-attacks", "storms-thunder"}
-)
+REACTION: OnceMark = "reaction"
 
 
 class TurnMark(Frozen):
@@ -162,11 +160,15 @@ class Battle(Mutable):
     budget: TurnBudget = Field(default_factory=TurnBudget)
     morale_marks: dict[Slug, list[MoraleMark]] = Field(default_factory=dict)
     facts: list[Fact] = Field(default_factory=list)
+    opening_fact_count: int = Field(default=0, ge=0)
     light: Light
     cover: bool
 
     def log(self) -> list[str]:
         return [fact.card for fact in self.facts if fact.card]
+
+    def played_facts(self) -> list[Fact]:
+        return self.facts[self.opening_fact_count :]
 
     def turn_number(self) -> int:
         return (self.round - 1) * len(self.order) + self.turn_index + 1
@@ -330,7 +332,7 @@ class Battle(Mutable):
         self.effects.append(effect)
 
     def _once_stamp(self, mark: OnceMark) -> int:
-        return self.round if mark in ROUND_MARKS else self.turn_number()
+        return self.round if mark == REACTION else self.turn_number()
 
 
 @dataclass(frozen=True, slots=True)

@@ -517,6 +517,7 @@
           "ends": "source-next-turn-start"
         },
         "name": "Ward",
+        "description": "An imperceptible barrier of magical force protects you. Until the start of your next turn, you have a +5 bonus to AC, and you take no damage from Magic Missile.",
         "casting_time": "bonus-action",
         "target_filter": "ally"
       },

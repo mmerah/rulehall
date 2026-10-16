@@ -57,9 +57,13 @@ def described_tag(name: str, text: str, *, stat_line: str = "", colour: str = ""
     return Tag(
         name=name,
         colour=colour,
-        help=". ".join(part for part in (stat_line, first_sentence(text)) if part),
+        help=described_help(text, stat_line=stat_line),
         detail="\n".join(part for part in (stat_line, text) if part) if text else "",
     )
+
+
+def described_help(text: str, *, stat_line: str = "") -> str:
+    return ". ".join(part for part in (stat_line, first_sentence(text)) if part)
 
 
 def first_sentence(text: str) -> str:

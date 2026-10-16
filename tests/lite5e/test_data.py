@@ -2,7 +2,7 @@ import json
 from collections.abc import Callable
 
 import pytest
-from support.lite5e import GATE, HALL, PIT, VAULT, map_proposal
+from support.lite5e import GATE, HALL, PIT, VAULT, map_proposal, person, world
 
 from rulehall.core.stores import read_model
 from rulehall.core.validation import Refusal, parse_json
@@ -14,8 +14,8 @@ from rulehall.engines.lite5e.data import (
     srd,
 )
 from rulehall.engines.lite5e.pack import Lite5ePack
-from rulehall.engines.lite5e.world import Lite5eMapProposal
-from rulehall.engines.lite5e.worldsmith import check_opening
+from rulehall.engines.lite5e.world import Goal, Lite5eMapProposal, Lite5ePlace, Lite5eRegionProposal
+from rulehall.engines.lite5e.worldsmith import check_next, check_opening
 
 SHIPPED_PACK = DATA_DIR.parent / "packs" / "srd.json"
 
@@ -102,6 +102,12 @@ def _dagger_shop() -> Lite5eMapProposal:
     return proposal
 
 
+def _paid_person() -> Lite5eMapProposal:
+    guard = person("guard", GATE)
+    guard.xp_paid = True
+    return map_proposal(guard)
+
+
 @pytest.mark.parametrize(
     ("build_proposal", "refusal"),
     [
@@ -110,6 +116,7 @@ def _dagger_shop() -> Lite5eMapProposal:
         (_lock_harder_one_way, "way back"),
         (_written_key, "`opens`"),
         (_dagger_shop, "stock only magic"),
+        (_paid_person, "guard.xp_paid"),
     ],
 )
 def test_an_opening_that_names_what_the_map_or_the_srd_lacks_is_refused(
@@ -117,3 +124,21 @@ def test_an_opening_that_names_what_the_map_or_the_srd_lacks_is_refused(
 ) -> None:
     with pytest.raises(Refusal, match=refusal):
         check_opening(build_proposal())
+
+
+def test_a_region_that_reuses_a_goal_id_is_refused() -> None:
+    built = world()
+    built.goals["clear-crypt"] = Goal(brief="Clear the crypt", size="moderate")
+    moor = Lite5ePlace(id="moor", name="Moor", brief="A moor", known=False, description="A moor.")
+    region = Lite5eRegionProposal(
+        places={"moor": moor},
+        ways={},
+        npcs={},
+        items={},
+        start_id="moor",
+        region_name="The moor",
+        recap="The party left the keep.",
+        goals={"clear-crypt": Goal(brief="Cross the moor", size="high")},
+    )
+    with pytest.raises(Refusal, match="goal ids are in use"):
+        check_next(region, built)

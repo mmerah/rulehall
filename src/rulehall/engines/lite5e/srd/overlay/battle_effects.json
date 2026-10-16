@@ -77,6 +77,9 @@
         "ends_conditions": ["blinded", "deafened", "paralyzed", "poisoned"],
         "ends_one": true
       },
+      "mage-armor": {
+        "modifiers": [{"kind": "armor-base", "base": 13}]
+      },
       "magic-weapon": {
         "modifiers": [{"kind": "bonus", "to": "weapon"}]
       },

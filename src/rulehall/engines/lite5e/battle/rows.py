@@ -85,6 +85,13 @@ def row_of(fight: Fight, combatant: Combatant) -> FormationRow:
     return combatant.row if front_held else "front"
 
 
+def leaves_the_front(fight: Fight, combatant: Combatant) -> bool:
+    return combatant.row == "front" and any(
+        other is not combatant and other.row == "front" and is_active(fight, other)
+        for other in side_of(fight, combatant)
+    )
+
+
 def band_between(fight: Fight, user: Combatant, target: Combatant) -> Band:
     user_row, target_row = row_of(fight, user), row_of(fight, target)
     if user.side == target.side:

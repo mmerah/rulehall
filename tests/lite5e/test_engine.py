@@ -6,10 +6,11 @@ from support.lite5e import BANDITS, GATE, hero, person, sheet_proposal, world
 
 from rulehall.core.game import ScenarioDescription
 from rulehall.core.validation import Refusal
-from rulehall.engines.args import HireOrJoin
+from rulehall.engines.args import HireOrJoin, LeaveParty
 from rulehall.engines.lite5e.args import GiveReward, LevelPick
 from rulehall.engines.lite5e.data import TimedCondition
 from rulehall.engines.lite5e.engine import Lite5eEngine
+from rulehall.engines.lite5e.hire import HireAnswer, StatBlockHire
 from rulehall.engines.lite5e.sheet import Lite5ePerson
 from rulehall.engines.lite5e.world import Lite5eGame, Lite5eWorld
 from rulehall.engines.sheet import PLAYER_ID
@@ -40,6 +41,33 @@ def test_a_group_never_joins_whole(engine: Lite5eEngine) -> None:
     _ = engine.join_party(draft, HireOrJoin(target_id=BANDITS), Random(1))
 
     assert draft.world.party_ids == [f"{BANDITS}-2"]
+
+
+def test_a_follower_cannot_be_hired_past_the_two_companions(engine: Lite5eEngine) -> None:
+    draft = _game(engine, world(*(person(person_id, GATE) for person_id in ("a", "b", "c"))))
+    for person_id in ("a", "b"):
+        hired = draft.world.npcs[person_id]
+        draft.world.join(hired)
+        _ = engine.sign_on(draft, hired, HireAnswer(hire=StatBlockHire(kind="stat_block")))
+    _ = engine.join_party(draft, HireOrJoin(target_id="c"), Random(1))
+
+    with pytest.raises(Refusal, match="2 hired companions at most"):
+        _ = engine.join_party(draft, HireOrJoin(target_id="c", terms="pay"), Random(1))
+
+
+def test_a_companion_who_rejoins_comes_up_to_the_party_level(engine: Lite5eEngine) -> None:
+    draft = _game(engine, world(person("ally", GATE)))
+    ally = draft.world.npcs["ally"]
+    _ = draft.world.join(ally)
+    hire = HireAnswer(hire=sheet_proposal("fighter", "human", "soldier"))
+    _ = engine.sign_on(draft, ally, hire)
+    _ = engine.leave_party(draft, LeaveParty(target_id="ally"), Random(1))
+    draft.world.player.require_sheet().xp = 300
+    _ = draft.world.level_up()
+
+    _ = engine.join_party(draft, HireOrJoin(target_id="ally"), Random(1))
+
+    assert ally.require_sheet().level == draft.world.party_level() == 2
 
 
 def test_a_level_up_is_written_back(engine: Lite5eEngine) -> None:

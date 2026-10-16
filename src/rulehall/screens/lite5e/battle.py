@@ -155,8 +155,12 @@ class Lite5eBattleScreen(BattleScreenBase[Lite5eBattleView]):
     async def _play_foe_turn(self) -> None:
         try:
             await sleep(FOE_TURN_PAUSE)
-            # The player may have sent the turn by hand during the pause.
-            if self.shown and _foes_play(self.battle_view(self.session.snapshot())):
+            # The page may have closed, or the player sent the turn by hand, during the pause.
+            if (
+                not self.column.is_deleted
+                and self.shown
+                and _foes_play(self.battle_view(self.session.snapshot()))
+            ):
                 await self._choose(NEXT)
         finally:
             self.sending = False

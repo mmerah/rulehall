@@ -15,6 +15,7 @@ from rulehall.engines.lite5e.battle.specs import (
 )
 from rulehall.engines.lite5e.battle.state import (
     RAGE,
+    REACTION,
     Combatant,
     Effect,
     Fight,
@@ -95,7 +96,7 @@ DAMAGE_REDUCTIONS: tuple[DamageReduction, ...] = (
         name="Uncanny Dodge",
         feature_id="rogue-uncanny-dodge",
         on_hit=True,
-        once_mark="uncanny-dodge",
+        once_mark=REACTION,
     ),
     DamageReduction(
         name="Deflect Attacks",
@@ -105,7 +106,7 @@ DAMAGE_REDUCTIONS: tuple[DamageReduction, ...] = (
         feature_id="monk-deflect-attacks",
         damage_types=frozenset({"bludgeoning", "piercing", "slashing"}),
         on_hit=True,
-        once_mark="deflect-attacks",
+        once_mark=REACTION,
     ),
     DamageReduction(
         name="Stone's Endurance",
@@ -113,7 +114,7 @@ DAMAGE_REDUCTIONS: tuple[DamageReduction, ...] = (
         ability="constitution",
         use="stones-endurance",
         bloodying_only=True,
-        once_mark="stones-endurance",
+        once_mark=REACTION,
     ),
     DamageReduction(name="Resistance", die=4, effect_id="resistance", once_mark="resistance"),
 )

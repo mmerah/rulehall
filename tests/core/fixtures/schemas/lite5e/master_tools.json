@@ -308,7 +308,7 @@
   },
   {
     "name": "check",
-    "description": "Roll one ability check for a party member. Roll only when the result is uncertain and a failure costs something. A difficulty word or a target sets the DC. A target is a hidden thing (perception or investigation), a locked way (thieves-tools, or athletics to force it), a trap (thieves-tools or sleight-of-hand to disarm it), or a person (deception, intimidation, performance, persuasion, insight, stealth, sleight-of-hand, or animal-handling on a beast or a monstrosity). A success applies itself: a search reveals the hidden thing, a lock check unlocks the way, and a disarm removes the trap. An intimidation success against a routed group here makes it a captive group with no battle: it is the one check on a person that changes the state. After a failure, the same member cannot try the same thing here again until the party moves or rests.",
+    "description": "Roll one ability check for a party member. Roll only when the result is uncertain and a failure costs something. A difficulty word or a target sets the DC. A target is a hidden thing (perception or investigation), a locked way (thieves-tools with no skill, or athletics to force it), a trap (thieves-tools with no skill, or sleight-of-hand to disarm it), or a person (deception, intimidation, performance, persuasion, insight, stealth, sleight-of-hand, or animal-handling on a beast or a monstrosity). A success applies itself: a search reveals the hidden thing, a lock check unlocks the way, and a disarm removes the trap. An intimidation success against a routed group here makes it a captive group with no battle: it is the one check on a person that changes the state. After a failure, the same member cannot try the same thing here again until the party moves or rests.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
@@ -898,7 +898,7 @@
   },
   {
     "name": "start_battle",
-    "description": "Start a battle with persons here as the foes. Any person here can fight, a friend too: the hostile flag does not limit it. A group fights whole. Pick how it opens: face_to_face, party_ambush when the party strikes first from hiding, or foe_ambush when hidden persons here strike first (only hidden foes can). The engine rolls the opening and Initiative, and the battle screen plays the battle: your turn ends here.",
+    "description": "Start a battle with persons here as the foes. Any person here can fight, a friend too: the hostile flag does not limit it. A former class companion never fights the party. A group fights whole. Pick how it opens: face_to_face, party_ambush when the party strikes first from hiding, or foe_ambush when hidden persons here strike first (only hidden foes can). The engine rolls the opening and Initiative, and the battle screen plays the battle: your turn ends here.",
     "parameters": {
       "additionalProperties": false,
       "properties": {

@@ -29,6 +29,7 @@ from rulehall.engines.lite5e.data import (
     stat_block_sprite,
 )
 from rulehall.engines.lite5e.rules import HUNTER, HUNTERS_MARK, FormationRow
+from rulehall.engines.panels import described_help
 from rulehall.engines.sheet import PLAYER_ID
 
 type BattleChoiceKind = Literal[
@@ -283,7 +284,17 @@ def _aim_choice(aim: Aim) -> BattleChoice:
         "bonus" if aim.verb == BONUS else "action" if aim.variant_id is None else "variant"
     )
     group = BONUS_GROUP if aim.verb == BONUS else ACTION_GROUP
-    return BattleChoice(command=aim.command(), kind=kind, name=aim.name, group=group)
+    slot = f"slot L{min(aim.slot_levels)}+" if aim.slot_levels else ""
+    action = aim.action
+    summary = "" if action is None else action.summary()
+    brief = " · ".join(part for part in (summary, slot) if part)
+    help = ""
+    if action is not None and action.origin == "spell":
+        spell = srd().require_spell(aim.action_id)
+        help = described_help(spell.description, stat_line=spell.brief())
+    return BattleChoice(
+        command=aim.command(), kind=kind, name=aim.name, brief=brief, help=help, group=group
+    )
 
 
 def _card(
@@ -317,7 +328,7 @@ def _card(
         name=fight.name_of(combatant),
         sprite=_sprite(fight, combatant),
         side=combatant.side,
-        row=combatant.row,
+        row=row_of(fight, combatant),
         hp=hp,
         band=band,
         tags=tuple(tags),

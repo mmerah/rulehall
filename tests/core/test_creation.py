@@ -23,9 +23,9 @@ STEP = CreationStep(
 
 def test_a_step_takes_exactly_one_offered_answer() -> None:
     check_picks((STEP,), {"supplements": "one"})
-    with pytest.raises(Refusal, match="'supplements' is unanswered"):
+    with pytest.raises(Refusal, match="Table sets beyond the SRD is unanswered"):
         check_picks((STEP,), {"supplements": ""})
-    with pytest.raises(Refusal, match="'supplements' offers no 'three'"):
+    with pytest.raises(Refusal, match="Table sets beyond the SRD offers no 'three'"):
         check_picks((STEP,), {"supplements": "three"})
 
 

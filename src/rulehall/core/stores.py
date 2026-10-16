@@ -161,7 +161,7 @@ class Library:
 
     def _player_character_path(self, character: AnyCharacter) -> Path:
         if (self.shipped_characters / content_id(character.id)).exists():
-            raise Refusal(f"character {character.id!r} ships with the game")
+            raise Refusal("a character that ships with the game has this name: pick another name")
         return self.characters / content_id(character.id) / f"{character.engine_id}.json"
 
 

@@ -5,6 +5,9 @@
     "brave": {
       "modifiers": [{"kind": "advantage", "on": "save", "keys": ["frightened"]}]
     },
+    "darkvision-120": {
+      "replaces": "darkvision-60"
+    },
     "draconic-flight": {
       "tag": "Draconic Flight"
     },
@@ -49,6 +52,13 @@
       "grants": {
         "origin-feat": 1
       }
+    },
+    "wood-elf-speed-increase": {
+      "name": "Wood Elf: Speed and Druidcraft",
+      "description": "Your Speed increases to 35 feet. You also know the Druidcraft cantrip.",
+      "spell_ids": [
+        "druidcraft"
+      ]
     }
   }
 }

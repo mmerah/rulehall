@@ -89,6 +89,15 @@ def test_start_battle_refuses_a_foe_not_here_or_not_hidden() -> None:
     assert built.battle is None
 
 
+def test_a_former_class_companion_never_becomes_a_foe() -> None:
+    former = person("ally", GATE)
+    former.sheet = member("ally").require_sheet()
+    built = _world(former)
+    with pytest.raises(Refusal, match="former class companion"):
+        _ = _start(built, "ally")
+    assert built.battle is None
+
+
 def test_the_battle_opens_with_numbered_foes_and_each_member_in_its_row() -> None:
     dog = companion("dog", "mastiff")
     dog.formation_row = "back"

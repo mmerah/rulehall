@@ -179,10 +179,7 @@ type OnceMark = Literal[
     "colossus-slayer",
     "eldritch-smite",
     "stunning-strike",
-    "stones-endurance",
-    "uncanny-dodge",
-    "deflect-attacks",
-    "storms-thunder",
+    "reaction",
     "resistance",
 ]
 type Band = Literal["close", "near", "far"]
@@ -348,6 +345,7 @@ type School = Literal[
 
 
 COPPER_PER_UNIT: dict[CoinUnit, int] = {"cp": 1, "sp": 10, "gp": 100}
+SPELL_RANGES = {"self": "Self", "touch": "Touch", "long": "Long range"}
 
 
 class Source(Frozen):
@@ -389,6 +387,13 @@ class DamagePart(Frozen):
     bonus: int
     damage_type: DamageType | None = None
 
+    def text(self) -> str:
+        if self.dice is None:
+            amount = str(self.bonus)
+        else:
+            amount = f"{self.dice}{self.bonus:+d}" if self.bonus else self.dice
+        return f"{amount} {self.damage_type}" if self.damage_type else amount
+
 
 class Range(Frozen):
     normal: int
@@ -398,6 +403,9 @@ class Range(Frozen):
 class Area(Frozen):
     feet: int
     shape: AreaShape
+
+    def text(self) -> str:
+        return f"{self.feet}-ft {self.shape}"
 
 
 class Weapon(Frozen):
@@ -655,6 +663,7 @@ class ClassOption(Boon):
 
 class Trait(Boon):
     trait_id: Slug
+    replaces: Slug | None = None
     level: int | None = None
     skill_options: tuple[Skill, ...] = ()
     spell_ids: tuple[Slug, ...] = ()
@@ -676,7 +685,11 @@ class Species(Frozen):
 
     def lineage_traits(self, subspecies_id: str | None) -> tuple[Trait, ...]:
         lineage = self.subspecies.get(subspecies_id or "")
-        return self.traits if lineage is None else (*self.traits, *lineage.traits)
+        if lineage is None:
+            return self.traits
+        replaced = {trait.replaces for trait in lineage.traits}
+        kept = (trait for trait in self.traits if trait.trait_id not in replaced)
+        return (*kept, *lineage.traits)
 
 
 class Feat(Boon):
@@ -740,6 +753,12 @@ class Rider(Frozen):
             raise ValueError(f"a {self.rider_id} rider names no effect")
         return self.effect_id
 
+    def summary(self) -> str:
+        if self.condition is not None:
+            return self.condition.title()
+        rule = None if self.effect_id is None else srd().battle_effects.effects.get(self.effect_id)
+        return "" if rule is None else rule.summary()
+
 
 class SpellBattle(Frozen):
     damage: tuple[DamagePart, ...] = ()
@@ -801,6 +820,43 @@ class Spell(Frozen):
     story_boon: StoryBoon | None = None
     story_targets: StoryTargets = StoryTargets()
     battle: SpellBattle | None = None
+
+    def brief(self) -> str:
+        level = (
+            f"{self.school.title()} cantrip"
+            if self.level == 0
+            else f"Level {self.level} {self.school}"
+        )
+        reach = f"{self.range_feet} ft" if self.range == "feet" else SPELL_RANGES[self.range]
+        parts = (level, self.casting_time.replace("-", " "), reach, self.summary())
+        return " · ".join(part for part in parts if part)
+
+    def summary(self) -> str:
+        battle = self.battle
+        parts = [
+            *(() if self.attack_type is None else (f"{self.attack_type} spell attack",)),
+            *(() if self.save_ability is None else (f"{self.save_ability.title()} save",)),
+        ]
+        if self.story_condition is not None:
+            parts.append(self.story_condition.condition.title())
+        if battle is None:
+            return ", ".join(parts)
+        if battle.success == "half":
+            parts.append("half on a success")
+        if battle.area is not None:
+            parts.append(battle.area.text())
+        elif battle.volley:
+            parts.append(f"{battle.target_count} strikes")
+        elif battle.target_count > 1:
+            parts.append(f"up to {battle.target_count} targets")
+        if battle.damage:
+            damage = " + ".join(part.text() for part in battle.damage)
+            parts.append(f"{damage} + modifier" if battle.damage_modifier else damage)
+        if battle.healing_dice is not None:
+            parts.append(f"heals {battle.healing_dice} + modifier")
+        riders = (*battle.riders, *(() if battle.effect is None else (battle.effect,)))
+        parts.extend(found for rider in riders if (found := rider.summary()))
+        return ", ".join(parts)
 
     def targeting(self) -> SpellBattle | StoryTargets:
         return self.story_targets if self.battle is None else self.battle
@@ -924,7 +980,7 @@ class StatBlock(Frozen):
         if damage_type in self.damage_immunities:
             return 0
         if warded or damage_type in self.damage_resistances:
-            return amount // 2
+            amount //= 2
         return amount * 2 if damage_type in self.damage_vulnerabilities else amount
 
 
@@ -1031,6 +1087,24 @@ class EffectRule(Frozen):
     moves_on_drop: bool = False
     stabilizes: bool = False
     ends_one: bool = False
+
+    def summary(self) -> str:
+        parts = [
+            f"{modifier.fixed_amount():+d} AC"
+            if modifier.to == "armor-class"
+            else f"AC at least {modifier.fixed_amount()}"
+            for modifier in self.modifiers
+            if isinstance(modifier, Bonus) and modifier.to in ("armor-class", "minimum-armor-class")
+        ]
+        parts.extend(
+            f"AC {modifier.base} + Dexterity"
+            for modifier in self.modifiers
+            if isinstance(modifier, ArmorBase) and modifier.ability is None
+        )
+        if self.roll_die is not None:
+            sign = "+" if self.roll_die > 0 else "-"
+            parts.append(f"{sign}1d{abs(self.roll_die)} to attack rolls and saves")
+        return ", ".join(parts)
 
     def is_instant(self) -> bool:
         return self == EffectRule(

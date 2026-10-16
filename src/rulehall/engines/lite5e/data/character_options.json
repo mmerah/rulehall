@@ -1181,6 +1181,7 @@
         "insight",
         "intimidation",
         "perception",
+        "persuasion",
         "survival"
       ],
       "weapon_proficiencies": [
@@ -2733,6 +2734,7 @@
         "insight",
         "investigation",
         "medicine",
+        "nature",
         "religion"
       ],
       "spell_ability": "intelligence",
@@ -4160,6 +4162,7 @@
             }
           ],
           "name": "Darkvision (120 ft.)",
+          "replaces": "darkvision-60",
           "trait_id": "darkvision-120"
         },
         {
@@ -4224,6 +4227,7 @@
                 }
               ],
               "name": "Darkvision (120 ft.)",
+              "replaces": "darkvision-60",
               "trait_id": "darkvision-120"
             },
             {
@@ -4282,9 +4286,12 @@
           "name": "Elven Lineage: Wood Elf",
           "traits": [
             {
-              "description": "Your Movement Speed increases to 35 feet.",
+              "description": "Your Speed increases to 35 feet. You also know the Druidcraft cantrip.",
               "level": 1,
-              "name": "Wood Elf: Movement Speed Increase",
+              "name": "Wood Elf: Speed and Druidcraft",
+              "spell_ids": [
+                "druidcraft"
+              ],
               "trait_id": "wood-elf-speed-increase"
             },
             {
@@ -4656,6 +4663,7 @@
             }
           ],
           "name": "Darkvision (120 ft.)",
+          "replaces": "darkvision-60",
           "trait_id": "darkvision-120"
         },
         {

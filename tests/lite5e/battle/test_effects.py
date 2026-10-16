@@ -17,6 +17,7 @@ from rulehall.engines.lite5e.battle.damage import (
     DamageRoll,
     Dealt,
     resolve,
+    roll_check,
     roll_save,
     take_damage,
 )
@@ -110,6 +111,12 @@ def test_an_effect_shifts_and_floors_the_armor_class(effect_id: str) -> None:
     shifted = base + sum(_bonuses(effect_id, "armor-class"))
     expected = max([shifted, *_bonuses(effect_id, "minimum-armor-class")])
     assert armor_class(held, _ann(held)) == expected
+
+
+def test_mage_armor_sets_an_unarmored_base_of_13() -> None:
+    sheet = member("ann", "wizard").require_sheet()
+    assert sheet.armor_class(("mage-armor",)) == 13 + sheet.modifier("dexterity")
+    assert sheet.armor_class() == 10 + sheet.modifier("dexterity")
 
 
 @pytest.mark.parametrize(
@@ -226,6 +233,22 @@ def test_a_damage_reduction_cuts_the_first_hit_of_each_round(reduction_id: str) 
     assert sheet.vitals.hp.current == 15
 
 
+def test_one_hit_takes_one_reaction_of_the_round() -> None:
+    ann = member(
+        "ann",
+        "rogue",
+        level=5,
+        species_id="goliath",
+        subspecies_id="giant-ancestry-stones-endurance",
+    )
+    f = fight([(ann, "front")], [foe("skeleton", "skeleton")], SteadyDice(4))
+    sheet = ann.require_sheet()
+    sheet.vitals.hp.current, sheet.vitals.hp.maximum = 30, 40
+    _hit(f, 25)
+    assert sheet.vitals.hp.current == 30 - 25 // 2
+    assert sheet.uses_left("stones-endurance") == sheet.use_limit("stones-endurance")
+
+
 def test_stones_endurance_cuts_damage_from_no_hit() -> None:
     f = _reduction_fight("stones-endurance")
     sheet = f.require_member("ann").require_sheet()
@@ -274,3 +297,11 @@ def test_an_effect_adds_its_damage_to_a_hit(effect_id: str) -> None:
     facts = resolve(f, _ann(f), _longsword(f), [skeleton])
     name = srd().require_spell(effect_id).name
     assert any(event.label == name for fact in facts for event in fact.dice)
+
+
+@pytest.mark.parametrize("condition", ["frightened", "poisoned"])
+def test_a_condition_gives_disadvantage_on_ability_checks(condition: Condition) -> None:
+    f = fight([(member("ann"), "front")], [foe("wolf", "wolf")], ScriptedDice(15, 3))
+    lay(f, "ann", condition, "wolf")
+    test = roll_check(f, f.battle.require_combatant("ann"), "strength", "athletics", 10, "none")
+    assert test.face == 3

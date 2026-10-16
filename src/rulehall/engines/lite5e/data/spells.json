@@ -3539,7 +3539,7 @@
         "V",
         "S"
       ],
-      "description": "An imperceptible barrier of magical force protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from Magic Missile.",
+      "description": "An imperceptible barrier of magical force protects you. Until the start of your next turn, you have a +5 bonus to AC, and you take no damage from Magic Missile.",
       "duration": "1-round",
       "group": "battle",
       "level": 1,

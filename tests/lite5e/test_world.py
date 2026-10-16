@@ -82,6 +82,14 @@ def test_a_lock_check_unlocks_and_a_disarm_clears_the_trap() -> None:
     assert built.items[PIT].trap is None
 
 
+def test_a_lock_check_takes_thieves_tools_alone_or_athletics() -> None:
+    built = world()
+    _ = built.move(HALL, ())
+    with pytest.raises(Refusal, match="thieves-tools alone"):
+        _ = checked(built, 10, tool_id="thieves-tools", skill="insight", target_id=VAULT)
+    assert built.ways[HALL][1].locked
+
+
 def test_time_offscreen_never_opens_a_way_with_a_lock() -> None:
     built = world()
     with pytest.raises(Refusal, match="does not open offscreen"):

@@ -1,9 +1,10 @@
 from random import Random
 
 import pytest
-from support.lite5e_battle import fight, foe, member
+from support.lite5e_battle import SteadyDice, fight, foe, member
 
 from rulehall.core.validation import Refusal
+from rulehall.engines.lite5e.battle.damage import change_row
 from rulehall.engines.lite5e.battle.rows import (
     area_cap,
     area_targets,
@@ -14,7 +15,9 @@ from rulehall.engines.lite5e.battle.specs import (
     weapon_action,
 )
 from rulehall.engines.lite5e.battle.state import Effect, Fight
+from rulehall.engines.lite5e.battle.views import battle_view
 from rulehall.engines.lite5e.data import Area, srd
+from rulehall.engines.lite5e.rules import FormationRow
 
 
 def _fight() -> Fight:
@@ -54,6 +57,15 @@ def test_an_empty_front_row_lets_its_back_row_count_as_front() -> None:
     assert reaches(f, at("ann"), at("ogre"), longsword)
 
 
+def test_a_card_shows_the_row_the_rules_use() -> None:
+    f = _fight()
+    for wolf in f.battle.foes()[:3]:
+        wolf.hp.current = 0
+    view = battle_view(f, live=True, thinking=False, aiming="", picks=())
+    rows = {card.combatant_id: card.row for card in view.foes}
+    assert rows["ogre"] == "front"
+
+
 def test_area_targets_keep_the_cap_and_one_row() -> None:
     f = _fight()
     at = f.battle.require_combatant
@@ -79,3 +91,15 @@ def test_a_charmed_creature_cannot_reach_its_charmer() -> None:
     )
     assert not reaches(f, at("wolf-1"), at("ann"), bite)
     assert reaches(f, at("wolf-2"), at("ann"), bite)
+
+
+def _falls_back_struck(bo_row: FormationRow) -> bool:
+    ann = member("ann", weapon_ids=("longsword",))
+    f = fight([(ann, "front"), (member("bo"), bo_row)], [foe("wolf", "wolf")], SteadyDice(15))
+    facts = change_row(f, f.battle.require_combatant("ann"), provoking=True, teleport=False)
+    return any("strikes as" in fact.trace for fact in facts)
+
+
+def test_falling_back_provokes_only_when_it_leaves_the_front() -> None:
+    assert _falls_back_struck("front")
+    assert not _falls_back_struck("back")

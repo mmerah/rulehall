@@ -9,7 +9,7 @@ from rulehall.engines.lite5e.rules import (
     ENCOUNTER_BUDGET,
     companion_cr_fits,
 )
-from rulehall.engines.lite5e.sheet import level_pick_rules
+from rulehall.engines.lite5e.sheet import Lite5ePerson, level_pick_rules
 from rulehall.engines.lite5e.world import Lite5eMapProposal, Lite5eRegionProposal, Lite5eWorld
 
 XP_OF_CR = {block.challenge_rating: block.xp for block in srd().bestiary.stat_blocks.values()}
@@ -39,6 +39,18 @@ WORLDSMITH_GUIDANCE = (
     "STAT BLOCKS (id by challenge rating)\n"
     f"{STAT_BLOCK_LINES}"
 )
+CODE_ONLY_PERSON_FIELDS = (
+    "alive",
+    "sheet",
+    "conditions",
+    "stat_block_vitals",
+    "portrait_id",
+    "formation_row",
+    "routed",
+    "xp_paid",
+    "stealth_total",
+    "missed",
+)
 HIRE_KINDS = (
     "- a class companion: a class from {classes}, an SRD species, and a background. Give the "
     "picks you want, or leave them out for the defaults. Pick kinds: {kinds}.\n"
@@ -54,6 +66,8 @@ def check_opening(proposal: Lite5eMapProposal) -> None:
 def check_next(proposal: Lite5eRegionProposal, world: Lite5eWorld) -> None:
     check_map_next(proposal, world)
     _check_lite_map(proposal)
+    if taken := sorted(set(proposal.goals) & set(world.goals)):
+        raise Refusal(f"these goal ids are in use already: {taken}")
 
 
 def hire_guidance_lines(world: Lite5eWorld) -> str:
@@ -94,6 +108,13 @@ def _check_lite_map(proposal: Lite5eMapProposal) -> None:
         raise Refusal(f"a hidden item needs `find`, the DC to search it out: {strays}")
     if strays := sorted(item.id for item in proposal.items.values() if item.opens is not None):
         raise Refusal(f"`opens` is set by code only, not on {strays}")
+    if strays := sorted(
+        f"{person.id}.{field}"
+        for person in proposal.npcs.values()
+        for field in CODE_ONLY_PERSON_FIELDS
+        if getattr(person, field) != _default_person_field(field)
+    ):
+        raise Refusal(f"these person fields are set by code only: {strays}")
     if strays := sorted(item.id for item in proposal.items.values() if item.known and item.trap):
         raise Refusal(f"`trap` is for hidden items only, not {strays}")
     if strays := sorted(
@@ -118,3 +139,7 @@ def _check_lite_map(proposal: Lite5eMapProposal) -> None:
             raise Refusal(
                 f"the shop {place.id!r} sells SRD gear already: stock only magic items, not {loose}"
             )
+
+
+def _default_person_field(field: str) -> object:
+    return Lite5ePerson.model_fields[field].get_default(call_default_factory=True)
