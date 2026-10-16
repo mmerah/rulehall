@@ -20,7 +20,7 @@ from rulehall.core.documents import SOURCE_SUFFIXES
 from rulehall.core.game import ScenarioDescription
 from rulehall.core.log import Voice
 from rulehall.core.validation import EngineId, Refusal, Slug, content_id
-from rulehall.ui.panel_parts import labeled_value
+from rulehall.ui.panel_parts import panel_row
 from rulehall.ui.routes import NEW_PACK, assets_route, engine_path, game_path, hall_path
 from rulehall.ui.widgets import (
     NEW_ADVENTURE_ICON,
@@ -116,7 +116,7 @@ class CharacterForm:
         self.answered()
 
     def answered(self) -> None:
-        drop_stale(self.engine.creation_steps(self.pack_id, self.picks), self.picks)
+        drop_stale(partial(self.engine.creation_steps, self.pack_id), self.picks)
         self.draw_steps.refresh()
         self.draw_preview.refresh()
 
@@ -213,8 +213,8 @@ class CharacterForm:
             ui.label(f"Not ready yet: {refused}").classes("game-hint")
             self.create_button.set_visibility(False)
         else:
-            for label, text in preview:
-                labeled_value(label, text, help=engine.sheet_help.get(label, ""))
+            for row in preview:
+                panel_row(row)
             self.create_button.set_visibility(True)
 
 

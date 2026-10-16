@@ -1,0 +1,4825 @@
+{
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "changes": "Cut and adapted for 5e Lite",
+  "class_options": {
+    "arid": {
+      "always_prepared": [
+        {
+          "level": 3,
+          "spell_ids": [
+            "blur",
+            "burning-hands",
+            "fire-bolt"
+          ]
+        },
+        {
+          "level": 5,
+          "spell_ids": [
+            "fireball"
+          ]
+        }
+      ],
+      "class_id": "druid",
+      "description": "Circle of the Land: the arid land's spells are always prepared.",
+      "name": "Arid Land",
+      "pick_kind": "land"
+    },
+    "magician": {
+      "class_id": "druid",
+      "description": "One extra Druid cantrip. Add your Wisdom modifier (minimum +1) to your Intelligence (Arcana or Nature) checks.",
+      "grants": {
+        "cantrip": 1
+      },
+      "modifiers": [
+        {
+          "amount": {
+            "ability": "wisdom"
+          },
+          "keys": [
+            "arcana",
+            "nature"
+          ],
+          "kind": "bonus",
+          "to": "check"
+        }
+      ],
+      "name": "Magician",
+      "pick_kind": "class-order"
+    },
+    "protector": {
+      "armor_training": [
+        "heavy"
+      ],
+      "class_id": "cleric",
+      "description": "Trained for battle: proficiency with Martial weapons and training with Heavy armor.",
+      "name": "Protector",
+      "pick_kind": "class-order",
+      "weapon_proficiencies": [
+        "martial"
+      ]
+    },
+    "temperate": {
+      "always_prepared": [
+        {
+          "level": 3,
+          "spell_ids": [
+            "misty-step",
+            "shocking-grasp",
+            "sleep"
+          ]
+        },
+        {
+          "level": 5,
+          "spell_ids": [
+            "lightning-bolt"
+          ]
+        }
+      ],
+      "class_id": "druid",
+      "description": "Circle of the Land: the temperate land's spells are always prepared.",
+      "name": "Temperate Land",
+      "pick_kind": "land"
+    },
+    "thaumaturge": {
+      "class_id": "cleric",
+      "description": "One extra Cleric cantrip. Add your Wisdom modifier (minimum +1) to your Intelligence (Arcana or Religion) checks.",
+      "grants": {
+        "cantrip": 1
+      },
+      "modifiers": [
+        {
+          "amount": {
+            "ability": "wisdom"
+          },
+          "keys": [
+            "arcana",
+            "religion"
+          ],
+          "kind": "bonus",
+          "to": "check"
+        }
+      ],
+      "name": "Thaumaturge",
+      "pick_kind": "class-order"
+    },
+    "tropical": {
+      "always_prepared": [
+        {
+          "level": 3,
+          "spell_ids": [
+            "acid-splash",
+            "ray-of-sickness",
+            "web"
+          ]
+        }
+      ],
+      "class_id": "druid",
+      "description": "Circle of the Land: the tropical land's spells are always prepared.",
+      "name": "Tropical Land",
+      "pick_kind": "land"
+    },
+    "warden": {
+      "armor_training": [
+        "medium"
+      ],
+      "class_id": "druid",
+      "description": "Trained for battle: proficiency with Martial weapons and training with Medium armor.",
+      "name": "Warden",
+      "pick_kind": "class-order",
+      "weapon_proficiencies": [
+        "martial"
+      ]
+    }
+  },
+  "classes": {
+    "barbarian": {
+      "armor_training": [
+        "light",
+        "medium",
+        "shields"
+      ],
+      "defaults": {
+        "ability_order": [
+          "strength",
+          "constitution",
+          "dexterity",
+          "wisdom",
+          "charisma",
+          "intelligence"
+        ],
+        "picks": {
+          "class-skill": [
+            "athletics",
+            "perception",
+            "survival",
+            "intimidation",
+            "nature",
+            "animal-handling"
+          ],
+          "primal-knowledge": [
+            "athletics",
+            "perception",
+            "survival",
+            "intimidation",
+            "nature",
+            "animal-handling"
+          ],
+          "species-skill": [
+            "athletics",
+            "perception",
+            "survival",
+            "intimidation",
+            "nature",
+            "animal-handling"
+          ]
+        }
+      },
+      "gear_option_a": {
+        "gear": [
+          {
+            "count": 1,
+            "gear_id": "greataxe"
+          },
+          {
+            "count": 4,
+            "gear_id": "handaxe"
+          },
+          {
+            "count": 1,
+            "gear_id": "explorers-pack"
+          }
+        ],
+        "gp": 15
+      },
+      "hit_die": 12,
+      "levels": [
+        {
+          "class_specific": {
+            "rage_damage_bonus": 2
+          },
+          "feature_ids": [
+            "barbarian-rage",
+            "barbarian-unarmored-defense"
+          ],
+          "grants": {
+            "class-skill": 2
+          },
+          "level": 1,
+          "proficiency_bonus": 2,
+          "use_counts": {
+            "rage": 2
+          }
+        },
+        {
+          "class_specific": {
+            "rage_damage_bonus": 2
+          },
+          "feature_ids": [
+            "barbarian-danger-sense",
+            "barbarian-reckless-attack"
+          ],
+          "level": 2,
+          "proficiency_bonus": 2,
+          "use_counts": {
+            "rage": 2
+          }
+        },
+        {
+          "class_specific": {
+            "rage_damage_bonus": 2
+          },
+          "feature_ids": [
+            "barbarian-subclass",
+            "barbarian-primal-knowledge"
+          ],
+          "level": 3,
+          "proficiency_bonus": 2,
+          "use_counts": {
+            "rage": 3
+          }
+        },
+        {
+          "class_specific": {
+            "rage_damage_bonus": 2
+          },
+          "feature_ids": [
+            "barbarian-ability-score-improvement"
+          ],
+          "level": 4,
+          "proficiency_bonus": 2,
+          "use_counts": {
+            "rage": 3
+          }
+        },
+        {
+          "class_specific": {
+            "rage_damage_bonus": 2
+          },
+          "feature_ids": [
+            "barbarian-extra-attack",
+            "barbarian-fast-movement"
+          ],
+          "level": 5,
+          "proficiency_bonus": 3,
+          "use_counts": {
+            "rage": 3
+          }
+        }
+      ],
+      "name": "Barbarian",
+      "saving_throws": [
+        "strength",
+        "constitution"
+      ],
+      "skill_options": [
+        "animal-handling",
+        "athletics",
+        "intimidation",
+        "nature",
+        "perception",
+        "survival"
+      ],
+      "weapon_proficiencies": [
+        "simple",
+        "martial"
+      ]
+    },
+    "bard": {
+      "armor_training": [
+        "light"
+      ],
+      "defaults": {
+        "ability_order": [
+          "charisma",
+          "dexterity",
+          "constitution",
+          "wisdom",
+          "intelligence",
+          "strength"
+        ],
+        "picks": {
+          "cantrip": [
+            "vicious-mockery",
+            "true-strike",
+            "minor-illusion",
+            "light"
+          ],
+          "class-skill": [
+            "persuasion",
+            "performance",
+            "insight",
+            "deception",
+            "perception",
+            "history",
+            "arcana",
+            "investigation"
+          ],
+          "expertise": [
+            "persuasion",
+            "performance",
+            "insight"
+          ],
+          "initiate-cantrip": [
+            "vicious-mockery",
+            "true-strike",
+            "minor-illusion",
+            "light"
+          ],
+          "initiate-spell": [
+            "healing-word",
+            "dissonant-whispers",
+            "faerie-fire",
+            "sleep",
+            "heroism"
+          ],
+          "lore-skill": [
+            "persuasion",
+            "performance",
+            "insight",
+            "deception",
+            "perception",
+            "history",
+            "arcana",
+            "investigation"
+          ],
+          "prepared": [
+            "healing-word",
+            "dissonant-whispers",
+            "faerie-fire",
+            "sleep",
+            "heroism",
+            "hold-person",
+            "shatter",
+            "lesser-restoration",
+            "invisibility",
+            "hypnotic-pattern",
+            "mass-healing-word",
+            "slow"
+          ],
+          "species-skill": [
+            "persuasion",
+            "performance",
+            "insight",
+            "deception",
+            "perception",
+            "history",
+            "arcana",
+            "investigation"
+          ],
+          "tool": [
+            "lute",
+            "flute",
+            "drum"
+          ]
+        }
+      },
+      "gear_option_a": {
+        "gear": [
+          {
+            "count": 1,
+            "gear_id": "leather-armor"
+          },
+          {
+            "count": 2,
+            "gear_id": "dagger"
+          },
+          {
+            "count": 1,
+            "gear_id": "entertainers-pack"
+          }
+        ],
+        "gear_categories": [
+          {
+            "category_id": "musical-instruments",
+            "count": 1
+          }
+        ],
+        "gp": 19
+      },
+      "hit_die": 8,
+      "levels": [
+        {
+          "class_specific": {
+            "bardic_inspiration_die": 6
+          },
+          "feature_ids": [
+            "bard-bardic-inspiration",
+            "bard-spellcasting"
+          ],
+          "grants": {
+            "cantrip": 2,
+            "class-skill": 3,
+            "prepared": 4,
+            "tool": 3
+          },
+          "level": 1,
+          "proficiency_bonus": 2,
+          "slots": [
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "class_specific": {
+            "bardic_inspiration_die": 6
+          },
+          "feature_ids": [
+            "bard-expertise",
+            "bard-jack-of-all-trades"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 2,
+          "proficiency_bonus": 2,
+          "slots": [
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "class_specific": {
+            "bardic_inspiration_die": 6
+          },
+          "feature_ids": [
+            "bard-subclass"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 3,
+          "proficiency_bonus": 2,
+          "slots": [
+            4,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "class_specific": {
+            "bardic_inspiration_die": 6
+          },
+          "feature_ids": [
+            "bard-ability-score-improvement"
+          ],
+          "grants": {
+            "cantrip": 1,
+            "prepared": 1
+          },
+          "level": 4,
+          "proficiency_bonus": 2,
+          "slots": [
+            4,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "class_specific": {
+            "bardic_inspiration_die": 8
+          },
+          "feature_ids": [
+            "bard-font-of-inspiration"
+          ],
+          "grants": {
+            "prepared": 2
+          },
+          "level": 5,
+          "proficiency_bonus": 3,
+          "slots": [
+            4,
+            3,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "name": "Bard",
+      "prepared_swap": "level-up",
+      "saving_throws": [
+        "dexterity",
+        "charisma"
+      ],
+      "skill_options": [
+        "acrobatics",
+        "animal-handling",
+        "arcana",
+        "athletics",
+        "deception",
+        "history",
+        "insight",
+        "intimidation",
+        "investigation",
+        "medicine",
+        "nature",
+        "perception",
+        "performance",
+        "persuasion",
+        "religion",
+        "sleight-of-hand",
+        "stealth",
+        "survival"
+      ],
+      "spell_ability": "charisma",
+      "tool_options": [
+        "bagpipes",
+        "drum",
+        "dulcimer",
+        "flute",
+        "lute",
+        "lyre",
+        "horn",
+        "pan-flute",
+        "shawm",
+        "viol"
+      ],
+      "weapon_proficiencies": [
+        "simple"
+      ]
+    },
+    "cleric": {
+      "armor_training": [
+        "light",
+        "medium",
+        "shields"
+      ],
+      "defaults": {
+        "ability_order": [
+          "wisdom",
+          "constitution",
+          "strength",
+          "dexterity",
+          "charisma",
+          "intelligence"
+        ],
+        "picks": {
+          "cantrip": [
+            "guidance",
+            "sacred-flame",
+            "spare-the-dying",
+            "light",
+            "thaumaturgy"
+          ],
+          "class-order": [
+            "protector"
+          ],
+          "class-skill": [
+            "insight",
+            "medicine",
+            "persuasion",
+            "religion"
+          ],
+          "initiate-cantrip": [
+            "guidance",
+            "sacred-flame",
+            "spare-the-dying",
+            "light",
+            "thaumaturgy"
+          ],
+          "initiate-spell": [
+            "cure-wounds",
+            "bless",
+            "healing-word",
+            "guiding-bolt",
+            "shield-of-faith",
+            "command"
+          ],
+          "prepared": [
+            "cure-wounds",
+            "bless",
+            "healing-word",
+            "guiding-bolt",
+            "shield-of-faith",
+            "command",
+            "spiritual-weapon",
+            "hold-person",
+            "beacon-of-hope",
+            "protection-from-energy"
+          ],
+          "species-skill": [
+            "insight",
+            "medicine",
+            "persuasion",
+            "religion"
+          ]
+        }
+      },
+      "gear_option_a": {
+        "gear": [
+          {
+            "count": 1,
+            "gear_id": "chain-shirt"
+          },
+          {
+            "count": 1,
+            "gear_id": "shield"
+          },
+          {
+            "count": 1,
+            "gear_id": "mace"
+          },
+          {
+            "count": 1,
+            "gear_id": "priests-pack"
+          }
+        ],
+        "gear_categories": [
+          {
+            "category_id": "holy-symbols",
+            "count": 1
+          }
+        ],
+        "gp": 7
+      },
+      "hit_die": 8,
+      "levels": [
+        {
+          "feature_ids": [
+            "cleric-divine-order",
+            "cleric-spellcasting"
+          ],
+          "grants": {
+            "cantrip": 3,
+            "class-skill": 2,
+            "prepared": 4
+          },
+          "level": 1,
+          "proficiency_bonus": 2,
+          "slots": [
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "feature_ids": [
+            "cleric-channel-divinity"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 2,
+          "proficiency_bonus": 2,
+          "slots": [
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "channel-divinity": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "cleric-subclass"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 3,
+          "proficiency_bonus": 2,
+          "slots": [
+            4,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "channel-divinity": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "cleric-ability-score-improvement"
+          ],
+          "grants": {
+            "cantrip": 1,
+            "prepared": 1
+          },
+          "level": 4,
+          "proficiency_bonus": 2,
+          "slots": [
+            4,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "channel-divinity": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "cleric-sear-undead"
+          ],
+          "grants": {
+            "prepared": 2
+          },
+          "level": 5,
+          "proficiency_bonus": 3,
+          "slots": [
+            4,
+            3,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "channel-divinity": 2
+          }
+        }
+      ],
+      "name": "Cleric",
+      "saving_throws": [
+        "wisdom",
+        "charisma"
+      ],
+      "skill_options": [
+        "history",
+        "insight",
+        "medicine",
+        "persuasion",
+        "religion"
+      ],
+      "spell_ability": "wisdom",
+      "weapon_proficiencies": [
+        "simple"
+      ]
+    },
+    "druid": {
+      "armor_training": [
+        "light",
+        "shields"
+      ],
+      "defaults": {
+        "ability_order": [
+          "wisdom",
+          "constitution",
+          "dexterity",
+          "intelligence",
+          "strength",
+          "charisma"
+        ],
+        "picks": {
+          "cantrip": [
+            "produce-flame",
+            "guidance",
+            "shillelagh",
+            "resistance"
+          ],
+          "class-order": [
+            "magician"
+          ],
+          "class-skill": [
+            "nature",
+            "perception",
+            "animal-handling",
+            "medicine",
+            "survival",
+            "insight"
+          ],
+          "initiate-cantrip": [
+            "produce-flame",
+            "guidance",
+            "shillelagh",
+            "resistance"
+          ],
+          "initiate-spell": [
+            "healing-word",
+            "entangle",
+            "cure-wounds",
+            "faerie-fire",
+            "thunderwave"
+          ],
+          "land": [
+            "temperate"
+          ],
+          "prepared": [
+            "healing-word",
+            "entangle",
+            "cure-wounds",
+            "faerie-fire",
+            "thunderwave",
+            "barkskin",
+            "flame-blade",
+            "lesser-restoration",
+            "hold-person",
+            "call-lightning",
+            "revivify",
+            "protection-from-energy"
+          ],
+          "species-skill": [
+            "nature",
+            "perception",
+            "animal-handling",
+            "medicine",
+            "survival",
+            "insight"
+          ]
+        }
+      },
+      "gear_option_a": {
+        "gear": [
+          {
+            "count": 1,
+            "gear_id": "leather-armor"
+          },
+          {
+            "count": 1,
+            "gear_id": "shield"
+          },
+          {
+            "count": 1,
+            "gear_id": "sickle"
+          },
+          {
+            "count": 1,
+            "gear_id": "quarterstaff"
+          },
+          {
+            "count": 1,
+            "gear_id": "explorers-pack"
+          },
+          {
+            "count": 1,
+            "gear_id": "herbalism-kit"
+          }
+        ],
+        "gp": 9
+      },
+      "hit_die": 8,
+      "levels": [
+        {
+          "feature_ids": [
+            "druid-druidic",
+            "druid-primal-order",
+            "druid-spellcasting"
+          ],
+          "grants": {
+            "cantrip": 2,
+            "class-skill": 2,
+            "prepared": 4
+          },
+          "level": 1,
+          "proficiency_bonus": 2,
+          "slots": [
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "feature_ids": [
+            "druid-wild-shape"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 2,
+          "proficiency_bonus": 2,
+          "slots": [
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "wild-shape": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "druid-subclass"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 3,
+          "proficiency_bonus": 2,
+          "slots": [
+            4,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "wild-shape": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "druid-ability-score-improvement"
+          ],
+          "grants": {
+            "cantrip": 1,
+            "prepared": 1
+          },
+          "level": 4,
+          "proficiency_bonus": 2,
+          "slots": [
+            4,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "wild-shape": 2
+          }
+        },
+        {
+          "grants": {
+            "prepared": 2
+          },
+          "level": 5,
+          "proficiency_bonus": 3,
+          "slots": [
+            4,
+            3,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "wild-shape": 2
+          }
+        }
+      ],
+      "name": "Druid",
+      "saving_throws": [
+        "intelligence",
+        "wisdom"
+      ],
+      "skill_options": [
+        "arcana",
+        "animal-handling",
+        "insight",
+        "medicine",
+        "nature",
+        "perception",
+        "religion",
+        "survival"
+      ],
+      "spell_ability": "wisdom",
+      "tool_ids": [
+        "herbalism-kit"
+      ],
+      "weapon_proficiencies": [
+        "simple"
+      ]
+    },
+    "fighter": {
+      "armor_training": [
+        "light",
+        "medium",
+        "heavy",
+        "shields"
+      ],
+      "defaults": {
+        "ability_order": [
+          "strength",
+          "constitution",
+          "dexterity",
+          "wisdom",
+          "charisma",
+          "intelligence"
+        ],
+        "picks": {
+          "class-skill": [
+            "athletics",
+            "perception",
+            "survival",
+            "intimidation",
+            "insight"
+          ],
+          "fighting-style": [
+            "defense"
+          ],
+          "species-skill": [
+            "athletics",
+            "perception",
+            "survival",
+            "intimidation",
+            "insight"
+          ]
+        }
+      },
+      "gear_option_a": {
+        "gear": [
+          {
+            "count": 1,
+            "gear_id": "chain-mail"
+          },
+          {
+            "count": 1,
+            "gear_id": "greatsword"
+          },
+          {
+            "count": 1,
+            "gear_id": "flail"
+          },
+          {
+            "count": 8,
+            "gear_id": "javelin"
+          },
+          {
+            "count": 1,
+            "gear_id": "dungeoneer-pack"
+          }
+        ],
+        "gp": 4
+      },
+      "hit_die": 10,
+      "levels": [
+        {
+          "feature_ids": [
+            "fighter-fighting-style",
+            "fighter-second-wind"
+          ],
+          "grants": {
+            "class-skill": 2
+          },
+          "level": 1,
+          "proficiency_bonus": 2,
+          "use_counts": {
+            "second-wind": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "fighter-action-surge",
+            "fighter-tactical-mind"
+          ],
+          "level": 2,
+          "proficiency_bonus": 2,
+          "use_counts": {
+            "second-wind": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "fighter-subclass"
+          ],
+          "level": 3,
+          "proficiency_bonus": 2,
+          "use_counts": {
+            "second-wind": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "fighter-ability-score-improvement"
+          ],
+          "level": 4,
+          "proficiency_bonus": 2,
+          "use_counts": {
+            "second-wind": 3
+          }
+        },
+        {
+          "feature_ids": [
+            "fighter-extra-attack"
+          ],
+          "level": 5,
+          "proficiency_bonus": 3,
+          "use_counts": {
+            "second-wind": 3
+          }
+        }
+      ],
+      "name": "Fighter",
+      "saving_throws": [
+        "strength",
+        "constitution"
+      ],
+      "skill_options": [
+        "acrobatics",
+        "animal-handling",
+        "athletics",
+        "history",
+        "insight",
+        "intimidation",
+        "perception",
+        "survival"
+      ],
+      "weapon_proficiencies": [
+        "simple",
+        "martial"
+      ]
+    },
+    "monk": {
+      "defaults": {
+        "ability_order": [
+          "dexterity",
+          "wisdom",
+          "constitution",
+          "strength",
+          "intelligence",
+          "charisma"
+        ],
+        "picks": {
+          "class-skill": [
+            "acrobatics",
+            "stealth",
+            "insight",
+            "athletics",
+            "history",
+            "religion"
+          ],
+          "species-skill": [
+            "acrobatics",
+            "stealth",
+            "insight",
+            "athletics",
+            "history",
+            "religion"
+          ],
+          "tool": [
+            "flute"
+          ]
+        }
+      },
+      "gear_option_a": {
+        "gear": [
+          {
+            "count": 1,
+            "gear_id": "spear"
+          },
+          {
+            "count": 5,
+            "gear_id": "dagger"
+          },
+          {
+            "count": 1,
+            "gear_id": "explorers-pack"
+          }
+        ],
+        "gear_categories": [
+          {
+            "category_id": "artisans-tools-or-musical-instruments",
+            "count": 1
+          }
+        ],
+        "gp": 11
+      },
+      "hit_die": 8,
+      "levels": [
+        {
+          "class_specific": {
+            "martial_arts_die": 6
+          },
+          "feature_ids": [
+            "monk-martial-arts",
+            "monk-unarmored-defense"
+          ],
+          "grants": {
+            "class-skill": 2,
+            "tool": 1
+          },
+          "level": 1,
+          "proficiency_bonus": 2
+        },
+        {
+          "class_specific": {
+            "martial_arts_die": 6
+          },
+          "feature_ids": [
+            "monk-monks-focus",
+            "monk-unarmored-movement",
+            "monk-uncanny-metabolism"
+          ],
+          "level": 2,
+          "proficiency_bonus": 2,
+          "use_counts": {
+            "focus": 2
+          }
+        },
+        {
+          "class_specific": {
+            "martial_arts_die": 6
+          },
+          "feature_ids": [
+            "monk-subclass",
+            "monk-deflect-attacks"
+          ],
+          "level": 3,
+          "proficiency_bonus": 2,
+          "use_counts": {
+            "focus": 3
+          }
+        },
+        {
+          "class_specific": {
+            "martial_arts_die": 6
+          },
+          "feature_ids": [
+            "monk-ability-score-improvement"
+          ],
+          "level": 4,
+          "proficiency_bonus": 2,
+          "use_counts": {
+            "focus": 4
+          }
+        },
+        {
+          "class_specific": {
+            "martial_arts_die": 8
+          },
+          "feature_ids": [
+            "monk-extra-attack",
+            "monk-stunning-strike"
+          ],
+          "level": 5,
+          "proficiency_bonus": 3,
+          "use_counts": {
+            "focus": 5
+          }
+        }
+      ],
+      "name": "Monk",
+      "saving_throws": [
+        "strength",
+        "dexterity"
+      ],
+      "skill_options": [
+        "acrobatics",
+        "athletics",
+        "history",
+        "insight",
+        "religion",
+        "stealth"
+      ],
+      "tool_options": [
+        "alchemists-supplies",
+        "brewers-supplies",
+        "calligraphers-supplies",
+        "carpenters-tools",
+        "cartographer-tools",
+        "cobblers-tools",
+        "cooks-utensils",
+        "glassblowers-tools",
+        "jewelers-tools",
+        "leatherworkers-tools",
+        "masons-tools",
+        "painters-supplies",
+        "potters-tools",
+        "smiths-tools",
+        "tinkers-tools",
+        "weavers-tools",
+        "woodcarvers-tools",
+        "bagpipes",
+        "drum",
+        "dulcimer",
+        "flute",
+        "lute",
+        "lyre",
+        "horn",
+        "pan-flute",
+        "shawm",
+        "viol"
+      ],
+      "weapon_proficiencies": [
+        "simple",
+        "martial-light"
+      ]
+    },
+    "paladin": {
+      "armor_training": [
+        "light",
+        "medium",
+        "heavy",
+        "shields"
+      ],
+      "defaults": {
+        "ability_order": [
+          "strength",
+          "charisma",
+          "constitution",
+          "wisdom",
+          "dexterity",
+          "intelligence"
+        ],
+        "picks": {
+          "class-skill": [
+            "athletics",
+            "persuasion",
+            "insight",
+            "religion",
+            "medicine",
+            "intimidation"
+          ],
+          "fighting-style": [
+            "defense"
+          ],
+          "initiate-cantrip": [
+            "sacred-flame",
+            "guidance"
+          ],
+          "initiate-spell": [
+            "bless",
+            "cure-wounds",
+            "heroism",
+            "divine-favor",
+            "searing-smite",
+            "command"
+          ],
+          "prepared": [
+            "bless",
+            "cure-wounds",
+            "heroism",
+            "divine-favor",
+            "searing-smite",
+            "command",
+            "shining-smite",
+            "lesser-restoration",
+            "magic-weapon"
+          ],
+          "species-skill": [
+            "athletics",
+            "persuasion",
+            "insight",
+            "religion",
+            "medicine",
+            "intimidation"
+          ],
+          "warrior-cantrip": [
+            "sacred-flame",
+            "guidance"
+          ]
+        }
+      },
+      "gear_option_a": {
+        "gear": [
+          {
+            "count": 1,
+            "gear_id": "chain-mail"
+          },
+          {
+            "count": 1,
+            "gear_id": "shield"
+          },
+          {
+            "count": 1,
+            "gear_id": "longsword"
+          },
+          {
+            "count": 6,
+            "gear_id": "javelin"
+          },
+          {
+            "count": 1,
+            "gear_id": "priests-pack"
+          }
+        ],
+        "gear_categories": [
+          {
+            "category_id": "holy-symbols",
+            "count": 1
+          }
+        ],
+        "gp": 9
+      },
+      "hit_die": 10,
+      "levels": [
+        {
+          "feature_ids": [
+            "paladin-lay-on-hands",
+            "paladin-spellcasting"
+          ],
+          "grants": {
+            "class-skill": 2,
+            "prepared": 2
+          },
+          "level": 1,
+          "proficiency_bonus": 2,
+          "slots": [
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "feature_ids": [
+            "paladin-fighting-style",
+            "paladin-paladins-smite"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 2,
+          "proficiency_bonus": 2,
+          "slots": [
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "feature_ids": [
+            "paladin-channel-divinity",
+            "paladin-subclass"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 3,
+          "proficiency_bonus": 2,
+          "slots": [
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "channel-divinity": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "paladin-ability-score-improvement"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 4,
+          "proficiency_bonus": 2,
+          "slots": [
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "channel-divinity": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "paladin-extra-attack"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 5,
+          "proficiency_bonus": 3,
+          "slots": [
+            4,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "channel-divinity": 2
+          }
+        }
+      ],
+      "name": "Paladin",
+      "prepared_swap": "long-rest",
+      "saving_throws": [
+        "wisdom",
+        "charisma"
+      ],
+      "skill_options": [
+        "athletics",
+        "insight",
+        "intimidation",
+        "medicine",
+        "persuasion",
+        "religion"
+      ],
+      "spell_ability": "charisma",
+      "weapon_proficiencies": [
+        "simple",
+        "martial"
+      ]
+    },
+    "ranger": {
+      "armor_training": [
+        "light",
+        "medium",
+        "shields"
+      ],
+      "defaults": {
+        "ability_order": [
+          "dexterity",
+          "wisdom",
+          "constitution",
+          "strength",
+          "intelligence",
+          "charisma"
+        ],
+        "picks": {
+          "class-skill": [
+            "perception",
+            "stealth",
+            "survival",
+            "nature",
+            "insight",
+            "animal-handling",
+            "investigation",
+            "athletics"
+          ],
+          "expertise": [
+            "perception",
+            "stealth",
+            "survival"
+          ],
+          "fighting-style": [
+            "archery"
+          ],
+          "initiate-cantrip": [
+            "shillelagh",
+            "guidance"
+          ],
+          "initiate-spell": [
+            "cure-wounds",
+            "entangle",
+            "goodberry",
+            "speak-with-animals"
+          ],
+          "prepared": [
+            "cure-wounds",
+            "entangle",
+            "goodberry",
+            "speak-with-animals",
+            "barkskin",
+            "pass-without-trace",
+            "lesser-restoration",
+            "aid"
+          ],
+          "species-skill": [
+            "perception",
+            "stealth",
+            "survival",
+            "nature",
+            "insight",
+            "animal-handling",
+            "investigation",
+            "athletics"
+          ],
+          "warrior-cantrip": [
+            "shillelagh",
+            "guidance"
+          ]
+        }
+      },
+      "gear_option_a": {
+        "gear": [
+          {
+            "count": 1,
+            "gear_id": "studded-leather-armor"
+          },
+          {
+            "count": 1,
+            "gear_id": "scimitar"
+          },
+          {
+            "count": 1,
+            "gear_id": "shortsword"
+          },
+          {
+            "count": 1,
+            "gear_id": "longbow"
+          },
+          {
+            "count": 20,
+            "gear_id": "arrows"
+          },
+          {
+            "count": 1,
+            "gear_id": "quiver"
+          },
+          {
+            "count": 1,
+            "gear_id": "sprig-of-mistletoe"
+          },
+          {
+            "count": 1,
+            "gear_id": "explorers-pack"
+          }
+        ],
+        "gp": 7
+      },
+      "hit_die": 10,
+      "levels": [
+        {
+          "feature_ids": [
+            "ranger-favored-enemy",
+            "ranger-spellcasting"
+          ],
+          "grants": {
+            "class-skill": 3,
+            "prepared": 2
+          },
+          "level": 1,
+          "proficiency_bonus": 2,
+          "slots": [
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "favored-enemy": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "ranger-deft-explorer",
+            "ranger-fighting-style"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 2,
+          "proficiency_bonus": 2,
+          "slots": [
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "favored-enemy": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "ranger-subclass"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 3,
+          "proficiency_bonus": 2,
+          "slots": [
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "favored-enemy": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "ranger-ability-score-improvement"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 4,
+          "proficiency_bonus": 2,
+          "slots": [
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "favored-enemy": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "ranger-extra-attack"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 5,
+          "proficiency_bonus": 3,
+          "slots": [
+            4,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "favored-enemy": 3
+          }
+        }
+      ],
+      "name": "Ranger",
+      "prepared_swap": "long-rest",
+      "saving_throws": [
+        "strength",
+        "dexterity"
+      ],
+      "skill_options": [
+        "animal-handling",
+        "athletics",
+        "insight",
+        "investigation",
+        "nature",
+        "perception",
+        "stealth",
+        "survival"
+      ],
+      "spell_ability": "wisdom",
+      "weapon_proficiencies": [
+        "simple",
+        "martial"
+      ]
+    },
+    "rogue": {
+      "armor_training": [
+        "light"
+      ],
+      "defaults": {
+        "ability_order": [
+          "dexterity",
+          "constitution",
+          "wisdom",
+          "intelligence",
+          "charisma",
+          "strength"
+        ],
+        "picks": {
+          "class-skill": [
+            "stealth",
+            "perception",
+            "sleight-of-hand",
+            "investigation",
+            "acrobatics",
+            "deception",
+            "insight"
+          ],
+          "expertise": [
+            "stealth",
+            "perception",
+            "sleight-of-hand",
+            "investigation"
+          ],
+          "species-skill": [
+            "stealth",
+            "perception",
+            "sleight-of-hand",
+            "investigation",
+            "acrobatics",
+            "deception",
+            "insight"
+          ]
+        }
+      },
+      "gear_option_a": {
+        "gear": [
+          {
+            "count": 1,
+            "gear_id": "leather-armor"
+          },
+          {
+            "count": 2,
+            "gear_id": "dagger"
+          },
+          {
+            "count": 1,
+            "gear_id": "shortsword"
+          },
+          {
+            "count": 1,
+            "gear_id": "shortbow"
+          },
+          {
+            "count": 20,
+            "gear_id": "arrows"
+          },
+          {
+            "count": 1,
+            "gear_id": "quiver"
+          },
+          {
+            "count": 1,
+            "gear_id": "thieves-tools"
+          },
+          {
+            "count": 1,
+            "gear_id": "burglars-pack"
+          }
+        ],
+        "gp": 8
+      },
+      "hit_die": 8,
+      "levels": [
+        {
+          "class_specific": {
+            "sneak_attack": {
+              "dice_count": 1,
+              "dice_value": 6
+            }
+          },
+          "feature_ids": [
+            "rogue-expertise",
+            "rogue-sneak-attack",
+            "rogue-thieves-cant"
+          ],
+          "grants": {
+            "class-skill": 4
+          },
+          "level": 1,
+          "proficiency_bonus": 2
+        },
+        {
+          "class_specific": {
+            "sneak_attack": {
+              "dice_count": 1,
+              "dice_value": 6
+            }
+          },
+          "feature_ids": [
+            "rogue-cunning-action"
+          ],
+          "level": 2,
+          "proficiency_bonus": 2
+        },
+        {
+          "class_specific": {
+            "sneak_attack": {
+              "dice_count": 2,
+              "dice_value": 6
+            }
+          },
+          "feature_ids": [
+            "rogue-subclass",
+            "rogue-steady-aim"
+          ],
+          "level": 3,
+          "proficiency_bonus": 2
+        },
+        {
+          "class_specific": {
+            "sneak_attack": {
+              "dice_count": 2,
+              "dice_value": 6
+            }
+          },
+          "feature_ids": [
+            "rogue-ability-score-improvement"
+          ],
+          "level": 4,
+          "proficiency_bonus": 2
+        },
+        {
+          "class_specific": {
+            "sneak_attack": {
+              "dice_count": 3,
+              "dice_value": 6
+            }
+          },
+          "feature_ids": [
+            "rogue-cunning-strike",
+            "rogue-uncanny-dodge"
+          ],
+          "level": 5,
+          "proficiency_bonus": 3
+        }
+      ],
+      "name": "Rogue",
+      "saving_throws": [
+        "dexterity",
+        "intelligence"
+      ],
+      "skill_options": [
+        "acrobatics",
+        "athletics",
+        "deception",
+        "insight",
+        "intimidation",
+        "investigation",
+        "perception",
+        "performance",
+        "persuasion",
+        "sleight-of-hand",
+        "stealth"
+      ],
+      "tool_ids": [
+        "thieves-tools"
+      ],
+      "weapon_proficiencies": [
+        "simple",
+        "martial-finesse-or-light"
+      ]
+    },
+    "sorcerer": {
+      "defaults": {
+        "ability_order": [
+          "charisma",
+          "constitution",
+          "dexterity",
+          "wisdom",
+          "intelligence",
+          "strength"
+        ],
+        "picks": {
+          "cantrip": [
+            "fire-bolt",
+            "sorcerous-burst",
+            "ray-of-frost",
+            "mage-hand",
+            "light"
+          ],
+          "class-skill": [
+            "arcana",
+            "persuasion",
+            "insight",
+            "deception",
+            "intimidation",
+            "religion"
+          ],
+          "initiate-cantrip": [
+            "fire-bolt",
+            "sorcerous-burst",
+            "ray-of-frost",
+            "mage-hand",
+            "light"
+          ],
+          "initiate-spell": [
+            "magic-missile",
+            "shield",
+            "sleep",
+            "mage-armor"
+          ],
+          "metamagic": [
+            "quickened",
+            "twinned",
+            "heightened",
+            "empowered"
+          ],
+          "prepared": [
+            "magic-missile",
+            "shield",
+            "sleep",
+            "mage-armor",
+            "scorching-ray",
+            "misty-step",
+            "hold-person",
+            "fireball",
+            "lightning-bolt"
+          ],
+          "species-skill": [
+            "arcana",
+            "persuasion",
+            "insight",
+            "deception",
+            "intimidation",
+            "religion"
+          ]
+        }
+      },
+      "gear_option_a": {
+        "gear": [
+          {
+            "count": 1,
+            "gear_id": "spear"
+          },
+          {
+            "count": 2,
+            "gear_id": "dagger"
+          },
+          {
+            "count": 1,
+            "gear_id": "crystal"
+          },
+          {
+            "count": 1,
+            "gear_id": "dungeoneer-pack"
+          }
+        ],
+        "gp": 28
+      },
+      "hit_die": 6,
+      "levels": [
+        {
+          "feature_ids": [
+            "sorcerer-innate-sorcery",
+            "sorcerer-spellcasting"
+          ],
+          "grants": {
+            "cantrip": 4,
+            "class-skill": 2,
+            "prepared": 2
+          },
+          "level": 1,
+          "proficiency_bonus": 2,
+          "slots": [
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "feature_ids": [
+            "sorcerer-font-of-magic",
+            "sorcerer-metamagic"
+          ],
+          "grants": {
+            "prepared": 2
+          },
+          "level": 2,
+          "proficiency_bonus": 2,
+          "slots": [
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "sorcery-points": 2
+          }
+        },
+        {
+          "feature_ids": [
+            "sorcerer-subclass"
+          ],
+          "grants": {
+            "prepared": 2
+          },
+          "level": 3,
+          "proficiency_bonus": 2,
+          "slots": [
+            4,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "sorcery-points": 3
+          }
+        },
+        {
+          "feature_ids": [
+            "sorcerer-ability-score-improvement"
+          ],
+          "grants": {
+            "cantrip": 1,
+            "prepared": 1
+          },
+          "level": 4,
+          "proficiency_bonus": 2,
+          "slots": [
+            4,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "sorcery-points": 4
+          }
+        },
+        {
+          "feature_ids": [
+            "sorcerer-sorcerous-restoration"
+          ],
+          "grants": {
+            "prepared": 2
+          },
+          "level": 5,
+          "proficiency_bonus": 3,
+          "slots": [
+            4,
+            3,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "use_counts": {
+            "sorcery-points": 5
+          }
+        }
+      ],
+      "name": "Sorcerer",
+      "prepared_swap": "level-up",
+      "saving_throws": [
+        "constitution",
+        "charisma"
+      ],
+      "skill_options": [
+        "arcana",
+        "deception",
+        "insight",
+        "intimidation",
+        "persuasion",
+        "religion"
+      ],
+      "spell_ability": "charisma",
+      "weapon_proficiencies": [
+        "simple"
+      ]
+    },
+    "warlock": {
+      "armor_training": [
+        "light"
+      ],
+      "defaults": {
+        "ability_order": [
+          "charisma",
+          "constitution",
+          "dexterity",
+          "wisdom",
+          "intelligence",
+          "strength"
+        ],
+        "picks": {
+          "cantrip": [
+            "eldritch-blast",
+            "minor-illusion",
+            "prestidigitation"
+          ],
+          "class-skill": [
+            "arcana",
+            "deception",
+            "intimidation",
+            "investigation",
+            "history",
+            "nature",
+            "religion"
+          ],
+          "initiate-cantrip": [
+            "eldritch-blast",
+            "minor-illusion",
+            "prestidigitation"
+          ],
+          "initiate-spell": [
+            "hex",
+            "protection-from-evil-and-good",
+            "charm-person"
+          ],
+          "invocation": [
+            "pact-of-the-blade",
+            "agonizing-blast",
+            "eldritch-mind",
+            "thirsting-blade",
+            "eldritch-smite"
+          ],
+          "pact-weapon": [
+            "longsword"
+          ],
+          "prepared": [
+            "hex",
+            "protection-from-evil-and-good",
+            "charm-person",
+            "misty-step",
+            "hold-person",
+            "mirror-image",
+            "hypnotic-pattern",
+            "vampiric-touch"
+          ],
+          "species-skill": [
+            "arcana",
+            "deception",
+            "intimidation",
+            "investigation",
+            "history",
+            "nature",
+            "religion"
+          ]
+        }
+      },
+      "gear_option_a": {
+        "gear": [
+          {
+            "count": 1,
+            "gear_id": "leather-armor"
+          },
+          {
+            "count": 1,
+            "gear_id": "sickle"
+          },
+          {
+            "count": 2,
+            "gear_id": "dagger"
+          },
+          {
+            "count": 1,
+            "gear_id": "orb"
+          },
+          {
+            "count": 1,
+            "gear_id": "book"
+          },
+          {
+            "count": 1,
+            "gear_id": "scholars-pack"
+          }
+        ],
+        "gp": 15
+      },
+      "hit_die": 8,
+      "levels": [
+        {
+          "feature_ids": [
+            "warlock-eldritch-invocations",
+            "warlock-pact-magic"
+          ],
+          "grants": {
+            "cantrip": 2,
+            "class-skill": 2,
+            "invocation": 1,
+            "prepared": 2
+          },
+          "level": 1,
+          "proficiency_bonus": 2,
+          "slots": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "feature_ids": [
+            "warlock-magical-cunning"
+          ],
+          "grants": {
+            "invocation": 2,
+            "prepared": 1
+          },
+          "level": 2,
+          "proficiency_bonus": 2,
+          "slots": [
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "feature_ids": [
+            "warlock-subclass"
+          ],
+          "grants": {
+            "prepared": 1
+          },
+          "level": 3,
+          "proficiency_bonus": 2,
+          "slots": [
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "feature_ids": [
+            "warlock-ability-score-improvement"
+          ],
+          "grants": {
+            "cantrip": 1,
+            "prepared": 1
+          },
+          "level": 4,
+          "proficiency_bonus": 2,
+          "slots": [
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "grants": {
+            "invocation": 2,
+            "prepared": 1
+          },
+          "level": 5,
+          "proficiency_bonus": 3,
+          "slots": [
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "name": "Warlock",
+      "prepared_swap": "level-up",
+      "saving_throws": [
+        "wisdom",
+        "charisma"
+      ],
+      "skill_options": [
+        "arcana",
+        "deception",
+        "history",
+        "intimidation",
+        "investigation",
+        "nature",
+        "religion"
+      ],
+      "spell_ability": "charisma",
+      "weapon_proficiencies": [
+        "simple"
+      ]
+    },
+    "wizard": {
+      "defaults": {
+        "ability_order": [
+          "intelligence",
+          "constitution",
+          "dexterity",
+          "wisdom",
+          "charisma",
+          "strength"
+        ],
+        "picks": {
+          "cantrip": [
+            "fire-bolt",
+            "ray-of-frost",
+            "mage-hand",
+            "light"
+          ],
+          "class-skill": [
+            "arcana",
+            "investigation",
+            "history",
+            "insight"
+          ],
+          "expertise": [
+            "arcana",
+            "history",
+            "investigation"
+          ],
+          "initiate-cantrip": [
+            "fire-bolt",
+            "ray-of-frost",
+            "mage-hand",
+            "light"
+          ],
+          "initiate-spell": [
+            "magic-missile",
+            "shield",
+            "sleep",
+            "mage-armor",
+            "detect-magic",
+            "thunderwave",
+            "burning-hands",
+            "false-life"
+          ],
+          "savant-spell": [
+            "fireball",
+            "magic-missile",
+            "shield",
+            "sleep",
+            "mage-armor",
+            "detect-magic",
+            "thunderwave",
+            "burning-hands",
+            "false-life",
+            "scorching-ray",
+            "misty-step",
+            "shatter",
+            "web",
+            "lightning-bolt",
+            "hypnotic-pattern"
+          ],
+          "species-skill": [
+            "arcana",
+            "investigation",
+            "history",
+            "insight"
+          ],
+          "spellbook": [
+            "fireball",
+            "magic-missile",
+            "shield",
+            "sleep",
+            "mage-armor",
+            "detect-magic",
+            "thunderwave",
+            "burning-hands",
+            "false-life",
+            "scorching-ray",
+            "misty-step",
+            "shatter",
+            "web",
+            "lightning-bolt",
+            "hypnotic-pattern"
+          ]
+        }
+      },
+      "gear_option_a": {
+        "gear": [
+          {
+            "count": 2,
+            "gear_id": "dagger"
+          },
+          {
+            "count": 1,
+            "gear_id": "quarterstaff"
+          },
+          {
+            "count": 1,
+            "gear_id": "robe"
+          },
+          {
+            "count": 1,
+            "gear_id": "spellbook"
+          },
+          {
+            "count": 1,
+            "gear_id": "scholars-pack"
+          }
+        ],
+        "gp": 5
+      },
+      "hit_die": 6,
+      "levels": [
+        {
+          "feature_ids": [
+            "wizard-arcane-recovery",
+            "wizard-ritual-adept",
+            "wizard-spellcasting"
+          ],
+          "grants": {
+            "cantrip": 3,
+            "class-skill": 2,
+            "prepared": 4,
+            "spellbook": 6
+          },
+          "level": 1,
+          "proficiency_bonus": 2,
+          "slots": [
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "feature_ids": [
+            "wizard-scholar"
+          ],
+          "grants": {
+            "prepared": 1,
+            "spellbook": 2
+          },
+          "level": 2,
+          "proficiency_bonus": 2,
+          "slots": [
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "feature_ids": [
+            "wizard-subclass"
+          ],
+          "grants": {
+            "prepared": 1,
+            "spellbook": 2
+          },
+          "level": 3,
+          "proficiency_bonus": 2,
+          "slots": [
+            4,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "feature_ids": [
+            "wizard-ability-score-improvement"
+          ],
+          "grants": {
+            "cantrip": 1,
+            "prepared": 1,
+            "spellbook": 2
+          },
+          "level": 4,
+          "proficiency_bonus": 2,
+          "slots": [
+            4,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "grants": {
+            "prepared": 2,
+            "savant-spell": 1,
+            "spellbook": 2
+          },
+          "level": 5,
+          "proficiency_bonus": 3,
+          "slots": [
+            4,
+            3,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "name": "Wizard",
+      "saving_throws": [
+        "intelligence",
+        "wisdom"
+      ],
+      "skill_options": [
+        "arcana",
+        "history",
+        "insight",
+        "investigation",
+        "medicine",
+        "religion"
+      ],
+      "spell_ability": "intelligence",
+      "spellbook": true,
+      "weapon_proficiencies": [
+        "simple"
+      ]
+    }
+  },
+  "conditions": {
+    "blinded": {
+      "description": "While you have the Blinded condition, you experience the following effects.\nCan't See. You can't see and automatically fail any ability check that requires sight.\nAttacks Affected. Attack rolls against you have Advantage, and your attack rolls have Disadvantage.",
+      "name": "Blinded"
+    },
+    "burning": {
+      "description": "When you take the Attack action, you can replace one of your attacks with throwing a flask of Alchemist's Fire. Target one creature or object you can see within 20 feet of yourself. The target must succeed on a Dexterity saving throw (DC 8 plus your Dexterity modifier and Proficiency Bonus) or take 1d4 Fire damage and start burning (see “Rules Glossary”).",
+      "name": "Burning"
+    },
+    "charmed": {
+      "description": "While you have the Charmed condition, you experience the following effects.\nCan't Harm the Charmer. You can't attack the charmer or target the charmer with damaging abilities or magical effects.\nSocial Advantage. The charmer has Advantage on ability checks to interact socially with you.",
+      "name": "Charmed"
+    },
+    "deafened": {
+      "description": "While you have the Deafened condition, you experience the following effect.\nCan't Hear. You can't hear and automatically fail any ability check that requires hearing.",
+      "name": "Deafened"
+    },
+    "exhaustion": {
+      "description": "While you have the Exhaustion condition, you experience the following effects.\nExhaustion Levels. This condition is cumulative. Each time you receive it, you gain 1 Exhaustion level. You die if your Exhaustion level is 6.",
+      "name": "Exhaustion"
+    },
+    "frightened": {
+      "description": "While you have the Frightened condition, you experience the following effects.\nAbility Checks and Attacks Affected. You have Disadvantage on ability checks and attack rolls while the source of fear is within line of sight.",
+      "name": "Frightened"
+    },
+    "grappled": {
+      "description": "While you have the Grappled condition, you experience the following effects.\nSpeed 0. Your Speed is 0 and can't increase.\nAttacks Affected. You have Disadvantage on attack rolls against any target other than the grappler.",
+      "name": "Grappled"
+    },
+    "incapacitated": {
+      "description": "While you have the Incapacitated condition, you experience the following effects.\nInactive. You can't take any action, Bonus Action, or Reaction.\nNo Concentration. Your Concentration is broken.\nSpeechless. You can't speak.",
+      "name": "Incapacitated"
+    },
+    "invisible": {
+      "description": "While you have the Invisible condition, you experience the following effects.\nSurprise. If you're Invisible when you roll Initiative, you have Advantage on the roll.\nConcealed. You aren't affected by any effect that requires its target to be seen unless the effect's creator can somehow see you. Any equipment you are wearing or carrying is also concealed.",
+      "name": "Invisible"
+    },
+    "oiled": {
+      "description": "You can douse a creature, object, or space with Oil or use it as fuel, as detailed below.\nDousing a Creature or an Object. When you take the Attack action, you can replace one of your attacks with throwing an Oil flask. Target one creature or object within 20 feet of yourself. The target must succeed on a Dexterity saving throw (DC 8 plus your Dexterity modifier and Proficiency Bonus) or be covered in oil. If the target takes Fire damage before the oil dries (after 1 minute), the target takes an extra 5 Fire damage from burning oil.",
+      "name": "Oiled"
+    },
+    "paralyzed": {
+      "description": "While you have the Paralyzed condition, you experience the following effects.\nIncapacitated. You have the Incapacitated condition.\nSpeed 0. Your Speed is 0 and can't increase.\nSaving Throws Affected. You automatically fail Strength and Dexterity saving throws.",
+      "name": "Paralyzed"
+    },
+    "petrified": {
+      "description": "While you have the Petrified condition, you experience the following effects.\nTurned to Inanimate Substance. You are transformed, along with any nonmagical objects you are wearing and carrying, into a solid inanimate substance (usually stone). Your weight increases by a factor of ten, and you cease aging.",
+      "name": "Petrified"
+    },
+    "poisoned": {
+      "description": "While you have the Poisoned condition, you experience the following effect.\nAbility Checks and Attacks Affected. You have Disadvantage on attack rolls and ability checks.",
+      "name": "Poisoned"
+    },
+    "prone": {
+      "description": "While you have the Prone condition, you experience the following effects.\nRestricted Movement. Your only movement options are to crawl or to spend an amount of movement equal to half your Speed (round down) to right yourself and thereby end the condition. If your Speed is 0, you can't right yourself.",
+      "name": "Prone"
+    },
+    "restrained": {
+      "description": "While you have the Restrained condition, you experience the following effects.\nSpeed 0. Your Speed is 0 and can't increase.\nAttacks Affected. Attack rolls against you have Advantage, and your attack rolls have Disadvantage.",
+      "name": "Restrained"
+    },
+    "stunned": {
+      "description": "While you have the Stunned condition, you experience the following effects.\nIncapacitated. You have the Incapacitated condition.\nSaving Throws Affected. You automatically fail Strength and Dexterity saving throws.",
+      "name": "Stunned"
+    },
+    "unconscious": {
+      "description": "While you have the Unconscious condition, you experience the following effects.\nInert. You have the Incapacitated and Prone conditions, and you drop whatever you're holding.\nWhen this condition ends, you remain Prone.",
+      "name": "Unconscious"
+    }
+  },
+  "default_picks": {
+    "feat": [
+      "ability-score-improvement"
+    ],
+    "origin-feat": [
+      "alert",
+      "savage-attacker"
+    ],
+    "replace-metamagic": [
+      "keep"
+    ],
+    "replace-prepared": [
+      "keep"
+    ]
+  },
+  "feats": {
+    "ability-score-improvement": {
+      "description": "Increase one ability score of your choice by 2, or increase two ability scores of your choice by 1. This feat can't increase an ability score above 20.",
+      "grants": {
+        "ability": 2
+      },
+      "minimum_level": 4,
+      "name": "Ability Score Improvement",
+      "repeatable": true,
+      "type": "general"
+    },
+    "alert": {
+      "description": "You gain the following benefits.\nInitiative Proficiency. When you roll Initiative, you can add your Proficiency Bonus to the roll.\nInitiative Swap. Immediately after you roll Initiative, you can swap your Initiative with the Initiative of one willing ally in the same combat. You can't make this swap if you or the ally has the Incapacitated condition.",
+      "modifiers": [
+        {
+          "amount": "proficiency-bonus",
+          "kind": "bonus",
+          "to": "initiative"
+        }
+      ],
+      "name": "Alert",
+      "type": "origin"
+    },
+    "archery": {
+      "description": "You gain a +2 bonus to attack rolls you make with Ranged weapons.",
+      "modifiers": [
+        {
+          "amount": 2,
+          "kind": "bonus",
+          "to": "ranged-attack"
+        }
+      ],
+      "name": "Archery",
+      "type": "fighting-style"
+    },
+    "blessed-warrior": {
+      "cantrip_list": "cleric",
+      "class_id": "paladin",
+      "description": "Learn two Cleric cantrips. Charisma is your spellcasting ability for them.",
+      "grants": {
+        "warrior-cantrip": 2
+      },
+      "name": "Blessed Warrior",
+      "type": "fighting-style"
+    },
+    "defense": {
+      "description": "While you're wearing Light, Medium, or Heavy armor, you gain a +1 bonus to Armor Class.",
+      "modifiers": [
+        {
+          "kind": "bonus",
+          "to": "armored-armor-class"
+        }
+      ],
+      "name": "Defense",
+      "type": "fighting-style"
+    },
+    "druidic-warrior": {
+      "cantrip_list": "druid",
+      "class_id": "ranger",
+      "description": "Learn two Druid cantrips. Wisdom is your spellcasting ability for them.",
+      "grants": {
+        "warrior-cantrip": 2
+      },
+      "name": "Druidic Warrior",
+      "type": "fighting-style"
+    },
+    "great-weapon-fighting": {
+      "description": "When you roll damage for an attack you make with a Melee weapon that you are holding with two hands, you can treat any 1 or 2 on a damage die as a 3. The weapon must have the Two-Handed or Versatile property to gain this benefit.",
+      "name": "Great Weapon Fighting",
+      "type": "fighting-style"
+    },
+    "magic-initiate": {
+      "description": "You gain the following benefits.\nTwo Cantrips. You learn two cantrips of your choice from the Cleric, Druid, or Wizard spell list. Intelligence, Wisdom, or Charisma is your spellcasting ability for this feat's spells (choose when you select this feat).",
+      "grants": {
+        "initiate-ability": 1,
+        "initiate-cantrip": 2,
+        "initiate-list": 1,
+        "initiate-spell": 1
+      },
+      "name": "Magic Initiate",
+      "type": "origin"
+    },
+    "savage-attacker": {
+      "description": "You've trained to deal particularly damaging strikes. Once per turn when you hit a target with a weapon, you can roll the weapon's damage dice twice and use either roll against the target.",
+      "name": "Savage Attacker",
+      "type": "origin"
+    },
+    "skilled": {
+      "description": "You gain proficiency in any combination of three skills or tools of your choice.",
+      "grants": {
+        "skilled": 3
+      },
+      "name": "Skilled",
+      "repeatable": true,
+      "type": "origin"
+    },
+    "two-weapon-fighting": {
+      "description": "When you make an extra attack as a result of using a weapon that has the Light property, you can add your ability modifier to the damage of that attack if you aren't already adding it to the damage.",
+      "name": "Two Weapon Fighting",
+      "type": "fighting-style"
+    }
+  },
+  "feature_uses": {
+    "action-surge": {
+      "recovery": "short-rest-all",
+      "source_id": "fighter-action-surge"
+    },
+    "adrenaline-rush": {
+      "amount": "proficiency-bonus",
+      "recovery": "short-rest-all",
+      "source_id": "adrenaline-rush"
+    },
+    "arcane-recovery": {
+      "source_id": "wizard-arcane-recovery"
+    },
+    "bardic-inspiration": {
+      "amount": {
+        "ability": "charisma"
+      },
+      "short_rest_with": "bard-font-of-inspiration",
+      "source_id": "bard-bardic-inspiration"
+    },
+    "breath-weapon": {
+      "amount": "proficiency-bonus",
+      "source_id": "dragonborn"
+    },
+    "channel-divinity": {
+      "amount": "class-level",
+      "recovery": "short-rest-one"
+    },
+    "clouds-jaunt": {
+      "amount": "proficiency-bonus",
+      "source_id": "giant-ancestry-clouds-jaunt"
+    },
+    "favored-enemy": {
+      "amount": "class-level",
+      "free_cast_spell_id": "hunters-mark"
+    },
+    "fires-burn": {
+      "amount": "proficiency-bonus",
+      "source_id": "giant-ancestry-fires-burn"
+    },
+    "focus": {
+      "amount": "class-level",
+      "recovery": "short-rest-all",
+      "source_id": "monk-monks-focus"
+    },
+    "frosts-chill": {
+      "amount": "proficiency-bonus",
+      "source_id": "giant-ancestry-frosts-chill"
+    },
+    "hills-tumble": {
+      "amount": "proficiency-bonus",
+      "source_id": "giant-ancestry-hills-tumble"
+    },
+    "innate-sorcery": {
+      "amount": 2,
+      "source_id": "sorcerer-innate-sorcery"
+    },
+    "large-form": {
+      "source_id": "large-form"
+    },
+    "lay-on-hands": {
+      "amount": {
+        "per_level": 5
+      },
+      "source_id": "paladin-lay-on-hands"
+    },
+    "magic-initiate": {
+      "source_id": "magic-initiate"
+    },
+    "magical-cunning": {
+      "source_id": "warlock-magical-cunning"
+    },
+    "paladins-smite": {
+      "free_cast_spell_id": "divine-smite",
+      "source_id": "paladin-paladins-smite"
+    },
+    "rage": {
+      "amount": "class-level",
+      "recovery": "short-rest-one"
+    },
+    "relentless-endurance": {
+      "source_id": "relentless-endurance"
+    },
+    "second-wind": {
+      "amount": "class-level",
+      "recovery": "short-rest-one"
+    },
+    "sorcerous-restoration": {
+      "source_id": "sorcerer-sorcerous-restoration"
+    },
+    "sorcery-points": {
+      "amount": "class-level",
+      "source_id": "sorcerer-font-of-magic"
+    },
+    "stones-endurance": {
+      "amount": "proficiency-bonus",
+      "source_id": "giant-ancestry-stones-endurance"
+    },
+    "storms-thunder": {
+      "amount": "proficiency-bonus",
+      "source_id": "giant-ancestry-storms-thunder"
+    },
+    "uncanny-metabolism": {
+      "source_id": "monk-uncanny-metabolism"
+    },
+    "wild-shape": {
+      "amount": "class-level",
+      "recovery": "short-rest-one"
+    }
+  },
+  "features": {
+    "barbarian-ability-score-improvement": {
+      "description": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify. You gain this feature again at Barbarian levels 8, 12, and 16.",
+      "grants": {
+        "feat": 1
+      },
+      "name": "Ability Score Improvement"
+    },
+    "barbarian-danger-sense": {
+      "description": "You gain an uncanny sense of when things aren't as they should be, giving you an edge when you dodge perils. You have Advantage on Dexterity saving throws unless you have the Incapacitated condition.",
+      "modifiers": [
+        {
+          "keys": [
+            "dexterity"
+          ],
+          "kind": "advantage",
+          "on": "save"
+        }
+      ],
+      "name": "Danger Sense"
+    },
+    "barbarian-extra-attack": {
+      "description": "You can attack twice instead of once whenever you take the Attack action on your turn.",
+      "modifiers": [
+        {
+          "kind": "bonus",
+          "to": "attacks"
+        }
+      ],
+      "name": "Extra Attack"
+    },
+    "barbarian-fast-movement": {
+      "description": "Your speed increases by 10 feet while you aren't wearing Heavy armor.",
+      "name": "Fast Movement",
+      "tag": "Fast Movement"
+    },
+    "barbarian-primal-knowledge": {
+      "description": "You gain proficiency in another skill of your choice from the skill list available to Barbarians at level 1.\nIn addition, while your Rage is active, you can channel primal power when you attempt certain tasks; whenever you make an ability check using one of the following skills, you can make it as a Strength check even if it normally uses a different ability: Acrobatics, Intimidation, Perception,",
+      "grants": {
+        "primal-knowledge": 1
+      },
+      "name": "Primal Knowledge"
+    },
+    "barbarian-rage": {
+      "description": "You can imbue yourself with a primal power called Rage, a force that grants you extraordinary might and resilience. You can enter it as a Bonus Action if you aren't wearing Heavy armor.\nYou can enter your Rage the number of times shown for your Barbarian level in the Rages column of the Barbarian Features table. You regain one expended use when you finish a Short Rest, and you regain all expended uses when you finish a Long Rest.",
+      "name": "Rage"
+    },
+    "barbarian-reckless-attack": {
+      "description": "You can throw aside all concern for defense to attack with increased ferocity. When you make your first attack roll on your turn, you can decide to attack recklessly. Doing so gives you Advantage on attack rolls using Strength until the start of your next",
+      "name": "Reckless Attack"
+    },
+    "barbarian-subclass": {
+      "description": "You gain a Barbarian subclass of your choice. A subclass is a specialization that grants you features at certain Barbarian levels. For the rest of your career, you gain each of your subclass's features that are of your Barbarian level or lower.",
+      "name": "Barbarian Subclass"
+    },
+    "barbarian-unarmored-defense": {
+      "description": "While you aren't wearing any armor, your base Armor Class equals 10 plus your Dexterity and Constitution modifiers. You can use a Shield and still gain this benefit.",
+      "modifiers": [
+        {
+          "ability": "constitution",
+          "base": 10,
+          "kind": "armor-base"
+        }
+      ],
+      "name": "Unarmored Defense"
+    },
+    "bard-ability-score-improvement": {
+      "description": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify. You gain this feature again at Bard levels 8, 12, and 16.",
+      "grants": {
+        "feat": 1
+      },
+      "name": "Ability Score Improvement"
+    },
+    "bard-bardic-inspiration": {
+      "description": "You can supernaturally inspire others through words, music, or dance. This inspiration is represented by your Bardic Inspiration die, which is a d6.\nUsing Bardic Inspiration. As a Bonus Action, you can inspire another creature within 60 feet of yourself who can see or hear you. That creature gains",
+      "name": "Bardic Inspiration"
+    },
+    "bard-expertise": {
+      "description": "You gain Expertise (see \"Rules Glossary\") in two of your skill proficiencies of your choice. Performance and Persuasion are recommended if you have proficiency in them.\nAt Bard level 9, you gain Expertise in two more of your skill proficiencies of your choice.",
+      "grants": {
+        "expertise": 2
+      },
+      "name": "Expertise"
+    },
+    "bard-font-of-inspiration": {
+      "description": "You now regain all your expended uses of Bardic Inspiration when you finish a Short or Long Rest.\nIn addition, you can expend a spell slot (no action required) to regain one expended use of Bardic Inspiration.",
+      "name": "Font of Inspiration"
+    },
+    "bard-jack-of-all-trades": {
+      "description": "You can add half your Proficiency Bonus (round down) to any ability check you make that uses a skill proficiency you lack and that doesn't otherwise use your Proficiency Bonus.\nFor example, if you make a Strength (Athletics) check and lack Athletics proficiency, you can add half your Proficiency Bonus to the check.",
+      "modifiers": [
+        {
+          "amount": "half-proficiency-bonus",
+          "kind": "bonus",
+          "to": "unskilled-check"
+        }
+      ],
+      "name": "Jack of All Trades"
+    },
+    "bard-spellcasting": {
+      "description": "You have learned to cast spells through your bardic arts. See \"Spells\" for the rules on spellcasting. The information below details how you use those rules with Bard spells, which appear in the Bard spell list later in the class's description.",
+      "name": "Spellcasting"
+    },
+    "bard-subclass": {
+      "description": "You gain a Bard subclass of your choice. A subclass is a specialization that grants you features at certain Bard levels. For the rest of your career, you gain each of your subclass's features that are of your Bard level or lower.",
+      "grants": {
+        "lore-skill": 3
+      },
+      "name": "Bard Subclass"
+    },
+    "cleric-ability-score-improvement": {
+      "description": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify. You gain this feature again at Cleric levels 8, 12, and 16.",
+      "grants": {
+        "feat": 1
+      },
+      "name": "Ability Score Improvement"
+    },
+    "cleric-channel-divinity": {
+      "description": "You can channel divine energy directly from the Outer Planes to fuel magical effects. You start with two such effects: Divine Spark and Turn Undead, each of which is described below. Each time you use this class's Channel Divinity, choose which Channel Divinity effect from this class to create. You gain additional effect options at higher Cleric levels.",
+      "name": "Channel Divinity"
+    },
+    "cleric-divine-order": {
+      "description": "You have dedicated yourself to one of the following sacred roles of your choice.\nProtector. Trained for battle, you gain proficiency with Martial weapons and training with Heavy armor.\nThaumaturge. You know one extra cantrip from the Cleric spell list. In addition, your mystical connection to the divine gives you a bonus to your Intelligence (Arcana or Religion) checks. The bonus equals your Wisdom modifier (minimum of +1).",
+      "grants": {
+        "class-order": 1
+      },
+      "name": "Divine Order"
+    },
+    "cleric-sear-undead": {
+      "description": "Whenever you use Turn Undead, you can roll a number of d8s equal to your Wisdom modifier (minimum of 1d8) and add the rolls together. Each Undead that fails its saving throw against that use of Turn Undead takes Radiant damage equal to the roll's total. This damage doesn't end the turn effect.",
+      "name": "Sear Undead"
+    },
+    "cleric-spellcasting": {
+      "description": "You have learned to cast spells through prayer and meditation. See \"Spells\" for the rules on spellcasting. The information below details how you use those rules with Cleric spells, which appear on the Cleric spell list later in the class's description.",
+      "name": "Spellcasting"
+    },
+    "cleric-subclass": {
+      "always_prepared": [
+        {
+          "level": 3,
+          "spell_ids": [
+            "aid",
+            "bless",
+            "cure-wounds",
+            "lesser-restoration"
+          ]
+        },
+        {
+          "level": 5,
+          "spell_ids": [
+            "mass-healing-word",
+            "revivify"
+          ]
+        }
+      ],
+      "description": "You gain a Cleric subclass of your choice. A subclass is a specialization that grants you features at certain Cleric levels. For the rest of your career, you gain each of your subclass's features that are of your Cleric level or lower.",
+      "name": "Cleric Subclass"
+    },
+    "druid-ability-score-improvement": {
+      "description": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify. You gain this feature again at Druid levels 8, 12, and 16.",
+      "grants": {
+        "feat": 1
+      },
+      "name": "Ability Score Improvement"
+    },
+    "druid-druidic": {
+      "always_prepared": [
+        {
+          "level": 1,
+          "spell_ids": [
+            "speak-with-animals"
+          ]
+        }
+      ],
+      "description": "You know Druidic, the secret language of Druids. While learning this ancient tongue, you also unlocked the magic of communicating with animals; you always have the Speak with Animals spell prepared.\nYou can use Druidic to leave hidden messages. You and others who know Druidic automatically spot such a message. Others spot the message's presence with a successful DC 15 Intelligence (Investigation) check but can't decipher it without magic.",
+      "name": "Druidic",
+      "tag": "Druidic"
+    },
+    "druid-primal-order": {
+      "description": "You have dedicated yourself to one of the following sacred roles of your choice.\nMagician. You know one extra cantrip from the Druid spell list. In addition, your mystical connection to nature gives you a bonus to your Intelligence (Arcana or Nature) checks. The bonus equals your Wisdom modifier (minimum bonus of +1).",
+      "grants": {
+        "class-order": 1
+      },
+      "name": "Primal Order"
+    },
+    "druid-spellcasting": {
+      "description": "You have learned to cast spells through studying the mystical forces of nature. See \"Spells\" for the rules on spellcasting. The information below details how you use those rules with Druid spells, which appear on the Druid spell list later in the class's description.",
+      "name": "Spellcasting"
+    },
+    "druid-subclass": {
+      "description": "You gain a Druid subclass of your choice. A subclass is a specialization that grants you features at certain Druid levels. For the rest of your career, you gain each of your subclass's features that are of your Druid level or lower.",
+      "grants": {
+        "land": 1
+      },
+      "name": "Druid Subclass"
+    },
+    "druid-wild-shape": {
+      "description": "The power of nature allows you to assume the form of an animal. As a Bonus Action, you shape-shift into a Beast form that you have learned for this feature (see \"Known Forms\" below). You stay in that form for a number of hours equal to half your Druid level or until you use Wild Shape again, have the Incapacitated condition, or die. You can also leave the form early as a Bonus Action.",
+      "name": "Wild Shape"
+    },
+    "fighter-ability-score-improvement": {
+      "description": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify. You gain this feature again at Fighter levels 6, 8, 12, 14, and 16.",
+      "grants": {
+        "feat": 1
+      },
+      "name": "Ability Score Improvement"
+    },
+    "fighter-action-surge": {
+      "description": "You can push yourself beyond your normal limits for a moment. On your turn, you can take one additional action, except the Magic action.\nOnce you use this feature, you can't do so again until you finish a Short or Long Rest. Starting at level 17, you can use it twice before a rest but only once on a turn.",
+      "name": "Action Surge"
+    },
+    "fighter-extra-attack": {
+      "description": "You can attack twice instead of once whenever you take the Attack action on your turn.",
+      "modifiers": [
+        {
+          "kind": "bonus",
+          "to": "attacks"
+        }
+      ],
+      "name": "Extra Attack"
+    },
+    "fighter-fighting-style": {
+      "description": "You have honed your martial prowess and gain a Fighting Style feat of your choice (see \"Feats\"). Defense is recommended.\nWhenever you gain a Fighter level, you can replace the feat you chose with a different Fighting Style feat.",
+      "grants": {
+        "fighting-style": 1
+      },
+      "name": "Fighting Style"
+    },
+    "fighter-second-wind": {
+      "description": "You have a limited well of physical and mental stamina that you can draw on. As a Bonus Action, you can use it to regain Hit Points equal to 1d10 plus your Fighter level.\nYou can use this feature twice. You regain one expended use when you finish a Short Rest, and you regain all expended uses when you finish a Long Rest.",
+      "name": "Second Wind"
+    },
+    "fighter-subclass": {
+      "description": "You gain a Fighter subclass of your choice. A subclass is a specialization that grants you features at certain Fighter levels. For the rest of your career, you gain each of your subclass's features that are of your Fighter level or lower.",
+      "modifiers": [
+        {
+          "kind": "bonus",
+          "to": "critical-range"
+        },
+        {
+          "keys": [
+            "athletics"
+          ],
+          "kind": "advantage",
+          "on": "check"
+        },
+        {
+          "kind": "advantage",
+          "on": "initiative"
+        }
+      ],
+      "name": "Fighter Subclass"
+    },
+    "fighter-tactical-mind": {
+      "description": "You have a mind for tactics on and off the battlefield. When you fail an ability check, you can expend a use of your Second Wind to push yourself toward success. Rather than regaining Hit Points, you roll 1d10 and add the number rolled to the ability check, potentially turning it into a success. If the check still fails, this use of Second Wind isn't expended.",
+      "name": "Tactical Mind"
+    },
+    "monk-ability-score-improvement": {
+      "description": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify. You gain this feature again at Monk levels 8, 12, and 16.",
+      "grants": {
+        "feat": 1
+      },
+      "name": "Ability Score Improvement"
+    },
+    "monk-deflect-attacks": {
+      "description": "When an attack roll hits you and its damage includes Bludgeoning, Piercing, or Slashing damage, you can take a Reaction to reduce the attack's total damage against you. The reduction equals 1d10 plus your Dexterity modifier and Monk level.",
+      "name": "Deflect Attacks"
+    },
+    "monk-extra-attack": {
+      "description": "You can attack twice instead of once whenever you take the Attack action on your turn.",
+      "modifiers": [
+        {
+          "kind": "bonus",
+          "to": "attacks"
+        }
+      ],
+      "name": "Extra Attack"
+    },
+    "monk-martial-arts": {
+      "description": "Your practice of martial arts gives you mastery of combat styles that use your Unarmed Strike and Monk weapons, which are the following:\n• Simple Melee weapons\n• Martial Melee weapons that have the Light property",
+      "name": "Martial Arts"
+    },
+    "monk-monks-focus": {
+      "description": "Your focus and martial training allow you to harness a well of extraordinary energy within yourself. This energy is represented by Focus Points. Your Monk level determines the number of points you have, as shown in the Focus Points column of the Monk Features table.",
+      "name": "Monk's Focus"
+    },
+    "monk-stunning-strike": {
+      "description": "Once per turn when you hit a creature with a Monk weapon or an Unarmed Strike, you can expend 1 Focus Point to attempt a stunning strike. The target must make a Constitution saving throw. On a failed save, the target has the Stunned condition until the start of your next turn. On a successful save, the target's Speed is halved until the start of your next turn, and the next attack roll made against the target before then has Advantage.",
+      "name": "Stunning Strike"
+    },
+    "monk-subclass": {
+      "description": "You gain a Monk subclass of your choice. A subclass is a specialization that grants you features at certain Monk levels. For the rest of your career, you gain each of your subclass's features that are of your Monk level or lower.",
+      "name": "Monk Subclass"
+    },
+    "monk-unarmored-defense": {
+      "description": "While you aren't wearing armor or wielding a Shield, your base Armor Class equals 10 plus your Dexterity and Wisdom modifiers.",
+      "modifiers": [
+        {
+          "ability": "wisdom",
+          "base": 10,
+          "kind": "armor-base",
+          "shieldless": true
+        }
+      ],
+      "name": "Unarmored Defense"
+    },
+    "monk-unarmored-movement": {
+      "description": "Your speed increases by 10 feet while you aren't wearing armor or wielding a Shield. This bonus increases when you reach certain Monk levels, as shown on the Monk Features table.",
+      "name": "Unarmored Movement",
+      "tag": "Unarmored Movement"
+    },
+    "monk-uncanny-metabolism": {
+      "description": "When you roll Initiative, you can regain all expended Focus Points. When you do so, roll your Martial Arts die, and regain a number of Hit Points equal to your Monk level plus the number rolled.\nOnce you use this feature, you can't use it again until you finish a Long Rest.",
+      "name": "Uncanny Metabolism"
+    },
+    "paladin-ability-score-improvement": {
+      "description": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify. You gain this feature again at Paladin levels 8, 12, and 16.",
+      "grants": {
+        "feat": 1
+      },
+      "name": "Ability Score Improvement"
+    },
+    "paladin-channel-divinity": {
+      "description": "You can channel divine energy directly from the Outer Planes, using it to fuel magical effects. You start with one such effect: Divine Sense, which is described below. Other Paladin features give additional Channel Divinity effect options. Each time you use this class's Channel Divinity, you choose which effect from this class to create.",
+      "name": "Channel Divinity",
+      "tag": "Divine Sense"
+    },
+    "paladin-extra-attack": {
+      "description": "You can attack twice instead of once whenever you take the Attack action on your turn.",
+      "modifiers": [
+        {
+          "kind": "bonus",
+          "to": "attacks"
+        }
+      ],
+      "name": "Extra Attack"
+    },
+    "paladin-fighting-style": {
+      "description": "You gain a Fighting Style feat of your choice (see \"Feats\" for feats). Instead of choosing one of those feats, you can choose the option below.\nBlessed Warrior. You learn two Cleric cantrips of your choice (see the Cleric class's section for a list of Cleric spells). Guidance and Sacred Flame are recommended. The chosen cantrips count as Paladin spells for you, and Charisma is your spellcasting ability for them. Whenever you gain a Paladin level, you can replace one of these cantrips with another Cleric cantrip.",
+      "grants": {
+        "fighting-style": 1
+      },
+      "name": "Fighting Style"
+    },
+    "paladin-lay-on-hands": {
+      "description": "Your blessed touch can heal wounds. You have a pool of healing power that replenishes when you finish a Long Rest. With that pool, you can restore a total number of Hit Points equal to five times your Paladin level.",
+      "name": "Lay On Hands"
+    },
+    "paladin-paladins-smite": {
+      "always_prepared": [
+        {
+          "level": 2,
+          "spell_ids": [
+            "divine-smite"
+          ]
+        }
+      ],
+      "description": "You always have the Divine Smite spell prepared. In addition, you can cast it without expending a spell slot, but you must finish a Long Rest before you can cast it in this way again.",
+      "name": "Paladin's Smite"
+    },
+    "paladin-spellcasting": {
+      "description": "You have learned to cast spells through prayer and meditation. See \"Spells\" for the rules on spellcasting. The information below details how you use those rules with Paladin spells, which appear in the Paladin spell list later in the class's description.",
+      "name": "Spellcasting"
+    },
+    "paladin-subclass": {
+      "always_prepared": [
+        {
+          "level": 3,
+          "spell_ids": [
+            "protection-from-evil-and-good",
+            "shield-of-faith"
+          ]
+        },
+        {
+          "level": 5,
+          "spell_ids": [
+            "aid",
+            "zone-of-truth"
+          ]
+        }
+      ],
+      "description": "You gain a Paladin subclass of your choice. A subclass is a specialization that grants you features at certain Paladin levels. For the rest of your career, you gain each of your subclass's features that are of your Paladin level or lower.",
+      "name": "Paladin Subclass"
+    },
+    "ranger-ability-score-improvement": {
+      "description": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify. You gain this feature again at Ranger levels 8, 12, and 16.",
+      "grants": {
+        "feat": 1
+      },
+      "name": "Ability Score Improvement"
+    },
+    "ranger-deft-explorer": {
+      "description": "Thanks to your travels, you gain the following benefits.\nExpertise. Choose one of your skill proficiencies with which you lack Expertise. You gain Expertise in that skill.\nLanguages. You know two languages of your choice from the language tables in \"Character Creation.\"",
+      "grants": {
+        "expertise": 1
+      },
+      "name": "Deft Explorer"
+    },
+    "ranger-extra-attack": {
+      "description": "You can attack twice instead of once whenever you take the Attack action on your turn.",
+      "modifiers": [
+        {
+          "kind": "bonus",
+          "to": "attacks"
+        }
+      ],
+      "name": "Extra Attack"
+    },
+    "ranger-favored-enemy": {
+      "always_prepared": [
+        {
+          "level": 1,
+          "spell_ids": [
+            "hunters-mark"
+          ]
+        }
+      ],
+      "description": "You always have the Hunter's Mark spell prepared. You can cast it twice without expending a spell slot, and you regain all expended uses of this ability when you finish a Long Rest.\nThe number of times you can cast the spell without a spell slot increases when you reach certain Ranger levels, as shown in the Favored Enemy column of the Ranger Features table.",
+      "name": "Favored Enemy"
+    },
+    "ranger-fighting-style": {
+      "description": "You gain a Fighting Style feat of your choice (see \"Feats\"). Instead of choosing one of those feats, you can choose the option below.\nDruidic Warrior. You learn two Druid cantrips of your choice (see the Druid class's section for a list of Druid spells). Guidance and Starry Wisp are recommended. The chosen cantrips count as Ranger spells for you, and Wisdom is your spellcasting ability for them. Whenever you gain a Ranger level, you can replace one of these cantrips with another Druid cantrip.",
+      "grants": {
+        "fighting-style": 1
+      },
+      "name": "Fighting Style"
+    },
+    "ranger-spellcasting": {
+      "description": "You have learned to channel the magical essence of nature to cast spells. See \"Spells\" for the rules on spellcasting. The information below details how you use those rules with Ranger spells, which appear in the Ranger spell list later in the class's description.",
+      "name": "Spellcasting"
+    },
+    "ranger-subclass": {
+      "description": "You gain a Ranger subclass of your choice. A subclass is a specialization that grants you features at certain Ranger levels. For the rest of your career, you gain each of your subclass's features that are of your Ranger level or lower.",
+      "name": "Ranger Subclass"
+    },
+    "rogue-ability-score-improvement": {
+      "description": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify. You gain this feature again at Rogue levels 8, 10, 12, and 16.",
+      "grants": {
+        "feat": 1
+      },
+      "name": "Ability Score Improvement"
+    },
+    "rogue-cunning-action": {
+      "description": "Your quick thinking and agility allow you to move and act quickly. On your turn, you can take one of the following actions as a Bonus Action: Dash, Disengage, or Hide.",
+      "name": "Cunning Action"
+    },
+    "rogue-cunning-strike": {
+      "description": "You've developed cunning ways to use your Sneak Attack. When you deal Sneak Attack damage, you can add one of the following Cunning Strike effects.\nEach effect has a die cost, which is the number of Sneak Attack damage dice you must forgo to add the effect. You remove the die before rolling, and the effect occurs immediately after the attack's damage is dealt. For example, if you add the Poison effect, remove 1d6 from the Sneak Attack's damage before rolling.",
+      "name": "Cunning Strike"
+    },
+    "rogue-expertise": {
+      "description": "You gain Expertise in two of your skill proficiencies of your choice. Sleight of Hand and Stealth are recommended if you have proficiency in them.\nAt Rogue level 6, you gain Expertise in two more of your skill proficiencies of your choice.",
+      "grants": {
+        "expertise": 2
+      },
+      "name": "Expertise"
+    },
+    "rogue-sneak-attack": {
+      "description": "You know how to strike subtly and exploit a foe's distraction. Once per turn, you can deal an extra 1d6 damage to one creature you hit with an attack roll if you have Advantage on the roll and the attack uses a Finesse or a Ranged weapon. The extra damage's type is the same as the weapon's type.",
+      "name": "Sneak Attack"
+    },
+    "rogue-steady-aim": {
+      "description": "As a Bonus Action, you give yourself Advantage on your next attack roll on the current turn. You can use this feature only if you haven't moved during this turn, and after you use it, your Speed is 0 until the end of the current turn.",
+      "name": "Steady Aim"
+    },
+    "rogue-subclass": {
+      "description": "You gain a Rogue subclass of your choice. A subclass is a specialization that grants you features at certain Rogue levels. For the rest of your career, you gain each of your subclass's features that are of your Rogue level or lower.",
+      "name": "Rogue Subclass",
+      "tag": "Second-Story Work"
+    },
+    "rogue-thieves-cant": {
+      "description": "You picked up various languages in the communities where you plied your roguish talents. You know Thieves' Cant and one other language of your choice, which you choose from the language tables in \"Character Creation.\"",
+      "name": "Thieves' Cant",
+      "tag": "Thieves' Cant"
+    },
+    "rogue-uncanny-dodge": {
+      "description": "When an attacker that you can see hits you with an attack roll, you can take a Reaction to halve the attack's damage against you (round down).",
+      "name": "Uncanny Dodge"
+    },
+    "sorcerer-ability-score-improvement": {
+      "description": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify. You gain this feature again at Sorcerer levels 8, 12, and 16.",
+      "grants": {
+        "feat": 1
+      },
+      "name": "Ability Score Improvement"
+    },
+    "sorcerer-font-of-magic": {
+      "description": "You can tap into the wellspring of magic within yourself. This wellspring is represented by Sorcery Points, which allow you to create a variety of magical effects.\nYou have 2 Sorcery Points, and you gain more as you reach higher levels, as shown in the Sorcery Points column of the Sorcerer Features table. You can’t have more Sorcery Points than the number shown in the table for your level. You regain all expended Sorcery Points when you finish a Long Rest.",
+      "name": "Font of Magic"
+    },
+    "sorcerer-innate-sorcery": {
+      "description": "An event in your past left an indelible mark on you, infusing you with simmering magic. As a Bonus Action, you can unleash that magic for 1 minute, during which you gain the following benefits: - The spell save DC of your Sorcerer spells increases by 1.",
+      "name": "Innate Sorcery"
+    },
+    "sorcerer-metamagic": {
+      "description": "Because your magic flows from within, you can alter your spells to suit your needs; you gain two Metamagic options of your choice from \"Metamagic Options\" later in this class’s description. You use the chosen options to temporarily modify spells you cast. To use an option, you must spend the number of Sorcery Points that it costs.",
+      "grants": {
+        "metamagic": 2
+      },
+      "name": "Metamagic"
+    },
+    "sorcerer-sorcerous-restoration": {
+      "description": "When you finish a Short Rest, you can regain expended Sorcery Points, but no more than a number equal to half your Sorcerer level (round down). Once you use this feature, you can’t do so again until you finish a Long Rest.",
+      "name": "Sorcerous Restoration"
+    },
+    "sorcerer-spellcasting": {
+      "description": "Drawing from your innate magic, you can cast spells. See \"Spells\" for the rules on spellcasting. The information below details how you use those rules with Sorcerer spells, which appear in the Sorcerer spell list later in the class’s description.",
+      "name": "Spellcasting"
+    },
+    "sorcerer-subclass": {
+      "always_prepared": [
+        {
+          "level": 3,
+          "spell_ids": [
+            "alter-self",
+            "chromatic-orb",
+            "command"
+          ]
+        },
+        {
+          "level": 5,
+          "spell_ids": [
+            "fear"
+          ]
+        }
+      ],
+      "description": "You gain a Sorcerer subclass of your choice. The Draconic Sorcery subclass is detailed after this class’s description. A subclass is a specialization that grants you features at certain Sorcerer levels.",
+      "modifiers": [
+        {
+          "ability": "charisma",
+          "base": 10,
+          "kind": "armor-base"
+        },
+        {
+          "amount": {
+            "per_level": 1
+          },
+          "kind": "bonus",
+          "to": "hit-points"
+        }
+      ],
+      "name": "Sorcerer Subclass"
+    },
+    "warlock-ability-score-improvement": {
+      "description": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify. You gain this feature again at Warlock levels 8, 12, and 16.",
+      "grants": {
+        "feat": 1
+      },
+      "name": "Ability Score Improvement"
+    },
+    "warlock-eldritch-invocations": {
+      "description": "You have unearthed Eldritch Invocations, pieces of forbidden knowledge that imbue you with an abiding magical ability or other lessons. You gain one invocation of your choice, such as Pact of the Tome. Invocations are described in the \"Eldritch Invocation Options\" section later in this class's description.",
+      "name": "Eldritch Invocations"
+    },
+    "warlock-magical-cunning": {
+      "description": "You can perform an esoteric rite for 1 minute. At the end of it, you regain expended Pact Magic spell slots but no more than a number equal to half your maximum (round up). Once you use this feature, you can't do so again until you finish a Long Rest.",
+      "name": "Magical Cunning"
+    },
+    "warlock-pact-magic": {
+      "description": "Through occult ceremony, you have formed a pact with a mysterious entity to gain magical powers.\nThe entity is a voice in the shadows—its identity unclear—but its boon to you is concrete: the ability to cast spells. See \"Spells\" for the rules on spellcasting.",
+      "name": "Pact Magic"
+    },
+    "warlock-subclass": {
+      "always_prepared": [
+        {
+          "level": 3,
+          "spell_ids": [
+            "burning-hands",
+            "command",
+            "scorching-ray",
+            "suggestion"
+          ]
+        },
+        {
+          "level": 5,
+          "spell_ids": [
+            "fireball"
+          ]
+        }
+      ],
+      "description": "You gain a Warlock subclass of your choice. The Fiend Patron subclass is detailed after this class's description. A subclass is a specialization that grants you features at certain Warlock levels. For the rest of your career, you gain each of your subclass's features that are of your Warlock level or lower.",
+      "name": "Warlock Subclass"
+    },
+    "wizard-ability-score-improvement": {
+      "description": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify. You gain this feature again at Wizard levels 8, 12, and 16.",
+      "grants": {
+        "feat": 1
+      },
+      "name": "Ability Score Improvement"
+    },
+    "wizard-arcane-recovery": {
+      "description": "You can regain some of your magical energy by studying your spellbook. When you finish a Short Rest, you can choose expended spell slots to recover.\nThe spell slots can have a combined level equal to no more than half your Wizard level (round up), and none of the slots can be level 6 or higher.",
+      "name": "Arcane Recovery"
+    },
+    "wizard-ritual-adept": {
+      "description": "You can cast any spell as a Ritual if that spell has the Ritual tag and the spell is in your spellbook. You needn’t have the spell prepared, but you must read from the book to cast a spell in this way.",
+      "name": "Ritual Adept"
+    },
+    "wizard-scholar": {
+      "description": "While studying magic, you also specialized in another field of study. Choose one of the following skills in which you have proficiency: Arcana, History, Investigation, Medicine, Nature, or Religion.\nYou have Expertise in the chosen skill.",
+      "grants": {
+        "expertise": 1
+      },
+      "name": "Scholar"
+    },
+    "wizard-spellcasting": {
+      "description": "As a student of arcane magic, you have learned to cast spells. See \"Spells\" for the rules on spellcasting.\nThe information below details how you use those rules with Wizard spells, which appear in the Wizard spell list later in the class’s description.",
+      "name": "Spellcasting"
+    },
+    "wizard-subclass": {
+      "description": "You gain a Wizard subclass of your choice. The Evoker subclass is detailed after this class’s description.\nA subclass is a specialization that grants you features at certain Wizard levels. For the rest of your career, you gain each of your subclass’s features that are of your Wizard level or lower.",
+      "grants": {
+        "savant-spell": 2
+      },
+      "name": "Wizard Subclass"
+    }
+  },
+  "invocations": {
+    "agonizing-blast": {
+      "description": "Add your Charisma modifier to the damage of Eldritch Blast.",
+      "minimum_level": 2,
+      "name": "Agonizing Blast",
+      "prerequisite_id": "eldritch-blast"
+    },
+    "armor-of-shadows": {
+      "description": "Cast Mage Armor on yourself at will, without a spell slot.",
+      "minimum_level": 1,
+      "modifiers": [
+        {
+          "base": 13,
+          "kind": "armor-base"
+        }
+      ],
+      "name": "Armor of Shadows"
+    },
+    "devils-sight": {
+      "description": "See normally in Dim Light and Darkness, magical or not.",
+      "minimum_level": 2,
+      "modifiers": [
+        {
+          "amount": 2,
+          "kind": "bonus",
+          "to": "light-steps"
+        }
+      ],
+      "name": "Devil's Sight",
+      "tag": "Devil's Sight"
+    },
+    "eldritch-mind": {
+      "description": "Advantage on Constitution saves to keep Concentration.",
+      "minimum_level": 1,
+      "name": "Eldritch Mind"
+    },
+    "eldritch-smite": {
+      "description": "Spend a Pact Magic slot on a pact weapon hit for extra Force damage; the target may fall Prone.",
+      "minimum_level": 5,
+      "name": "Eldritch Smite",
+      "prerequisite_id": "pact-of-the-blade"
+    },
+    "fiendish-vigor": {
+      "description": "Cast False Life on yourself at will, without a spell slot, for 12 Temporary Hit Points.",
+      "minimum_level": 2,
+      "name": "Fiendish Vigor"
+    },
+    "mask-of-many-faces": {
+      "description": "Cast Disguise Self at will, without a spell slot.",
+      "minimum_level": 2,
+      "name": "Mask of Many Faces",
+      "spell_id": "disguise-self",
+      "tag": "Mask of Many Faces"
+    },
+    "misty-visions": {
+      "description": "Cast Silent Image at will, without a spell slot.",
+      "minimum_level": 2,
+      "name": "Misty Visions",
+      "spell_id": "silent-image",
+      "tag": "Misty Visions"
+    },
+    "pact-of-the-blade": {
+      "description": "Conjure a pact weapon; Charisma drives its attack and damage rolls.",
+      "grants": {
+        "pact-weapon": 1
+      },
+      "minimum_level": 1,
+      "name": "Pact of the Blade"
+    },
+    "pact-of-the-tome": {
+      "description": "A Book of Shadows holds three cantrips and two level 1 rituals, always prepared.",
+      "grants": {
+        "tome-cantrip": 3,
+        "tome-ritual": 2
+      },
+      "minimum_level": 1,
+      "name": "Pact of the Tome"
+    },
+    "repelling-blast": {
+      "description": "A hit with Eldritch Blast pushes a Large or smaller target away.",
+      "minimum_level": 2,
+      "name": "Repelling Blast",
+      "prerequisite_id": "eldritch-blast"
+    },
+    "thirsting-blade": {
+      "description": "Attack twice with your pact weapon when you take the Attack action.",
+      "minimum_level": 5,
+      "name": "Thirsting Blade",
+      "prerequisite_id": "pact-of-the-blade"
+    }
+  },
+  "metamagic": {
+    "empowered": {
+      "cost": 1,
+      "description": "Reroll some of the spell's damage dice.",
+      "fits": "damage",
+      "name": "Empowered Spell"
+    },
+    "heightened": {
+      "cost": 2,
+      "description": "One target of the spell has Disadvantage on its first save against it.",
+      "fits": "save",
+      "name": "Heightened Spell"
+    },
+    "quickened": {
+      "cost": 2,
+      "description": "Cast a spell that takes an action as a Bonus Action.",
+      "fits": "action",
+      "name": "Quickened Spell"
+    },
+    "twinned": {
+      "cost": 1,
+      "description": "A spell that targets one creature targets one more.",
+      "fits": "scaling-target",
+      "name": "Twinned Spell"
+    }
+  },
+  "skills": {
+    "acrobatics": {
+      "description": "Stay on your feet in a tricky situation, or perform an acrobatic stunt.",
+      "name": "Acrobatics"
+    },
+    "animal-handling": {
+      "description": "Calm or train an animal, or get an animal to behave in a certain way.",
+      "name": "Animal Handling"
+    },
+    "arcana": {
+      "description": "Recall lore about spells, magic items, and the planes of existence.",
+      "name": "Arcana"
+    },
+    "athletics": {
+      "description": "Jump farther than normal, stay afloat in rough water, or break something.",
+      "name": "Athletics"
+    },
+    "deception": {
+      "description": "Tell a convincing lie, or wear a disguise convincingly.",
+      "name": "Deception"
+    },
+    "history": {
+      "description": "Recall lore about historical events, people, nations, and cultures.",
+      "name": "History"
+    },
+    "insight": {
+      "description": "Discern a person’s mood and intentions.",
+      "name": "Insight"
+    },
+    "intimidation": {
+      "description": "Awe or threaten someone into doing what you want.",
+      "name": "Intimidation"
+    },
+    "investigation": {
+      "description": "Find obscure information in books, or deduce how something works.",
+      "name": "Investigation"
+    },
+    "medicine": {
+      "description": "Diagnose an illness, or determine what killed the recently slain.",
+      "name": "Medicine"
+    },
+    "nature": {
+      "description": "Recall lore about terrain, plants, animals, and weather.",
+      "name": "Nature"
+    },
+    "perception": {
+      "description": "Using a combination of senses, notice something that’s easy to miss.",
+      "name": "Perception"
+    },
+    "performance": {
+      "description": "Act, tell a story, perform music, or dance.",
+      "name": "Performance"
+    },
+    "persuasion": {
+      "description": "Honestly and graciously convince someone of something.",
+      "name": "Persuasion"
+    },
+    "religion": {
+      "description": "Recall lore about gods, religious rituals, and holy symbols.",
+      "name": "Religion"
+    },
+    "sleight-of-hand": {
+      "description": "Pick a pocket, conceal a handheld object, or perform legerdemain.",
+      "name": "Sleight of Hand"
+    },
+    "stealth": {
+      "description": "Escape notice by moving quietly and hiding behind things.",
+      "name": "Stealth"
+    },
+    "survival": {
+      "description": "Follow tracks, forage, find a trail, or avoid natural hazards.",
+      "name": "Survival"
+    }
+  },
+  "source": {
+    "commit": "a6212beb4b278917c2cff41c2b04c4ef4f3e0d6f",
+    "licence": "MIT, © 2018-2020 Adrian Padua, Christopher Ward",
+    "licence_file": "LICENSE-5e-database.md",
+    "path": "src/2024/en",
+    "repository": "5e-bits/5e-database"
+  },
+  "species": {
+    "dragonborn": {
+      "name": "Dragonborn",
+      "sizes": [
+        "medium"
+      ],
+      "speed": 30,
+      "subspecies": {
+        "draconic-ancestor-black": {
+          "damage_type": "acid",
+          "name": "Draconic Ancestor: Black",
+          "traits": [
+            {
+              "description": "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 acid damage. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10).",
+              "level": 1,
+              "name": "Breath Weapon: Acid",
+              "trait_id": "draconic-breath-weapon-acid"
+            },
+            {
+              "description": "You have Resistance to acid damage, as determined by your Draconic Ancestry trait.",
+              "level": 1,
+              "modifiers": [
+                {
+                  "damage_types": [
+                    "acid"
+                  ],
+                  "kind": "resistance"
+                }
+              ],
+              "name": "Damage Resistance: Acid",
+              "trait_id": "draconic-damage-resistance-acid"
+            }
+          ]
+        },
+        "draconic-ancestor-blue": {
+          "damage_type": "lightning",
+          "name": "Draconic Ancestor: Blue",
+          "traits": [
+            {
+              "description": "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 lightning damage. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10).",
+              "level": 1,
+              "name": "Breath Weapon: Lightning",
+              "trait_id": "draconic-breath-weapon-lightning"
+            },
+            {
+              "description": "You have Resistance to lightning damage, as determined by your Draconic Ancestry trait.",
+              "level": 1,
+              "modifiers": [
+                {
+                  "damage_types": [
+                    "lightning"
+                  ],
+                  "kind": "resistance"
+                }
+              ],
+              "name": "Damage Resistance: Lightning",
+              "trait_id": "draconic-damage-resistance-lightning"
+            }
+          ]
+        },
+        "draconic-ancestor-brass": {
+          "damage_type": "fire",
+          "name": "Draconic Ancestor: Brass",
+          "traits": [
+            {
+              "description": "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 fire damage. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10).",
+              "level": 1,
+              "name": "Breath Weapon: Fire",
+              "trait_id": "draconic-breath-weapon-fire"
+            },
+            {
+              "description": "You have Resistance to fire damage, as determined by your Draconic Ancestry trait.",
+              "level": 1,
+              "modifiers": [
+                {
+                  "damage_types": [
+                    "fire"
+                  ],
+                  "kind": "resistance"
+                }
+              ],
+              "name": "Damage Resistance: Fire",
+              "trait_id": "draconic-damage-resistance-fire"
+            }
+          ]
+        },
+        "draconic-ancestor-bronze": {
+          "damage_type": "lightning",
+          "name": "Draconic Ancestor: Bronze",
+          "traits": [
+            {
+              "description": "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 lightning damage. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10).",
+              "level": 1,
+              "name": "Breath Weapon: Lightning",
+              "trait_id": "draconic-breath-weapon-lightning"
+            },
+            {
+              "description": "You have Resistance to lightning damage, as determined by your Draconic Ancestry trait.",
+              "level": 1,
+              "modifiers": [
+                {
+                  "damage_types": [
+                    "lightning"
+                  ],
+                  "kind": "resistance"
+                }
+              ],
+              "name": "Damage Resistance: Lightning",
+              "trait_id": "draconic-damage-resistance-lightning"
+            }
+          ]
+        },
+        "draconic-ancestor-copper": {
+          "damage_type": "acid",
+          "name": "Draconic Ancestor: Copper",
+          "traits": [
+            {
+              "description": "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 acid damage. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10).",
+              "level": 1,
+              "name": "Breath Weapon: Acid",
+              "trait_id": "draconic-breath-weapon-acid"
+            },
+            {
+              "description": "You have Resistance to acid damage, as determined by your Draconic Ancestry trait.",
+              "level": 1,
+              "modifiers": [
+                {
+                  "damage_types": [
+                    "acid"
+                  ],
+                  "kind": "resistance"
+                }
+              ],
+              "name": "Damage Resistance: Acid",
+              "trait_id": "draconic-damage-resistance-acid"
+            }
+          ]
+        },
+        "draconic-ancestor-gold": {
+          "damage_type": "fire",
+          "name": "Draconic Ancestor: Gold",
+          "traits": [
+            {
+              "description": "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 fire damage. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10).",
+              "level": 1,
+              "name": "Breath Weapon: Fire",
+              "trait_id": "draconic-breath-weapon-fire"
+            },
+            {
+              "description": "You have Resistance to fire damage, as determined by your Draconic Ancestry trait.",
+              "level": 1,
+              "modifiers": [
+                {
+                  "damage_types": [
+                    "fire"
+                  ],
+                  "kind": "resistance"
+                }
+              ],
+              "name": "Damage Resistance: Fire",
+              "trait_id": "draconic-damage-resistance-fire"
+            }
+          ]
+        },
+        "draconic-ancestor-green": {
+          "damage_type": "poison",
+          "name": "Draconic Ancestor: Green",
+          "traits": [
+            {
+              "description": "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 poison damage. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10).",
+              "level": 1,
+              "name": "Breath Weapon: Poison",
+              "trait_id": "draconic-breath-weapon-poison"
+            },
+            {
+              "description": "You have Resistance to poison damage, as determined by your Draconic Ancestry trait.",
+              "level": 1,
+              "modifiers": [
+                {
+                  "damage_types": [
+                    "poison"
+                  ],
+                  "kind": "resistance"
+                }
+              ],
+              "name": "Damage Resistance: Poison",
+              "trait_id": "draconic-damage-resistance-poison"
+            }
+          ]
+        },
+        "draconic-ancestor-red": {
+          "damage_type": "fire",
+          "name": "Draconic Ancestor: Red",
+          "traits": [
+            {
+              "description": "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 fire damage. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10).",
+              "level": 1,
+              "name": "Breath Weapon: Fire",
+              "trait_id": "draconic-breath-weapon-fire"
+            },
+            {
+              "description": "You have Resistance to fire damage, as determined by your Draconic Ancestry trait.",
+              "level": 1,
+              "modifiers": [
+                {
+                  "damage_types": [
+                    "fire"
+                  ],
+                  "kind": "resistance"
+                }
+              ],
+              "name": "Damage Resistance: Fire",
+              "trait_id": "draconic-damage-resistance-fire"
+            }
+          ]
+        },
+        "draconic-ancestor-silver": {
+          "damage_type": "cold",
+          "name": "Draconic Ancestor: Silver",
+          "traits": [
+            {
+              "description": "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 cold damage. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10).",
+              "level": 1,
+              "name": "Breath Weapon: Cold",
+              "trait_id": "draconic-breath-weapon-cold"
+            },
+            {
+              "description": "You have Resistance to cold damage, as determined by your Draconic Ancestry trait.",
+              "level": 1,
+              "modifiers": [
+                {
+                  "damage_types": [
+                    "cold"
+                  ],
+                  "kind": "resistance"
+                }
+              ],
+              "name": "Damage Resistance: Cold",
+              "trait_id": "draconic-damage-resistance-cold"
+            }
+          ]
+        },
+        "draconic-ancestor-white": {
+          "damage_type": "cold",
+          "name": "Draconic Ancestor: White",
+          "traits": [
+            {
+              "description": "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 cold damage. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10).",
+              "level": 1,
+              "name": "Breath Weapon: Cold",
+              "trait_id": "draconic-breath-weapon-cold"
+            },
+            {
+              "description": "You have Resistance to cold damage, as determined by your Draconic Ancestry trait.",
+              "level": 1,
+              "modifiers": [
+                {
+                  "damage_types": [
+                    "cold"
+                  ],
+                  "kind": "resistance"
+                }
+              ],
+              "name": "Damage Resistance: Cold",
+              "trait_id": "draconic-damage-resistance-cold"
+            }
+          ]
+        }
+      },
+      "traits": [
+        {
+          "description": "You have Darkvision with a range of 60 feet.",
+          "modifiers": [
+            {
+              "kind": "bonus",
+              "to": "light-steps"
+            }
+          ],
+          "name": "Darkvision (60 ft.)",
+          "trait_id": "darkvision-60"
+        },
+        {
+          "description": "When you reach character level 5, you can channel draconic magic to give yourself temporary flight. As a Bonus Action, you sprout spectral wings on your back that last for 10 minutes or until you retract the wings (no action required) or have the Incapacitated condition. During that time, you have a Fly Speed equal to your Speed. Your wings appear to be made of the same energy as your Breath Weapon. Once you use this trait, you can't use it again until you finish a Long Rest.",
+          "level": 5,
+          "name": "Draconic Flight",
+          "tag": "Draconic Flight",
+          "trait_id": "draconic-flight"
+        }
+      ]
+    },
+    "dwarf": {
+      "name": "Dwarf",
+      "sizes": [
+        "medium"
+      ],
+      "speed": 30,
+      "traits": [
+        {
+          "description": "You have Darkvision with a range of 120 feet.",
+          "modifiers": [
+            {
+              "kind": "bonus",
+              "to": "light-steps"
+            }
+          ],
+          "name": "Darkvision (120 ft.)",
+          "trait_id": "darkvision-120"
+        },
+        {
+          "description": "You have Resistance to Poison damage. You also have Advantage on saving throws you make to avoid or end the Poisoned condition.",
+          "modifiers": [
+            {
+              "keys": [
+                "poisoned"
+              ],
+              "kind": "advantage",
+              "on": "save"
+            },
+            {
+              "damage_types": [
+                "poison"
+              ],
+              "kind": "resistance"
+            }
+          ],
+          "name": "Dwarven Resilience",
+          "trait_id": "dwarven-resilience"
+        },
+        {
+          "description": "Your Hit Point maximum increases by 1, and it increases by 1 again whenever you gain a level.",
+          "modifiers": [
+            {
+              "amount": {
+                "per_level": 1
+              },
+              "kind": "bonus",
+              "to": "hit-points"
+            }
+          ],
+          "name": "Dwarven Toughness",
+          "trait_id": "dwarven-toughness"
+        },
+        {
+          "description": "As a Bonus Action, you gain Tremorsense with a range of 60 feet for 10 minutes. You must be on a stone surface or touching a stone surface to use this Tremorsense. The stone can be natural or worked.\nYou can use this Bonus Action a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest.",
+          "name": "Stonecunning",
+          "tag": "Stonecunning",
+          "trait_id": "stonecunning"
+        }
+      ]
+    },
+    "elf": {
+      "name": "Elf",
+      "sizes": [
+        "medium"
+      ],
+      "speed": 30,
+      "subspecies": {
+        "elven-lineage-drow": {
+          "name": "Elven Lineage: Drow",
+          "traits": [
+            {
+              "description": "You have Darkvision with a range of 120 feet.",
+              "level": 1,
+              "modifiers": [
+                {
+                  "kind": "bonus",
+                  "to": "light-steps"
+                }
+              ],
+              "name": "Darkvision (120 ft.)",
+              "trait_id": "darkvision-120"
+            },
+            {
+              "description": "You know the spell Dancing Lights.",
+              "level": 1,
+              "name": "Dancing Lights",
+              "spell_ids": [
+                "dancing-lights"
+              ],
+              "trait_id": "lineage-spell-dancing-lights"
+            },
+            {
+              "description": "You know the spell Faerie Fire.",
+              "level": 3,
+              "name": "Faerie Fire",
+              "spell_ids": [
+                "faerie-fire"
+              ],
+              "trait_id": "lineage-spell-faerie-fire"
+            }
+          ]
+        },
+        "elven-lineage-high-elf": {
+          "name": "Elven Lineage: High Elf",
+          "traits": [
+            {
+              "description": "You know the Prestidigitation cantrip. Whenever you finish a Long Rest, you can replace that cantrip with a different cantrip from the Wizard spell list.",
+              "level": 1,
+              "name": "High Elf: Cantrip Versatility",
+              "spell_ids": [
+                "prestidigitation"
+              ],
+              "trait_id": "high-elf-cantrip-versatility"
+            },
+            {
+              "description": "You know the spell Detect Magic.",
+              "level": 3,
+              "name": "Detect Magic",
+              "spell_ids": [
+                "detect-magic"
+              ],
+              "trait_id": "lineage-spell-detect-magic"
+            },
+            {
+              "description": "You know the spell Misty Step.",
+              "level": 5,
+              "name": "Misty Step",
+              "spell_ids": [
+                "misty-step"
+              ],
+              "trait_id": "lineage-spell-misty-step"
+            }
+          ]
+        },
+        "elven-lineage-wood-elf": {
+          "name": "Elven Lineage: Wood Elf",
+          "traits": [
+            {
+              "description": "Your Movement Speed increases to 35 feet.",
+              "level": 1,
+              "name": "Wood Elf: Movement Speed Increase",
+              "trait_id": "wood-elf-speed-increase"
+            },
+            {
+              "description": "You learn the spell Longstrider.",
+              "level": 3,
+              "name": "Longstrider",
+              "spell_ids": [
+                "longstrider"
+              ],
+              "trait_id": "lineage-spell-longstrider"
+            },
+            {
+              "description": "You learn the spell Pass without Trace.",
+              "level": 5,
+              "name": "Pass without Trace",
+              "spell_ids": [
+                "pass-without-trace"
+              ],
+              "trait_id": "lineage-spell-pass-without-trace"
+            }
+          ]
+        }
+      },
+      "traits": [
+        {
+          "description": "You have Darkvision with a range of 60 feet.",
+          "modifiers": [
+            {
+              "kind": "bonus",
+              "to": "light-steps"
+            }
+          ],
+          "name": "Darkvision (60 ft.)",
+          "trait_id": "darkvision-60"
+        },
+        {
+          "description": "You are part of a lineage that grants you supernatural abilities. Choose a lineage from the Elven Lineages table. You gain the level 1 benefit of that lineage.\nWhen you reach character levels 3 and 5, you learn a higher-level spell, as shown on the table.",
+          "name": "Elven Lineage",
+          "trait_id": "elven-lineage"
+        },
+        {
+          "description": "You have Advantage on saving throws you make to avoid or end the Charmed condition.",
+          "modifiers": [
+            {
+              "keys": [
+                "charmed"
+              ],
+              "kind": "advantage",
+              "on": "save"
+            }
+          ],
+          "name": "Fey Ancestry",
+          "trait_id": "fey-ancestry"
+        },
+        {
+          "description": "You have proficiency in the Insight, Perception, or Survival skill.",
+          "grants": {
+            "species-skill": 1
+          },
+          "name": "Keen Senses",
+          "skill_options": [
+            "insight",
+            "perception",
+            "survival"
+          ],
+          "trait_id": "keen-senses"
+        },
+        {
+          "description": "You don't need to sleep, and magic can't put you to sleep. You can finish a Long Rest in 4 hours if you spend those hours in a trancelike meditation, during which you retain consciousness.",
+          "name": "Trance",
+          "tag": "Trance",
+          "trait_id": "trance"
+        }
+      ]
+    },
+    "gnome": {
+      "name": "Gnome",
+      "sizes": [
+        "small"
+      ],
+      "speed": 30,
+      "subspecies": {
+        "gnomish-lineage-forest-gnome": {
+          "name": "Gnomish Lineage: Forest Gnome",
+          "traits": [
+            {
+              "description": "You always have the Speak with Animals spell prepared. You can cast it without a spell slot a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest. You can also use any spell slots you have to cast the spell.",
+              "free_casts": "proficiency-bonus",
+              "level": 1,
+              "name": "Gnomish Lineage: Forest Gnome",
+              "spell_ids": [
+                "speak-with-animals"
+              ],
+              "trait_id": "gnomish-lineage-forest-gnome"
+            },
+            {
+              "description": "You know the spell Minor Illusion.",
+              "level": 1,
+              "name": "Minor Illusion",
+              "spell_ids": [
+                "minor-illusion"
+              ],
+              "trait_id": "lineage-spell-minor-illusion"
+            }
+          ]
+        },
+        "gnomish-lineage-rock-gnome": {
+          "name": "Gnomish Lineage: Rock Gnome",
+          "traits": [
+            {
+              "description": "You know the Prestidigitation cantrip. In addition, you can spend 10 minutes casting Prestidigitation to create a Tiny clockwork device (AC 5, 1 HP), such as a toy, fire starter, or music box. When you create the device, you determine its function by choosing one effect from Prestidigitation; the device produces that effect whenever you or another creature takes a Bonus Action to activate it with a touch. If the chosen effect has options within it, you choose one of those options for the device when you create it. For example, if you choose the spell’s ignite-extinguish effect, you determine whether the device ignites or extinguishes fire; the device doesn’t do both. You can have three such devices in existence at a time, and each falls apart 8 hours after its creation or when you dismantle it with a touch as a Utilize action.",
+              "level": 1,
+              "name": "Gnomish Lineage: Rock Gnome",
+              "spell_ids": [
+                "prestidigitation"
+              ],
+              "trait_id": "gnomish-lineage-rock-gnome"
+            },
+            {
+              "description": "You know the cantrip Mending.",
+              "level": 1,
+              "name": "Mending",
+              "spell_ids": [
+                "mending"
+              ],
+              "trait_id": "lineage-spell-mending"
+            }
+          ]
+        }
+      },
+      "traits": [
+        {
+          "description": "You have Darkvision with a range of 60 feet.",
+          "modifiers": [
+            {
+              "kind": "bonus",
+              "to": "light-steps"
+            }
+          ],
+          "name": "Darkvision (60 ft.)",
+          "trait_id": "darkvision-60"
+        },
+        {
+          "description": "You have Advantage on Intelligence, Wisdom, and Charisma saving throws.",
+          "modifiers": [
+            {
+              "keys": [
+                "intelligence",
+                "wisdom",
+                "charisma"
+              ],
+              "kind": "advantage",
+              "on": "save"
+            }
+          ],
+          "name": "Gnomish Cunning",
+          "trait_id": "gnomish-cunning"
+        },
+        {
+          "description": "You are part of a lineage that grants you supernatural abilities. Choose one of the following options; whichever one you choose, Intelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the lineage):",
+          "name": "Gnomish Lineage",
+          "trait_id": "gnomish-lineage"
+        }
+      ]
+    },
+    "goliath": {
+      "name": "Goliath",
+      "sizes": [
+        "medium"
+      ],
+      "speed": 35,
+      "subspecies": {
+        "giant-ancestry-clouds-jaunt": {
+          "name": "Giant Ancestry: Cloud's Jaunt",
+          "traits": [
+            {
+              "description": "As a Bonus Action, you magically teleport up to 30 feet to an unoccupied space you can see.",
+              "level": 1,
+              "name": "Giant Ancestry: Cloud's Jaunt",
+              "trait_id": "giant-ancestry-clouds-jaunt"
+            }
+          ]
+        },
+        "giant-ancestry-fires-burn": {
+          "name": "Giant Ancestry: Fire's Burn",
+          "traits": [
+            {
+              "description": "When you hit a target with an attack roll and deal damage to it, you can also deal 1d10 Fire damage to that target.",
+              "level": 1,
+              "name": "Giant Ancestry: Fire's Burn",
+              "trait_id": "giant-ancestry-fires-burn"
+            }
+          ]
+        },
+        "giant-ancestry-frosts-chill": {
+          "name": "Giant Ancestry: Frost's Chill",
+          "traits": [
+            {
+              "description": "When you hit a target with an attack roll and deal damage to it, you can also deal 1d6 Cold damage to that target and reduce its Speed by 10 feet until the start of your next turn.",
+              "level": 1,
+              "name": "Giant Ancestry: Frost's Chill",
+              "trait_id": "giant-ancestry-frosts-chill"
+            }
+          ]
+        },
+        "giant-ancestry-hills-tumble": {
+          "name": "Giant Ancestry: Hill's Tumble",
+          "traits": [
+            {
+              "description": "When you hit a Large or smaller creature with an attack roll and deal damage to it, you can give that target the Prone condition.",
+              "level": 1,
+              "name": "Giant Ancestry: Hill's Tumble",
+              "trait_id": "giant-ancestry-hills-tumble"
+            }
+          ]
+        },
+        "giant-ancestry-stones-endurance": {
+          "name": "Giant Ancestry: Stone's Endurance",
+          "traits": [
+            {
+              "description": "When you take damage, you can take a Reaction to roll 1d12. Add your Constitution modifier to the number rolled and reduce the damage by that total.",
+              "level": 1,
+              "name": "Giant Ancestry: Stone's Endurance",
+              "trait_id": "giant-ancestry-stones-endurance"
+            }
+          ]
+        },
+        "giant-ancestry-storms-thunder": {
+          "name": "Giant Ancestry: Storm's Thunder",
+          "traits": [
+            {
+              "description": "When you take damage from a creature within 60 feet of you, you can take a Reaction to deal 1d8 Thunder damage to that creature.",
+              "level": 1,
+              "name": "Giant Ancestry: Storm's Thunder",
+              "trait_id": "giant-ancestry-storms-thunder"
+            }
+          ]
+        }
+      },
+      "traits": [
+        {
+          "description": "You are descended from Giants. Choose one of the following benefits-a supernatural boon from your ancestry; you can use the chosen benefit a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest:",
+          "name": "Giant Ancestry",
+          "trait_id": "giant-ancestry"
+        },
+        {
+          "description": "Starting at character level 5, you can change your size to Large as a Bonus Action if you're in a big enough space. This transformation lasts for 10 minutes or until you end it (no action required). For that duration, you have Advantage on Strength checks, and your Speed increases by 10 feet. Once you use this trait, you can't use it again until you finish a Long Rest.",
+          "level": 5,
+          "name": "Large Form",
+          "tag": "Large Form",
+          "trait_id": "large-form"
+        },
+        {
+          "description": "You have Advantage on any ability check you make to end the Grappled condition. You also count as one size larger when determining your carrying capacity.",
+          "name": "Powerful Build",
+          "trait_id": "powerful-build"
+        }
+      ]
+    },
+    "halfling": {
+      "name": "Halfling",
+      "sizes": [
+        "small"
+      ],
+      "speed": 30,
+      "traits": [
+        {
+          "description": "You have Advantage on saving throws you make to avoid or end the Frightened condition.",
+          "modifiers": [
+            {
+              "keys": [
+                "frightened"
+              ],
+              "kind": "advantage",
+              "on": "save"
+            }
+          ],
+          "name": "Brave",
+          "trait_id": "brave"
+        },
+        {
+          "description": "You can move through the space of any creature that is a size larger than you, but you can't stop in the same space.",
+          "name": "Halfling Nimbleness",
+          "tag": "Halfling Nimbleness",
+          "trait_id": "halfling-nimbleness"
+        },
+        {
+          "description": "When you roll a 1 on the d20 of a D20 Test, you can reroll the die, and you must use the new roll.",
+          "name": "Luck",
+          "trait_id": "luck"
+        },
+        {
+          "description": "You can take the Hide action even when you are obscured only by a creature that is at least one size larger than you.",
+          "name": "Naturally Stealthy",
+          "tag": "Naturally Stealthy",
+          "trait_id": "naturally-stealthy"
+        }
+      ]
+    },
+    "human": {
+      "name": "Human",
+      "sizes": [
+        "small",
+        "medium"
+      ],
+      "speed": 30,
+      "traits": [
+        {
+          "description": "You gain Heroic Inspiration whenever you finish a Long Rest.",
+          "name": "Resourceful",
+          "trait_id": "resourceful"
+        },
+        {
+          "description": "You gain proficiency in one skill of your choice.",
+          "grants": {
+            "species-skill": 1
+          },
+          "name": "Skillful",
+          "skill_options": [
+            "acrobatics",
+            "animal-handling",
+            "arcana",
+            "athletics",
+            "deception",
+            "history",
+            "insight",
+            "intimidation",
+            "investigation",
+            "medicine",
+            "nature",
+            "perception",
+            "performance",
+            "persuasion",
+            "religion",
+            "sleight-of-hand",
+            "stealth",
+            "survival"
+          ],
+          "trait_id": "skillful"
+        },
+        {
+          "description": "You gain an Origin feat of your choice (see \"Feats\"). Skilled is recommended.",
+          "grants": {
+            "origin-feat": 1
+          },
+          "name": "Versatile",
+          "trait_id": "versatile"
+        }
+      ]
+    },
+    "orc": {
+      "name": "Orc",
+      "sizes": [
+        "medium"
+      ],
+      "speed": 30,
+      "traits": [
+        {
+          "description": "You can take the Dash action as a Bonus Action. When you do so, you gain a number of Temporary Hit Points equal to your Proficiency Bonus.\nYou can use this trait a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Short or Long Rest.",
+          "name": "Adrenaline Rush",
+          "trait_id": "adrenaline-rush"
+        },
+        {
+          "description": "You have Darkvision with a range of 120 feet.",
+          "modifiers": [
+            {
+              "kind": "bonus",
+              "to": "light-steps"
+            }
+          ],
+          "name": "Darkvision (120 ft.)",
+          "trait_id": "darkvision-120"
+        },
+        {
+          "description": "When you are reduced to 0 Hit Points but not killed outright, you can drop to 1 Hit Point instead. Once you use this trait, you can't do so again until you finish a Long Rest.",
+          "name": "Relentless Endurance",
+          "trait_id": "relentless-endurance"
+        }
+      ]
+    },
+    "tiefling": {
+      "name": "Tiefling",
+      "sizes": [
+        "small",
+        "medium"
+      ],
+      "speed": 30,
+      "subspecies": {
+        "fiendish-legacy-abyssal": {
+          "name": "Fiendish Legacy: Abyssal",
+          "traits": [
+            {
+              "description": "You have Resistance to Poison damage.",
+              "level": 1,
+              "modifiers": [
+                {
+                  "damage_types": [
+                    "poison"
+                  ],
+                  "kind": "resistance"
+                }
+              ],
+              "name": "Damage Resistance: Poison",
+              "trait_id": "lineage-resistance-poison"
+            },
+            {
+              "description": "You know the spell Poison Spray.",
+              "level": 1,
+              "name": "Poison Spray",
+              "spell_ids": [
+                "poison-spray"
+              ],
+              "trait_id": "lineage-spell-poison-spray"
+            },
+            {
+              "description": "You know the spell Ray of Sickness.",
+              "level": 3,
+              "name": "Ray of Sickness",
+              "spell_ids": [
+                "ray-of-sickness"
+              ],
+              "trait_id": "lineage-spell-ray-of-sickness"
+            },
+            {
+              "description": "You know the spell Hold Person.",
+              "level": 5,
+              "name": "Hold Person",
+              "spell_ids": [
+                "hold-person"
+              ],
+              "trait_id": "lineage-spell-hold-person"
+            }
+          ]
+        },
+        "fiendish-legacy-chthonic": {
+          "name": "Fiendish Legacy: Chthonic",
+          "traits": [
+            {
+              "description": "You have Resistance to Necrotic damage.",
+              "level": 1,
+              "modifiers": [
+                {
+                  "damage_types": [
+                    "necrotic"
+                  ],
+                  "kind": "resistance"
+                }
+              ],
+              "name": "Damage Resistance: Necrotic",
+              "trait_id": "lineage-resistance-necrotic"
+            },
+            {
+              "description": "You know the spell Chill Touch.",
+              "level": 1,
+              "name": "Chill Touch",
+              "spell_ids": [
+                "chill-touch"
+              ],
+              "trait_id": "lineage-spell-chill-touch"
+            },
+            {
+              "description": "You know the spell False Life.",
+              "level": 3,
+              "name": "False Life",
+              "spell_ids": [
+                "false-life"
+              ],
+              "trait_id": "lineage-spell-false-life"
+            },
+            {
+              "description": "You know the spell Ray of Enfeeblement.",
+              "level": 5,
+              "name": "Ray of Enfeeblement",
+              "spell_ids": [
+                "ray-of-enfeeblement"
+              ],
+              "trait_id": "lineage-spell-ray-of-enfeeblement"
+            }
+          ]
+        },
+        "fiendish-legacy-infernal": {
+          "name": "Fiendish Legacy: Infernal",
+          "traits": [
+            {
+              "description": "You have Resistance to Fire damage.",
+              "level": 1,
+              "modifiers": [
+                {
+                  "damage_types": [
+                    "fire"
+                  ],
+                  "kind": "resistance"
+                }
+              ],
+              "name": "Damage Resistance: Fire",
+              "trait_id": "lineage-resistance-fire"
+            },
+            {
+              "description": "You know the spell Fire Bolt.",
+              "level": 1,
+              "name": "Fire Bolt",
+              "spell_ids": [
+                "fire-bolt"
+              ],
+              "trait_id": "lineage-spell-fire-bolt"
+            }
+          ]
+        }
+      },
+      "traits": [
+        {
+          "description": "You have Darkvision with a range of 60 feet.",
+          "modifiers": [
+            {
+              "kind": "bonus",
+              "to": "light-steps"
+            }
+          ],
+          "name": "Darkvision (60 ft.)",
+          "trait_id": "darkvision-60"
+        },
+        {
+          "description": "You are the recipient of a legacy that grants you supernatural abilities. Choose a legacy from the Fiendish Legacies table. You gain the level 1 benefit of the chosen legacy.\nWhen you reach character levels 3 and 5, you learn a higher-level spell, as shown on the table.",
+          "name": "Fiendish Legacy",
+          "trait_id": "fiendish-legacy"
+        },
+        {
+          "description": "You know the Thaumaturgy cantrip. When you cast it with this trait, the spell uses the same spellcasting ability you use for your Fiendish Legacy trait.",
+          "name": "Otherworldly Presence",
+          "spell_ids": [
+            "thaumaturgy"
+          ],
+          "trait_id": "otherworldly-presence"
+        }
+      ]
+    }
+  }
+}

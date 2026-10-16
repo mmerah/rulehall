@@ -1,0 +1,133 @@
+{
+  "id": "bryn",
+  "engine_id": "lite5e",
+  "person": {
+    "id": "player",
+    "name": "Bryn",
+    "brief": "A herb gatherer from the hill holds who keeps the old groves and their beasts.",
+    "known": true,
+    "voice": "feminine",
+    "alive": true,
+    "place_id": "player",
+    "sheet": {
+      "class_id": "druid",
+      "level": 1,
+      "species_id": "dwarf",
+      "subspecies_id": null,
+      "species_ability": null,
+      "background_id": "herbalist",
+      "base_scores": {
+        "strength": 10,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 12,
+        "wisdom": 15,
+        "charisma": 8
+      },
+      "background_increases": {
+        "wisdom": 2,
+        "constitution": 1
+      },
+      "background_skills": [
+        "medicine",
+        "nature"
+      ],
+      "background_tool_id": "herbalism-kit",
+      "background_feat_id": "magic-initiate",
+      "picks": {
+        "class-skill": [
+          "perception",
+          "animal-handling"
+        ],
+        "cantrip": [
+          "produce-flame",
+          "guidance",
+          "shillelagh"
+        ],
+        "prepared": [
+          "healing-word",
+          "entangle",
+          "cure-wounds",
+          "faerie-fire"
+        ],
+        "initiate-list": [
+          "druid"
+        ],
+        "initiate-ability": [
+          "wisdom"
+        ],
+        "initiate-cantrip": [
+          "druidcraft",
+          "resistance"
+        ],
+        "initiate-spell": [
+          "goodberry"
+        ],
+        "class-order": [
+          "magician"
+        ]
+      },
+      "replacements_due": [],
+      "vitals": {
+        "hp": {
+          "current": 11,
+          "maximum": 11
+        },
+        "death_successes": 0,
+        "death_failures": 0,
+        "stable": false
+      },
+      "temp_hp": 0,
+      "hit_dice_spent": 0,
+      "slots_spent": {},
+      "made_slots": {},
+      "uses_spent": {},
+      "lineage_casts_spent": {},
+      "concentration_spell_id": null,
+      "gear": {
+        "leather-armor": 1,
+        "shield": 1,
+        "sickle": 2,
+        "quarterstaff": 1,
+        "backpack": 1,
+        "bedroll": 1,
+        "oil": 2,
+        "rations": 10,
+        "rope": 1,
+        "tinderbox": 1,
+        "torch": 10,
+        "waterskin": 1,
+        "herbalism-kit": 2,
+        "sprig-of-mistletoe": 1,
+        "healers-kit": 1,
+        "book": 1,
+        "robe": 1,
+        "pouch": 2,
+        "vial": 1
+      },
+      "equipped_ids": [
+        "leather-armor",
+        "shield",
+        "sickle"
+      ],
+      "exhaustion": 0,
+      "inspiration": false,
+      "inspired_since_long_rest": false,
+      "coins_cp": 1900,
+      "xp": 0,
+      "aid_hp": 0,
+      "hp_max_cut": 0,
+      "effects": []
+    },
+    "stat_block_id": "commoner",
+    "count": 1,
+    "hostile": false,
+    "captive": false,
+    "conditions": [],
+    "stat_block_vitals": null,
+    "portrait_id": "dwarf-druid",
+    "formation_row": "front",
+    "routed": false,
+    "xp_paid": false
+  }
+}

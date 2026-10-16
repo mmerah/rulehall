@@ -1,0 +1,389 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "places": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "type": "string"
+            },
+            "known": {
+              "default": false,
+              "type": "boolean"
+            },
+            "description": {
+              "type": "string"
+            },
+            "light": {
+              "default": "bright",
+              "description": "The light of this place.",
+              "enum": [
+                "dark",
+                "dim",
+                "bright"
+              ],
+              "type": "string"
+            },
+            "cover": {
+              "default": false,
+              "description": "True when it has cover to hide behind in a battle, such as crates, pillars or brush.",
+              "type": "boolean"
+            },
+            "shop": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ],
+              "default": null,
+              "description": "The magic items its shop sells. A shop sells SRD gear at SRD prices and the magic items listed here; an empty list sells no magic. Null: no shop. Exact id of SRD gear or of a magic item. Magic armor and magic weapons join the magic item id to the id of the base piece: armor-1-chain-mail is Chain Mail +1, weapon-2-longsword is Longsword +2."
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "brief",
+            "description"
+          ],
+          "type": "object"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "ways": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "items": {
+            "additionalProperties": false,
+            "description": "One way out, in one direction, from the place it is filed under.",
+            "properties": {
+              "to_id": {
+                "type": "string"
+              },
+              "known": {
+                "default": true,
+                "description": "False only for a secret way the story must find.",
+                "type": "boolean"
+              },
+              "locked": {
+                "default": false,
+                "type": "boolean"
+              },
+              "lock": {
+                "enum": [
+                  "easy",
+                  "medium",
+                  "hard"
+                ],
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "default": null,
+                "description": "How hard the lock of this locked way is to pick or force. Null: no lock to pick; only the story opens it."
+              }
+            },
+            "required": [
+              "to_id"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "npcs": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "type": "string"
+            },
+            "known": {
+              "default": false,
+              "type": "boolean"
+            },
+            "voice": {
+              "description": "How this person sounds read aloud: feminine, masculine, or other for creatures, machines and voices that are neither.",
+              "enum": [
+                "feminine",
+                "masculine",
+                "other"
+              ],
+              "type": "string"
+            },
+            "place_id": {
+              "type": "string"
+            },
+            "stat_block_id": {
+              "default": "commoner",
+              "description": "The id of the SRD stat block that gives this person or group its numbers, such as 'bandit-captain' or 'wolf'. Commoner when none fits better.",
+              "type": "string"
+            },
+            "count": {
+              "default": 1,
+              "description": "How many stand in this group, from 1 to 8. A named enemy is 1.",
+              "maximum": 8,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "hostile": {
+              "default": false,
+              "description": "True when it attacks the party on sight.",
+              "type": "boolean"
+            },
+            "captive": {
+              "default": false,
+              "description": "True when it is held as a captive.",
+              "type": "boolean"
+            },
+            "find": {
+              "enum": [
+                "easy",
+                "medium",
+                "hard"
+              ],
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null,
+              "description": "How hard this hidden person is to notice. The party notices it on arrival when its best passive Perception is at least the word's DC. Null: it hides by its Stealth when the party arrives or it walks in."
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "brief",
+            "voice",
+            "place_id"
+          ],
+          "type": "object"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "items": {
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "brief": {
+              "type": "string"
+            },
+            "known": {
+              "default": false,
+              "type": "boolean"
+            },
+            "holder_id": {
+              "type": "string"
+            },
+            "find": {
+              "enum": [
+                "easy",
+                "medium",
+                "hard"
+              ],
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null,
+              "description": "How hard this hidden item is to notice. A hidden item needs it. The party notices it on arrival when its best passive Perception is at least the word's DC; a search finds it with a check against the same DC. Null for a known item."
+            },
+            "trap": {
+              "additionalProperties": false,
+              "properties": {
+                "ability": {
+                  "description": "The ability that saves.",
+                  "enum": [
+                    "strength",
+                    "dexterity",
+                    "constitution",
+                    "intelligence",
+                    "wisdom",
+                    "charisma"
+                  ],
+                  "type": "string"
+                },
+                "difficulty": {
+                  "description": "easy is DC 10: A capable person does it most of the time. medium is DC 15: It needs training or luck. hard is DC 20: A trained person often fails.",
+                  "enum": [
+                    "easy",
+                    "medium",
+                    "hard"
+                  ],
+                  "type": "string"
+                },
+                "damage": {
+                  "default": "none",
+                  "description": "The damage of a failure. A success takes half.",
+                  "enum": [
+                    "none",
+                    "light",
+                    "moderate",
+                    "heavy"
+                  ],
+                  "type": "string"
+                },
+                "damage_type": {
+                  "enum": [
+                    "acid",
+                    "bludgeoning",
+                    "cold",
+                    "fire",
+                    "force",
+                    "lightning",
+                    "necrotic",
+                    "piercing",
+                    "poison",
+                    "psychic",
+                    "radiant",
+                    "slashing",
+                    "thunder"
+                  ],
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "default": null,
+                  "description": "The damage type, such as fire or bludgeoning. Null with no damage."
+                },
+                "on_fail": {
+                  "enum": [
+                    "poisoned",
+                    "prone",
+                    "exhaustion"
+                  ],
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "default": null,
+                  "description": "What a failure adds, or null. One Exhaustion level at most per place between rests."
+                },
+                "disarm": {
+                  "description": "How hard it is to disarm.",
+                  "enum": [
+                    "easy",
+                    "medium",
+                    "hard"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "ability",
+                "difficulty",
+                "disarm"
+              ],
+              "type": [
+                "object",
+                "null"
+              ],
+              "default": null,
+              "description": "The hazard when this hidden item is a trap. Null otherwise."
+            },
+            "gear": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null,
+              "description": "Loot: the SRD gear or magic item that this item is. Exact id of SRD gear or of a magic item. Magic armor and magic weapons join the magic item id to the id of the base piece: armor-1-chain-mail is Chain Mail +1, weapon-2-longsword is Longsword +2. Null: a story item with no rules."
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "brief",
+            "holder_id"
+          ],
+          "type": "object"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    },
+    "arc": {
+      "default": "",
+      "description": "The truth behind this map: secrets, what can come, and what ties one hidden thing to another. The player never reads it.",
+      "type": "string"
+    },
+    "start_id": {
+      "description": "Exact id of the place this map starts from.",
+      "type": "string"
+    },
+    "region_name": {
+      "description": "The name of this part of the map as the player knows it, such as a district, a level of a dungeon, an island or a city: never one room. Once the player leaves it, the map shows the whole region under this name. Name nothing hidden.",
+      "type": "string"
+    },
+    "recap": {
+      "description": "One paragraph on the part of the map the player leaves behind: what the player did there, paid and learned. The narrator reads it. Name nothing hidden.",
+      "type": "string"
+    },
+    "goals": {
+      "description": "Goals the party can complete, keyed by a new goal id. Each one pays XP once, by its size.",
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {
+          "additionalProperties": false,
+          "properties": {
+            "brief": {
+              "description": "What the party must do, in one line.",
+              "type": "string"
+            },
+            "size": {
+              "description": "How much XP it pays, for the party's level.",
+              "enum": [
+                "low",
+                "moderate",
+                "high"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "brief",
+            "size"
+          ],
+          "type": "object"
+        }
+      },
+      "propertyNames": {},
+      "type": "object"
+    }
+  },
+  "required": [
+    "start_id",
+    "region_name",
+    "recap"
+  ],
+  "type": "object"
+}

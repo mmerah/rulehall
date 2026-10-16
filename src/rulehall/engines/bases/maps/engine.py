@@ -7,21 +7,26 @@ from rulehall.core.decisions import ActionOption
 from rulehall.core.facts import Fact, Resolution
 from rulehall.core.game import Game, RoleAnswer, WorldsmithRequest
 from rulehall.core.narration import NarratorView
-from rulehall.core.prompt import Sections, lines_of, render_log, section_if
+from rulehall.core.prompt import Sections, render_log, section_if
 from rulehall.core.tools import action, tool
 from rulehall.core.validation import Refusal, Slug
-from rulehall.core.views import Panel
+from rulehall.core.views import Panel, PanelRows
 from rulehall.engines.args import Words
 from rulehall.engines.bases.maps.args import (
+    CarryChange,
     DropHere,
     ExtendMap,
+    FallChange,
     Meanwhile,
     MoveItem,
     MoveTo,
+    OpenChange,
+    ShutChange,
     UnlockWay,
+    WalkChange,
 )
 from rulehall.engines.bases.maps.panels import MORE_MAP, carried_panel, map_view, ways_panel
-from rulehall.engines.bases.maps.world import EXTEND_REQUEST, Dweller, MapWorld, RegionProposal
+from rulehall.engines.bases.maps.world import EXTEND_REQUEST, Dweller, MapWorld, RegionProposal, Way
 from rulehall.engines.bases.maps.worldsmith import (
     MAP_ASK,
     OPENING_SECTIONS,
@@ -32,10 +37,14 @@ from rulehall.engines.packs import Pack
 from rulehall.engines.panels import character_panel, here_panel, party_panel
 from rulehall.engines.world import ARC_SO_FAR_TITLE, ARC_TITLE, HIDDEN_TITLE, party_section
 
-ELSEWHERE = "ELSEWHERE (time has passed; you can move what the player cannot see)"
+ELSEWHERE = "ELSEWHERE (time has passed: call `meanwhile` this turn, before `direct`)"
 NOTHING_OFFSCREEN = "no time has passed offscreen; call this only while ELSEWHERE is shown"
 MOVES_OFFSCREEN = "something moves where the player cannot see"
 MOVED_CARD = "Elsewhere, something moves."
+MEANWHILE_FIRST = (
+    "ELSEWHERE is due: call `meanwhile` first, with your changes, or with an empty list when "
+    "nothing moves"
+)
 FRONTIER_LEFT = (
     "an open way the player knows still leads to a place they have not visited; go there first"
 )
@@ -51,13 +60,17 @@ MAP_UNWRITTEN = Fact(
 )
 
 
-class MapEngine[P: Dweller, W: MapWorld[Any], K: Pack, R: RegionProposal[Any]](
-    Revealing[W], Engine[P, W, K, R]
-):
+class MapEngine[
+    P: Dweller,
+    W: MapWorld[Any, Any, Any, Any],
+    K: Pack,
+    R: RegionProposal[Any, Any, Any, Any],
+](Revealing[W], Engine[P, W, K, R]):
     base_dir = Path(__file__).parent
     opening_sections = OPENING_SECTIONS
     opening_intent = MAP_ASK
     play_hint = "What does {name} do? Or tap the map."
+    way_model: type[Way] = Way
 
     def request_handlers(self) -> Mapping[Slug, RequestHandler[W]]:
         return {EXTEND_REQUEST: RequestHandler(self.write_region, MAP_UNWRITTEN)}
@@ -73,14 +86,12 @@ class MapEngine[P: Dweller, W: MapWorld[Any], K: Pack, R: RegionProposal[Any]](
 
     def master_sections(self, state: Game[W]) -> Sections:
         world = state.world
-        place = world.current
-        player = world.player
         return (
-            ("CURRENT PLACE", f"{place.ref}\n{place.description}"),
-            ("YOU PLAY FOR", world.line(player)),
-            ("CARRYING", lines_of(world.line(item) for item in world.carried(player.id))),
+            ("CURRENT PLACE", world.place_text()),
+            ("YOU PLAY FOR", world.line(world.player)),
+            ("CARRYING", world.carrying_lines()),
             ("HERE WITH THE PLAYER", world.place_lines(known=True)),
-            *party_section(world.party_members()),
+            *party_section([world.line(member) for member in world.party_members()]),
             (HIDDEN_TITLE, world.place_lines(known=False)),
             *section_if(ARC_TITLE, world.arc),
             ("WAYS OUT", world.ways_lines()),
@@ -116,12 +127,15 @@ class MapEngine[P: Dweller, W: MapWorld[Any], K: Pack, R: RegionProposal[Any]](
     def view_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]:
         world = state.world
         return (
-            character_panel(world.player.subject(), world.sheet_rows(), sheet_help=self.sheet_help),
-            party_panel(world.party_members(), self.sheet_help),
+            character_panel(world.player.subject(), self.player_rows(world)),
+            party_panel(world.party_members(), self.person_rows),
             here_panel(other.subject() for other in world.others()),
             carried_panel(world),
             ways_panel(world),
         )
+
+    def player_rows(self, world: W, /) -> PanelRows:
+        return self.person_rows(world.player)
 
     @action
     def drop_here(self, draft: Game[W], args: DropHere, _rng: Random) -> list[Fact]:
@@ -146,27 +160,40 @@ class MapEngine[P: Dweller, W: MapWorld[Any], K: Pack, R: RegionProposal[Any]](
 
     @tool
     def meanwhile(self, draft: Game[W], args: Meanwhile, _rng: Random) -> list[Fact]:
-        """Pass time where the player is not: move a dweller, move a loose item, and shut a
-        way the player knows. Use any combination in one call. Call this only while ELSEWHERE is
-        shown."""
+        """Pass time in the world. Call this before `direct` on each turn that shows ELSEWHERE.
+        Give at most the number of changes that ELSEWHERE shows. Give an empty list when nothing
+        moves."""
         world = draft.world
         if not world.meanwhile_due:
             raise Refusal(NOTHING_OFFSCREEN)
+        cap = world.meanwhile_cap()
+        if len(args.changes) > cap:
+            raise Refusal(f"at most {cap} changes in one call, not {len(args.changes)}")
         facts: list[Fact] = []
-        if args.dweller_id is not None and args.dweller_to_id is not None:
-            npc = world.require_dweller(args.dweller_id)
-            facts.append(
-                world.walk_offscreen(npc, world.require_offscreen_place(args.dweller_to_id))
-            )
-        if args.item_id is not None and args.item_to_id is not None:
-            item = world.require_item(args.item_id)
-            facts.append(world.drift_item(item, world.require_offscreen_place(args.item_to_id)))
-        if args.shut_from_id is not None and args.shut_to_id is not None:
-            start = world.require_place(args.shut_from_id)
-            facts.append(world.shut_way(start, world.require_place(args.shut_to_id)))
-        facts.append(Fact(trace=MOVES_OFFSCREEN, told=True, card=MOVED_CARD))
+        for change in args.changes:
+            match change:
+                case WalkChange():
+                    npc = world.require_dweller(change.dweller_id)
+                    fact = world.walk(npc, world.require_place(change.to_id))
+                case CarryChange():
+                    item = world.require_item(change.item_id)
+                    fact = world.carry(item, world.require_entity(change.to_id))
+                case ShutChange():
+                    start = world.require_place(change.from_id)
+                    fact = world.shut_way(start, world.require_place(change.to_id))
+                case OpenChange():
+                    start = world.require_place(change.from_id)
+                    fact = world.open_way(start, world.require_place(change.to_id))
+                case FallChange():
+                    fact = world.fall(world.require_dweller(change.dweller_id))
+            facts.append(fact)
+        if any(not fact.told for fact in facts):
+            facts.append(Fact(trace=MOVES_OFFSCREEN, told=True, card=MOVED_CARD))
         world.meanwhile_due = False
         return facts
+
+    def direct_refusal(self, draft: Game[W], /) -> str | None:
+        return MEANWHILE_FIRST if draft.world.meanwhile_due and draft.pending is None else None
 
     @tool
     def extend_map(self, draft: Game[W], args: ExtendMap, _rng: Random) -> list[Fact]:
@@ -191,7 +218,7 @@ class MapEngine[P: Dweller, W: MapWorld[Any], K: Pack, R: RegionProposal[Any]](
         check_next(proposal, draft.world)
 
     def install_next(self, draft: Game[W], proposal: R, /) -> list[Fact]:
-        draft.world.apply_region(proposal)
+        draft.world.apply_region(proposal, self.way_model)
         draft.chapters[-1].recap = proposal.recap
         self.open_chapter(draft)
         return []

@@ -4,7 +4,6 @@ from dataclasses import dataclass
 
 from rulehall.app.processes import start_child, stop_process
 from rulehall.core.validation import Refusal
-from rulehall.engines.battles import BattleSupport
 
 SIMULATOR_WAIT = 10.0
 LINE_MAX = 1 << 20
@@ -47,8 +46,8 @@ class BattleProcess:
         await stop_process(self.process)
 
 
-async def start_battle_process(battles: BattleSupport) -> BattleProcess:
+async def start_battle_process(argv: tuple[str, ...]) -> BattleProcess:
     process = await start_child(
-        battles.simulator_argv(), secrets=(), cwd=None, stderr=subprocess.DEVNULL, limit=LINE_MAX
+        argv, secrets=(), cwd=None, stderr=subprocess.DEVNULL, limit=LINE_MAX
     )
     return BattleProcess(process)

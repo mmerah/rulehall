@@ -3,6 +3,7 @@
 .env
 **/node_modules
 src/rulehall/engines/pokemon/showdown/.cache
+src/rulehall/engines/lite5e/assets
 **/__pycache__
 .*_cache
 vendor

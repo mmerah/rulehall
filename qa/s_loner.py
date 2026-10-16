@@ -136,7 +136,7 @@ def body(s: Session) -> None:
         any("Brother Tomas arrives" in c for c in cards(page)),
         f"arrival card missing: {cards(page)[-3:]}",
     )
-    s.check("Old Key" in clean(drawer_text(page)), "gear not on the sheet")
+    s.check("old key" in clean(drawer_text(page)).lower(), "gear not on the sheet")
     s.shot(page, "turn-enter")
 
     # 3. A Harm & Luck exchange: cited tags on the card, luck moves, and no pause follows.
@@ -572,7 +572,7 @@ def body(s: Session) -> None:
     page.get_by_text("Restart this game").click()
     page.get_by_role("button", name="Restart", exact=True).click()
     wait_idle(page, timeout=30)
-    s.check("Patient Watcher" in clean(drawer_text(page)), "the restart forgot the growth")
+    s.check("patient watcher" in clean(drawer_text(page)).lower(), "the restart forgot the growth")
     close_until(page, "Next:", tries=1)
     if option(page, "Take the breather").count():
         take_breather(page, 'I rest.\n!direct text="She rests."')

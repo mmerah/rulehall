@@ -1,0 +1,177 @@
+{
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "changes": "Cut and adapted for 5e Lite",
+  "rows": {
+    "combat_gear": {
+      "acid": {
+        "use": "throw",
+        "range_feet": 20,
+        "save_ability": "dexterity",
+        "dice": "2d6",
+        "damage_type": "acid"
+      },
+      "alchemists-fire": {
+        "use": "throw",
+        "range_feet": 20,
+        "save_ability": "dexterity",
+        "dice": "1d4",
+        "damage_type": "fire",
+        "condition": "burning"
+      },
+      "antitoxin": {
+        "use": "drink"
+      },
+      "healers-kit": {
+        "use": "utilize",
+        "uses": 10
+      },
+      "holy-water": {
+        "use": "throw",
+        "range_feet": 20,
+        "save_ability": "dexterity",
+        "dice": "2d8",
+        "damage_type": "radiant",
+        "creature_types": [
+          "fiend",
+          "undead"
+        ]
+      },
+      "net": {
+        "use": "throw",
+        "range_feet": 15,
+        "save_ability": "dexterity",
+        "condition": "restrained",
+        "size_max": "large",
+        "escape_dc": 10
+      },
+      "oil": {
+        "use": "throw",
+        "range_feet": 20,
+        "save_ability": "dexterity",
+        "bonus": 5,
+        "damage_type": "fire",
+        "condition": "oiled"
+      }
+    },
+    "magic_items": {
+      "armor-1": {
+        "bonus": 1,
+        "source_id": "armor-1",
+        "name": "Armor +1",
+        "kind": "armor",
+        "rarity": "rare",
+        "cost": {
+          "quantity": 4000,
+          "unit": "gp"
+        }
+      },
+      "shield-1": {
+        "bonus": 1,
+        "source_id": "shield-1",
+        "name": "Shield +1",
+        "kind": "shield",
+        "rarity": "uncommon",
+        "cost": {
+          "quantity": 400,
+          "unit": "gp"
+        },
+        "base_armor_id": "shield"
+      },
+      "weapon-1": {
+        "bonus": 1,
+        "source_id": "weapon-1",
+        "name": "Weapon +1",
+        "kind": "weapon",
+        "rarity": "uncommon",
+        "cost": {
+          "quantity": 400,
+          "unit": "gp"
+        }
+      },
+      "weapon-2": {
+        "bonus": 2,
+        "source_id": "weapon-2",
+        "name": "Weapon +2",
+        "kind": "weapon",
+        "rarity": "rare",
+        "cost": {
+          "quantity": 4000,
+          "unit": "gp"
+        }
+      },
+      "potion-of-healing": {
+        "healing": {
+          "dice": "2d4",
+          "bonus": 2
+        },
+        "source_id": "potions-of-healing",
+        "name": "Potion of Healing",
+        "kind": "potion",
+        "rarity": "common",
+        "cost": {
+          "quantity": 50,
+          "unit": "gp"
+        }
+      },
+      "potion-of-healing-greater": {
+        "healing": {
+          "dice": "4d4",
+          "bonus": 4
+        },
+        "source_id": "potions-of-healing",
+        "name": "Potion of Healing (greater)",
+        "kind": "potion",
+        "rarity": "uncommon",
+        "cost": {
+          "quantity": 200,
+          "unit": "gp"
+        }
+      },
+      "potion-of-healing-superior": {
+        "healing": {
+          "dice": "8d4",
+          "bonus": 8
+        },
+        "source_id": "potions-of-healing",
+        "name": "Potion of Healing (superior)",
+        "kind": "potion",
+        "rarity": "rare",
+        "cost": {
+          "quantity": 2000,
+          "unit": "gp"
+        }
+      },
+      "potion-of-healing-supreme": {
+        "healing": {
+          "dice": "10d4",
+          "bonus": 20
+        },
+        "source_id": "potions-of-healing",
+        "name": "Potion of Healing (supreme)",
+        "kind": "potion",
+        "rarity": "very rare",
+        "cost": {
+          "quantity": 20000,
+          "unit": "gp"
+        }
+      }
+    },
+    "materials": {
+      "diamond": {
+        "name": "Diamond",
+        "spell_id": "revivify",
+        "cost": {
+          "quantity": 300,
+          "unit": "gp"
+        }
+      }
+    },
+    "light_sources": [
+      "candle",
+      "lamp",
+      "lantern-bullseye",
+      "lantern-hooded",
+      "torch"
+    ]
+  }
+}

@@ -172,6 +172,22 @@ def test_beating_the_boss_ends_the_journey_with_an_epilogue() -> None:
     assert (resolution.narrator_cue or "").startswith("The boss is beaten.")
 
 
+def test_a_key_trainer_does_not_walk_fall_or_die() -> None:
+    world = started().draft().world
+    leader = world.npcs["vesper"]
+    elsewhere = next(place for place in world.places.values() if place.id != world.current.id)
+    leader.place_id = elsewhere.id
+
+    with pytest.raises(Refusal, match="do not move, die or join"):
+        _ = world.walk(leader, world.current)
+    with pytest.raises(Refusal, match="do not move, die or join"):
+        _ = world.fall(leader)
+    leader.place_id = world.current.id
+    leader.known = True
+    with pytest.raises(Refusal, match="do not move, die or join"):
+        _ = world.kill(leader.id)
+
+
 def _operation_owed() -> JourneyGame:
     draft = started().draft()
     draft.world.evil_team.operation = None

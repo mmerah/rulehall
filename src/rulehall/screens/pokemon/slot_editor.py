@@ -196,7 +196,7 @@ class SlotEditor:
                         + (" game-builder-pick-empty" if picked is None else "")
                     )
                     if picked is not None and picked.tags:
-                        tag_row(picked.tags)
+                        tag_row(picked.tags, opens=False)
                 if picked is not None and picked.brief:
                     ui.label(picked.brief).classes("game-builder-pick-brief")
             if picked is not None and picked.badge:

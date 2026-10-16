@@ -3,10 +3,13 @@ from rulehall.core.validation import Refusal
 from rulehall.engines.bases.maps.world import (
     OFF_MAP_ID,
     Dweller,
+    Item,
     MapContents,
     MapProposal,
     MapWorld,
+    Place,
     RegionProposal,
+    Way,
 )
 from rulehall.engines.name_leaks import leaked_names, names_in
 from rulehall.engines.sheet import PLAYER_ID
@@ -19,14 +22,18 @@ OPENING_SECTIONS: Sections = (
 )
 
 
-def check_opening[P: Dweller](proposal: MapProposal[P]) -> None:
+def check_opening[P: Dweller, I: Item, L: Place, WayT: Way](
+    proposal: MapProposal[P, I, L, WayT],
+) -> None:
     if needs := (
         _map_needs(proposal, start_known=True) + _standing_needs(proposal) + _named_needs(proposal)
     ):
         raise Refusal("the map needs " + "; ".join(needs))
 
 
-def check_next[P: Dweller](proposal: RegionProposal[P], world: MapWorld[P]) -> None:
+def check_next[P: Dweller, I: Item, L: Place, WayT: Way](
+    proposal: RegionProposal[P, I, L, WayT], world: MapWorld[P, I, L, WayT]
+) -> None:
     if not proposal.places:
         raise Refusal("the extension needs at least one new place")
     if needs := (
@@ -41,7 +48,9 @@ def check_next[P: Dweller](proposal: RegionProposal[P], world: MapWorld[P]) -> N
     world.refuse_unmet_names(proposal.recap, proposal.region_name)
 
 
-def _planted_needs[P: Dweller](proposal: MapProposal[P]) -> list[str]:
+def _planted_needs[P: Dweller, I: Item, L: Place, WayT: Way](
+    proposal: MapProposal[P, I, L, WayT],
+) -> list[str]:
     if planted := sorted(
         item.id for item in proposal.items.values() if item.holder_id == PLAYER_ID
     ):
@@ -49,7 +58,9 @@ def _planted_needs[P: Dweller](proposal: MapProposal[P]) -> list[str]:
     return []
 
 
-def _map_needs[P: Dweller](proposal: MapProposal[P], *, start_known: bool) -> list[str]:
+def _map_needs[P: Dweller, I: Item, L: Place, WayT: Way](
+    proposal: MapProposal[P, I, L, WayT], *, start_known: bool
+) -> list[str]:
     places = proposal.places
     if proposal.start_id not in places:
         return [f"a starting place {proposal.start_id!r}"]
@@ -65,13 +76,17 @@ def _map_needs[P: Dweller](proposal: MapProposal[P], *, start_known: bool) -> li
     return needs
 
 
-def _standing_needs[P: Dweller](proposal: MapProposal[P]) -> list[str]:
+def _standing_needs[P: Dweller, I: Item, L: Place, WayT: Way](
+    proposal: MapProposal[P, I, L, WayT],
+) -> list[str]:
     if strays := sorted(npc.id for npc in proposal.npcs.values() if npc.place_id == OFF_MAP_ID):
         return [f"every npc in a place of this map: {strays}"]
     return []
 
 
-def _overlap_needs[P: Dweller](proposal: MapProposal[P], world: MapContents[P]) -> list[str]:
+def _overlap_needs[P: Dweller, I: Item, L: Place, WayT: Way](
+    proposal: MapProposal[P, I, L, WayT], world: MapContents[P, I, L, WayT]
+) -> list[str]:
     existing = {*world.places, *world.npcs, *world.items}
     added = {*proposal.places, *proposal.npcs, *proposal.items}
     if overlap := sorted(existing & added):
@@ -79,13 +94,17 @@ def _overlap_needs[P: Dweller](proposal: MapProposal[P], world: MapContents[P]) 
     return []
 
 
-def _region_name_needs[P: Dweller](proposal: MapProposal[P], world: MapWorld[P]) -> list[str]:
+def _region_name_needs[P: Dweller, I: Item, L: Place, WayT: Way](
+    proposal: MapProposal[P, I, L, WayT], world: MapWorld[P, I, L, WayT]
+) -> list[str]:
     if proposal.region_name.casefold() in {region.name.casefold() for region in world.regions}:
         return [f"a region name not already on the map: {proposal.region_name!r}"]
     return []
 
 
-def _named_needs[P: Dweller](proposal: MapProposal[P]) -> list[str]:
+def _named_needs[P: Dweller, I: Item, L: Place, WayT: Way](
+    proposal: MapProposal[P, I, L, WayT],
+) -> list[str]:
     hidden = [
         entity for entity in (*proposal.npcs.values(), *proposal.items.values()) if not entity.known
     ]

@@ -136,8 +136,8 @@ class ShowdownRun:
     policy: Policy
     opponent: RoleAnswer | None = None
     inputs: list[str] = field(default_factory=list)
-    log: list[str] = field(default_factory=list)
-    facts: list[Fact] = field(default_factory=list)
+    log_lines: list[str] = field(default_factory=list)
+    battle_facts: list[Fact] = field(default_factory=list)
     requests_by_side: dict[str, SideRequest] = field(default_factory=dict)
     player_request: SideRequest | None = None
     snapshot: Snapshot | None = None
@@ -167,7 +167,7 @@ class ShowdownRun:
             transport=transport,
             policy=policy,
             opponent=opponent if policy == "model" or battle.setup.ally is not None else None,
-            facts=[
+            battle_facts=[
                 *(draft.world.player_card_fact(text) for text in battle.setup.condition_texts()),
                 *(throw.fact for throw in battle.throws),
             ],
@@ -183,7 +183,13 @@ class ShowdownRun:
     def setup(self) -> BattleSetup:
         return self.battle.setup
 
-    def view(self) -> BattleView:
+    def log(self, _state: BattleGame, /) -> Sequence[str]:
+        return self.log_lines
+
+    def facts(self, _state: BattleGame, /) -> Sequence[Fact]:
+        return self.battle_facts
+
+    def view(self, _state: BattleGame, /) -> BattleView:
         return BattleView(
             header=self._header(),
             choices=self._choices(),
@@ -191,7 +197,7 @@ class ShowdownRun:
             music=self.setup.battle_music,
         )
 
-    def require_command(self, command: str) -> None:
+    def require_command(self, _state: BattleGame, command: str, /) -> None:
         if command not in (choice.command for choice in self._choices() if not choice.refusal):
             raise Refusal(f"{command!r} is not a choice now")
 
@@ -201,7 +207,7 @@ class ShowdownRun:
             await self._end("fled" if self.setup.wild else "lost")
         elif command.startswith(BALL):
             throw = draft.world.throw_ball(command.removeprefix(BALL), self._foe(), rng)
-            self.facts.append(throw.fact)
+            self.battle_facts.append(throw.fact)
             if throw.caught:
                 await self._end("caught")
         elif command == MEGA:
@@ -225,7 +231,7 @@ class ShowdownRun:
     def _header(self) -> BattleHeader:
         assert self.snapshot is not None
         return battle_header(
-            self.setup, self.snapshot.p1, self.snapshot.p2, self.log, self._deciding_slot()
+            self.setup, self.snapshot.p1, self.snapshot.p2, self.log_lines, self._deciding_slot()
         )
 
     def _choices(self) -> tuple[BattleChoice, ...]:
@@ -404,7 +410,7 @@ class ShowdownRun:
         else:
             assessment = await self._assess(seat)
             prompt = render_opponent(
-                self.setup, seat, assessment, offers, seated.team_positions, self.log
+                self.setup, seat, assessment, offers, seated.team_positions, self.log_lines
             )
         return create_task(role(prompt, OpponentAnswer, partial(check_commands, offers)))
 
@@ -440,7 +446,7 @@ class ShowdownRun:
         picks: list[str] = []
         for slot in slots:
             choices = seated.aimed_choices(slot, picks)
-            pick = advised_switch(assessment, choices, slot, seat, self.log) or greedy_choice(
+            pick = advised_switch(assessment, choices, slot, seat, self.log_lines) or greedy_choice(
                 assessment, choices, slot
             )
             mega = pick.startswith("move ") and seated.can_mega(slot, picks)
@@ -495,7 +501,7 @@ class ShowdownRun:
     def _read(self, block: Block) -> None:
         match block.kind:
             case "update":
-                view, snapshot = read_update(block.lines, opening=not self.log)
+                view, snapshot = read_update(block.lines, opening=not self.log_lines)
                 if self.setup.foe_sheet_open:
                     view = _with_open_sheet(view, self.setup.foes)
                 # Chat lines go before the turn's end marker so they show inside the turn they
@@ -505,7 +511,7 @@ class ShowdownRun:
                     at = next(ends, len(view))
                     view = (*view[:at], *self.chat_lines, *view[at:])
                     self.chat_lines.clear()
-                self.log.extend(view)
+                self.log_lines.extend(view)
                 if snapshot is not None:
                     self.snapshot = snapshot
             case "sideupdate":
@@ -519,7 +525,7 @@ class ShowdownRun:
                         )
             case "end":
                 assert self.snapshot is not None
-                highlights = battle_highlights(self.battle, self.log)
+                highlights = battle_highlights(self.battle, self.log_lines)
                 self.result = battle_result(self.setup, self.snapshot, self.outcome, highlights)
 
 

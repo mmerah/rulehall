@@ -95,7 +95,9 @@ def body(s: Session) -> None:
     s.shot(page, "team-tab")
 
     # A Team row opens its dialog; the Potion on a full-HP Pokemon is greyed with its reason.
-    page.locator(".game-drawer .game-opens", has_text="Charmander").first.click()
+    page.locator(".game-drawer .game-opens", has_text="Charmander").first.locator(
+        ".game-entity-name"
+    ).click()
     dialog = page.locator(".q-dialog")
     dialog.locator("button.game-choice").first.wait_for()
     potion = dialog.locator("button.game-choice", has_text="Use the Potion on Charmander")

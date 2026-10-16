@@ -62,7 +62,7 @@ def body(s: Session) -> None:
     tabs = [clean(t).lower() for t in page.locator(".q-tab").all_inner_texts()]
     s.note(f"tabs: {tabs}")
     s.check(
-        tabs == ["providers", "roles", "media", "speech", "pokemon", "server"],
+        tabs == ["providers", "roles", "media", "speech", "pokemon", "battle", "server"],
         f"unexpected tabs: {tabs}",
     )
     page.get_by_role("button", name="Save").click()
@@ -119,10 +119,10 @@ def body(s: Session) -> None:
     page.reload()
 
     # A real change: a scripted opponent. .env holds the key; the select still shows it chosen.
-    page.get_by_role("tab", name="pokemon").click()
+    page.get_by_role("tab", name="battle").click()
     select(page, "opponent", "scripted")
     save(page)
-    s.check("POKEMON__OPPONENT='scripted'" in env(), f".env after save: {env()!r}")
+    s.check("BATTLE__OPPONENT='scripted'" in env(), f".env after save: {env()!r}")
     s.check(
         "scripted" in opponent(page).inner_text(),
         "the select does not show the saved value after the reload",
@@ -167,13 +167,13 @@ def body(s: Session) -> None:
         submit(game, "I linger.\n!none")
         s.check(wait_working(game), "the game shows no turn under way")
         s.shot(game, "game-busy")
-        page.get_by_role("tab", name="pokemon").click()
+        page.get_by_role("tab", name="battle").click()
         select(page, "opponent", "model")
         s.check(save(page), "a save during a turn wrote nothing")
         s.shot(page, "busy-save")
     wait_idle(game, timeout=60)
     page.reload()
-    page.get_by_role("tab", name="pokemon").click()
+    page.get_by_role("tab", name="battle").click()
 
     # A save applies elsewhere while a game is open: the game keeps playing, untouched.
     select(page, "opponent", "scripted")

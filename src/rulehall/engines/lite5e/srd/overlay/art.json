@@ -1,0 +1,795 @@
+{
+  "species": {
+    "dragonborn-draconic-ancestor-black": {
+      "under": [
+        "player/base/draconian_black_male.png"
+      ],
+      "over": []
+    },
+    "dragonborn-draconic-ancestor-blue": {
+      "under": [
+        "player/base/draconian_purple_male.png"
+      ],
+      "over": []
+    },
+    "dragonborn-draconic-ancestor-brass": {
+      "under": [
+        "player/base/draconian_gold_male.png"
+      ],
+      "over": []
+    },
+    "dragonborn-draconic-ancestor-bronze": {
+      "under": [
+        "player/base/draconian_male.png"
+      ],
+      "over": []
+    },
+    "dragonborn-draconic-ancestor-copper": {
+      "under": [
+        "player/base/draconian_mottled_male.png"
+      ],
+      "over": []
+    },
+    "dragonborn-draconic-ancestor-gold": {
+      "under": [
+        "player/base/draconian_gold_male.png"
+      ],
+      "over": []
+    },
+    "dragonborn-draconic-ancestor-green": {
+      "under": [
+        "player/base/draconian_green_male.png"
+      ],
+      "over": []
+    },
+    "dragonborn-draconic-ancestor-red": {
+      "under": [
+        "player/base/draconian_red_male.png"
+      ],
+      "over": []
+    },
+    "dragonborn-draconic-ancestor-silver": {
+      "under": [
+        "player/base/draconian_gray_male.png"
+      ],
+      "over": []
+    },
+    "dragonborn-draconic-ancestor-white": {
+      "under": [
+        "player/base/draconian_white_male.png"
+      ],
+      "over": []
+    },
+    "dwarf": {
+      "under": [
+        "player/base/dwarf_male.png"
+      ],
+      "over": [
+        "player/beard/long_red.png"
+      ]
+    },
+    "elf-elven-lineage-drow": {
+      "under": [
+        "player/base/deep_elf_male.png"
+      ],
+      "over": []
+    },
+    "elf-elven-lineage-high-elf": {
+      "under": [
+        "player/base/elf_male.png"
+      ],
+      "over": []
+    },
+    "elf-elven-lineage-wood-elf": {
+      "under": [
+        "player/base/elf_male.png"
+      ],
+      "over": []
+    },
+    "gnome-gnomish-lineage-forest-gnome": {
+      "under": [
+        "player/base/gnome_male.png"
+      ],
+      "over": []
+    },
+    "gnome-gnomish-lineage-rock-gnome": {
+      "under": [
+        "player/base/gnome_male.png"
+      ],
+      "over": []
+    },
+    "goliath-giant-ancestry-clouds-jaunt": {
+      "under": [
+        "player/base/ogre_male.png"
+      ],
+      "over": []
+    },
+    "goliath-giant-ancestry-fires-burn": {
+      "under": [
+        "player/base/ogre_male.png"
+      ],
+      "over": []
+    },
+    "goliath-giant-ancestry-frosts-chill": {
+      "under": [
+        "player/base/ogre_male.png"
+      ],
+      "over": []
+    },
+    "goliath-giant-ancestry-hills-tumble": {
+      "under": [
+        "player/base/ogre_male.png"
+      ],
+      "over": []
+    },
+    "goliath-giant-ancestry-stones-endurance": {
+      "under": [
+        "player/base/ogre_male.png"
+      ],
+      "over": []
+    },
+    "goliath-giant-ancestry-storms-thunder": {
+      "under": [
+        "player/base/ogre_male.png"
+      ],
+      "over": []
+    },
+    "halfling": {
+      "under": [
+        "player/base/halfling_male.png"
+      ],
+      "over": []
+    },
+    "human": {
+      "under": [
+        "player/base/human_male.png"
+      ],
+      "over": []
+    },
+    "orc": {
+      "under": [
+        "player/base/orc_male.png"
+      ],
+      "over": []
+    },
+    "tiefling-fiendish-legacy-abyssal": {
+      "under": [
+        "player/base/demonspawn_black_male.png"
+      ],
+      "over": []
+    },
+    "tiefling-fiendish-legacy-chthonic": {
+      "under": [
+        "player/base/demonspawn_pink.png"
+      ],
+      "over": []
+    },
+    "tiefling-fiendish-legacy-infernal": {
+      "under": [
+        "player/base/demonspawn_red_male.png"
+      ],
+      "over": []
+    }
+  },
+  "classes": {
+    "barbarian": [
+      "player/boots/short_brown_2.png",
+      "player/legs/loincloth_red.png",
+      "player/body/animal_skin.png",
+      "player/head/viking_brown_1.png",
+      "player/hand_right/great_axe.png"
+    ],
+    "bard": [
+      "player/boots/short_red.png",
+      "player/legs/pants_red.png",
+      "player/body/leather_red.png",
+      "player/head/feather_red.png",
+      "player/hand_right/misc/horn.png"
+    ],
+    "cleric": [
+      "player/boots/middle_brown.png",
+      "player/body/robe_white.png",
+      "player/head/healer.png",
+      "player/hand_right/mace_new.png",
+      "player/hand_left/shield_holy.png"
+    ],
+    "druid": [
+      "player/boots/middle_brown_3.png",
+      "player/legs/pants_brown.png",
+      "player/body/robe_brown_3.png",
+      "player/head/bear.png",
+      "player/hand_right/staff_organic.png"
+    ],
+    "fighter": [
+      "player/boots/middle_gray.png",
+      "player/legs/leg_armor_0.png",
+      "player/body/plate.png",
+      "player/hand_right/long_sword.png",
+      "player/hand_left/shield_kite_1.png"
+    ],
+    "monk": [
+      "player/legs/pants_short_gray.png",
+      "player/body/monk_blue.png",
+      "player/gloves/glove_short_white.png",
+      "player/hand_right/spear.png"
+    ],
+    "paladin": [
+      "player/boots/middle_gold.png",
+      "player/legs/leg_armor_2.png",
+      "player/body/chainmail.png",
+      "player/head/helm_plume.png",
+      "player/hand_right/blessed_blade.png",
+      "player/hand_left/shield_knight_blue.png"
+    ],
+    "ranger": [
+      "player/boots/middle_green.png",
+      "player/legs/pants_darkgreen.png",
+      "player/body/leather_green.png",
+      "player/gloves/glove_brown.png",
+      "player/head/hood_green.png",
+      "player/hand_right/bow.png"
+    ],
+    "rogue": [
+      "player/boots/short_brown.png",
+      "player/legs/pants_black.png",
+      "player/body/leather_armor.png",
+      "player/head/hood_black_2.png",
+      "player/hand_right/dagger_new.png"
+    ],
+    "sorcerer": [
+      "player/boots/short_red.png",
+      "player/body/robe_red_gold.png",
+      "player/hand_right/misc/crystal.png",
+      "player/hand_left/misc/light_red.png"
+    ],
+    "warlock": [
+      "player/boots/short_purple.png",
+      "player/body/robe_black_red.png",
+      "player/head/hood_black_2.png",
+      "player/hand_right/sickle.png",
+      "player/hand_left/misc/fire_dark.png"
+    ],
+    "wizard": [
+      "player/boots/short_brown.png",
+      "player/body/robe_blue.png",
+      "player/head/wizard_blue.png",
+      "player/hand_right/staff_mage.png"
+    ]
+  },
+  "stat_blocks": {
+    "air-elemental": null,
+    "allosaurus": null,
+    "animated-armor": [
+      "monster/undead/phantasmal_warrior.png"
+    ],
+    "animated-flying-sword": [
+      "monster/nonliving/spectral_lbl.png"
+    ],
+    "ankheg": [
+      "monster/animals/boring_beetle.png"
+    ],
+    "ankylosaurus": null,
+    "ape": null,
+    "archelon": null,
+    "awakened-shrub": [
+      "monster/fungi_plants/bush_2.png"
+    ],
+    "awakened-tree": [
+      "monster/fungi_plants/treant.png"
+    ],
+    "axe-beak": [
+      "monster/animals/caustic_shrike.png"
+    ],
+    "azer-sentinel": [
+      "monster/nonliving/fire_elemental_new.png"
+    ],
+    "baboon": null,
+    "badger": null,
+    "bandit": [
+      "player/base/human_male.png",
+      "player/boots/short_brown.png",
+      "player/legs/pants_brown.png",
+      "player/body/leather_armor.png",
+      "player/head/bandana_ybrown.png",
+      "player/hand_right/short_sword.png"
+    ],
+    "bandit-captain": [
+      "player/base/human_male.png",
+      "player/boots/middle_brown.png",
+      "player/legs/pants_black.png",
+      "player/body/jacket_stud.png",
+      "player/beard/short_black.png",
+      "player/head/hat_black.png",
+      "player/hand_right/sabre.png"
+    ],
+    "barbed-devil": null,
+    "bat": [
+      "monster/animals/bat.png"
+    ],
+    "berserker": [
+      "monster/unique/rupert_new.png"
+    ],
+    "black-bear": [
+      "monster/animals/black_bear_new.png"
+    ],
+    "black-dragon-wyrmling": [
+      "player/transform/dragon_form_black.png"
+    ],
+    "blink-dog": [
+      "monster/animals/hound.png"
+    ],
+    "blue-dragon-wyrmling": [
+      "monster/dragons/storm_dragon_new.png"
+    ],
+    "boar": [
+      "monster/animals/hog_new.png"
+    ],
+    "brass-dragon-wyrmling": [
+      "player/transform/dragon_form_yellow.png"
+    ],
+    "bronze-dragon-wyrmling": [
+      "player/transform/dragon_form.png"
+    ],
+    "brown-bear": [
+      "monster/animals/grizzly_bear.png"
+    ],
+    "bugbear-warrior": [
+      "monster/hobgoblin_new.png"
+    ],
+    "bulette": null,
+    "camel": null,
+    "cat": [
+      "player/felids/cat_6.png"
+    ],
+    "chuul": null,
+    "commoner": [
+      "monster/human_new.png"
+    ],
+    "constrictor-snake": [
+      "monster/animals/ball_python.png"
+    ],
+    "copper-dragon-wyrmling": [
+      "player/transform/dragon_form_mottled.png"
+    ],
+    "couatl": null,
+    "crab": [
+      "monster/animals/fire_crab.png"
+    ],
+    "crocodile": [
+      "monster/animals/crocodile.png"
+    ],
+    "cultist": [
+      "player/base/human_male.png",
+      "player/body/robe_black_hood.png",
+      "player/hand_right/sickle.png"
+    ],
+    "cultist-fanatic": [
+      "player/base/human_male.png",
+      "player/body/robe_black_red.png",
+      "player/head/hood_black_2.png",
+      "player/hand_right/staff_skull.png"
+    ],
+    "death-dog": [
+      "monster/animals/war_dog.png"
+    ],
+    "deer": null,
+    "dire-wolf": [
+      "monster/animals/warg.png"
+    ],
+    "draft-horse": null,
+    "dretch": [
+      "monster/demons/ufetubus.png"
+    ],
+    "druid": [
+      "player/base/human_male.png",
+      "player/body/robe_green.png",
+      "player/hair/long_white.png",
+      "player/beard/long_white.png",
+      "player/hand_right/staff_organic.png"
+    ],
+    "dryad": [
+      "monster/dryad.png"
+    ],
+    "dust-mephit": [
+      "monster/demons/smoke_demon_new.png"
+    ],
+    "eagle": null,
+    "earth-elemental": null,
+    "elk": [
+      "monster/animals/yak_new.png"
+    ],
+    "ettercap": null,
+    "ettin": null,
+    "fire-elemental": null,
+    "flying-snake": [
+      "monster/animals/small_snake.png"
+    ],
+    "frog": [
+      "monster/animals/giant_frog.png"
+    ],
+    "gargoyle": [
+      "monster/nonliving/gargoyle.png"
+    ],
+    "ghoul": [
+      "monster/undead/ghoul.png"
+    ],
+    "giant-badger": null,
+    "giant-bat": [
+      "monster/animals/giant_bat.png"
+    ],
+    "giant-boar": [
+      "monster/animals/hog_new.png"
+    ],
+    "giant-centipede": [
+      "monster/animals/giant_centipede.png"
+    ],
+    "giant-constrictor-snake": [
+      "monster/animals/anaconda_new.png"
+    ],
+    "giant-crab": [
+      "monster/animals/fire_crab.png"
+    ],
+    "giant-crocodile": null,
+    "giant-eagle": null,
+    "giant-elk": [
+      "monster/animals/yak_new.png"
+    ],
+    "giant-fire-beetle": [
+      "monster/animals/giant_beetle.png"
+    ],
+    "giant-goat": [
+      "monster/animals/black_sheep.png"
+    ],
+    "giant-hyena": [
+      "monster/animals/jackal_new.png"
+    ],
+    "giant-lizard": [
+      "monster/animals/giant_lizard.png"
+    ],
+    "giant-octopus": [
+      "player/base/octopode_1.png"
+    ],
+    "giant-owl": null,
+    "giant-rat": [
+      "monster/animals/grey_rat.png"
+    ],
+    "giant-scorpion": [
+      "monster/animals/giant_scorpion.png"
+    ],
+    "giant-seahorse": null,
+    "giant-spider": [
+      "monster/animals/spider.png"
+    ],
+    "giant-venomous-snake": [
+      "monster/animals/black_mamba_new.png"
+    ],
+    "giant-vulture": null,
+    "giant-wasp": [
+      "monster/animals/red_wasp.png"
+    ],
+    "giant-weasel": null,
+    "giant-wolf-spider": [
+      "monster/animals/wolf_spider_new.png"
+    ],
+    "gladiator": null,
+    "gnoll-warrior": [
+      "monster/gnoll_new.png"
+    ],
+    "goat": [
+      "monster/animals/sheep.png"
+    ],
+    "goblin-boss": [
+      "monster/unique/ijyb_new.png"
+    ],
+    "goblin-minion": [
+      "monster/goblin_new.png"
+    ],
+    "goblin-warrior": [
+      "monster/goblin_new.png"
+    ],
+    "green-dragon-wyrmling": [
+      "player/transform/dragon_form_green.png"
+    ],
+    "green-hag": [
+      "monster/unique/kirke_new.png"
+    ],
+    "grick": [
+      "monster/animals/rock_worm.png"
+    ],
+    "griffon": [
+      "monster/griffon.png"
+    ],
+    "grimlock": [
+      "monster/vault/deformed_human.png"
+    ],
+    "guard": [
+      "monster/vault/vault_guard_new.png"
+    ],
+    "guard-captain": null,
+    "hawk": null,
+    "hell-hound": [
+      "monster/animals/hell_hound_new.png"
+    ],
+    "hill-giant": null,
+    "hippogriff": [
+      "monster/hippogriff_new.png"
+    ],
+    "hippopotamus": null,
+    "hobgoblin-warrior": [
+      "monster/hobgoblin_new.png"
+    ],
+    "homunculus": null,
+    "hunter-shark": [
+      "monster/aquatic/shark_new.png"
+    ],
+    "hyena": [
+      "monster/animals/jackal_new.png"
+    ],
+    "ice-mephit": [
+      "monster/demons/white_imp.png"
+    ],
+    "imp": [
+      "monster/demons/imp.png"
+    ],
+    "jackal": [
+      "monster/animals/jackal_new.png"
+    ],
+    "killer-whale": null,
+    "knight": [
+      "player/base/human_male.png",
+      "player/boots/middle_gray.png",
+      "player/legs/leg_armor_0.png",
+      "player/body/plate.png",
+      "player/head/helm_plume.png",
+      "player/hand_right/long_sword.png",
+      "player/hand_left/shield_knight_blue.png"
+    ],
+    "kobold-warrior": [
+      "monster/kobold_new.png"
+    ],
+    "lamia": null,
+    "lemure": [
+      "monster/demons/lemure.png"
+    ],
+    "lion": null,
+    "lizard": [
+      "monster/animals/iguana.png"
+    ],
+    "magma-mephit": [
+      "monster/demons/iron_imp_new.png"
+    ],
+    "magmin": [
+      "monster/nonliving/molten_gargoyle.png"
+    ],
+    "manticore": [
+      "monster/manticore.png"
+    ],
+    "mastiff": [
+      "monster/animals/war_dog.png"
+    ],
+    "minotaur-of-baphomet": [
+      "monster/minotaur.png"
+    ],
+    "minotaur-skeleton": [
+      "monster/undead/skeletons/skeleton_humanoid_large_new.png"
+    ],
+    "mule": null,
+    "mummy": [
+      "monster/undead/mummy.png"
+    ],
+    "noble": [
+      "player/base/human_male.png",
+      "player/boots/long_red.png",
+      "player/body/robe_red_gold.png",
+      "player/hair/short_yellow.png",
+      "player/head/crown_gold_1.png",
+      "player/hand_right/rapier.png"
+    ],
+    "ogre": [
+      "monster/ogre_new.png"
+    ],
+    "ogre-zombie": [
+      "monster/undead/zombies/zombie_ogre.png"
+    ],
+    "otyugh": null,
+    "owl": null,
+    "owlbear": null,
+    "panther": null,
+    "pegasus": null,
+    "piranha": [
+      "monster/animals/big_fish.png"
+    ],
+    "pirate": [
+      "player/base/human_male.png",
+      "player/boots/long_red.png",
+      "player/legs/pants_short_brown.png",
+      "player/body/vest_red.png",
+      "player/head/bandana_ybrown.png",
+      "player/hand_right/scimitar_new.png"
+    ],
+    "plesiosaurus": null,
+    "polar-bear": [
+      "monster/animals/polar_bear.png"
+    ],
+    "pony": null,
+    "priest": [
+      "player/base/human_male.png",
+      "player/boots/middle_brown.png",
+      "player/body/robe_white.png",
+      "player/head/healer.png",
+      "player/hand_right/mace_new.png",
+      "player/hand_left/shield_holy.png"
+    ],
+    "priest-acolyte": [
+      "player/base/human_female.png",
+      "player/body/robe_white.png",
+      "player/hair/short_black.png",
+      "player/hand_right/staff_plain.png"
+    ],
+    "pseudodragon": [
+      "monster/swamp_drake.png"
+    ],
+    "pteranodon": null,
+    "quasit": [
+      "monster/demons/quasit_new.png"
+    ],
+    "rat": [
+      "monster/animals/rat.png"
+    ],
+    "raven": [
+      "monster/raven.png"
+    ],
+    "red-dragon-wyrmling": null,
+    "reef-shark": [
+      "monster/aquatic/shark_new.png"
+    ],
+    "rhinoceros": null,
+    "riding-horse": null,
+    "roper": null,
+    "saber-toothed-tiger": null,
+    "salamander": null,
+    "scorpion": [
+      "monster/animals/scorpion_new.png"
+    ],
+    "scout": [
+      "player/base/human_male.png",
+      "player/boots/short_brown.png",
+      "player/legs/pants_darkgreen.png",
+      "player/body/leather_green.png",
+      "player/head/hood_green.png",
+      "player/hand_right/bow.png"
+    ],
+    "seahorse": null,
+    "shrieker-fungus": [
+      "monster/fungi_plants/wandering_mushroom_new.png"
+    ],
+    "skeleton": [
+      "monster/undead/skeletal_warrior_new.png"
+    ],
+    "specter": [
+      "monster/undead/silent_spectre.png"
+    ],
+    "sphinx-of-wonder": [
+      "monster/sphinx_new.png"
+    ],
+    "spider": [
+      "monster/animals/jumping_spider_new.png"
+    ],
+    "sprite": [
+      "monster/spriggan/spriggan_air_mage.png"
+    ],
+    "spy": [
+      "player/base/human_male.png",
+      "player/boots/mesh_black.png",
+      "player/legs/pants_black.png",
+      "player/body/coat_black.png",
+      "player/head/hood_black_2.png",
+      "player/hand_right/dagger_new.png"
+    ],
+    "swarm-of-bats": [
+      "monster/animals/bat.png"
+    ],
+    "swarm-of-crawling-claws": null,
+    "swarm-of-insects": [
+      "monster/animals/giant_mosquito.png"
+    ],
+    "swarm-of-piranhas": [
+      "monster/animals/big_fish.png"
+    ],
+    "swarm-of-rats": [
+      "monster/animals/rat.png"
+    ],
+    "swarm-of-ravens": [
+      "monster/raven.png"
+    ],
+    "swarm-of-venomous-snakes": [
+      "monster/animals/adder.png"
+    ],
+    "tiger": null,
+    "tough": [
+      "player/base/human_male.png",
+      "player/legs/pants_short_brown.png",
+      "player/body/vest_red.png",
+      "player/hair/short_black.png",
+      "player/hand_right/club.png"
+    ],
+    "tough-boss": null,
+    "triceratops": null,
+    "troll": null,
+    "vampire-familiar": [
+      "player/base/human_female.png",
+      "player/body/dress_white.png",
+      "player/hair/long_black.png",
+      "player/hand_right/dagger_new.png"
+    ],
+    "vampire-spawn": null,
+    "venomous-snake": [
+      "monster/animals/adder.png"
+    ],
+    "violet-fungus": [
+      "monster/fungi_plants/deathcap.png"
+    ],
+    "vulture": null,
+    "warhorse": null,
+    "warhorse-skeleton": [
+      "monster/undead/skeletons/skeleton_quadruped_large_new.png"
+    ],
+    "warrior-infantry": [
+      "player/base/human_male.png",
+      "player/boots/middle_gray.png",
+      "player/legs/leg_armor_1.png",
+      "player/body/chainmail.png",
+      "player/head/iron_1.png",
+      "player/hand_right/spear.png",
+      "player/hand_left/shield_round_1.png"
+    ],
+    "warrior-veteran": [
+      "player/base/human_male.png",
+      "player/boots/middle_gray.png",
+      "player/legs/leg_armor_2.png",
+      "player/body/half_plate.png",
+      "player/beard/short_white.png",
+      "player/head/viking_brown_1.png",
+      "player/hand_right/great_sword.png"
+    ],
+    "water-elemental": null,
+    "weasel": null,
+    "white-dragon-wyrmling": [
+      "player/transform/dragon_form_white.png"
+    ],
+    "wight": [
+      "monster/undead/wight_new.png"
+    ],
+    "winter-wolf": [
+      "monster/animals/wolf.png"
+    ],
+    "wolf": [
+      "monster/animals/wolf.png"
+    ],
+    "worg": [
+      "monster/animals/warg.png"
+    ],
+    "wraith": null,
+    "xorn": null,
+    "zombie": [
+      "monster/undead/zombies/zombie_small.png"
+    ]
+  },
+  "creature_types": {
+    "aberration": "monster/eyes/giant_eyeball.png",
+    "beast": "monster/animals/wolf.png",
+    "celestial": "monster/holy/angel_new.png",
+    "construct": "monster/nonliving/iron_golem.png",
+    "dragon": "player/transform/dragon_form.png",
+    "elemental": "monster/nonliving/fire_elemental_new.png",
+    "fey": "monster/dryad.png",
+    "fiend": "monster/demons/imp.png",
+    "giant": "monster/ogre_new.png",
+    "humanoid": "monster/human_new.png",
+    "monstrosity": "monster/manticore.png",
+    "plant": "monster/fungi_plants/treant.png",
+    "swarm of tiny beasts": "monster/animals/bat.png",
+    "swarm of tiny undead": "monster/undead/crawling_corpse.png",
+    "undead": "monster/undead/skeletal_warrior_new.png"
+  }
+}

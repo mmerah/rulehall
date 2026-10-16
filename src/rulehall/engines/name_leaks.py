@@ -11,11 +11,13 @@ def names_in(text: str, entities: Iterable[Entity]) -> list[str]:
     return [entity.name for entity in entities if _mentions(text, entity.name)]
 
 
-def unmet_people_named[P: Person](text: str, people: Iterable[P]) -> list[P]:
+def unmet_people_named[P: Person](
+    text: str, people: Iterable[P], known_names: Iterable[str]
+) -> list[P]:
     everyone = list(people)
     unmet = [person for person in everyone if not person.known]
-    met = [person for person in everyone if person.known]
-    named = {*names_in(text, unmet), *_named_by_distinctive_word(text, unmet, met)}
+    shared = [*(person.name for person in everyone if person.known), *known_names]
+    named = {*names_in(text, unmet), *_named_by_distinctive_word(text, unmet, shared)}
     return [person for person in unmet if person.name in named]
 
 
@@ -28,9 +30,9 @@ def leaked_names(read: str, entities: Iterable[Entity], hidden: Sequence[Entity]
 
 
 def _named_by_distinctive_word(
-    text: str, people: Iterable[Person], met: Iterable[Person]
+    text: str, people: Iterable[Person], shared_names: Iterable[str]
 ) -> list[str]:
-    shared = {word for person in met for word in _capitalised(person.name)}
+    shared = {word for name in shared_names for word in _shared_words(name)}
     return [
         person.name
         for person in people
@@ -52,6 +54,11 @@ def _mentions(text: str, name: str) -> bool:
 
 def _words(name: str) -> list[str]:
     return re.findall(r"[^\W\d_]+", name)
+
+
+def _shared_words(name: str) -> list[str]:
+    possessives = set(re.findall(r"([^\W\d_]+)['\u2019]s(?!\w)", name))
+    return [word for word in _capitalised(name) if word not in possessives]
 
 
 def _capitalised(name: str) -> list[str]:

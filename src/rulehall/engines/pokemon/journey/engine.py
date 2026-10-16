@@ -9,7 +9,7 @@ from rulehall.core.log import Voice
 from rulehall.core.prompt import Sections, lines_of, ref_of, section_if, sentence
 from rulehall.core.tools import NoArgs, action, tool
 from rulehall.core.validation import Refusal, Slug
-from rulehall.core.views import Panel, Sprite
+from rulehall.core.views import Panel, PanelRows, Sprite
 from rulehall.engines.bases.maps.args import MoveTo
 from rulehall.engines.pokemon.dex import dex
 from rulehall.engines.pokemon.engine import RULE_SET_ID, PokemonEngine
@@ -42,6 +42,8 @@ from rulehall.engines.pokemon.journey.panels import (
     bag_sprite,
     box_panel,
     pending_decision,
+    person_rows,
+    rival_rows,
     scheme_panel,
     team_panel,
     wild_panel,
@@ -102,7 +104,6 @@ class JourneyEngine(
     person_model = JourneyTrainer
     opening_model = JourneyOpeningProposal
     next_proposal_model = JourneyRegionProposal
-    sheet_help = SHEET_HELP
 
     def creation_steps(self, pack_id: Slug, picks: Picks) -> tuple[CreationStep, ...]:
         ranks = _rank_picks(picks)
@@ -248,6 +249,12 @@ class JourneyEngine(
             ),
             *section_if("WILD HERE", wild),
         )
+
+    def person_rows(self, person: JourneyTrainer, /) -> PanelRows:
+        return person_rows(person)
+
+    def player_rows(self, world: JourneyWorld, /) -> PanelRows:
+        return (*person_rows(world.player), *rival_rows(world))
 
     def view_panels(self, state: JourneyGame, /) -> tuple[Panel | None, ...]:
         world = state.world

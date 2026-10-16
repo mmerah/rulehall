@@ -164,11 +164,6 @@
 .game-battle-foot > .game-choice { flex: 0 1 auto }
 .game-battle-foot > .game-choice-leave, .game-battle-foot > .game-choice-next { margin-left: auto; min-width: 6rem }
 .game-battle-foot > .game-choice-leave .q-btn__content, .game-battle-foot > .game-choice-next .q-btn__content { justify-content: center }
-/* While a pick resolves, it stays lit and the rest step back. */
-.game-battle-resolving .game-choice { pointer-events: none }
-.game-battle-resolving .game-choice:not(.game-choice-picked) { opacity: .35 !important; filter: saturate(.3) }
-.q-btn.game-choice-picked { box-shadow: 0 0 0 2px var(--game-accent), 0 0 22px -4px var(--game-accent-glow) !important; animation: game-picked 1.2s var(--game-ease) infinite alternate }
-@keyframes game-picked { to { box-shadow: 0 0 0 2px var(--game-accent), 0 0 8px -4px var(--game-accent-glow) } }
 
 @container battle not ((min-width: 700px) and (min-aspect-ratio: 4 / 5)) {
   .game-battle-voices { grid-area: scene; align-self: end; z-index: 2; margin: .4rem; max-height: 60%; overflow: hidden; pointer-events: none }

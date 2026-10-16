@@ -4,7 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from random import Random
-from typing import Any, ClassVar, final
+from typing import Any, final
 
 from pydantic import BaseModel, JsonValue
 
@@ -38,7 +38,7 @@ from rulehall.core.validation import (
     parse_strict_json,
     slug,
 )
-from rulehall.core.views import Look, MapView, Panel, PlayerView, Rows, ScreenSlot, Sprite
+from rulehall.core.views import Look, MapView, Panel, PanelRows, PlayerView, ScreenSlot, Sprite
 from rulehall.engines.args import Direct, JoinParty, Kill, LeaveParty, Reveal
 from rulehall.engines.battles import BattleSupport
 from rulehall.engines.packs import (
@@ -98,7 +98,6 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
     worldsmith_guidance: str
     art_style: str
     play_hint: str = "What does {name} do?"
-    sheet_help: ClassVar[Mapping[str, str]] = {}
     portraits: bool = True
     directory: Path
     base_dir: Path
@@ -152,15 +151,23 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         return draft.world.leave_party(args.target_id)
 
     @tool
-    def direct(self, _draft: Game[W], args: Direct, _rng: Random) -> list[Fact]:
+    def direct(self, draft: Game[W], args: Direct, _rng: Random) -> list[Fact]:
         """End the turn and give notes to the narrator. Call this last, once per turn.
         Include the answer or result, its known reason, and facts needed for the next choice.
         Share only facts the player can know now.
         Apply world changes through the other tools before calling direct."""
+        if (refusal := self.direct_refusal(draft)) is not None:
+            raise Refusal(refusal)
         return [Fact(trace=f"the game master directs: {args.text}", told=True)]
 
-    def preview_character(self, character: AnyCharacter) -> Rows:
-        return self.player_of(character).rows()
+    def direct_refusal(self, _draft: Game[W], /) -> str | None:
+        return None
+
+    def preview_character(self, character: AnyCharacter) -> PanelRows:
+        return self.person_rows(self.player_of(character))
+
+    @abstractmethod
+    def person_rows(self, person: P, /) -> PanelRows: ...
 
     def restore(self, raw: str) -> Game[W]:
         if (header := parse_strict_json(EngineHeader, raw)).engine_id != self.id:
@@ -241,6 +248,9 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         )
 
     def sprite(self, _state: Game[W], _entity_id: Slug, /) -> Sprite | None:
+        return None
+
+    def portrait(self, _portrait_id: Slug, /) -> Sprite | None:
         return None
 
     async def ask_worldsmith[A: BaseModel](

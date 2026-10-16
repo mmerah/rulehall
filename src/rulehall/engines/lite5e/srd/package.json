@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "engines": {"node": ">=22.18.0"},
+  "dependencies": {
+    "5e-database": "https://codeload.github.com/5e-bits/5e-database/tar.gz/a6212beb4b278917c2cff41c2b04c4ef4f3e0d6f",
+    "pngjs": "7.0.0"
+  },
+  "scripts": {
+    "export-srd": "node export-srd.js",
+    "fetch-assets": "node fetch-assets.js"
+  }
+}

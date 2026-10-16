@@ -1,15 +1,23 @@
 from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.validation import Frozen, Slug
-from rulehall.core.views import Meter, Panel, PanelRow, Tag
+from rulehall.core.views import Meter, Panel, PanelRow, PanelRows, Tag
+from rulehall.engines.panels import described_tag, tag_list, text_rows
 from rulehall.engines.pokemon.champions.args import PresetEdit, TeamEdit
 from rulehall.engines.pokemon.champions.data import CompetitiveSet, champions_data
-from rulehall.engines.pokemon.champions.rules import TEAM_SLOT_PREFIX
-from rulehall.engines.pokemon.champions.season import TIERS, Event, Finish
-from rulehall.engines.pokemon.champions.sheet import ChampionsSheet
+from rulehall.engines.pokemon.champions.rules import TEAM_SLOT_PREFIX, require_archetype
+from rulehall.engines.pokemon.champions.season import TIERS, Event, Finish, TierRule
+from rulehall.engines.pokemon.champions.sheet import ChampionsSheet, ChampionsTrainer
 from rulehall.engines.pokemon.champions.world import ChampionsWorld
 from rulehall.engines.pokemon.dex import dex, species_name
 from rulehall.engines.pokemon.rules import STAT_NAMES
-from rulehall.engines.pokemon.sprites import STAT_COLOUR, nature_arrows, nature_tag, type_tag
+from rulehall.engines.pokemon.sprites import (
+    STAT_COLOUR,
+    ability_tag,
+    move_tag,
+    nature_arrows,
+    nature_tag,
+    type_tag,
+)
 from rulehall.engines.sheet import PLAYER_ID
 
 TEAM_TAB = "Team"
@@ -21,6 +29,12 @@ SHEET_HELP = {
     "Tier": "The event tiers open to this trainer.",
     "CP": "Championship Points: the best four finishes of each tier count.",
     "Registered": "A registered team is locked from registration until the event ends.",
+}
+TRAINER_HELP = {
+    "Rival": "The player's rival: code builds their team for every event.",
+    "Archetype": "The kind of team this trainer brings.",
+    "Ace": "The Pokemon this trainer leans on.",
+    "Style": "How this trainer battles.",
 }
 SEASON_HELP = {
     "Tier": "The tier of this event.",
@@ -53,6 +67,39 @@ PLAY_NEXT_ROUND = ActionOption(
 )
 
 
+def person_rows(trainer: ChampionsTrainer) -> PanelRows:
+    sheet = trainer.sheet
+    if sheet is None:
+        archetype_id = trainer.archetype_id
+        ace_id = trainer.ace_species_id
+        return (
+            *text_rows(
+                "Rival", TRAINER_HELP["Rival"], "the rival of the season" if trainer.rival else ""
+            ),
+            *text_rows(
+                "Archetype",
+                TRAINER_HELP["Archetype"],
+                "" if archetype_id is None else require_archetype(archetype_id).name,
+            ),
+            *text_rows("Ace", TRAINER_HELP["Ace"], "" if ace_id is None else species_name(ace_id)),
+            *text_rows("Style", TRAINER_HELP["Style"], trainer.style),
+        )
+    team = [Tag(name=species_name(each.species_id), help=_set_line(each)) for each in sheet.team]
+    tiers = [
+        Tag(name=TIERS[tier].name, help=_tier_line(TIERS[tier])) for tier in sheet.unlocked_tiers()
+    ]
+    registered = "yes: the team is locked" if sheet.registered else "no"
+    return (
+        *tag_list("Team", SHEET_HELP["Team"], team),
+        *(
+            tag_list("Tier", SHEET_HELP["Tier"], tiers)
+            or (PanelRow(name="Tier", brief="none", help=SHEET_HELP["Tier"]),)
+        ),
+        PanelRow(name="CP", brief=str(sheet.cp()), help=SHEET_HELP["CP"]),
+        PanelRow(name="Registered", brief=registered, help=SHEET_HELP["Registered"]),
+    )
+
+
 def team_panel(world: ChampionsWorld) -> Panel:
     registered = world.player_sheet.registered is not None
     brief = UNSAVED_REGISTERED_BRIEF if registered else UNSAVED_BRIEF
@@ -79,14 +126,18 @@ def competitive_set_row(competitive_set: CompetitiveSet, number: int) -> PanelRo
     sp_max = champions_data().legal.sp_max
     return PanelRow(
         name=species.name,
-        brief=" · ".join(pokedex.moves[move_id].name for move_id in competitive_set.move_ids),
+        brief="",
         icon_id=f"{TEAM_SLOT_PREFIX}{number}",
         tags=(
             *(type_tag(kind) for kind in species.types),
-            Tag(name=pokedex.item_name(competitive_set.item_id)),
-            Tag(name=pokedex.ability_names[competitive_set.ability_id]),
+            described_tag(
+                pokedex.item_name(competitive_set.item_id),
+                pokedex.item_text(competitive_set.item_id),
+            ),
+            ability_tag(pokedex.ability_names[competitive_set.ability_id]),
             nature_tag(competitive_set.nature),
         ),
+        lower_tags=tuple(move_tag(pokedex.moves[move_id]) for move_id in competitive_set.move_ids),
         meters=tuple(
             Meter(
                 name=f"SP {STAT_NAMES[index]}{arrows.get(index, '')}",
@@ -207,3 +258,15 @@ def _standing_rows(event: Event) -> tuple[PanelRow, ...]:
         PanelRow(name=f"{rank}. {each.name}", brief=f"{each.wins}-{each.losses}")
         for rank, each in event.shown_standings()
     )
+
+
+def _set_line(competitive_set: CompetitiveSet) -> str:
+    pokedex = dex()
+    moves = ", ".join(pokedex.moves[move_id].name for move_id in competitive_set.move_ids)
+    item = pokedex.item_name(competitive_set.item_id)
+    return f"{item} · {pokedex.ability_names[competitive_set.ability_id]} · {moves}"
+
+
+def _tier_line(rule: TierRule) -> str:
+    earns = f" First place earns {rule.placing_cp(1)} CP." if rule.cp else ""
+    return f"{rule.swiss_rounds} Swiss rounds, then a top {rule.cut_size} cut.{earns}"

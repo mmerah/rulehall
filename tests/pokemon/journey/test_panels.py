@@ -38,7 +38,13 @@ def test_a_team_row_shows_types_hp_and_stats_as_tags_and_meters() -> None:
     row = mon_row(mon, LEVEL_MAX)
     stats = mon.stats()[1:]
 
-    assert tuple(tag.name for tag in row.tags) == ("Lv5", "Fire", "BRN", "Jolly", "♥ 70 · help +2")
+    assert tuple(tag.name for tag in row.tags[:5]) == (
+        "Lv5",
+        "Fire",
+        "BRN",
+        "Jolly",
+        "♥ 70 · help +2",
+    )
     assert row.tags[3].help == "Spe ▲ · SpA ▼"
     assert [(meter.name, meter.current, meter.maximum) for meter in row.meters] == [
         ("HP", 8, 20),
@@ -111,24 +117,23 @@ def test_a_team_row_offers_its_items_moves_and_team_actions_in_groups() -> None:
     assert [option.action_name for option in options if option.refusal] == ["lead_mon"]
     assert all(option.refusal for option in pidgey_row.options[:2])
     assert not any(option.refusal for option in pidgey_row.options if option.group == "Team")
-    assert [panel.title for panel in charmander_row.detail] == ["About", "Stats", "Moves"]
+    assert [panel.title for panel in charmander_row.detail] == ["About", "Stats"]
 
 
 def test_the_summary_shows_the_held_item_the_nature_arrows_and_the_moves() -> None:
     mon = started().world.player_sheet.require_mon("charmander")
     mon.item_id = "charcoal"
 
-    about, stats, moves = mon_row(mon, LEVEL_MAX).detail
+    row = mon_row(mon, LEVEL_MAX)
+    about, stats = row.detail
 
     assert (about.rows[0].icon_id, about.rows[0].brief) == ("charcoal", dex().items["charcoal"])
     assert (about.rows[1].tags[0].name, about.rows[1].brief) == ("Blaze", dex().abilities["Blaze"])
     assert about.rows[2].brief == "Spe ▲ · SpA ▼"
     assert [row.name for row in stats.rows] == ["HP", "Atk", "Def", "SpA ▼", "SpD", "Spe ▲"]
-    ember = moves.rows[2]
-    assert [tag.name for tag in ember.tags] == ["Fire", "Special"]
-    assert dex().moves["ember"].text in ember.brief
-    [pp] = ember.meters
-    assert (pp.name, pp.current, pp.maximum) == ("PP", 40, 40)
+    ember = next(tag for tag in row.lower_tags if tag.name.startswith("Ember"))
+    assert ember.name == "Ember 40/40"
+    assert dex().moves["ember"].text in ember.detail
 
 
 def test_bag_rows_sort_by_pocket_and_carry_their_text() -> None:

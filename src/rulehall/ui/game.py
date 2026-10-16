@@ -351,7 +351,12 @@ class GamePage:
 
     async def pick_option(self, option: ActionOption) -> bool:
         self.row_dialog.close()
+        if option.action_name in self.session.engine.edits:
+            return await self.move(partial(self._edit, option))
         return await self.choose(PlayerInput(option_id=option.id))
+
+    async def _edit(self, option: ActionOption) -> None:
+        self.session.edit(option)
 
     async def choose(self, answer: PlayerInput) -> bool:
         return await self.move(lambda: self.session.choose(answer))

@@ -2,9 +2,18 @@ import json
 from pathlib import Path
 from random import Random
 
-from support.table import TUNNELGOONS, open_table, play_turn, tool_call
+from support.table import (
+    ENGINES_BUILT,
+    TUNNELGOONS,
+    offline_settings,
+    open_table,
+    play_turn,
+    tool_call,
+    updated,
+)
 
 from rulehall.core.decisions import PlayerInput
+from rulehall.core.stores import Library
 from rulehall.engines.bases.maps.panels import MORE_MAP
 from rulehall.engines.tunnelgoons.panels import level_up_decision
 from rulehall.engines.tunnelgoons.sheet import GoonSheet
@@ -152,3 +161,42 @@ async def test_the_clock_does_not_count_a_turn_the_master_never_played(tmp_path:
     assert state.log_entries()[-1].facts
     assert state.world.turns_since_meanwhile == 0
     assert "master" not in [role for role, _ in table.roles.prompts]
+
+
+async def test_a_level_up_with_no_worldsmith_request_is_written_back(tmp_path: Path) -> None:
+    settings = offline_settings(tmp_path).model_copy(
+        update={"characters_dir": tmp_path / "characters"}
+    )
+    engine = ENGINES_BUILT[TUNNELGOONS]
+    library = Library(settings.scenarios_dir, settings.characters_dir)
+    kael = library.read_character("kael", TUNNELGOONS, engine.character_model)
+    library.write_character(updated(kael, id="wren"))
+    table = open_table(
+        tmp_path,
+        engine_id=TUNNELGOONS,
+        state_type=TunnelGoonsGame,
+        settings=settings,
+        character_id="wren",
+    )
+    suspended = table.state.draft()
+    suspended.pending = level_up_decision(suspended.world.player)
+    table.session.save(suspended.validated())
+
+    state = await play_turn(table, PlayerInput(option_id="brute-health"))
+
+    assert state.request is None
+    written = table.runtime.library.read_character("wren", TUNNELGOONS, engine.character_model)
+    assert written == table.session.character
+    assert engine.player_of(written).require_sheet().level == 2
+
+
+async def test_a_level_up_of_a_shipped_character_is_kept_on_the_session(tmp_path: Path) -> None:
+    table = open_table(tmp_path, engine_id=TUNNELGOONS, state_type=TunnelGoonsGame)
+    suspended = table.state.draft()
+    suspended.pending = level_up_decision(suspended.world.player)
+    table.session.save(suspended.validated())
+
+    await play_turn(table, PlayerInput(option_id="brute-health"))
+
+    grown = ENGINES_BUILT[TUNNELGOONS].player_of(table.session.character)
+    assert grown.require_sheet().level == 2

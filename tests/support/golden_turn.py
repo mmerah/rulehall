@@ -133,6 +133,19 @@ _CHAMPIONS_SCRIPT: tuple[Scripted, ...] = (
     tool_call("direct", text="the field is drawn, and Sable is already reading the pairings"),
 )
 
+_LITE5E_SCRIPT: tuple[Scripted, ...] = (
+    tool_call("move", to_id="mill"),
+    tool_call(
+        "check",
+        what="Search the mill floor",
+        actor_id="player",
+        skill="investigation",
+        dc={"kind": "target", "target_id": "snare"},
+    ),
+    tool_call("reveal", target_id="snare"),
+    tool_call("direct", text="the loose boards creak, and something below the floor goes quiet"),
+)
+
 SCRIPTS: dict[EngineId, tuple[tuple[Scripted, ...], Callable[[AnyGame], AnyGame]]] = {
     EngineId("loner4e"): (_LONER4E_SCRIPT, _loner4e_behind),
     EngineId("tunnelgoons"): (
@@ -157,6 +170,14 @@ SCRIPTS: dict[EngineId, tuple[tuple[Scripted, ...], Callable[[AnyGame], AnyGame]
             _one_exchange,
             words="I look along the harbour road before going further.",
             said="Rook waves at you from the tall grass.",
+        ),
+    ),
+    EngineId("lite5e"): (
+        _LITE5E_SCRIPT,
+        partial(
+            _one_exchange,
+            words="I look around the ford before going further.",
+            said="Dunstan points you toward the old mill.",
         ),
     ),
     CHAMPIONS: (

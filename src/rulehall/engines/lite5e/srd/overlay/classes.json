@@ -1,0 +1,837 @@
+{
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "changes": "Cut and adapted for 5e Lite",
+  "rows": {
+    "cut_features": [
+      "barbarian-weapon-mastery",
+      "druid-wild-companion",
+      "druid-wild-resurgence",
+      "fighter-tactical-shift",
+      "fighter-weapon-mastery",
+      "monk-slow-fall",
+      "paladin-faithful-steed",
+      "paladin-weapon-mastery",
+      "ranger-weapon-mastery",
+      "rogue-weapon-mastery",
+      "wizard-memorize-spell"
+    ],
+    "default_picks": {
+      "origin-feat": [
+        "alert",
+        "savage-attacker"
+      ],
+      "feat": [
+        "ability-score-improvement"
+      ],
+      "replace-metamagic": [
+        "keep"
+      ],
+      "replace-prepared": [
+        "keep"
+      ]
+    },
+    "classes": {
+      "fighter": {
+        "defaults": {
+          "ability_order": [
+            "strength",
+            "constitution",
+            "dexterity",
+            "wisdom",
+            "charisma",
+            "intelligence"
+          ],
+          "picks": {
+            "class-skill": [
+              "athletics",
+              "perception",
+              "survival",
+              "intimidation",
+              "insight"
+            ],
+            "fighting-style": [
+              "defense"
+            ]
+          }
+        }
+      },
+      "rogue": {
+        "defaults": {
+          "ability_order": [
+            "dexterity",
+            "constitution",
+            "wisdom",
+            "intelligence",
+            "charisma",
+            "strength"
+          ],
+          "picks": {
+            "class-skill": [
+              "stealth",
+              "perception",
+              "sleight-of-hand",
+              "investigation",
+              "acrobatics",
+              "deception",
+              "insight"
+            ],
+            "expertise": [
+              "stealth",
+              "perception",
+              "sleight-of-hand",
+              "investigation"
+            ]
+          }
+        }
+      },
+      "cleric": {
+        "defaults": {
+          "ability_order": [
+            "wisdom",
+            "constitution",
+            "strength",
+            "dexterity",
+            "charisma",
+            "intelligence"
+          ],
+          "picks": {
+            "class-skill": [
+              "insight",
+              "medicine",
+              "persuasion",
+              "religion"
+            ],
+            "class-order": [
+              "protector"
+            ],
+            "cantrip": [
+              "guidance",
+              "sacred-flame",
+              "spare-the-dying",
+              "light",
+              "thaumaturgy"
+            ],
+            "prepared": [
+              "cure-wounds",
+              "bless",
+              "healing-word",
+              "guiding-bolt",
+              "shield-of-faith",
+              "command",
+              "spiritual-weapon",
+              "hold-person",
+              "beacon-of-hope",
+              "protection-from-energy"
+            ]
+          }
+        }
+      },
+      "wizard": {
+        "defaults": {
+          "ability_order": [
+            "intelligence",
+            "constitution",
+            "dexterity",
+            "wisdom",
+            "charisma",
+            "strength"
+          ],
+          "picks": {
+            "class-skill": [
+              "arcana",
+              "investigation",
+              "history",
+              "insight"
+            ],
+            "expertise": [
+              "arcana",
+              "history",
+              "investigation"
+            ],
+            "cantrip": [
+              "fire-bolt",
+              "ray-of-frost",
+              "mage-hand",
+              "light"
+            ],
+            "spellbook": [
+              "fireball",
+              "magic-missile",
+              "shield",
+              "sleep",
+              "mage-armor",
+              "detect-magic",
+              "thunderwave",
+              "burning-hands",
+              "false-life",
+              "scorching-ray",
+              "misty-step",
+              "shatter",
+              "web",
+              "lightning-bolt",
+              "hypnotic-pattern"
+            ]
+          }
+        },
+        "spellbook": true,
+        "level_grants": {
+          "1": {
+            "spellbook": 6
+          },
+          "2": {
+            "spellbook": 2
+          },
+          "3": {
+            "spellbook": 2
+          },
+          "4": {
+            "spellbook": 2
+          },
+          "5": {
+            "spellbook": 2,
+            "savant-spell": 1
+          }
+        }
+      },
+      "barbarian": {
+        "defaults": {
+          "ability_order": [
+            "strength",
+            "constitution",
+            "dexterity",
+            "wisdom",
+            "charisma",
+            "intelligence"
+          ],
+          "picks": {
+            "class-skill": [
+              "athletics",
+              "perception",
+              "survival",
+              "intimidation",
+              "nature",
+              "animal-handling"
+            ]
+          }
+        }
+      },
+      "paladin": {
+        "defaults": {
+          "ability_order": [
+            "strength",
+            "charisma",
+            "constitution",
+            "wisdom",
+            "dexterity",
+            "intelligence"
+          ],
+          "picks": {
+            "class-skill": [
+              "athletics",
+              "persuasion",
+              "insight",
+              "religion",
+              "medicine",
+              "intimidation"
+            ],
+            "fighting-style": [
+              "defense"
+            ],
+            "warrior-cantrip": [
+              "sacred-flame",
+              "guidance"
+            ],
+            "prepared": [
+              "bless",
+              "cure-wounds",
+              "heroism",
+              "divine-favor",
+              "searing-smite",
+              "command",
+              "shining-smite",
+              "lesser-restoration",
+              "magic-weapon"
+            ]
+          }
+        },
+        "prepared_swap": "long-rest"
+      },
+      "ranger": {
+        "defaults": {
+          "ability_order": [
+            "dexterity",
+            "wisdom",
+            "constitution",
+            "strength",
+            "intelligence",
+            "charisma"
+          ],
+          "picks": {
+            "class-skill": [
+              "perception",
+              "stealth",
+              "survival",
+              "nature",
+              "insight",
+              "animal-handling",
+              "investigation",
+              "athletics"
+            ],
+            "expertise": [
+              "perception",
+              "stealth",
+              "survival"
+            ],
+            "fighting-style": [
+              "archery"
+            ],
+            "warrior-cantrip": [
+              "shillelagh",
+              "guidance"
+            ],
+            "prepared": [
+              "cure-wounds",
+              "entangle",
+              "goodberry",
+              "speak-with-animals",
+              "barkskin",
+              "pass-without-trace",
+              "lesser-restoration",
+              "aid"
+            ]
+          }
+        },
+        "prepared_swap": "long-rest"
+      },
+      "warlock": {
+        "defaults": {
+          "ability_order": [
+            "charisma",
+            "constitution",
+            "dexterity",
+            "wisdom",
+            "intelligence",
+            "strength"
+          ],
+          "picks": {
+            "class-skill": [
+              "arcana",
+              "deception",
+              "intimidation",
+              "investigation",
+              "history",
+              "nature",
+              "religion"
+            ],
+            "cantrip": [
+              "eldritch-blast",
+              "minor-illusion",
+              "prestidigitation"
+            ],
+            "prepared": [
+              "hex",
+              "protection-from-evil-and-good",
+              "charm-person",
+              "misty-step",
+              "hold-person",
+              "mirror-image",
+              "hypnotic-pattern",
+              "vampiric-touch"
+            ],
+            "invocation": [
+              "pact-of-the-blade",
+              "agonizing-blast",
+              "eldritch-mind",
+              "thirsting-blade",
+              "eldritch-smite"
+            ],
+            "pact-weapon": [
+              "longsword"
+            ]
+          }
+        },
+        "prepared_swap": "level-up"
+      },
+      "bard": {
+        "defaults": {
+          "ability_order": [
+            "charisma",
+            "dexterity",
+            "constitution",
+            "wisdom",
+            "intelligence",
+            "strength"
+          ],
+          "picks": {
+            "class-skill": [
+              "persuasion",
+              "performance",
+              "insight",
+              "deception",
+              "perception",
+              "history",
+              "arcana",
+              "investigation"
+            ],
+            "expertise": [
+              "persuasion",
+              "performance",
+              "insight"
+            ],
+            "cantrip": [
+              "vicious-mockery",
+              "true-strike",
+              "minor-illusion",
+              "light"
+            ],
+            "prepared": [
+              "healing-word",
+              "dissonant-whispers",
+              "faerie-fire",
+              "sleep",
+              "heroism",
+              "hold-person",
+              "shatter",
+              "lesser-restoration",
+              "invisibility",
+              "hypnotic-pattern",
+              "mass-healing-word",
+              "slow"
+            ],
+            "tool": [
+              "lute",
+              "flute",
+              "drum"
+            ]
+          }
+        },
+        "prepared_swap": "level-up"
+      },
+      "druid": {
+        "defaults": {
+          "ability_order": [
+            "wisdom",
+            "constitution",
+            "dexterity",
+            "intelligence",
+            "strength",
+            "charisma"
+          ],
+          "picks": {
+            "class-skill": [
+              "nature",
+              "perception",
+              "animal-handling",
+              "medicine",
+              "survival",
+              "insight"
+            ],
+            "cantrip": [
+              "produce-flame",
+              "guidance",
+              "shillelagh",
+              "resistance"
+            ],
+            "prepared": [
+              "healing-word",
+              "entangle",
+              "cure-wounds",
+              "faerie-fire",
+              "thunderwave",
+              "barkskin",
+              "flame-blade",
+              "lesser-restoration",
+              "hold-person",
+              "call-lightning",
+              "revivify",
+              "protection-from-energy"
+            ],
+            "class-order": [
+              "magician"
+            ],
+            "land": [
+              "temperate"
+            ]
+          }
+        }
+      },
+      "monk": {
+        "defaults": {
+          "ability_order": [
+            "dexterity",
+            "wisdom",
+            "constitution",
+            "strength",
+            "intelligence",
+            "charisma"
+          ],
+          "picks": {
+            "class-skill": [
+              "acrobatics",
+              "stealth",
+              "insight",
+              "athletics",
+              "history",
+              "religion"
+            ],
+            "tool": [
+              "flute"
+            ]
+          }
+        }
+      },
+      "sorcerer": {
+        "defaults": {
+          "ability_order": [
+            "charisma",
+            "constitution",
+            "dexterity",
+            "wisdom",
+            "intelligence",
+            "strength"
+          ],
+          "picks": {
+            "class-skill": [
+              "arcana",
+              "persuasion",
+              "insight",
+              "deception",
+              "intimidation",
+              "religion"
+            ],
+            "cantrip": [
+              "fire-bolt",
+              "sorcerous-burst",
+              "ray-of-frost",
+              "mage-hand",
+              "light"
+            ],
+            "prepared": [
+              "magic-missile",
+              "shield",
+              "sleep",
+              "mage-armor",
+              "scorching-ray",
+              "misty-step",
+              "hold-person",
+              "fireball",
+              "lightning-bolt"
+            ],
+            "metamagic": [
+              "quickened",
+              "twinned",
+              "heightened",
+              "empowered"
+            ]
+          }
+        },
+        "prepared_swap": "level-up"
+      }
+    },
+    "features": {
+      "barbarian-danger-sense": {
+        "modifiers": [{"kind": "advantage", "on": "save", "keys": ["dexterity"]}]
+      },
+      "barbarian-fast-movement": {
+        "tag": "Fast Movement"
+      },
+      "barbarian-primal-knowledge": {
+        "grants": {
+          "primal-knowledge": 1
+        }
+      },
+      "barbarian-unarmored-defense": {
+        "modifiers": [{"kind": "armor-base", "base": 10, "ability": "constitution"}]
+      },
+      "bard-jack-of-all-trades": {
+        "modifiers": [
+          {"kind": "bonus", "to": "unskilled-check", "amount": "half-proficiency-bonus"}
+        ]
+      },
+      "bard-subclass": {
+        "grants": {
+          "lore-skill": 3
+        }
+      },
+      "cleric-divine-order": {
+        "grants": {
+          "class-order": 1
+        }
+      },
+      "cleric-subclass": {
+        "always_prepared": [
+          {
+            "level": 3,
+            "spell_ids": [
+              "aid",
+              "bless",
+              "cure-wounds",
+              "lesser-restoration"
+            ]
+          },
+          {
+            "level": 5,
+            "spell_ids": [
+              "mass-healing-word",
+              "revivify"
+            ]
+          }
+        ]
+      },
+      "druid-druidic": {
+        "tag": "Druidic",
+        "always_prepared": [
+          {
+            "level": 1,
+            "spell_ids": [
+              "speak-with-animals"
+            ]
+          }
+        ]
+      },
+      "druid-primal-order": {
+        "grants": {
+          "class-order": 1
+        }
+      },
+      "druid-subclass": {
+        "grants": {
+          "land": 1
+        }
+      },
+      "fighter-subclass": {
+        "modifiers": [
+          {"kind": "bonus", "to": "critical-range"},
+          {"kind": "advantage", "on": "check", "keys": ["athletics"]},
+          {"kind": "advantage", "on": "initiative"}
+        ]
+      },
+      "monk-unarmored-defense": {
+        "modifiers": [
+          {"kind": "armor-base", "base": 10, "ability": "wisdom", "shieldless": true}
+        ]
+      },
+      "monk-unarmored-movement": {
+        "tag": "Unarmored Movement"
+      },
+      "paladin-channel-divinity": {
+        "tag": "Divine Sense"
+      },
+      "paladin-paladins-smite": {
+        "always_prepared": [
+          {
+            "level": 2,
+            "spell_ids": [
+              "divine-smite"
+            ]
+          }
+        ]
+      },
+      "paladin-subclass": {
+        "always_prepared": [
+          {
+            "level": 3,
+            "spell_ids": [
+              "protection-from-evil-and-good",
+              "shield-of-faith"
+            ]
+          },
+          {
+            "level": 5,
+            "spell_ids": [
+              "aid",
+              "zone-of-truth"
+            ]
+          }
+        ]
+      },
+      "ranger-deft-explorer": {
+        "grants": {
+          "expertise": 1
+        }
+      },
+      "ranger-favored-enemy": {
+        "always_prepared": [
+          {
+            "level": 1,
+            "spell_ids": [
+              "hunters-mark"
+            ]
+          }
+        ]
+      },
+      "rogue-subclass": {
+        "tag": "Second-Story Work"
+      },
+      "rogue-thieves-cant": {
+        "tag": "Thieves' Cant"
+      },
+      "sorcerer-metamagic": {
+        "grants": {
+          "metamagic": 2
+        }
+      },
+      "sorcerer-subclass": {
+        "modifiers": [
+          {"kind": "armor-base", "base": 10, "ability": "charisma"},
+          {"kind": "bonus", "to": "hit-points", "amount": {"per_level": 1}}
+        ],
+        "always_prepared": [
+          {
+            "level": 3,
+            "spell_ids": [
+              "alter-self",
+              "chromatic-orb",
+              "command"
+            ]
+          },
+          {
+            "level": 5,
+            "spell_ids": [
+              "fear"
+            ]
+          }
+        ]
+      },
+      "warlock-subclass": {
+        "always_prepared": [
+          {
+            "level": 3,
+            "spell_ids": [
+              "burning-hands",
+              "command",
+              "scorching-ray",
+              "suggestion"
+            ]
+          },
+          {
+            "level": 5,
+            "spell_ids": [
+              "fireball"
+            ]
+          }
+        ]
+      },
+      "wizard-scholar": {
+        "grants": {
+          "expertise": 1
+        }
+      },
+      "wizard-subclass": {
+        "grants": {
+          "savant-spell": 2
+        }
+      }
+    },
+    "class_options": {
+      "protector": {
+        "class_id": "cleric",
+        "pick_kind": "class-order",
+        "name": "Protector",
+        "description": "Trained for battle: proficiency with Martial weapons and training with Heavy armor.",
+        "weapon_proficiencies": [
+          "martial"
+        ],
+        "armor_training": [
+          "heavy"
+        ]
+      },
+      "thaumaturge": {
+        "class_id": "cleric",
+        "pick_kind": "class-order",
+        "name": "Thaumaturge",
+        "description": "One extra Cleric cantrip. Add your Wisdom modifier (minimum +1) to your Intelligence (Arcana or Religion) checks.",
+        "grants": {
+          "cantrip": 1
+        },
+        "modifiers": [
+          {"kind": "bonus", "to": "check", "amount": {"ability": "wisdom"}, "keys": ["arcana", "religion"]}
+        ]
+      },
+      "magician": {
+        "class_id": "druid",
+        "pick_kind": "class-order",
+        "name": "Magician",
+        "description": "One extra Druid cantrip. Add your Wisdom modifier (minimum +1) to your Intelligence (Arcana or Nature) checks.",
+        "grants": {
+          "cantrip": 1
+        },
+        "modifiers": [
+          {"kind": "bonus", "to": "check", "amount": {"ability": "wisdom"}, "keys": ["arcana", "nature"]}
+        ]
+      },
+      "warden": {
+        "class_id": "druid",
+        "pick_kind": "class-order",
+        "name": "Warden",
+        "description": "Trained for battle: proficiency with Martial weapons and training with Medium armor.",
+        "weapon_proficiencies": [
+          "martial"
+        ],
+        "armor_training": [
+          "medium"
+        ]
+      },
+      "arid": {
+        "class_id": "druid",
+        "pick_kind": "land",
+        "name": "Arid Land",
+        "description": "Circle of the Land: the arid land's spells are always prepared.",
+        "always_prepared": [
+          {
+            "level": 3,
+            "spell_ids": [
+              "blur",
+              "burning-hands",
+              "fire-bolt"
+            ]
+          },
+          {
+            "level": 5,
+            "spell_ids": [
+              "fireball"
+            ]
+          }
+        ]
+      },
+      "temperate": {
+        "class_id": "druid",
+        "pick_kind": "land",
+        "name": "Temperate Land",
+        "description": "Circle of the Land: the temperate land's spells are always prepared.",
+        "always_prepared": [
+          {
+            "level": 3,
+            "spell_ids": [
+              "misty-step",
+              "shocking-grasp",
+              "sleep"
+            ]
+          },
+          {
+            "level": 5,
+            "spell_ids": [
+              "lightning-bolt"
+            ]
+          }
+        ]
+      },
+      "tropical": {
+        "class_id": "druid",
+        "pick_kind": "land",
+        "name": "Tropical Land",
+        "description": "Circle of the Land: the tropical land's spells are always prepared.",
+        "always_prepared": [
+          {
+            "level": 3,
+            "spell_ids": [
+              "acid-splash",
+              "ray-of-sickness",
+              "web"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

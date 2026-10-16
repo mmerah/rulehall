@@ -1,0 +1,662 @@
+{
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "changes": "Cut and adapted for 5e Lite",
+  "rows": {
+    "cut": [
+      "animate-dead",
+      "bestow-curse",
+      "blink",
+      "conjure-animals",
+      "counterspell",
+      "darkness",
+      "dragons-breath",
+      "ensnaring-strike",
+      "feather-fall",
+      "find-familiar",
+      "find-steed",
+      "flaming-sphere",
+      "fly",
+      "fog-cloud",
+      "gaseous-form",
+      "glyph-of-warding",
+      "grease",
+      "gust-of-wind",
+      "haste",
+      "heat-metal",
+      "hellish-rebuke",
+      "ice-knife",
+      "magic-circle",
+      "major-image",
+      "moonbeam",
+      "phantasmal-force",
+      "phantom-steed",
+      "plant-growth",
+      "sanctuary",
+      "sleet-storm",
+      "spike-growth",
+      "spirit-guardians",
+      "stinking-cloud",
+      "unseen-servant",
+      "warding-bond",
+      "wind-wall"
+    ],
+    "spells": {
+      "acid-arrow": {
+        "group": "battle",
+        "damage": [
+          {
+            "dice": "4d4",
+            "damage_type": "acid"
+          },
+          {
+            "dice": "2d4",
+            "damage_type": "acid"
+          }
+        ],
+        "higher_level_dice": "2d4",
+        "missed_damage_parts": 1
+      },
+      "acid-splash": {
+        "group": "battle"
+      },
+      "aid": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "aid"
+      },
+      "animal-friendship": {
+        "story_condition": {
+          "condition": "charmed",
+          "tier": "long-rest"
+        }
+      },
+      "bane": {
+        "group": "battle",
+        "riders": [
+          {
+            "effect_id": "bane"
+          }
+        ]
+      },
+      "barkskin": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally"
+      },
+      "beacon-of-hope": {
+        "group": "battle",
+        "effect": {},
+        "target_count": 3,
+        "target_filter": "ally",
+        "save_ability": null
+      },
+      "bless": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally"
+      },
+      "blindness-deafness": {
+        "group": "battle",
+        "riders": [
+          {
+            "condition": "blinded",
+            "ends": "save-each-turn"
+          }
+        ]
+      },
+      "blur": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally"
+      },
+      "burning-hands": {
+        "group": "battle"
+      },
+      "call-lightning": {
+        "group": "battle",
+        "area": {
+          "shape": "sphere",
+          "feet": 5
+        },
+        "effect": {}
+      },
+      "charm-person": {
+        "story_condition": {
+          "condition": "charmed",
+          "tier": "place"
+        }
+      },
+      "chill-touch": {
+        "group": "battle",
+        "riders": [
+          {
+            "effect_id": "no-healing",
+            "ends": "source-next-turn-end"
+          }
+        ]
+      },
+      "chromatic-orb": {
+        "group": "battle",
+        "damage": [
+          {
+            "dice": "3d8"
+          }
+        ],
+        "variants": [
+          "acid",
+          "cold",
+          "fire",
+          "lightning",
+          "poison",
+          "thunder"
+        ]
+      },
+      "color-spray": {
+        "group": "battle",
+        "riders": [
+          {
+            "condition": "blinded",
+            "ends": "source-next-turn-end"
+          }
+        ]
+      },
+      "command": {
+        "group": "battle",
+        "variants": [
+          "grovel",
+          "halt",
+          "flee"
+        ],
+        "riders": [
+          {
+            "effect_id": "command",
+            "ends": "target-next-turn-end"
+          }
+        ]
+      },
+      "cure-wounds": {
+        "group": "battle",
+        "healing_dice": "2d8",
+        "target_filter": "ally"
+      },
+      "dissonant-whispers": {
+        "group": "battle",
+        "riders": [
+          {
+            "rider_id": "push"
+          }
+        ]
+      },
+      "divine-favor": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally"
+      },
+      "divine-smite": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally"
+      },
+      "eldritch-blast": {
+        "group": "battle",
+        "volley": true,
+        "upgrade_targets": 1
+      },
+      "enlarge-reduce": {
+        "save_ability": "constitution"
+      },
+      "entangle": {
+        "group": "battle",
+        "area": {
+          "shape": "cube",
+          "feet": 20
+        },
+        "riders": [
+          {
+            "condition": "restrained",
+            "ends": "escape"
+          }
+        ]
+      },
+      "faerie-fire": {
+        "group": "battle",
+        "riders": [
+          {
+            "effect_id": "faerie-fire"
+          }
+        ]
+      },
+      "false-life": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally"
+      },
+      "fear": {
+        "group": "battle",
+        "riders": [
+          {
+            "condition": "frightened"
+          }
+        ]
+      },
+      "fire-bolt": {
+        "group": "battle"
+      },
+      "fireball": {
+        "group": "battle"
+      },
+      "flame-blade": {
+        "group": "battle",
+        "damage": [
+          {
+            "dice": "3d6",
+            "damage_type": "fire"
+          }
+        ],
+        "effect": {},
+        "damage_modifier": true
+      },
+      "guidance": {
+        "story_boon": "guidance"
+      },
+      "guiding-bolt": {
+        "group": "battle",
+        "riders": [
+          {
+            "effect_id": "next-attack-advantage",
+            "ends": "source-next-turn-end",
+            "uses": 1
+          }
+        ]
+      },
+      "healing-word": {
+        "group": "battle",
+        "healing_dice": "2d4",
+        "target_filter": "ally"
+      },
+      "heroism": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally"
+      },
+      "hex": {
+        "group": "battle",
+        "riders": [
+          {
+            "effect_id": "hex"
+          }
+        ]
+      },
+      "hideous-laughter": {
+        "group": "battle",
+        "riders": [
+          {
+            "condition": "incapacitated",
+            "ends": "save-each-turn"
+          },
+          {
+            "condition": "prone",
+            "ends": "save-each-turn"
+          }
+        ]
+      },
+      "hold-person": {
+        "group": "battle",
+        "creature_types": [
+          "humanoid"
+        ],
+        "riders": [
+          {
+            "condition": "paralyzed",
+            "ends": "save-each-turn"
+          }
+        ]
+      },
+      "hunters-mark": {
+        "group": "battle",
+        "riders": [
+          {
+            "effect_id": "hunters-mark"
+          }
+        ]
+      },
+      "hypnotic-pattern": {
+        "group": "battle",
+        "riders": [
+          {
+            "condition": "charmed",
+            "ends_on": [
+              "damage"
+            ],
+            "immune_condition": "charmed"
+          },
+          {
+            "condition": "incapacitated",
+            "ends_on": [
+              "damage"
+            ],
+            "immune_condition": "charmed"
+          }
+        ]
+      },
+      "inflict-wounds": {
+        "group": "battle"
+      },
+      "invisibility": {
+        "group": "battle",
+        "riders": [
+          {
+            "condition": "invisible",
+            "ends_on": [
+              "attack",
+              "cast"
+            ]
+          }
+        ],
+        "target_filter": "ally"
+      },
+      "lesser-restoration": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "restore"
+      },
+      "lightning-bolt": {
+        "group": "battle",
+        "area": {
+          "shape": "line",
+          "feet": 100
+        }
+      },
+      "mage-armor": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally"
+      },
+      "magic-missile": {
+        "group": "battle",
+        "damage": [
+          {
+            "dice": "1d4",
+            "bonus": 1,
+            "damage_type": "force"
+          }
+        ],
+        "target_count": 3,
+        "volley": true
+      },
+      "magic-weapon": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally"
+      },
+      "mass-healing-word": {
+        "group": "battle",
+        "healing_dice": "2d4",
+        "target_filter": "ally"
+      },
+      "mind-spike": {
+        "group": "battle"
+      },
+      "mirror-image": {
+        "group": "battle",
+        "effect": {
+          "uses": 3
+        },
+        "target_filter": "ally"
+      },
+      "misty-step": {
+        "group": "battle",
+        "target_filter": "ally",
+        "then": [
+          "teleport"
+        ]
+      },
+      "poison-spray": {
+        "group": "battle"
+      },
+      "produce-flame": {
+        "group": "battle",
+        "casting_time": "action",
+        "range_feet": 60
+      },
+      "protection-from-energy": {
+        "group": "battle",
+        "effect": {},
+        "variants": [
+          "acid",
+          "cold",
+          "fire",
+          "lightning",
+          "thunder"
+        ],
+        "target_filter": "ally"
+      },
+      "protection-from-evil-and-good": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally"
+      },
+      "protection-from-poison": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally"
+      },
+      "ray-of-enfeeblement": {
+        "group": "battle",
+        "riders": [
+          {
+            "effect_id": "ray-of-enfeeblement",
+            "ends": "save-each-turn"
+          },
+          {
+            "effect_id": "next-attack-disadvantage",
+            "ends": "source-next-turn-start",
+            "ends_on": [
+              "attack"
+            ],
+            "on_success": true
+          }
+        ]
+      },
+      "ray-of-frost": {
+        "group": "battle"
+      },
+      "ray-of-sickness": {
+        "group": "battle",
+        "riders": [
+          {
+            "condition": "poisoned",
+            "ends": "source-next-turn-end"
+          }
+        ]
+      },
+      "resistance": {
+        "group": "battle",
+        "effect": {},
+        "variants": [
+          "acid",
+          "bludgeoning",
+          "cold",
+          "fire",
+          "lightning",
+          "necrotic",
+          "piercing",
+          "poison",
+          "radiant",
+          "slashing",
+          "thunder"
+        ],
+        "target_filter": "ally"
+      },
+      "revivify": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "dead"
+      },
+      "sacred-flame": {
+        "group": "battle"
+      },
+      "scorching-ray": {
+        "group": "battle",
+        "target_count": 3,
+        "volley": true
+      },
+      "searing-smite": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally",
+        "save_ability": null
+      },
+      "shatter": {
+        "group": "battle"
+      },
+      "shield": {
+        "group": "battle",
+        "effect": {
+          "effect_id": "ward",
+          "ends": "source-next-turn-start"
+        },
+        "name": "Ward",
+        "casting_time": "bonus-action",
+        "target_filter": "ally"
+      },
+      "shield-of-faith": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally"
+      },
+      "shillelagh": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally"
+      },
+      "shining-smite": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "ally"
+      },
+      "shocking-grasp": {
+        "group": "battle",
+        "riders": [
+          {
+            "effect_id": "no-opportunity-attack",
+            "ends": "target-next-turn-start"
+          }
+        ]
+      },
+      "sleep": {
+        "group": "battle",
+        "riders": [
+          {
+            "condition": "incapacitated",
+            "ends": "save-each-turn",
+            "ends_on": [
+              "damage"
+            ],
+            "immune_condition": "exhaustion"
+          }
+        ]
+      },
+      "slow": {
+        "group": "battle",
+        "save_ability": "wisdom",
+        "riders": [
+          {
+            "effect_id": "slow",
+            "ends": "save-each-turn"
+          }
+        ]
+      },
+      "sorcerous-burst": {
+        "group": "battle",
+        "damage": [
+          {
+            "dice": "1d8"
+          }
+        ],
+        "variants": [
+          "acid",
+          "cold",
+          "fire",
+          "lightning",
+          "poison",
+          "psychic",
+          "thunder"
+        ],
+        "exploding_dice": true
+      },
+      "spare-the-dying": {
+        "group": "battle",
+        "effect": {},
+        "target_filter": "dying"
+      },
+      "spiritual-weapon": {
+        "group": "battle",
+        "damage": [
+          {
+            "dice": "1d8",
+            "damage_type": "force"
+          }
+        ],
+        "effect": {},
+        "damage_modifier": true,
+        "strike_range_feet": 30
+      },
+      "starry-wisp": {
+        "group": "battle"
+      },
+      "suggestion": {
+        "story_condition": {
+          "condition": "charmed",
+          "tier": "long-rest"
+        }
+      },
+      "thaumaturgy": {
+        "story_boon": "booming-voice"
+      },
+      "thunderwave": {
+        "group": "battle",
+        "riders": [
+          {
+            "rider_id": "push"
+          }
+        ]
+      },
+      "true-strike": {
+        "group": "battle",
+        "effect": {}
+      },
+      "vampiric-touch": {
+        "group": "battle",
+        "effect": {},
+        "heals_half_dealt": true
+      },
+      "vicious-mockery": {
+        "group": "battle",
+        "riders": [
+          {
+            "effect_id": "next-attack-disadvantage",
+            "ends": "target-next-turn-end",
+            "ends_on": [
+              "attack"
+            ]
+          }
+        ]
+      },
+      "web": {
+        "group": "battle",
+        "area": {
+          "shape": "cube",
+          "feet": 20
+        },
+        "riders": [
+          {
+            "condition": "restrained",
+            "ends": "escape"
+          }
+        ],
+        "damage": []
+      }
+    }
+  }
+}

@@ -31,6 +31,7 @@ from rulehall.core.game import ScenarioDescription
 from rulehall.core.stores import ENCODING, Library, SaveStore
 from rulehall.core.validation import EngineId, Refusal
 from rulehall.engines.engine import AnyEngine
+from rulehall.engines.lite5e.engine import Lite5eEngine
 from rulehall.engines.loner4e.engine import Loner4eEngine
 from rulehall.engines.loner4e.world import Loner4eGame
 
@@ -39,12 +40,24 @@ _MIRRORED = Loner4eEngine(NO_PACKS)
 _MIRRORED.id = _MIRRORED.rule_set_id = MIRROR
 # A second engine installed, so the engine the launcher pairs on is observable at all.
 INSTALLED = {**ENGINES_BUILT, MIRROR: _MIRRORED}
-KAEL_FOR_EACH = [
+CHARACTERS_FOR_EACH = [
+    ("brann", Lite5eEngine.id),
+    ("bryn", Lite5eEngine.id),
+    ("corvin", Lite5eEngine.id),
+    ("elowen", Lite5eEngine.id),
+    ("garret", Lite5eEngine.id),
+    ("hesper", Lite5eEngine.id),
+    ("ilse", Lite5eEngine.id),
+    ("jory", Lite5eEngine.id),
     ("kael", LONER4E),
     ("kael", TUNNELGOONS),
     ("kael", TWENTYFOURXX),
     ("kael", POKEMON),
     ("kael", CHAMPIONS),
+    ("kael", Lite5eEngine.id),
+    ("linnet", Lite5eEngine.id),
+    ("tamsin", Lite5eEngine.id),
+    ("tavo", Lite5eEngine.id),
 ]
 
 
@@ -85,7 +98,7 @@ def test_the_catalog_pairs_a_scenario_with_a_character(tmp_path: Path) -> None:
     catalog = _catalog(offline_settings(tmp_path), ENGINES_BUILT)
 
     assert [entry.name for entry in catalog.scenarios_for(LONER4E)] == ["The Whispering Vault"]
-    assert [(entry.id, entry.engine_id) for entry in catalog.characters] == KAEL_FOR_EACH
+    assert [(entry.id, entry.engine_id) for entry in catalog.characters] == CHARACTERS_FOR_EACH
 
 
 def test_a_character_is_offered_only_to_the_rules_it_is_written_for(tmp_path: Path) -> None:

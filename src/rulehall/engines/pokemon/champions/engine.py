@@ -9,7 +9,7 @@ from rulehall.core.log import Voice
 from rulehall.core.prompt import Sections, lines_of, section_if
 from rulehall.core.tools import NoArgs, action, edit, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
-from rulehall.core.views import Panel, ScreenSlot, Sprite
+from rulehall.core.views import Panel, PanelRows, ScreenSlot, Sprite
 from rulehall.engines.args import Attempt, Words
 from rulehall.engines.bases.maps.args import ExtendMap
 from rulehall.engines.pokemon.champions.advice import suggested_species
@@ -31,7 +31,7 @@ from rulehall.engines.pokemon.champions.pack import ChampionsPack
 from rulehall.engines.pokemon.champions.panels import (
     NEXT_EVENT,
     PLAY_NEXT_ROUND,
-    SHEET_HELP,
+    person_rows,
     practice_panel,
     prize_decision,
     season_panel,
@@ -92,7 +92,6 @@ class ChampionsEngine(
     person_model = ChampionsTrainer
     opening_model = ChampionsOpeningProposal
     next_proposal_model = ChampionsRegionProposal
-    sheet_help = SHEET_HELP
     # Each new game draws a fresh season; a test sets a seeded Random here.
     season_seeds = Random()
 
@@ -223,6 +222,9 @@ class ChampionsEngine(
             return mon_sprite(dex().species[team[int(number) - 1].species_id])
         found = world.find_entity(entity_id)
         return trainer_sprite(found.avatar_id) if isinstance(found, ChampionsTrainer) else None
+
+    def person_rows(self, person: ChampionsTrainer, /) -> PanelRows:
+        return person_rows(person)
 
     def view_panels(self, state: ChampionsGame, /) -> tuple[Panel | None, ...]:
         world = state.world

@@ -6,10 +6,12 @@ from pydantic import Field, model_validator
 from rulehall.core.facts import Fact
 from rulehall.core.prompt import lines_of
 from rulehall.core.validation import Mutable, Refusal, Slug, check_unique, parse
-from rulehall.engines.sheet import PLAYER_ID, Entity, Person
+from rulehall.engines.sheet import PLAYER_ID, Entity, Person, rows_text
 from rulehall.engines.world import IS_DEAD, UNKNOWN_ID, OpeningProposal, World, check_filing
 
 MEANWHILE_EVERY = 4
+MEANWHILE_CHANGES_MIN = 2
+MEANWHILE_CHANGES_MAX = 6
 OFF_MAP_ID: Slug = "off-map"
 EXTEND_REQUEST: Slug = "extend"
 
@@ -35,6 +37,9 @@ class Way(Mutable):
     )
     locked: bool = False
 
+    def lock_text(self) -> str:
+        return "; locked" if self.locked else ""
+
 
 class Region(Mutable):
     start_id: Slug
@@ -48,11 +53,11 @@ class Region(Mutable):
         return self
 
 
-class MapContents[P: Dweller](Mutable):
-    places: dict[Slug, Place] = Field(default_factory=dict)
-    ways: dict[Slug, list[Way]] = Field(default_factory=dict)
+class MapContents[P: Dweller, I: Item = Item, L: Place = Place, WayT: Way = Way](Mutable):
+    places: dict[Slug, L] = Field(default_factory=dict)
+    ways: dict[Slug, list[WayT]] = Field(default_factory=dict)
     npcs: dict[Slug, P] = Field(default_factory=dict)
-    items: dict[Slug, Item] = Field(default_factory=dict)
+    items: dict[Slug, I] = Field(default_factory=dict)
     arc: str = Field(
         default="",
         description="The truth behind this map: secrets, what can come, and what ties one "
@@ -90,31 +95,32 @@ class MapContents[P: Dweller](Mutable):
                     raise ValueError(f"a way from {from_id!r} cannot lead back to itself")
         return self
 
-    def find_entity(self, entity_id: Slug) -> Person | Item | Place | None:
+    def find_entity(self, entity_id: Slug) -> P | I | L | None:
         return self.places.get(entity_id) or self.npcs.get(entity_id) or self.items.get(entity_id)
 
-    def require_entity(self, entity_id: Slug) -> Person | Item | Place:
+    def require_entity(self, entity_id: Slug) -> P | I | L:
         entity = self.find_entity(entity_id)
         if entity is None:
             raise Refusal(UNKNOWN_ID.format(entity_id=entity_id))
         return entity
 
-    def require_place(self, entity_id: Slug) -> Place:
-        entity = self.require_entity(entity_id)
-        if not isinstance(entity, Place):
+    def require_place(self, entity_id: Slug) -> L:
+        place = self.places.get(entity_id)
+        if place is None:
+            _ = self.require_entity(entity_id)
             raise Refusal(f"{entity_id!r} is not a place")
-        return entity
+        return place
 
-    def find_way(self, from_id: Slug, to_id: Slug) -> Way | None:
+    def find_way(self, from_id: Slug, to_id: Slug) -> WayT | None:
         return next((way for way in self.ways.get(from_id, ()) if way.to_id == to_id), None)
 
     def at(self, place_id: Slug) -> Iterator[P]:
         return (npc for npc in self.npcs.values() if npc.place_id == place_id)
 
-    def carried(self, holder_id: Slug) -> Iterator[Item]:
+    def carried(self, holder_id: Slug) -> Iterator[I]:
         return (item for item in self.items.values() if item.holder_id == holder_id)
 
-    def entities_at(self, place_id: Slug) -> Iterator[P | Item]:
+    def entities_at(self, place_id: Slug) -> Iterator[P | I]:
         npcs = list(self.at(place_id))
         yield from npcs
         for holder in (place_id, *(npc.id for npc in npcs)):
@@ -132,11 +138,10 @@ class MapContents[P: Dweller](Mutable):
                 pending.append(way.to_id)
         return reached
 
-    def add_way(self, from_id: Slug, to_id: Slug) -> None:
-        self.ways.setdefault(from_id, []).append(Way(to_id=to_id))
 
-
-class MapProposal[P: Dweller](MapContents[P], OpeningProposal):
+class MapProposal[P: Dweller, I: Item = Item, L: Place = Place, WayT: Way = Way](
+    MapContents[P, I, L, WayT], OpeningProposal
+):
     start_id: Slug = Field(description="Exact id of the place this map starts from.")
     region_name: str = Field(
         min_length=1,
@@ -150,7 +155,9 @@ class MapProposal[P: Dweller](MapContents[P], OpeningProposal):
         return "" if start is None else start.description
 
 
-class RegionProposal[P: Dweller](MapProposal[P]):
+class RegionProposal[P: Dweller, I: Item = Item, L: Place = Place, WayT: Way = Way](
+    MapProposal[P, I, L, WayT]
+):
     recap: str = Field(
         min_length=1,
         description="One paragraph on the part of the map the player leaves behind: what the "
@@ -158,7 +165,9 @@ class RegionProposal[P: Dweller](MapProposal[P]):
     )
 
 
-class MapWorld[P: Dweller](MapContents[P], World[P]):
+class MapWorld[P: Dweller, I: Item = Item, L: Place = Place, WayT: Way = Way](
+    MapContents[P, I, L, WayT], World[P]
+):
     visited_place_ids: list[Slug] = Field(min_length=1)
     regions: list[Region] = Field(min_length=1)
     turns_since_meanwhile: int = Field(default=0, ge=0)
@@ -182,7 +191,11 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
 
     @classmethod
     def opening(
-        cls, proposal: MapProposal[P], player: P, items: Iterable[Item], **extra_fields: object
+        cls,
+        proposal: MapProposal[P, I, L, WayT],
+        player: P,
+        items: Iterable[I],
+        **extra_fields: object,
     ) -> Self:
         return parse(
             cls,
@@ -205,7 +218,7 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
         )
 
     @property
-    def current(self) -> Place:
+    def current(self) -> L:
         return self.places[self.visited_place_ids[-1]]
 
     @property
@@ -215,7 +228,7 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
     def require_region(self, place_id: Slug) -> Region:
         return next(region for region in self.regions if place_id in region.place_ids)
 
-    def visited_region_places(self) -> list[Place]:
+    def visited_region_places(self) -> list[L]:
         place_ids = self.current_region.place_ids
         return [place for place in self.visited_places() if place.id in place_ids]
 
@@ -234,7 +247,7 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
     def is_unexplored(self, way: Way) -> bool:
         return way.known and not self.require_place(way.to_id).known
 
-    def find_entity(self, entity_id: Slug) -> Person | Item | Place | None:
+    def find_entity(self, entity_id: Slug) -> P | I | L | None:
         return self.player if entity_id == self.player.id else super().find_entity(entity_id)
 
     @property
@@ -244,6 +257,11 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
     def here(self) -> Iterator[P]:
         yield self.player
         yield from self.at(self.current.id)
+
+    def known_names(self) -> Iterator[str]:
+        yield from (place.name for place in self.places.values() if place.known)
+        yield from (item.name for item in self.items.values() if item.known)
+        yield from (region.name for region in self.regions)
 
     def holders_here(self) -> set[Slug]:
         return {self.current.id, *(entity.id for entity in self.here())}
@@ -256,7 +274,7 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
             raise Refusal(IS_DEAD.format(name=npc.name))
         return npc
 
-    def require_item(self, item_id: Slug) -> Item:
+    def require_item(self, item_id: Slug) -> I:
         item = self.items.get(item_id)
         if item is None:
             raise Refusal(UNKNOWN_ID.format(entity_id=item_id))
@@ -268,17 +286,18 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
             raise Refusal(f"{npc.name} is not here with the player")
         return npc
 
-    def require_item_here(self, item_id: Slug) -> Item:
-        item = self.require_entity(item_id)
-        if not isinstance(item, Item):
+    def require_item_here(self, item_id: Slug) -> I:
+        item = self.items.get(item_id)
+        if item is None:
+            _ = self.require_entity(item_id)
             raise Refusal(f"{item_id!r} is not an item")
         if item.holder_id not in self.holders_here():
             raise Refusal(f"{item.name} is not here with the player")
         return item
 
-    def require_carried_items(self, holder: Person, item_ids: tuple[Slug, ...]) -> tuple[Item, ...]:
+    def require_carried_items(self, holder: Person, item_ids: tuple[Slug, ...]) -> tuple[I, ...]:
         check_unique("items", item_ids)
-        items: list[Item] = []
+        items: list[I] = []
         for item_id in item_ids:
             item = self.items.get(item_id)
             if item is None or item.holder_id != holder.id or not item.known:
@@ -287,16 +306,20 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
         return tuple(items)
 
     def count_turn(self) -> None:
-        armed = self.meanwhile_due
-        if not armed and not self.can_move_offscreen():
+        if self.meanwhile_due or not self.can_move_offscreen():
             return
         self.turns_since_meanwhile += 1
-        fired = self.turns_since_meanwhile >= MEANWHILE_EVERY
-        if fired:
+        if self.turns_since_meanwhile >= MEANWHILE_EVERY:
             self.turns_since_meanwhile = 0
-        self.meanwhile_due = fired and not armed
+            self.meanwhile_due = True
 
-    def _open_way(self, way: Way, destination: Place) -> None:
+    def meanwhile_cap(self) -> int:
+        return min(
+            MEANWHILE_CHANGES_MAX,
+            max(MEANWHILE_CHANGES_MIN, len(self.visited_places()) // 3),
+        )
+
+    def _learn_way(self, way: Way, destination: L) -> None:
         way.known = True
         if (back := self.find_way(destination.id, self.current.id)) is not None:
             back.known = True
@@ -315,7 +338,7 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
             )
         if way.locked:
             raise Refusal(f"the way to {destination.name} is locked; open the lock first")
-        self._open_way(way, destination)
+        self._learn_way(way, destination)
         facts = destination.reveal()
         check_unique("with_ids", with_ids)
         coming: list[P] = []
@@ -348,10 +371,8 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
             raise Refusal(f"no way leads from {here.name} to {destination.name}")
         if not way.locked:
             raise Refusal(f"the way from {here.name} to {destination.name} is not locked")
-        way.locked = False
-        self._open_way(way, destination)
-        if (back := self.find_way(destination.id, here.id)) is not None:
-            back.locked = False
+        self.set_locked(here.id, destination.id, locked=False)
+        self._learn_way(way, destination)
         trace = f"the way from {here.mention} to {destination.mention} is unlocked"
         card = f"{destination.name} unlocked"
         return [*destination.reveal(), here.fact(trace, card=card)]
@@ -396,48 +417,127 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
         trace = f"{item.mention} moves to {holder.mention}"
         return [*facts, item.fact(trace, card=card)]
 
-    def require_offscreen_place(self, place_id: Slug) -> Place:
-        away = self.elsewhere()
-        found = next((place for place in away if place.id == place_id), None)
-        if found is None:
-            options = ", ".join(place.name for place in away) or "(none)"
-            raise Refusal(f"{place_id!r} is not a place the player has walked away from: {options}")
-        return found
+    def walk(self, npc: P, place: L) -> Fact:
+        self._refuse_party(npc)
+        if not npc.alive:
+            raise Refusal(IS_DEAD.format(name=npc.name))
+        if npc.place_id == OFF_MAP_ID:
+            raise Refusal(f"{npc.name} has left the map")
+        origin = self.require_place(npc.place_id)
+        walked = self.find_way(origin.id, place.id)
+        if walked is None or walked.locked:
+            raise Refusal(f"no unlocked way leads from {origin.name} to {place.name}")
+        npc.place_id = place.id
+        untold = f"{npc.ref} walks from {origin.ref} to {place.ref}"
+        if place.id == self.current.id:
+            trace = f"{npc.mention} walks in" + _end_phrase(origin, walked, " from ")
+            return _told_or_untold(npc, trace, f"{npc.name} walks in", untold)
+        if origin.id == self.current.id:
+            trace = f"{npc.mention} walks out" + _end_phrase(place, walked, " to ")
+            return _told_or_untold(npc, trace, f"{npc.name} leaves", untold)
+        return Fact(trace=untold)
 
-    def walk_offscreen(self, npc: P, place: Place) -> Fact:
+    def carry(self, item: I, holder: P | I | L) -> Fact:
+        source = self._item_place(item)
+        if isinstance(holder, Place):
+            destination = holder
+        elif isinstance(holder, Dweller) and holder.alive and holder.place_id != OFF_MAP_ID:
+            self._refuse_party(holder)
+            destination = self.require_place(holder.place_id)
+        else:
+            raise Refusal(
+                f"{holder.name} cannot hold {item.name}; give a place or a living dweller"
+            )
+        if destination.id not in {self.current.id, *(place.id for place in self.elsewhere())}:
+            raise Refusal(f"{destination.name} is not listed under ELSEWHERE")
+        if item.holder_id == holder.id:
+            raise Refusal(f"{item.name} is already there")
+        here = self.current
+        if source.id == here.id and destination.id == here.id:
+            raise Refusal(f"{item.name} stays with the player; call move_item for that")
+        item.holder_id = holder.id
+        untold = f"{item.ref} goes from {source.ref} to {holder.ref}"
+        if isinstance(holder, Dweller) and not holder.known:
+            return Fact(trace=untold)
+        if destination.id == here.id:
+            way = self.find_way(here.id, source.id)
+            trace = f"{item.mention} turns up here" + _end_phrase(source, way, " from ")
+            return _told_or_untold(item, trace, f"{item.name} turns up here", untold)
+        if source.id == here.id:
+            return _told_or_untold(item, f"{item.mention} is gone", f"{item.name} is gone", untold)
+        return Fact(trace=untold)
+
+    def shut_way(self, start: L, end: L) -> Fact:
+        if self._require_known_way(start, end).locked:
+            raise Refusal(f"the way from {start.name} to {end.name} is already shut")
+        here = self.current
+        if here.id in (start.id, end.id):
+            other = self._other_end(start, end)
+            if not any(
+                way.known and not way.locked and way.to_id != other.id
+                for way in self.ways.get(here.id, ())
+            ):
+                raise Refusal("a shut never leaves the player's place with no open way out")
+        self.set_locked(start.id, end.id, locked=True)
+        return self._way_fact(start, end, "shuts")
+
+    def open_way(self, start: L, end: L) -> Fact:
+        way = self._require_known_way(start, end)
+        if not way.locked:
+            raise Refusal(f"the way from {start.name} to {end.name} is not locked")
+        if not self.opens_offscreen(way):
+            raise Refusal(f"the way from {start.name} to {end.name} does not open offscreen")
+        self.set_locked(start.id, end.id, locked=False)
+        return self._way_fact(start, end, "opens")
+
+    def set_locked(self, start_id: Slug, end_id: Slug, *, locked: bool) -> None:
+        for from_id, to_id in ((start_id, end_id), (end_id, start_id)):
+            if (way := self.find_way(from_id, to_id)) is not None:
+                way.locked = locked
+
+    def fall(self, npc: P) -> Fact:
+        self._refuse_party(npc)
         if npc.place_id == OFF_MAP_ID:
             raise Refusal(f"{npc.name} has left the map")
         if npc.place_id == self.current.id:
-            raise Refusal(f"{npc.name} stands with the player; that is not offscreen")
-        walked = self.find_way(npc.place_id, place.id)
-        if walked is None or walked.locked:
-            origin = self.require_place(npc.place_id).name
-            raise Refusal(f"no unlocked way leads from {origin} to {place.name}")
-        npc.place_id = place.id
-        return Fact(trace=f"{npc.name} walks to {place.name}")
+            raise Refusal(f"{npc.name} stands with the player; call kill for that")
+        _ = self.die(npc)
+        for item in self.carried(npc.id):
+            item.holder_id = npc.place_id
+        return Fact(trace=f"{npc.ref} dies at {self.require_place(npc.place_id).ref}")
 
-    def drift_item(self, item: Item, place: Place) -> Fact:
-        if item.holder_id in self.holders_here():
-            raise Refusal(f"{item.name} is here with the player")
-        if item.holder_id == place.id:
-            raise Refusal(f"{item.name} is already there")
-        item.holder_id = place.id
-        return Fact(trace=f"{item.name} moves to {place.name}")
+    def _refuse_party(self, person: Person) -> None:
+        if person.id == self.player.id or person.id in self.party_ids:
+            raise Refusal(f"{person.name} travels with the player and never changes offscreen")
 
-    def shut_way(self, start: Place, end: Place) -> Fact:
-        if self.current.id in (start.id, end.id):
-            raise Refusal("a way at the player's place cannot shut offscreen")
-        shut = self.find_way(start.id, end.id)
-        if shut is None:
+    def _item_place(self, item: I) -> L:
+        if item.holder_id in self.places:
+            return self.places[item.holder_id]
+        holder = self.npcs.get(item.holder_id)
+        if holder is None or holder.place_id == OFF_MAP_ID:
+            raise Refusal(f"{item.name} is not on the map or travels with the player")
+        self._refuse_party(holder)
+        return self.require_place(holder.place_id)
+
+    def _require_known_way(self, start: L, end: L) -> WayT:
+        way = self.find_way(start.id, end.id)
+        if way is None:
             raise Refusal(f"no way leads from {start.name} to {end.name}")
-        if shut.locked:
-            raise Refusal(f"the way from {start.name} to {end.name} is already shut")
-        if not shut.known:
+        if not way.known:
             raise Refusal(f"the player has not found the way from {start.name} to {end.name}")
-        shut.locked = True
-        if (back := self.find_way(end.id, start.id)) is not None:
-            back.locked = True
-        return Fact(trace=f"the way from {start.name} to {end.name} shuts")
+        return way
+
+    def _other_end(self, start: L, end: L) -> L:
+        return end if start.id == self.current.id else start
+
+    def _way_fact(self, start: L, end: L, verb: str) -> Fact:
+        here = self.current
+        if here.id not in (start.id, end.id):
+            return Fact(trace=f"the way between {start.ref} and {end.ref} {verb}")
+        other = self._other_end(start, end)
+        name = other.name if other.known else "an unknown place"
+        trace = f"the way from {here.mention} to {other.mention if other.known else name} {verb}"
+        return here.fact(trace, card=f"The way to {name} {verb}")
 
     def kill(self, entity_id: Slug) -> list[Fact]:
         actor: P = (
@@ -454,7 +554,7 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
         facts.append(actor.fact(f"{actor.mention} is dead", card=card))
         return facts
 
-    def apply_region(self, region: RegionProposal[P]) -> None:
+    def apply_region(self, region: RegionProposal[P, I, L, WayT], way_model: type[WayT]) -> None:
         """No check runs here: every caller refuses first, so a refused region leaves it alone."""
         anchor_id = self.current.id
         self.places.update(region.places)
@@ -466,10 +566,19 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
         self.regions.append(
             Region(start_id=region.start_id, name=region.region_name, place_ids=list(region.places))
         )
-        self.add_way(anchor_id, region.start_id)
-        self.add_way(region.start_id, anchor_id)
+        self.ways.setdefault(anchor_id, []).append(way_model(to_id=region.start_id))
+        self.ways.setdefault(region.start_id, []).append(way_model(to_id=anchor_id))
 
-    def line(self, entity: P | Item) -> str:
+    def place_text(self) -> str:
+        place = self.current
+        return "\n".join(
+            part for part in (place.ref, place.description, rows_text(place.rows())) if part
+        )
+
+    def carrying_lines(self) -> str:
+        return lines_of(self.line(item) for item in self.carried(self.player.id))
+
+    def line(self, entity: P | I) -> str:
         return entity.line(rows=self.sheet_rows()) if entity.id == self.player.id else entity.line()
 
     def others(self) -> Iterator[P]:
@@ -488,7 +597,7 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
         return lines_of(
             f"- {self.require_place(way.to_id).ref} — {'known' if way.known else 'unknown'}"
             + ("; destination unknown to the player" if self.is_unexplored(way) else "")
-            + ("; locked" if way.locked else "")
+            + way.lock_text()
             + self._leads_into(way)
             for way in self.ways.get(self.current.id, ())
         )
@@ -526,44 +635,70 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
         return "\n".join(lines)
 
     def elsewhere_lines(self) -> str:
-        return lines_of(self._offscreen_line(place) for place in self.elsewhere())
+        return lines_of(
+            (
+                f"at most {self.meanwhile_cap()} changes in one call",
+                *(self._offscreen_line(place) for place in self.elsewhere()),
+            )
+        )
 
-    def _offscreen_line(self, place: Place) -> str:
+    def _offscreen_line(self, place: L) -> str:
         standing = ", ".join(
             entity.ref
             for entity in self.entities_at(place.id)
             if not isinstance(entity, Person) or entity.alive
         )
         ways = ", ".join(
-            f"{self.require_place(way.to_id).ref}{'' if way.known else ' (unfound)'}"
+            self.require_place(way.to_id).ref
+            + (" (locked)" if way.locked else "")
+            + ("" if way.known else " (unfound)")
             for way in self.ways.get(place.id, ())
-            if not way.locked
         )
-        return f"- {place.ref} — {standing or '(nobody, nothing)'}; ways: {ways or '(none)'}"
+        way_to_player = self.find_way(place.id, self.current.id)
+        nearby = (
+            " (next to the player)"
+            if way_to_player is not None and not way_to_player.locked
+            else ""
+        )
+        return (
+            f"- {place.ref}{nearby} — {standing or '(nobody, nothing)'}; ways: {ways or '(none)'}"
+        )
 
-    def elsewhere(self) -> list[Place]:
-        return [place for place in self.visited_places() if place.id != self.current.id]
+    def elsewhere(self) -> list[L]:
+        place_ids = dict.fromkeys(
+            (*self.current_region.place_ids, *(place.id for place in self.visited_places()))
+        )
+        return [self.places[place_id] for place_id in place_ids if place_id != self.current.id]
 
     def can_move_offscreen(self) -> bool:
         here = self.current.id
         away = {place.id for place in self.elsewhere()}
-        if not away:
-            return False
-        offscreen = {npc.id for npc in self.npcs.values() if npc.place_id in away}
-        if any(
-            item.holder_id in away or item.holder_id in offscreen for item in self.items.values()
-        ):
-            return True
-        walkers = {npc.place_id for npc in self.npcs.values() if npc.alive and npc.place_id in away}
-        return any(
-            (way.to_id in away and place_id in walkers) or (way.known and way.to_id != here)
-            for place_id in away
-            for way in self.ways.get(place_id, ())
-            if not way.locked
+        dwellers = [
+            npc
+            for npc in self.npcs.values()
+            if npc.place_id in away and npc.id not in self.party_ids
+        ]
+        holders = away | {npc.id for npc in dwellers}
+        return (
+            any(npc.alive and not self.is_pinned(npc) for npc in dwellers)
+            or any(item.holder_id in holders for item in self.items.values())
+            or any(
+                way.known
+                and (way.to_id in away or (way.locked and way.to_id == here))
+                and (not way.locked or self.opens_offscreen(way))
+                for place_id in away
+                for way in self.ways.get(place_id, ())
+            )
         )
 
-    def visited_places(self) -> list[Place]:
-        seen: dict[Slug, Place] = {}
+    def is_pinned(self, npc: P) -> bool:  # noqa: ARG002
+        return False
+
+    def opens_offscreen(self, way: WayT) -> bool:  # noqa: ARG002
+        return True
+
+    def visited_places(self) -> list[L]:
+        seen: dict[Slug, L] = {}
         for place_id in self.visited_place_ids:
             seen.setdefault(place_id, self.require_place(place_id))
         return list(seen.values())
@@ -585,3 +720,11 @@ class MapWorld[P: Dweller](MapContents[P], World[P]):
             )
         lines.append("ids in use: " + ", ".join(sorted((*self.places, *self.npcs, *self.items))))
         return "\n".join(lines)
+
+
+def _told_or_untold(subject: Entity, trace: str, card: str, untold: str) -> Fact:
+    return subject.fact(trace, card=card) if subject.known else Fact(trace=untold)
+
+
+def _end_phrase(place: Place, way: Way | None, joint: str) -> str:
+    return f"{joint}{place.mention}" if place.known and way is not None and way.known else ""

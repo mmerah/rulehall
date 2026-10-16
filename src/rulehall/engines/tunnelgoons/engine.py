@@ -8,7 +8,7 @@ from rulehall.core.game import AnyCharacter, AnyScenario, Character
 from rulehall.core.log import Voice
 from rulehall.core.tools import NoArgs, action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug, parse
-from rulehall.core.views import Rows
+from rulehall.core.views import PanelRows
 from rulehall.engines.bases.maps.engine import MapEngine
 from rulehall.engines.bases.maps.world import MapProposal, RegionProposal
 from rulehall.engines.bases.maps.worldsmith import check_opening
@@ -16,7 +16,12 @@ from rulehall.engines.hiring import Hiring
 from rulehall.engines.sheet import PLAYER_ID, Gauge
 from rulehall.engines.tunnelgoons.args import LevelUp, Roll
 from rulehall.engines.tunnelgoons.pack import TunnelGoonsBody, TunnelGoonsHead, TunnelGoonsPack
-from rulehall.engines.tunnelgoons.panels import SHEET_HELP, level_up_decision
+from rulehall.engines.tunnelgoons.panels import (
+    SHEET_HELP,
+    item_rows,
+    level_up_decision,
+    person_rows,
+)
 from rulehall.engines.tunnelgoons.sheet import (
     ABILITIES,
     ABILITY_POINTS,
@@ -56,7 +61,6 @@ class TunnelGoonsEngine(
     next_proposal_model = RegionProposal[Goon]
     hire_model = AbilitiesProposal
     hire_intent = HIRING
-    sheet_help = SHEET_HELP
 
     def hire_guidance(self, _draft: TunnelGoonsGame) -> str:
         return HIRE_GUIDANCE
@@ -113,9 +117,16 @@ class TunnelGoonsEngine(
         )
         return self.character_of(name, sheet)
 
-    def preview_character(self, character: AnyCharacter) -> Rows:
-        sheet = self.player_of(character)
-        return (*sheet.rows(), ("Items", ", ".join(sheet.kit)))
+    def preview_character(self, character: AnyCharacter) -> PanelRows:
+        player = self.player_of(character)
+        return (*person_rows(player), *item_rows(player.kit))
+
+    def person_rows(self, person: Goon, /) -> PanelRows:
+        return person_rows(person)
+
+    def player_rows(self, world: TunnelGoonsWorld, /) -> PanelRows:
+        player = world.player
+        return person_rows(player, carried=len(list(world.carried(player.id))))
 
     def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> TunnelGoonsWorld:
         proposal: MapProposal[Goon] = scenario.opening

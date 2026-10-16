@@ -1,0 +1,20 @@
+{
+  "tagline": "Compatible with fifth edition: a fantasy map, d20 checks, and a party of three.",
+  "die_faces": 20,
+  "pattern": "rings",
+  "palette": {
+    "game-bg": "#17140f",
+    "game-surface": "#221d16",
+    "game-surface-raised": "#2e271d",
+    "game-text": "#f1e9da",
+    "game-muted": "#c2b59c",
+    "game-border": "#4a3d2b",
+    "game-accent": "#d9a441",
+    "game-wash": "rgba(217, 164, 65, .08)",
+    "game-radius": "6px",
+    "game-heading": "Georgia, 'Times New Roman', serif",
+    "game-die-body": "#7a1f1f",
+    "game-die-ink": "#f6efe1",
+    "game-die-glow": "#d9a441"
+  }
+}

@@ -36,6 +36,7 @@ class ScenarioDescription(Frozen):
 class PersonHeader(Loose):
     name: str
     brief: str = ""
+    portrait_id: Slug | None = None
 
 
 class EngineHeader(Loose):

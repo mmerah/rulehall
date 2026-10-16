@@ -1,9 +1,9 @@
 from rulehall.core.decisions import ActionOption, Decision
-from rulehall.core.views import Meter, Panel, PanelRow
-from rulehall.engines.loner4e.rules import DOUBLES_PER_TWIST, SceneKind
+from rulehall.core.views import Panel, PanelRow, PanelRows, Tag
+from rulehall.engines.loner4e.rules import DOUBLES_PER_TWIST, SceneKind, TagKind
 from rulehall.engines.loner4e.sheet import Loner4ePerson
 from rulehall.engines.loner4e.world import Loner4eWorld
-from rulehall.engines.panels import character_panel
+from rulehall.engines.panels import character_panel, gauge_row, tag_list, text_rows
 from rulehall.engines.sheet import Gauge
 
 SHEET_HELP = {
@@ -24,6 +24,13 @@ SHEET_HELP = {
     "Twist Counter": "Doubles on the oracle's dice outside a fight add one; at "
     f"{DOUBLES_PER_TWIST} a twist shakes up the scene.",
 }
+TAG_ROWS: tuple[tuple[str, TagKind], ...] = (
+    ("Skills", "skill"),
+    ("Frailties", "frailty"),
+    ("Gear", "gear"),
+    ("Conditions", "condition"),
+    ("Relationships", "relationship"),
+)
 SCENE_HELP: dict[SceneKind, str] = {
     "dramatic": "A scene of pressure and risk around its goal; it ends when the goal is reached, "
     "blocked or given up, or when you move on.",
@@ -91,13 +98,24 @@ UNWRITTEN_PROMPT = "The adventure is over, and the Living World is still to be w
 
 def sheet_panel(world: Loner4eWorld) -> Panel:
     player = world.player
+    twist = world.twist
     return character_panel(
         player.subject(),
-        player.traits(),
-        _meter_row("Luck", player.luck),
-        _meter_row("Twist Counter", world.twist),
-        sheet_help=SHEET_HELP,
+        (
+            *person_rows(player),
+            gauge_row(
+                "Twist Counter",
+                SHEET_HELP["Twist Counter"],
+                twist.current,
+                twist.maximum,
+                look="pips",
+            ),
+        ),
     )
+
+
+def person_rows(person: Loner4ePerson) -> PanelRows:
+    return (*_trait_rows(person), _gauge_row("Luck", person.luck))
 
 
 def scene_panel(world: Loner4eWorld) -> Panel:
@@ -184,6 +202,28 @@ def _fight(other: Loner4ePerson) -> ActionOption:
     )
 
 
-def _meter_row(name: str, gauge: Gauge) -> PanelRow:
-    meter = Meter(name="", current=gauge.current, maximum=gauge.maximum)
-    return PanelRow(name=name, brief="", help=SHEET_HELP[name], meters=(meter,))
+def _gauge_row(name: str, gauge: Gauge) -> PanelRow:
+    return gauge_row(name, SHEET_HELP[name], gauge.current, gauge.maximum)
+
+
+def _trait_rows(person: Loner4ePerson) -> PanelRows:
+    tagged = (
+        row
+        for name, kind in TAG_ROWS
+        for row in tag_list(
+            name,
+            SHEET_HELP[name],
+            [Tag(name=tag) for tag in person.tagged(kind)],
+        )
+    )
+    return (
+        *_text_rows("Concept", person.concept),
+        *tagged,
+        *_text_rows("Goal", person.goal),
+        *_text_rows("Motive", person.motive),
+        *_text_rows("Nemesis", person.nemesis),
+    )
+
+
+def _text_rows(name: str, text: str) -> PanelRows:
+    return text_rows(name, SHEET_HELP[name], text)

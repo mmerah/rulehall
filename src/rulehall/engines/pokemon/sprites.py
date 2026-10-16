@@ -1,8 +1,10 @@
+from functools import cache
 from pathlib import Path
 
 from rulehall.core.validation import Slug
 from rulehall.core.views import Meter, Sprite, Tag
-from rulehall.engines.pokemon.dex import Species
+from rulehall.engines.panels import described_tag
+from rulehall.engines.pokemon.dex import Move, Species, dex, move_brief
 from rulehall.engines.pokemon.rules import STAT_NAMES, nature_effect
 
 AVATAR = "avatar"
@@ -38,6 +40,15 @@ STATUS_COLOURS = {
     "frz": "#98d8d8",
     "fnt": "#c03028",
 }
+STATUS_HELP = {
+    "psn": "Poisoned: loses 1/8 of its max HP at the end of each turn.",
+    "tox": "Badly poisoned: loses more HP at the end of each turn, more each turn.",
+    "brn": "Burned: loses 1/16 of its max HP each turn, and its physical moves deal half damage.",
+    "par": "Paralyzed: its Speed is halved, and it may be unable to move.",
+    "slp": "Asleep: it cannot move for one to three turns.",
+    "frz": "Frozen: it cannot move until it thaws.",
+    "fnt": "Fainted: it cannot battle until it is revived.",
+}
 CATEGORY_COLOURS = {"Physical": "#c92112", "Special": "#4f5870", "Status": "#8c888c"}
 LOW_COLOUR, OUT_COLOUR = "#f8d030", "#f05030"
 STAT_COLOUR = "#6890f0"
@@ -61,11 +72,37 @@ def trainer_sprite(avatar_id: Slug) -> Sprite:
 
 
 def type_tag(kind: str) -> Tag:
-    return Tag(name=kind, colour=TYPE_COLOURS[kind])
+    return Tag(name=kind, colour=TYPE_COLOURS[kind], help=defence_text(kind))
 
 
 def status_tag(status: str) -> Tag:
-    return Tag(name=status.upper(), colour=STATUS_COLOURS[status])
+    return Tag(name=status.upper(), colour=STATUS_COLOURS[status], help=STATUS_HELP[status])
+
+
+def move_tag(move: Move, pp: int | None = None) -> Tag:
+    tag = described_tag(
+        move.name if pp is None else f"{move.name} {pp}/{move.pp}",
+        move.text,
+        stat_line=move_brief(move, pp),
+        colour=TYPE_COLOURS[move.type],
+    )
+    return tag if pp is None else tag.model_copy(update={"meter": pp_meter(pp, move.pp)})
+
+
+def ability_tag(name: str) -> Tag:
+    return described_tag(name, dex().abilities.get(name, ""))
+
+
+@cache
+def defence_text(kind: str) -> str:
+    chart = dex().type_chart.items()
+    taken = (
+        ("weak to", [attacker for attacker, matchups in chart if kind in matchups.strong]),
+        ("resists", [attacker for attacker, matchups in chart if kind in matchups.weak]),
+        ("immune to", [attacker for attacker, matchups in chart if kind in matchups.none]),
+    )
+    parts = [f"{label} {', '.join(attackers)}" for label, attackers in taken if attackers]
+    return f"{kind}: {'; '.join(parts)}." if parts else f"{kind}."
 
 
 def category_tag(category: str) -> Tag:

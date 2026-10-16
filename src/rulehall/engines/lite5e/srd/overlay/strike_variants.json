@@ -1,0 +1,131 @@
+{
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "changes": "Cut and adapted for 5e Lite",
+  "rows": [
+    {
+      "variant_id": "trip",
+      "name": "Cunning Strike: Trip",
+      "source_id": "rogue-cunning-strike",
+      "cost": "sneak-attack-die",
+      "needs": "finesse-or-ranged",
+      "lines": ["{name}: Cunning Strike, Trip"],
+      "size_max": "large",
+      "save_ability": "dexterity",
+      "dc_ability": "dexterity",
+      "riders": [{"rider_id": "condition", "condition": "prone"}]
+    },
+    {
+      "variant_id": "withdraw",
+      "name": "Cunning Strike: Withdraw",
+      "source_id": "rogue-cunning-strike",
+      "cost": "sneak-attack-die",
+      "needs": "finesse-or-ranged",
+      "checks": ["can-withdraw"],
+      "lines": ["{name}: Cunning Strike, Withdraw"],
+      "then": ["withdraw"]
+    },
+    {
+      "variant_id": "divine-smite",
+      "name": "Divine Smite",
+      "spell_id": "divine-smite",
+      "needs": "melee",
+      "checks": ["not-raging", "bonus-action"],
+      "lines": ["{name} smites: Divine Smite"],
+      "damage": "spell",
+      "bonus_dice": "1d8",
+      "bonus_against": ["fiend", "undead", "swarm of tiny undead"]
+    },
+    {
+      "variant_id": "searing-smite",
+      "name": "Searing Smite",
+      "spell_id": "searing-smite",
+      "needs": "melee",
+      "checks": ["not-raging", "bonus-action"],
+      "lines": ["{name} smites: Searing Smite"],
+      "damage": "spell",
+      "riders": [{"rider_id": "effect", "effect_id": "searing-smite"}]
+    },
+    {
+      "variant_id": "shining-smite",
+      "name": "Shining Smite",
+      "spell_id": "shining-smite",
+      "needs": "melee",
+      "checks": ["not-raging", "bonus-action"],
+      "lines": ["{name} smites: Shining Smite"],
+      "damage": "spell",
+      "riders": [{"rider_id": "effect", "effect_id": "shining-smite"}]
+    },
+    {
+      "variant_id": "reckless",
+      "name": "Reckless Attack",
+      "source_id": "barbarian-reckless-attack",
+      "needs": "strength",
+      "checks": ["first-attack"],
+      "lines": ["{name} attacks recklessly"],
+      "effect": {"rider_id": "effect", "effect_id": "reckless", "ends": "source-next-turn-start"}
+    },
+    {
+      "variant_id": "eldritch-smite",
+      "name": "Eldritch Smite",
+      "source_id": "eldritch-smite",
+      "cost": "pact-slot",
+      "needs": "pact-weapon",
+      "once_mark": "eldritch-smite",
+      "lines": ["{name} smites: Eldritch Smite"],
+      "damage": {"dice": "1d8", "bonus": 0, "damage_type": "force"},
+      "size_max": "huge",
+      "riders": [{"rider_id": "condition", "condition": "prone"}]
+    },
+    {
+      "variant_id": "stunning-strike",
+      "name": "Stunning Strike",
+      "source_id": "monk-stunning-strike",
+      "cost": "focus",
+      "needs": "monk-weapon",
+      "once_mark": "stunning-strike",
+      "lines": ["{name}: Stunning Strike"],
+      "save_ability": "constitution",
+      "dc_ability": "wisdom",
+      "riders": [
+        {"rider_id": "condition", "condition": "stunned", "ends": "source-next-turn-start"},
+        {
+          "rider_id": "effect",
+          "effect_id": "next-attack-advantage",
+          "ends": "source-next-turn-start",
+          "uses": 1,
+          "on_success": true
+        }
+      ]
+    },
+    {
+      "variant_id": "addle",
+      "name": "Addle",
+      "technique": true,
+      "source_id": "monk-subclass",
+      "needs": "unarmed",
+      "riders": [
+        {"rider_id": "effect", "effect_id": "no-opportunity-attack", "ends": "target-next-turn-start"}
+      ]
+    },
+    {
+      "variant_id": "push",
+      "name": "Push",
+      "technique": true,
+      "source_id": "monk-subclass",
+      "needs": "unarmed",
+      "save_ability": "strength",
+      "dc_ability": "wisdom",
+      "riders": [{"rider_id": "push"}]
+    },
+    {
+      "variant_id": "topple",
+      "name": "Topple",
+      "technique": true,
+      "source_id": "monk-subclass",
+      "needs": "unarmed",
+      "save_ability": "dexterity",
+      "dc_ability": "wisdom",
+      "riders": [{"rider_id": "condition", "condition": "prone"}]
+    }
+  ]
+}

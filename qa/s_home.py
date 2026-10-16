@@ -15,7 +15,7 @@ def body(s: Session) -> None:
     s.check("Choose your rules" in text, "lobby rules heading missing")
     s.check(page.locator(".game-hero").count() == 0, "a Continue hero with no save")
     doors = [clean(t) for t in page.locator(".game-door .game-door-title").all_inner_texts()]
-    s.check(len(doors) == 4, f"expected 4 rule doors, saw {doors}")
+    s.check(len(doors) == 5, f"expected 5 rule doors, saw {doors}")
     s.shot(page, "lobby-empty")
 
     # First game: a door, then Start.

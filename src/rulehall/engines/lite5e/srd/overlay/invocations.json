@@ -1,0 +1,84 @@
+{
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "changes": "Cut and adapted for 5e Lite",
+  "rows": {
+    "armor-of-shadows": {
+      "name": "Armor of Shadows",
+      "minimum_level": 1,
+      "description": "Cast Mage Armor on yourself at will, without a spell slot.",
+      "modifiers": [{"kind": "armor-base", "base": 13}]
+    },
+    "eldritch-mind": {
+      "name": "Eldritch Mind",
+      "minimum_level": 1,
+      "description": "Advantage on Constitution saves to keep Concentration."
+    },
+    "pact-of-the-blade": {
+      "name": "Pact of the Blade",
+      "minimum_level": 1,
+      "description": "Conjure a pact weapon; Charisma drives its attack and damage rolls.",
+      "grants": {
+        "pact-weapon": 1
+      }
+    },
+    "pact-of-the-tome": {
+      "name": "Pact of the Tome",
+      "minimum_level": 1,
+      "description": "A Book of Shadows holds three cantrips and two level 1 rituals, always prepared.",
+      "grants": {
+        "tome-cantrip": 3,
+        "tome-ritual": 2
+      }
+    },
+    "agonizing-blast": {
+      "name": "Agonizing Blast",
+      "minimum_level": 2,
+      "description": "Add your Charisma modifier to the damage of Eldritch Blast.",
+      "prerequisite_id": "eldritch-blast"
+    },
+    "devils-sight": {
+      "name": "Devil's Sight",
+      "minimum_level": 2,
+      "tag": "Devil's Sight",
+      "description": "See normally in Dim Light and Darkness, magical or not.",
+      "modifiers": [{"kind": "bonus", "to": "light-steps", "amount": 2}]
+    },
+    "fiendish-vigor": {
+      "name": "Fiendish Vigor",
+      "minimum_level": 2,
+      "description": "Cast False Life on yourself at will, without a spell slot, for 12 Temporary Hit Points."
+    },
+    "mask-of-many-faces": {
+      "name": "Mask of Many Faces",
+      "minimum_level": 2,
+      "tag": "Mask of Many Faces",
+      "spell_id": "disguise-self",
+      "description": "Cast Disguise Self at will, without a spell slot."
+    },
+    "misty-visions": {
+      "name": "Misty Visions",
+      "minimum_level": 2,
+      "tag": "Misty Visions",
+      "spell_id": "silent-image",
+      "description": "Cast Silent Image at will, without a spell slot."
+    },
+    "repelling-blast": {
+      "name": "Repelling Blast",
+      "minimum_level": 2,
+      "description": "A hit with Eldritch Blast pushes a Large or smaller target away.",
+      "prerequisite_id": "eldritch-blast"
+    },
+    "eldritch-smite": {
+      "name": "Eldritch Smite",
+      "minimum_level": 5,
+      "description": "Spend a Pact Magic slot on a pact weapon hit for extra Force damage; the target may fall Prone.",
+      "prerequisite_id": "pact-of-the-blade"
+    },
+    "thirsting-blade": {
+      "name": "Thirsting Blade",
+      "minimum_level": 5,
+      "description": "Attack twice with your pact weapon when you take the Attack action.",
+      "prerequisite_id": "pact-of-the-blade"
+    }
+  }
+}

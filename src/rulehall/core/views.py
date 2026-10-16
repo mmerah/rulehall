@@ -12,13 +12,8 @@ from rulehall.core.validation import Frozen, Refusal, Slug
 SCENE_TAB = "Scene"
 
 type Rows = tuple[tuple[str, str], ...]
+type PanelRows = tuple[PanelRow, ...]
 type MapNodeKind = Literal["visited", "seen", "unexplored", "region"]
-
-
-class Tag(Frozen):
-    name: str
-    colour: str = ""
-    help: str = ""
 
 
 class Meter(Frozen):
@@ -27,6 +22,23 @@ class Meter(Frozen):
     maximum: int = Field(gt=0)
     colour: str = ""
     help: str = ""
+    look: Literal["bar", "pips"] = "bar"
+
+
+class Tag(Frozen):
+    name: str
+    colour: str = ""
+    help: str = ""
+    detail: str = ""
+    meter: Meter | None = None
+
+
+class Score(Frozen):
+    name: str = Field(min_length=1)
+    value: str = Field(min_length=1)
+    note: str = ""
+    help: str = ""
+    detail: str = ""
 
 
 class Sprite(Frozen):
@@ -44,7 +56,9 @@ class PanelRow(Frozen):
     icon_id: Slug | None = None
     alive: bool = True
     tags: tuple[Tag, ...] = ()
+    lower_tags: tuple[Tag, ...] = ()
     meters: tuple[Meter, ...] = ()
+    scores: tuple[Score, ...] = ()
     options: tuple[ActionOption, ...] = ()
     detail: tuple["Panel", ...] = ()
 

@@ -1,0 +1,191 @@
+{
+  "description": {
+    "title": "The Ford Watch",
+    "premise": "The watch of Harrowford has lost the old mill to raiders, and it pays a fair sum to anyone who clears it.",
+    "backdrop": "The Marchlands lie at the edge of an old kingdom. Small walled towns keep their own watch, and bandits and raiders hold the ruins between them.",
+    "scope": "One short job: find the way into the mill cellar and clear it of raiders.",
+    "art_style": ""
+  },
+  "engine_id": "lite5e",
+  "pack_id": "srd",
+  "extra_pack_ids": [],
+  "source": "",
+  "opening": {
+    "places": {
+      "ford": {
+        "id": "ford",
+        "name": "The Harrowford Ford",
+        "brief": "The river crossing below the town wall",
+        "known": true,
+        "description": "The river runs shallow over flat stones below the walls of Harrowford. A track climbs to the market and another leads to an old mill."
+      },
+      "market": {
+        "id": "market",
+        "name": "Harrowford Market",
+        "brief": "A busy yard inside the wall",
+        "known": true,
+        "description": "Stalls crowd a cobbled yard inside the wall. A peddler sells charms and potions from a cart.",
+        "shop": [
+          "potion-of-healing"
+        ]
+      },
+      "mill": {
+        "id": "mill",
+        "name": "The Old Mill",
+        "brief": "A silent mill upstream of the ford",
+        "known": true,
+        "description": "The wheel of the mill has not turned in years. Wind moves the loose boards of the floor. A heavy door leads down to the cellar.",
+        "light": "dim"
+      },
+      "cellar": {
+        "id": "cellar",
+        "name": "The Mill Cellar",
+        "brief": "A cold cellar under the mill",
+        "known": false,
+        "description": "A low cellar of wet stone. Crates and a rough camp fill the space under the grinding floor.",
+        "light": "dark"
+      }
+    },
+    "ways": {
+      "ford": [
+        {
+          "to_id": "market",
+          "known": true,
+          "locked": false
+        },
+        {
+          "to_id": "mill",
+          "known": true,
+          "locked": false
+        }
+      ],
+      "market": [
+        {
+          "to_id": "ford",
+          "known": true,
+          "locked": false
+        }
+      ],
+      "mill": [
+        {
+          "to_id": "ford",
+          "known": true,
+          "locked": false
+        },
+        {
+          "to_id": "cellar",
+          "known": true,
+          "locked": true,
+          "lock": "medium"
+        }
+      ],
+      "cellar": [
+        {
+          "to_id": "mill",
+          "known": true,
+          "locked": true,
+          "lock": "medium"
+        }
+      ]
+    },
+    "npcs": {
+      "peddler": {
+        "id": "peddler",
+        "name": "Tobin the Peddler",
+        "brief": "A cheerful peddler who sells charms and potions from a cart.",
+        "known": true,
+        "voice": "masculine",
+        "alive": true,
+        "place_id": "market",
+        "sheet": null,
+        "stat_block_id": "commoner",
+        "count": 1,
+        "hostile": false,
+        "captive": false,
+        "conditions": [],
+        "stat_block_vitals": null,
+        "portrait_id": null
+      },
+      "watchman": {
+        "id": "watchman",
+        "name": "Watchman Dunstan",
+        "brief": "A tired watchman at the ford who wants the mill cleared.",
+        "known": true,
+        "voice": "masculine",
+        "alive": true,
+        "place_id": "ford",
+        "sheet": null,
+        "stat_block_id": "commoner",
+        "count": 1,
+        "hostile": false,
+        "captive": false,
+        "conditions": [],
+        "stat_block_vitals": null,
+        "portrait_id": null
+      },
+      "raiders": {
+        "id": "raiders",
+        "name": "Mill raiders",
+        "brief": "A group of raiders who camp in the mill cellar.",
+        "known": false,
+        "voice": "other",
+        "alive": true,
+        "place_id": "cellar",
+        "sheet": null,
+        "stat_block_id": "bandit",
+        "count": 3,
+        "hostile": true,
+        "captive": false,
+        "conditions": [],
+        "stat_block_vitals": null,
+        "portrait_id": null
+      }
+    },
+    "items": {
+      "snare": {
+        "id": "snare",
+        "name": "Hidden snare",
+        "brief": "A snare under the loose boards",
+        "known": false,
+        "holder_id": "mill",
+        "find": "medium",
+        "trap": {
+          "ability": "dexterity",
+          "difficulty": "medium",
+          "damage": "light",
+          "damage_type": "piercing",
+          "disarm": "easy"
+        }
+      },
+      "old-dagger": {
+        "id": "old-dagger",
+        "name": "Old dagger",
+        "brief": "A plain dagger stuck in a beam",
+        "known": true,
+        "holder_id": "mill",
+        "gear": "dagger"
+      }
+    },
+    "arc": "The raiders took the mill cellar a week ago and set a snare at the mill door to catch the watch. The mill key was lost; the lock must be picked or forced.",
+    "start_id": "ford",
+    "region_name": "Harrowford and the mill",
+    "goals": {
+      "scout-mill": {
+        "brief": "Search the old mill and find its hidden snare",
+        "size": "high"
+      },
+      "open-cellar": {
+        "brief": "Open the locked way into the mill cellar",
+        "size": "high"
+      },
+      "talk-raiders-out": {
+        "brief": "Make the raiders leave the cellar without a fight",
+        "size": "high"
+      },
+      "clear-mill": {
+        "brief": "Clear the raiders from the mill cellar",
+        "size": "moderate"
+      }
+    }
+  }
+}

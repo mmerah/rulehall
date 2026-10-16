@@ -4,8 +4,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from random import Random
 
+import pytest
+
 from rulehall.core.facts import Fact, Resolution
 from rulehall.core.validation import Refusal, Slug
+from rulehall.engines.pokemon.battle import battling
 from rulehall.engines.pokemon.battle.models import (
     Battle,
     BattleMove,
@@ -298,6 +301,16 @@ class ScriptedSimulator:
 
     async def close(self) -> None:
         self.closed = True
+
+
+@pytest.fixture
+def simulator_assets(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    simulator = tmp_path / "pokemon-showdown"
+    simulator.touch()
+    marker = tmp_path / "complete"
+    marker.write_text(battling.ASSETS_VERSION.read_text())
+    monkeypatch.setattr(battling, "SIMULATOR", simulator)
+    monkeypatch.setattr(battling, "ASSETS_COMPLETE", marker)
 
 
 @dataclass(slots=True)

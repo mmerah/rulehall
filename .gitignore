@@ -28,5 +28,9 @@ src/rulehall/engines/pokemon/showdown/node_modules/
 src/rulehall/engines/pokemon/showdown/.cache/
 /vendor/
 
+# 5e Lite data export
+src/rulehall/engines/lite5e/srd/node_modules
+src/rulehall/engines/lite5e/assets/
+
 # Version stamped into the image
 src/rulehall/app/VERSION

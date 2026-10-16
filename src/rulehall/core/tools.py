@@ -14,7 +14,7 @@ from rulehall.core.validation import Frozen
 
 type Marks = dict[Callable[..., object], type[BaseModel]]
 
-NOISE_KEYS = ("title", "pattern", "maxLength", "minLength")
+NOISE_KEYS = ("title", "pattern", "maxLength", "minLength", "discriminator")
 _PLAYER_FACING = object()
 # A plain assignment, not a `type` alias: pydantic must read the metadata inside it.
 PlayerFacing = Annotated[str, _PLAYER_FACING]
@@ -184,6 +184,8 @@ def _normalize(node: JsonValue) -> None:
             _normalize(value)
     for key in NOISE_KEYS:
         node.pop(key, None)
+    if "oneOf" in node:
+        node["anyOf"] = node.pop("oneOf")
     _collapse_nullable(node)
 
 

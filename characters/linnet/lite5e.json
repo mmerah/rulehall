@@ -1,0 +1,119 @@
+{
+  "id": "linnet",
+  "engine_id": "lite5e",
+  "person": {
+    "id": "player",
+    "name": "Linnet",
+    "brief": "A wandering singer who trades songs for news at every inn on the river road.",
+    "known": true,
+    "voice": "feminine",
+    "alive": true,
+    "place_id": "player",
+    "sheet": {
+      "class_id": "bard",
+      "level": 1,
+      "species_id": "halfling",
+      "subspecies_id": null,
+      "species_ability": null,
+      "background_id": "minstrel",
+      "base_scores": {
+        "strength": 8,
+        "dexterity": 14,
+        "constitution": 13,
+        "intelligence": 10,
+        "wisdom": 12,
+        "charisma": 15
+      },
+      "background_increases": {
+        "charisma": 2,
+        "dexterity": 1
+      },
+      "background_skills": [
+        "performance",
+        "persuasion"
+      ],
+      "background_tool_id": "lute",
+      "background_feat_id": "skilled",
+      "picks": {
+        "class-skill": [
+          "insight",
+          "deception",
+          "sleight-of-hand"
+        ],
+        "tool": [
+          "flute",
+          "drum",
+          "viol"
+        ],
+        "skilled": [
+          "perception",
+          "stealth",
+          "acrobatics"
+        ],
+        "cantrip": [
+          "vicious-mockery",
+          "minor-illusion"
+        ],
+        "prepared": [
+          "healing-word",
+          "dissonant-whispers",
+          "faerie-fire",
+          "sleep"
+        ]
+      },
+      "replacements_due": [],
+      "vitals": {
+        "hp": {
+          "current": 9,
+          "maximum": 9
+        },
+        "death_successes": 0,
+        "death_failures": 0,
+        "stable": false
+      },
+      "temp_hp": 0,
+      "hit_dice_spent": 0,
+      "slots_spent": {},
+      "made_slots": {},
+      "uses_spent": {},
+      "lineage_casts_spent": {},
+      "concentration_spell_id": null,
+      "gear": {
+        "leather-armor": 1,
+        "dagger": 3,
+        "backpack": 1,
+        "bedroll": 1,
+        "candle": 5,
+        "costume": 3,
+        "disguise-kit": 1,
+        "rations": 5,
+        "waterskin": 1,
+        "lute": 1,
+        "clothes-travelers": 1,
+        "flute": 1
+      },
+      "equipped_ids": [
+        "leather-armor",
+        "dagger"
+      ],
+      "exhaustion": 0,
+      "inspiration": false,
+      "inspired_since_long_rest": false,
+      "coins_cp": 2500,
+      "xp": 0,
+      "aid_hp": 0,
+      "hp_max_cut": 0,
+      "effects": []
+    },
+    "stat_block_id": "commoner",
+    "count": 1,
+    "hostile": false,
+    "captive": false,
+    "conditions": [],
+    "stat_block_vitals": null,
+    "portrait_id": "halfling-bard",
+    "formation_row": "front",
+    "routed": false,
+    "xp_paid": false
+  }
+}

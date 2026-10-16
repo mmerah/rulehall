@@ -80,8 +80,29 @@ def test_a_name_word_names_its_person_unless_shared_short_or_of_a_description() 
     unmet = [orlov, listener, hand, vek]
 
     def named(text: str) -> list[str]:
-        return [person.name for person in unmet_people_named(text, [*unmet, *met])]
+        return [person.name for person in unmet_people_named(text, [*unmet, *met], ())]
 
     assert named("An officer of Orlov's rank is not here.") == ["Collector Orlov"]
     assert named("The Tithe office sends its Second courier; the vek is cold.") == []
     assert named("A collector waits; Listener is a word he likes.") == ["Tithe Listener"]
+
+
+def test_a_word_of_a_known_place_item_or_region_names_no_one() -> None:
+    raiders = Loner4ePerson(
+        id="mill-raiders", name="Mill raiders", voice="other", brief="", known=False
+    )
+
+    def named(text: str, known_names: tuple[str, ...]) -> list[str]:
+        return [person.name for person in unmet_people_named(text, [raiders], known_names)]
+
+    assert named("Smoke rises over the Mill.", ()) == ["Mill raiders"]
+    assert named("Smoke rises over the Mill.", ("The Old Mill",)) == []
+    assert named("The Mill raiders ride.", ("The Old Mill",)) == ["Mill raiders"]
+
+
+def test_a_possessive_word_of_a_known_name_still_names_its_person() -> None:
+    orlov = Loner4ePerson(
+        id="collector-orlov", name="Collector Orlov", voice="masculine", brief="", known=False
+    )
+    named = unmet_people_named("Orlov waits.", [orlov], ("Orlov's Rest",))
+    assert [person.name for person in named] == ["Collector Orlov"]

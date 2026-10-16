@@ -1,18 +1,20 @@
 from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.validation import Slug
-from rulehall.core.views import Meter, Panel, PanelRow, Sprite, Tag
+from rulehall.core.views import Meter, Panel, PanelRow, PanelRows, Score, Sprite, Tag
+from rulehall.engines.panels import described_tag, score_block, tag_list, text_rows
 from rulehall.engines.pokemon.battle.models import FRIENDSHIP_MAX, LEVEL_MAX
-from rulehall.engines.pokemon.dex import dex, move_brief, move_summary
+from rulehall.engines.pokemon.dex import dex, move_brief, species_name
 from rulehall.engines.pokemon.journey.items import ITEMS, BagId, bag_name, item_of, tm_move
-from rulehall.engines.pokemon.journey.mon import Learning, Mon, MoveSlot
+from rulehall.engines.pokemon.journey.mon import Learning, Mon
 from rulehall.engines.pokemon.journey.rules import (
     FRIENDSHIP_EVOLVE,
     HELP_BONUSES,
     SKILL_USES,
+    SKILLS,
     help_bonus,
 )
 from rulehall.engines.pokemon.journey.scheme import SCHEME_STAGES
-from rulehall.engines.pokemon.journey.sheet import JourneySheet
+from rulehall.engines.pokemon.journey.sheet import JourneySheet, JourneyTrainer
 from rulehall.engines.pokemon.journey.world import JourneyWorld
 from rulehall.engines.pokemon.rules import STAT_NAMES, TIMES
 from rulehall.engines.pokemon.sprites import (
@@ -20,13 +22,13 @@ from rulehall.engines.pokemon.sprites import (
     LOWERED,
     RAISED,
     STAT_COLOUR,
-    category_tag,
+    ability_tag,
     hp_meter,
     item_sprite,
+    move_tag,
     nature_arrows,
     nature_tag,
     nature_text,
-    pp_meter,
     status_tag,
     type_tag,
 )
@@ -72,6 +74,15 @@ FRIENDSHIP_HELP = (
     )
     + f". At {FRIENDSHIP_EVOLVE} some species are ready to evolve."
 )
+TRAINER_HELP = {
+    "Legendary": "The legendary Pokemon this trainer guards.",
+    "Team": "The Pokemon this trainer battles with.",
+    "Double": "This trainer battles two Pokemon at a time.",
+    "Style": "How this trainer battles.",
+    "Trial": "What this trainer asks before a battle.",
+    "Badge": "The badge this trainer gives when beaten.",
+    "Beaten": "The player has beaten this trainer.",
+}
 KIND_TEXT = {
     "ball": "Thrown at a wild Pokemon on the battle screen.",
     "potion": "Restores {heal} HP.",
@@ -79,6 +90,46 @@ KIND_TEXT = {
     "revive": "Revives a fainted Pokemon with half its HP.",
     "candy": "Raises a Pokemon one level.",
 }
+
+
+def person_rows(trainer: JourneyTrainer) -> PanelRows:
+    sheet = trainer.sheet
+    if sheet is None:
+        legendary_id = trainer.legendary_id
+        legendary = "" if legendary_id is None else species_name(legendary_id)
+        return (
+            *text_rows("Legendary", TRAINER_HELP["Legendary"], legendary),
+            *tag_list(
+                "Team", TRAINER_HELP["Team"], [Tag(name=slot.text()) for slot in trainer.roster]
+            ),
+            *text_rows("Double", TRAINER_HELP["Double"], "two-on-two" if trainer.double else ""),
+            *text_rows("Style", TRAINER_HELP["Style"], trainer.style),
+            *text_rows("Trial", TRAINER_HELP["Trial"], trainer.trial),
+            *text_rows("Badge", TRAINER_HELP["Badge"], trainer.badge),
+            *text_rows("Beaten", TRAINER_HELP["Beaten"], "yes" if trainer.beaten else ""),
+        )
+    skills = tuple(
+        Score(
+            name=skill.title(),
+            value=str(sheet.skills.get(skill, 0)),
+            help=f"Used to {SKILL_USES[skill]}.",
+        )
+        for skill in SKILLS
+    )
+    team = [Tag(name=f"{mon.label()} L{mon.level}", help=mon.summary()) for mon in sheet.team]
+    return (
+        *score_block("Skills", SHEET_HELP["Skills"], skills),
+        PanelRow(name="Money", brief=f"₽{sheet.money}", help=SHEET_HELP["Money"]),
+        *_badge_rows(sheet),
+        *tag_list("Team", SHEET_HELP["Team"], team),
+        *tag_list(
+            "Memorial", SHEET_HELP["Memorial"], [Tag(name=fallen) for fallen in sheet.memorial]
+        ),
+    )
+
+
+def rival_rows(world: JourneyWorld) -> PanelRows:
+    return text_rows("Rival", SHEET_HELP["Rival"], "; ".join(world.rival_ledger.lines))
 
 
 def team_panel(world: JourneyWorld) -> Panel:
@@ -111,11 +162,7 @@ def bag_panel(world: JourneyWorld) -> Panel:
         rows=(
             *(bag_row(item_id, world) for item_id in _bag_ids(world)),
             PanelRow(name="Money", brief=f"₽{sheet.money}", help=SHEET_HELP["Money"]),
-            PanelRow(
-                name="Badges",
-                brief=", ".join(sheet.badges) or "none",
-                help=SHEET_HELP["Badges"],
-            ),
+            *_badge_rows(sheet),
         ),
         help="Your items: use one on a Pokemon from its row; balls are thrown in battle.",
         tab="Team",
@@ -192,7 +239,7 @@ def mon_row(mon: Mon, cap: int, options: tuple[ActionOption, ...] = ()) -> Panel
     status = "fnt" if mon.fainted else mon.status
     return PanelRow(
         name=f"{mon.label()} {GENDER_SIGNS[mon.gender]}".rstrip(),
-        brief=" · ".join(f"{slot.move.name} {slot.pp}/{slot.move.pp}" for slot in mon.moves),
+        brief="",
         icon_id=mon.mon_id,
         tags=(
             Tag(name=f"Lv{mon.level}"),
@@ -200,12 +247,17 @@ def mon_row(mon: Mon, cap: int, options: tuple[ActionOption, ...] = ()) -> Panel
             *(type_tag(kind) for kind in mon.species.types),
             *((status_tag(status),) if status else ()),
             nature_tag(mon.nature),
-            *((Tag(name=dex().item_name(mon.item_id)),) if mon.item_id else ()),
+            *(
+                ()
+                if mon.item_id is None
+                else (described_tag(dex().item_name(mon.item_id), item_text(mon.item_id)),)
+            ),
             Tag(
                 name=f"♥ {mon.friendship} · help +{help_bonus(mon.friendship)}",
                 help=FRIENDSHIP_HELP,
             ),
         ),
+        lower_tags=tuple(move_tag(slot.move, slot.pp) for slot in mon.moves),
         meters=(
             hp_meter(mon.hp.current, mon.hp.maximum),
             *(
@@ -215,16 +267,6 @@ def mon_row(mon: Mon, cap: int, options: tuple[ActionOption, ...] = ()) -> Panel
         ),
         options=options,
         detail=_mon_detail(mon, stat_lines),
-    )
-
-
-def move_row(slot: MoveSlot) -> PanelRow:
-    move = slot.move
-    return PanelRow(
-        name=move.name,
-        brief=move_summary(move),
-        tags=(type_tag(move.type), category_tag(move.category)),
-        meters=(pp_meter(slot.pp, move.pp),),
     )
 
 
@@ -469,6 +511,13 @@ def _cap_tag(cap: int) -> Tag:
     )
 
 
+def _badge_rows(sheet: JourneySheet) -> PanelRows:
+    badges = [Tag(name=badge) for badge in sheet.badges]
+    return tag_list("Badges", SHEET_HELP["Badges"], badges) or (
+        PanelRow(name="Badges", brief="none", help=SHEET_HELP["Badges"]),
+    )
+
+
 def _stat_lines(mon: Mon) -> tuple[StatLine, ...]:
     stats = mon.stats()
     arrows = nature_arrows(mon.nature)
@@ -504,7 +553,7 @@ def _mon_detail(mon: Mon, stat_lines: tuple[StatLine, ...]) -> tuple[Panel, ...]
                 PanelRow(
                     name="Ability",
                     brief=dex().abilities[mon.ability],
-                    tags=(Tag(name=mon.ability),),
+                    tags=(ability_tag(mon.ability),),
                 ),
                 PanelRow(
                     name="Nature", brief=nature_text(mon.nature), tags=(nature_tag(mon.nature),)
@@ -546,7 +595,6 @@ def _mon_detail(mon: Mon, stat_lines: tuple[StatLine, ...]) -> tuple[Panel, ...]
                 for name, value, breakdown in stat_lines
             ),
         ),
-        Panel(title="Moves", rows=tuple(move_row(slot) for slot in mon.moves)),
     )
 
 

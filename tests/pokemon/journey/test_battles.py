@@ -4,13 +4,15 @@ from typing import Literal
 import pytest
 from pydantic import BaseModel
 from support.journey import ENGINE, started
-from support.showdown import WILD_SETUP, ScriptedSimulator, won
+from support.showdown import WILD_SETUP, ScriptedSimulator, simulator_assets, won
 from support.showdown import started as simulator_started
 from support.table import change, refused
 
 from rulehall.core.game import Check
 from rulehall.core.prompt import Prompt
+from rulehall.core.validation import Refusal
 from rulehall.engines.bases.maps.world import OFF_MAP_ID
+from rulehall.engines.battles import BattleServices
 from rulehall.engines.pokemon.battle.battling import ShowdownBattles
 from rulehall.engines.pokemon.battle.models import Battle, BattleMusic, BattleResult, BattleSetup
 from rulehall.engines.pokemon.battle.simulator import end_battle
@@ -20,15 +22,40 @@ from rulehall.engines.pokemon.journey.sheet import JourneyTrainer
 from rulehall.engines.pokemon.journey.world import JourneyGame
 from rulehall.engines.sheet import Gauge
 
+__all__ = ["simulator_assets"]
 
+
+@pytest.mark.usefixtures("simulator_assets")
 async def test_a_wild_battle_gets_no_model_opponent() -> None:
     draft = started().draft()
     draft.world.battle = Battle(setup=WILD_SETUP)
     simulator = ScriptedSimulator(simulator_started(WILD_SETUP))
 
-    run = await ShowdownBattles().open_battle(draft, simulator, _unasked)
+    async def start(_argv: tuple[str, ...]) -> ScriptedSimulator:
+        return simulator
+
+    run = await ShowdownBattles().open_battle(
+        draft, BattleServices(opponent=_unasked, start_transport=start)
+    )
 
     assert run.opponent is None
+
+
+@pytest.mark.usefixtures("simulator_assets")
+async def test_a_failed_start_closes_the_transport() -> None:
+    draft = started().draft()
+    draft.world.battle = Battle(setup=WILD_SETUP)
+    simulator = ScriptedSimulator([])
+
+    async def start(_argv: tuple[str, ...]) -> ScriptedSimulator:
+        return simulator
+
+    with pytest.raises(Refusal):
+        _ = await ShowdownBattles().open_battle(
+            draft, BattleServices(opponent=None, start_transport=start)
+        )
+
+    assert simulator.closed
 
 
 def test_every_able_team_pokemon_gets_the_full_share() -> None:

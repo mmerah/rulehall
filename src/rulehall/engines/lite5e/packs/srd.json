@@ -1,0 +1,946 @@
+{
+  "name": "5e Lite SRD",
+  "origin": "System Reference Document 5.2.1, https://www.dndbeyond.com/srd; the prose and twelve backgrounds are written for Rulehall",
+  "license": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode. Cut and adapted for 5e Lite. The backdrop, the names, the places, the seeds, the cast and twelve of the backgrounds (Archivist to Trapper) are original to Rulehall.",
+  "backdrop": "The Marchlands lie at the edge of an old kingdom that no longer sends its soldiers. Small walled towns sit a day apart on the old roads, and each one keeps its own watch. Between them are farms, forests, hills and the ruins of forts and temples from an older age. Bandits hold the passes, beasts come down from the hills in hard winters, and raiders strike from the wild land to the north. People pay well for an escort, for a cleared ruin and for news from the next town.",
+  "names": {
+    "female": [
+      "Aldra",
+      "Brenna",
+      "Corisse",
+      "Dellis",
+      "Elowen",
+      "Fenna",
+      "Gisla",
+      "Hesper",
+      "Ilse",
+      "Maren"
+    ],
+    "male": [
+      "Aldric",
+      "Bram",
+      "Corvin",
+      "Dunstan",
+      "Edric",
+      "Falk",
+      "Garret",
+      "Holt",
+      "Osric",
+      "Tobin"
+    ],
+    "neutral": [
+      "Ash",
+      "Briar",
+      "Quill",
+      "Rook",
+      "Sorrel",
+      "Wren"
+    ],
+    "surnames": [
+      "Ashford",
+      "Blackwater",
+      "Coldbrook",
+      "Fenwick",
+      "Greymantle",
+      "Harrow",
+      "Millbank",
+      "Stonehill",
+      "Thorne",
+      "Underhill"
+    ]
+  },
+  "locations": [
+    {
+      "name": "Harrowford",
+      "brief": "A walled market town at a river ford, with a temple, an inn and a smithy.",
+      "encounters": "merchants, town guards, an acolyte of the temple, pickpockets on market day"
+    },
+    {
+      "name": "The King's Road",
+      "brief": "An old paved road between the towns. Its milestones and its bridges are failing.",
+      "encounters": "caravans, drovers, bandits at the bridges, wolves at night"
+    },
+    {
+      "name": "Greywood",
+      "brief": "A dark old forest of oak and pine east of the road.",
+      "encounters": "trappers, wolves, giant spiders, goblins in the deep wood"
+    },
+    {
+      "name": "Fort Corran",
+      "brief": "A ruined hill fort of the old kingdom. Its vaults go deep under the hill.",
+      "encounters": "skeletons, zombies, treasure hunters, a hidden cult"
+    },
+    {
+      "name": "The Northern Downs",
+      "brief": "Open hills and moor above the last farms. Raiders cross them from the north.",
+      "encounters": "orc raiders, shepherds, an owlbear, a lost patrol"
+    }
+  ],
+  "seeds": [
+    "A caravan is three days late, and its last camp is burned.",
+    "The ferryman of Harrowford asks for help: something drowns his cattle at the ford.",
+    "A farmer finds an old iron door in his field after a storm.",
+    "The temple bell of Harrowford rings at midnight, and nobody is in the tower.",
+    "Orc raiders take a miller's children north across the downs.",
+    "A merchant pays well for a sealed box from the vaults of Fort Corran.",
+    "The town watch hires guards to hold a bridge against bandits for one night.",
+    "A trapper comes back from Greywood with a goblin arrow in his back and a strange map.",
+    "A noble's heir runs away to join a band of outlaws.",
+    "The dead in the old graveyard do not stay in their graves.",
+    "A sick traveler at the inn carries a letter for a lord who died last year.",
+    "A wolf pack follows a pilgrim band along the King's Road."
+  ],
+  "factions": [
+    {
+      "name": "The Road Wardens",
+      "brief": "The town watches together, paid to keep the King's Road open",
+      "stat_block_id": "guard"
+    },
+    {
+      "name": "The Red Hands",
+      "brief": "A bandit band that takes a toll at the bridges",
+      "stat_block_id": "bandit"
+    },
+    {
+      "name": "The Grey Chapel",
+      "brief": "A secret cult that searches the ruins for an old relic",
+      "stat_block_id": "cultist"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Mother Aldra",
+      "brief": "The old priest of Harrowford; she heals for a gift to the temple",
+      "stat_block_id": "priest"
+    },
+    {
+      "name": "Captain Holt",
+      "brief": "The tired captain of the Harrowford watch",
+      "stat_block_id": "warrior-veteran"
+    },
+    {
+      "name": "Fenna Millbank",
+      "brief": "A merchant who buys anything from the ruins and asks few questions",
+      "stat_block_id": "noble"
+    },
+    {
+      "name": "Rook",
+      "brief": "A scout who knows every path in Greywood",
+      "stat_block_id": "scout"
+    },
+    {
+      "name": "Brenna Thorne",
+      "brief": "The leader of the Red Hands; she prefers a toll to a fight",
+      "stat_block_id": "bandit-captain"
+    },
+    {
+      "name": "Tobin",
+      "brief": "A farmhand who saw too much and wants to talk",
+      "stat_block_id": "commoner"
+    }
+  ],
+  "monsters": [
+    {
+      "name": "orc raider",
+      "brief": "A raider from the north who fights for plunder and fame",
+      "stat_block_id": "tough"
+    },
+    {
+      "name": "wolf",
+      "brief": "A grey wolf of a hungry pack",
+      "stat_block_id": "wolf"
+    },
+    {
+      "name": "goblin",
+      "brief": "A small cruel raider of the deep wood",
+      "stat_block_id": "goblin-warrior"
+    },
+    {
+      "name": "skeleton",
+      "brief": "The bones of an old soldier that still keep watch",
+      "stat_block_id": "skeleton"
+    },
+    {
+      "name": "zombie",
+      "brief": "A dead villager that walks again",
+      "stat_block_id": "zombie"
+    },
+    {
+      "name": "giant spider",
+      "brief": "A hunter of the dark trees of Greywood",
+      "stat_block_id": "giant-spider"
+    },
+    {
+      "name": "owlbear",
+      "brief": "A huge beast of the downs that fears nothing",
+      "stat_block_id": "owlbear"
+    }
+  ],
+  "backgrounds": [
+    {
+      "id": "acolyte",
+      "name": "Acolyte",
+      "brief": "You served in a temple and learned its rites.",
+      "abilities": [
+        "intelligence",
+        "wisdom",
+        "charisma"
+      ],
+      "feat_id": "magic-initiate",
+      "magic_initiate_list": "cleric",
+      "skill_ids": [
+        "insight",
+        "religion"
+      ],
+      "tool_id": "calligraphers-supplies",
+      "gear": [
+        {
+          "gear_id": "calligraphers-supplies",
+          "count": 1
+        },
+        {
+          "gear_id": "book",
+          "count": 1
+        },
+        {
+          "gear_id": "amulet",
+          "count": 1
+        },
+        {
+          "gear_id": "parchment",
+          "count": 10
+        },
+        {
+          "gear_id": "robe",
+          "count": 1
+        }
+      ],
+      "gp": 8
+    },
+    {
+      "id": "criminal",
+      "name": "Criminal",
+      "brief": "You lived by theft and quiet work at night.",
+      "abilities": [
+        "dexterity",
+        "constitution",
+        "intelligence"
+      ],
+      "feat_id": "alert",
+      "skill_ids": [
+        "sleight-of-hand",
+        "stealth"
+      ],
+      "tool_id": "thieves-tools",
+      "gear": [
+        {
+          "gear_id": "dagger",
+          "count": 2
+        },
+        {
+          "gear_id": "thieves-tools",
+          "count": 1
+        },
+        {
+          "gear_id": "crowbar",
+          "count": 1
+        },
+        {
+          "gear_id": "pouch",
+          "count": 2
+        },
+        {
+          "gear_id": "clothes-travelers",
+          "count": 1
+        }
+      ],
+      "gp": 16
+    },
+    {
+      "id": "sage",
+      "name": "Sage",
+      "brief": "You spent your youth among books and scholars.",
+      "abilities": [
+        "constitution",
+        "intelligence",
+        "wisdom"
+      ],
+      "feat_id": "magic-initiate",
+      "magic_initiate_list": "wizard",
+      "skill_ids": [
+        "arcana",
+        "history"
+      ],
+      "tool_id": "calligraphers-supplies",
+      "gear": [
+        {
+          "gear_id": "quarterstaff",
+          "count": 1
+        },
+        {
+          "gear_id": "calligraphers-supplies",
+          "count": 1
+        },
+        {
+          "gear_id": "book",
+          "count": 1
+        },
+        {
+          "gear_id": "parchment",
+          "count": 8
+        },
+        {
+          "gear_id": "robe",
+          "count": 1
+        }
+      ],
+      "gp": 8
+    },
+    {
+      "id": "soldier",
+      "name": "Soldier",
+      "brief": "You trained for war and served in a company.",
+      "abilities": [
+        "strength",
+        "dexterity",
+        "constitution"
+      ],
+      "feat_id": "savage-attacker",
+      "skill_ids": [
+        "athletics",
+        "intimidation"
+      ],
+      "tool_id": "dragonchess",
+      "gear": [
+        {
+          "gear_id": "spear",
+          "count": 1
+        },
+        {
+          "gear_id": "shortbow",
+          "count": 1
+        },
+        {
+          "gear_id": "arrows",
+          "count": 20
+        },
+        {
+          "gear_id": "dragonchess",
+          "count": 1
+        },
+        {
+          "gear_id": "healers-kit",
+          "count": 1
+        },
+        {
+          "gear_id": "quiver",
+          "count": 1
+        },
+        {
+          "gear_id": "clothes-travelers",
+          "count": 1
+        }
+      ],
+      "gp": 14
+    },
+    {
+      "id": "archivist",
+      "name": "Archivist",
+      "brief": "You kept the records of a temple or a city hall.",
+      "abilities": [
+        "intelligence",
+        "wisdom",
+        "charisma"
+      ],
+      "feat_id": "magic-initiate",
+      "magic_initiate_list": "wizard",
+      "skill_ids": [
+        "arcana",
+        "investigation"
+      ],
+      "tool_id": "painters-supplies",
+      "gear": [
+        {
+          "gear_id": "dagger",
+          "count": 1
+        },
+        {
+          "gear_id": "painters-supplies",
+          "count": 1
+        },
+        {
+          "gear_id": "ink",
+          "count": 1
+        },
+        {
+          "gear_id": "ink-pen",
+          "count": 5
+        },
+        {
+          "gear_id": "paper",
+          "count": 10
+        },
+        {
+          "gear_id": "case-map-or-scroll",
+          "count": 1
+        },
+        {
+          "gear_id": "lamp",
+          "count": 1
+        },
+        {
+          "gear_id": "oil",
+          "count": 4
+        },
+        {
+          "gear_id": "clothes-travelers",
+          "count": 1
+        }
+      ],
+      "gp": 22
+    },
+    {
+      "id": "drover",
+      "name": "Drover",
+      "brief": "You drove herds along the long roads to market.",
+      "abilities": [
+        "constitution",
+        "wisdom",
+        "charisma"
+      ],
+      "feat_id": "alert",
+      "skill_ids": [
+        "animal-handling",
+        "intimidation"
+      ],
+      "tool_id": "leatherworkers-tools",
+      "gear": [
+        {
+          "gear_id": "quarterstaff",
+          "count": 1
+        },
+        {
+          "gear_id": "leatherworkers-tools",
+          "count": 1
+        },
+        {
+          "gear_id": "bedroll",
+          "count": 1
+        },
+        {
+          "gear_id": "blanket",
+          "count": 1
+        },
+        {
+          "gear_id": "rope",
+          "count": 1
+        },
+        {
+          "gear_id": "waterskin",
+          "count": 1
+        },
+        {
+          "gear_id": "rations",
+          "count": 6
+        },
+        {
+          "gear_id": "tent",
+          "count": 1
+        },
+        {
+          "gear_id": "lantern-hooded",
+          "count": 1
+        },
+        {
+          "gear_id": "oil",
+          "count": 1
+        },
+        {
+          "gear_id": "clothes-travelers",
+          "count": 1
+        }
+      ],
+      "gp": 30
+    },
+    {
+      "id": "envoy",
+      "name": "Envoy",
+      "brief": "You carried a lord's word to other courts.",
+      "abilities": [
+        "dexterity",
+        "intelligence",
+        "charisma"
+      ],
+      "feat_id": "alert",
+      "skill_ids": [
+        "history",
+        "insight"
+      ],
+      "tool_id": "dragonchess",
+      "gear": [
+        {
+          "gear_id": "dagger",
+          "count": 1
+        },
+        {
+          "gear_id": "dragonchess",
+          "count": 1
+        },
+        {
+          "gear_id": "clothes-fine",
+          "count": 1
+        },
+        {
+          "gear_id": "case-map-or-scroll",
+          "count": 1
+        },
+        {
+          "gear_id": "paper",
+          "count": 5
+        },
+        {
+          "gear_id": "perfume",
+          "count": 1
+        }
+      ],
+      "gp": 25
+    },
+    {
+      "id": "fisher",
+      "name": "Fisher",
+      "brief": "You worked the nets on a river or a coast.",
+      "abilities": [
+        "strength",
+        "dexterity",
+        "constitution"
+      ],
+      "feat_id": "alert",
+      "skill_ids": [
+        "perception",
+        "survival"
+      ],
+      "tool_id": "weavers-tools",
+      "gear": [
+        {
+          "gear_id": "spear",
+          "count": 1
+        },
+        {
+          "gear_id": "net",
+          "count": 1
+        },
+        {
+          "gear_id": "weavers-tools",
+          "count": 1
+        },
+        {
+          "gear_id": "rope",
+          "count": 1
+        },
+        {
+          "gear_id": "pot-iron",
+          "count": 1
+        },
+        {
+          "gear_id": "rations",
+          "count": 4
+        },
+        {
+          "gear_id": "blanket",
+          "count": 1
+        },
+        {
+          "gear_id": "tinderbox",
+          "count": 1
+        },
+        {
+          "gear_id": "clothes-travelers",
+          "count": 1
+        }
+      ],
+      "gp": 39
+    },
+    {
+      "id": "forgehand",
+      "name": "Forgehand",
+      "brief": "You worked iron at a village forge.",
+      "abilities": [
+        "strength",
+        "constitution",
+        "intelligence"
+      ],
+      "feat_id": "savage-attacker",
+      "skill_ids": [
+        "athletics",
+        "investigation"
+      ],
+      "tool_id": "smiths-tools",
+      "gear": [
+        {
+          "gear_id": "light-hammer",
+          "count": 2
+        },
+        {
+          "gear_id": "smiths-tools",
+          "count": 1
+        },
+        {
+          "gear_id": "crowbar",
+          "count": 1
+        },
+        {
+          "gear_id": "clothes-travelers",
+          "count": 1
+        }
+      ],
+      "gp": 22
+    },
+    {
+      "id": "herbalist",
+      "name": "Herbalist",
+      "brief": "You gathered herbs and treated the sick of your village.",
+      "abilities": [
+        "constitution",
+        "intelligence",
+        "wisdom"
+      ],
+      "feat_id": "magic-initiate",
+      "magic_initiate_list": "druid",
+      "skill_ids": [
+        "medicine",
+        "nature"
+      ],
+      "tool_id": "herbalism-kit",
+      "gear": [
+        {
+          "gear_id": "sickle",
+          "count": 1
+        },
+        {
+          "gear_id": "herbalism-kit",
+          "count": 1
+        },
+        {
+          "gear_id": "sprig-of-mistletoe",
+          "count": 1
+        },
+        {
+          "gear_id": "healers-kit",
+          "count": 1
+        },
+        {
+          "gear_id": "book",
+          "count": 1
+        },
+        {
+          "gear_id": "robe",
+          "count": 1
+        },
+        {
+          "gear_id": "pouch",
+          "count": 2
+        },
+        {
+          "gear_id": "vial",
+          "count": 1
+        }
+      ],
+      "gp": 10
+    },
+    {
+      "id": "minstrel",
+      "name": "Minstrel",
+      "brief": "You sang for coin in taverns and at fairs.",
+      "abilities": [
+        "dexterity",
+        "intelligence",
+        "charisma"
+      ],
+      "feat_id": "skilled",
+      "skill_ids": [
+        "performance",
+        "persuasion"
+      ],
+      "tool_id": "lute",
+      "gear": [
+        {
+          "gear_id": "dagger",
+          "count": 1
+        },
+        {
+          "gear_id": "lute",
+          "count": 1
+        },
+        {
+          "gear_id": "costume",
+          "count": 1
+        },
+        {
+          "gear_id": "clothes-travelers",
+          "count": 1
+        }
+      ],
+      "gp": 6
+    },
+    {
+      "id": "outrider",
+      "name": "Outrider",
+      "brief": "You rode ahead of caravans to find the road and the danger.",
+      "abilities": [
+        "strength",
+        "dexterity",
+        "intelligence"
+      ],
+      "feat_id": "savage-attacker",
+      "skill_ids": [
+        "animal-handling",
+        "perception"
+      ],
+      "tool_id": "cartographer-tools",
+      "gear": [
+        {
+          "gear_id": "javelin",
+          "count": 4
+        },
+        {
+          "gear_id": "cartographer-tools",
+          "count": 1
+        },
+        {
+          "gear_id": "map",
+          "count": 1
+        },
+        {
+          "gear_id": "case-map-or-scroll",
+          "count": 1
+        },
+        {
+          "gear_id": "paper",
+          "count": 4
+        },
+        {
+          "gear_id": "bedroll",
+          "count": 1
+        },
+        {
+          "gear_id": "waterskin",
+          "count": 1
+        },
+        {
+          "gear_id": "rations",
+          "count": 5
+        },
+        {
+          "gear_id": "tinderbox",
+          "count": 1
+        },
+        {
+          "gear_id": "clothes-travelers",
+          "count": 1
+        }
+      ],
+      "gp": 24
+    },
+    {
+      "id": "peddler",
+      "name": "Peddler",
+      "brief": "You sold pots and small goods from village to village.",
+      "abilities": [
+        "strength",
+        "constitution",
+        "charisma"
+      ],
+      "feat_id": "skilled",
+      "skill_ids": [
+        "deception",
+        "persuasion"
+      ],
+      "tool_id": "potters-tools",
+      "gear": [
+        {
+          "gear_id": "club",
+          "count": 1
+        },
+        {
+          "gear_id": "potters-tools",
+          "count": 1
+        },
+        {
+          "gear_id": "backpack",
+          "count": 1
+        },
+        {
+          "gear_id": "pot-iron",
+          "count": 1
+        },
+        {
+          "gear_id": "bell",
+          "count": 1
+        },
+        {
+          "gear_id": "basket",
+          "count": 1
+        },
+        {
+          "gear_id": "blanket",
+          "count": 1
+        },
+        {
+          "gear_id": "clothes-travelers",
+          "count": 1
+        }
+      ],
+      "gp": 32
+    },
+    {
+      "id": "pilgrim",
+      "name": "Pilgrim",
+      "brief": "You walked from shrine to shrine on a vow.",
+      "abilities": [
+        "strength",
+        "wisdom",
+        "charisma"
+      ],
+      "feat_id": "magic-initiate",
+      "magic_initiate_list": "cleric",
+      "skill_ids": [
+        "religion",
+        "survival"
+      ],
+      "tool_id": "cobblers-tools",
+      "gear": [
+        {
+          "gear_id": "quarterstaff",
+          "count": 1
+        },
+        {
+          "gear_id": "cobblers-tools",
+          "count": 1
+        },
+        {
+          "gear_id": "amulet",
+          "count": 1
+        },
+        {
+          "gear_id": "bedroll",
+          "count": 1
+        },
+        {
+          "gear_id": "blanket",
+          "count": 1
+        },
+        {
+          "gear_id": "tinderbox",
+          "count": 1
+        },
+        {
+          "gear_id": "waterskin",
+          "count": 1
+        },
+        {
+          "gear_id": "paper",
+          "count": 3
+        },
+        {
+          "gear_id": "rations",
+          "count": 6
+        },
+        {
+          "gear_id": "robe",
+          "count": 1
+        },
+        {
+          "gear_id": "clothes-travelers",
+          "count": 1
+        }
+      ],
+      "gp": 31
+    },
+    {
+      "id": "steeplejack",
+      "name": "Steeplejack",
+      "brief": "You climbed towers and roofs to repair stone and bells.",
+      "abilities": [
+        "dexterity",
+        "constitution",
+        "wisdom"
+      ],
+      "feat_id": "skilled",
+      "skill_ids": [
+        "acrobatics",
+        "athletics"
+      ],
+      "tool_id": "masons-tools",
+      "gear": [
+        {
+          "gear_id": "light-hammer",
+          "count": 1
+        },
+        {
+          "gear_id": "masons-tools",
+          "count": 1
+        },
+        {
+          "gear_id": "climbers-kit",
+          "count": 1
+        },
+        {
+          "gear_id": "rope",
+          "count": 1
+        },
+        {
+          "gear_id": "clothes-travelers",
+          "count": 1
+        }
+      ],
+      "gp": 10
+    },
+    {
+      "id": "trapper",
+      "name": "Trapper",
+      "brief": "You hunted and trapped for furs in the wild lands.",
+      "abilities": [
+        "strength",
+        "dexterity",
+        "wisdom"
+      ],
+      "feat_id": "savage-attacker",
+      "skill_ids": [
+        "nature",
+        "stealth"
+      ],
+      "tool_id": "woodcarvers-tools",
+      "gear": [
+        {
+          "gear_id": "handaxe",
+          "count": 1
+        },
+        {
+          "gear_id": "shortbow",
+          "count": 1
+        },
+        {
+          "gear_id": "arrows",
+          "count": 20
+        },
+        {
+          "gear_id": "quiver",
+          "count": 1
+        },
+        {
+          "gear_id": "woodcarvers-tools",
+          "count": 1
+        },
+        {
+          "gear_id": "hunting-trap",
+          "count": 1
+        },
+        {
+          "gear_id": "clothes-travelers",
+          "count": 1
+        }
+      ],
+      "gp": 10
+    }
+  ]
+}

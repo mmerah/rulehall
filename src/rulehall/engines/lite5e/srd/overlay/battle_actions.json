@@ -1,0 +1,588 @@
+{
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "changes": "Cut and adapted for 5e Lite",
+  "rows": [
+    {
+      "action_id": "dodge",
+      "name": "Dodge",
+      "budget": "action",
+      "play": "self",
+      "effect": {
+        "rider_id": "effect",
+        "effect_id": "dodge",
+        "ends": "source-next-turn-start"
+      },
+      "lines": [
+        "{name} dodges"
+      ],
+      "companion": true
+    },
+    {
+      "action_id": "disengage",
+      "name": "Disengage",
+      "budget": "action",
+      "play": "self",
+      "then": [
+        "disengage"
+      ],
+      "lines": [
+        "{name} disengages"
+      ],
+      "companion": true
+    },
+    {
+      "action_id": "dash",
+      "name": "Dash: leave the battle",
+      "budget": "action",
+      "play": "self",
+      "checks": [
+        "back-row",
+        "moves"
+      ],
+      "then": [
+        "leave"
+      ],
+      "companion": true
+    },
+    {
+      "action_id": "hide",
+      "name": "Hide",
+      "budget": "action"
+    },
+    {
+      "action_id": "escape",
+      "name": "Escape",
+      "budget": "action"
+    },
+    {
+      "action_id": "douse",
+      "name": "Douse the flames",
+      "budget": "action"
+    },
+    {
+      "action_id": "help",
+      "name": "Help",
+      "budget": "action",
+      "play": "target-effect",
+      "checks": [
+        "front-row"
+      ],
+      "effect": {
+        "rider_id": "effect",
+        "effect_id": "help",
+        "ends": "source-next-turn-start",
+        "uses": 1
+      },
+      "lines": [
+        "{name} helps against {target}"
+      ],
+      "targets": "front-foes"
+    },
+    {
+      "action_id": "shove-prone",
+      "name": "Shove: knock prone",
+      "budget": "attack"
+    },
+    {
+      "action_id": "shove-push",
+      "name": "Shove: push back",
+      "budget": "attack"
+    },
+    {
+      "action_id": "demand",
+      "name": "Demand surrender",
+      "budget": "action"
+    },
+    {
+      "action_id": "weapons",
+      "budget": "attack"
+    },
+    {
+      "action_id": "thrown",
+      "budget": "attack"
+    },
+    {
+      "action_id": "healers-kit",
+      "name": "Healer's Kit",
+      "budget": "action"
+    },
+    {
+      "action_id": "action-surge",
+      "name": "Action Surge",
+      "budget": "none",
+      "play": "self",
+      "use": "action-surge",
+      "checks": [
+        "not-surging"
+      ],
+      "then": [
+        "extra-action"
+      ],
+      "lines": [
+        "{name} surges into action"
+      ]
+    },
+    {
+      "action_id": "sacred-weapon",
+      "name": "Sacred Weapon",
+      "budget": "none",
+      "play": "self",
+      "feature_id": "paladin-subclass",
+      "use": "channel-divinity",
+      "checks": [
+        "melee-weapon"
+      ],
+      "effect": {
+        "rider_id": "effect",
+        "effect_id": "sacred-weapon"
+      },
+      "then": [
+        "lift-darkness"
+      ],
+      "lines": [
+        "{name}'s weapon blazes with holy light"
+      ]
+    },
+    {
+      "action_id": "breath-weapon",
+      "name": "Breath Weapon",
+      "budget": "attack",
+      "play": "save-damage",
+      "use": "breath-weapon",
+      "save": {
+        "save_ability": "dexterity",
+        "dc_ability": "constitution",
+        "dice": "1d10",
+        "upgraded_dice": "2d10",
+        "area": {
+          "feet": 30,
+          "shape": "line"
+        }
+      },
+      "targets": "foes",
+      "within": "near"
+    },
+    {
+      "action_id": "divine-spark",
+      "name": "Divine Spark",
+      "budget": "magic",
+      "play": "save-damage",
+      "feature_id": "cleric-channel-divinity",
+      "use": "channel-divinity",
+      "lines": [
+        "{name} channels a Divine Spark"
+      ],
+      "save": {
+        "save_ability": "constitution",
+        "dc_ability": "wisdom",
+        "dice": "1d8",
+        "damage_type": "radiant",
+        "bonus_ability": "wisdom",
+        "range_feet": 30
+      },
+      "targets": "others",
+      "within": "near"
+    },
+    {
+      "action_id": "turn-undead",
+      "name": "Turn Undead",
+      "budget": "magic",
+      "feature_id": "cleric-channel-divinity",
+      "use": "channel-divinity"
+    },
+    {
+      "action_id": "preserve-life",
+      "name": "Preserve Life",
+      "budget": "magic",
+      "feature_id": "cleric-subclass",
+      "use": "channel-divinity"
+    },
+    {
+      "action_id": "lands-aid",
+      "name": "Land's Aid",
+      "budget": "magic",
+      "feature_id": "druid-subclass",
+      "use": "wild-shape",
+      "lines": [
+        "{name} calls on Land's Aid"
+      ],
+      "save": {
+        "save_ability": "constitution",
+        "dc_ability": "wisdom",
+        "dice": "2d6",
+        "damage_type": "necrotic",
+        "range_feet": 60,
+        "area": {
+          "feet": 10,
+          "shape": "sphere"
+        }
+      },
+      "targets": "foes",
+      "in_form": true
+    },
+    {
+      "action_id": "vampiric-touch",
+      "name": "Vampiric Touch: drain",
+      "budget": "magic",
+      "play": "lasting-strike"
+    },
+    {
+      "action_id": "flame-blade",
+      "budget": "magic",
+      "play": "lasting-strike"
+    },
+    {
+      "action_id": "call-lightning",
+      "budget": "magic",
+      "play": "lasting-strike"
+    },
+    {
+      "action_id": "spells",
+      "budget": "magic"
+    },
+    {
+      "action_id": "second-wind",
+      "name": "Second Wind",
+      "budget": "bonus",
+      "play": "self",
+      "use": "second-wind",
+      "lines": [
+        "{name} uses Second Wind"
+      ],
+      "healing_dice": "1d10"
+    },
+    {
+      "action_id": "disengage",
+      "name": "Disengage",
+      "budget": "bonus",
+      "play": "self",
+      "feature_id": "rogue-cunning-action",
+      "then": [
+        "disengage"
+      ],
+      "lines": [
+        "{name} disengages"
+      ]
+    },
+    {
+      "action_id": "dash",
+      "name": "Dash: leave the battle",
+      "budget": "bonus",
+      "play": "self",
+      "feature_id": "rogue-cunning-action",
+      "checks": [
+        "back-row",
+        "moves"
+      ],
+      "then": [
+        "leave"
+      ]
+    },
+    {
+      "action_id": "hide",
+      "name": "Hide",
+      "budget": "bonus",
+      "feature_id": "rogue-cunning-action"
+    },
+    {
+      "action_id": "steady-aim",
+      "name": "Steady Aim",
+      "budget": "bonus",
+      "play": "self",
+      "feature_id": "rogue-steady-aim",
+      "checks": [
+        "still"
+      ],
+      "effect": {
+        "rider_id": "effect",
+        "effect_id": "steady-aim",
+        "ends": "source-turn-end",
+        "uses": 1
+      },
+      "then": [
+        "spend-move"
+      ],
+      "lines": [
+        "{name} takes careful aim"
+      ]
+    },
+    {
+      "action_id": "adrenaline-rush",
+      "name": "Adrenaline Rush",
+      "budget": "bonus",
+      "play": "self",
+      "use": "adrenaline-rush",
+      "then": [
+        "proficiency-temp-hp"
+      ],
+      "lines": [
+        "{name}: Adrenaline Rush, temporary HP {temp_hp}"
+      ]
+    },
+    {
+      "action_id": "clouds-jaunt",
+      "name": "Cloud's Jaunt",
+      "budget": "bonus",
+      "play": "self",
+      "use": "clouds-jaunt",
+      "then": [
+        "teleport"
+      ],
+      "lines": [
+        "{name} vanishes in a puff of cloud"
+      ]
+    },
+    {
+      "action_id": "large-form",
+      "name": "Large Form",
+      "budget": "bonus",
+      "play": "self",
+      "use": "large-form",
+      "effect": {
+        "rider_id": "effect",
+        "effect_id": "large-form"
+      },
+      "lines": [
+        "{name} grows to Large size"
+      ]
+    },
+    {
+      "action_id": "rage",
+      "name": "Rage",
+      "budget": "bonus",
+      "play": "self",
+      "feature_id": "barbarian-rage",
+      "use": "rage",
+      "checks": [
+        "no-heavy-armor"
+      ],
+      "effect": {
+        "rider_id": "effect",
+        "effect_id": "rage"
+      },
+      "then": [
+        "drop-concentration"
+      ],
+      "lines": [
+        "{name} rages"
+      ]
+    },
+    {
+      "action_id": "lay-on-hands",
+      "name": "Lay On Hands",
+      "budget": "bonus",
+      "feature_id": "paladin-lay-on-hands",
+      "use": "lay-on-hands"
+    },
+    {
+      "action_id": "lay-on-hands",
+      "variant_id": "cure",
+      "name": "Lay On Hands: cure",
+      "budget": "bonus",
+      "feature_id": "paladin-lay-on-hands",
+      "use": "lay-on-hands"
+    },
+    {
+      "action_id": "pact-weapon",
+      "name": "Conjure the pact weapon",
+      "budget": "bonus",
+      "play": "self",
+      "checks": [
+        "pact-of-the-blade"
+      ],
+      "effect": {
+        "rider_id": "effect",
+        "effect_id": "pact-weapon"
+      },
+      "lines": [
+        "{name} conjures a pact {weapon}"
+      ]
+    },
+    {
+      "action_id": "spiritual-weapon",
+      "budget": "bonus",
+      "play": "lasting-strike"
+    },
+    {
+      "action_id": "bardic-inspiration",
+      "name": "Bardic Inspiration",
+      "budget": "bonus",
+      "play": "target-effect",
+      "feature_id": "bard-bardic-inspiration",
+      "use": "bardic-inspiration",
+      "effect": {
+        "rider_id": "effect",
+        "effect_id": "bardic-inspiration"
+      },
+      "lines": [
+        "{name} inspires {target}"
+      ],
+      "targets": "other-allies"
+    },
+    {
+      "action_id": "jeer",
+      "name": "Jeer",
+      "budget": "bonus",
+      "play": "target-effect",
+      "feature_id": "bard-subclass",
+      "use": "bardic-inspiration",
+      "effect": {
+        "rider_id": "effect",
+        "effect_id": "jeer"
+      },
+      "lines": [
+        "{name} jeers at {target}"
+      ],
+      "targets": "foes"
+    },
+    {
+      "action_id": "wild-shape",
+      "variant_id": "wolf",
+      "name": "Wild Shape: Wolf",
+      "budget": "bonus",
+      "feature_id": "druid-wild-shape",
+      "minimum_level": 2,
+      "use": "wild-shape"
+    },
+    {
+      "action_id": "wild-shape",
+      "variant_id": "giant-badger",
+      "name": "Wild Shape: Giant Badger",
+      "budget": "bonus",
+      "feature_id": "druid-wild-shape",
+      "minimum_level": 2,
+      "use": "wild-shape"
+    },
+    {
+      "action_id": "wild-shape",
+      "variant_id": "black-bear",
+      "name": "Wild Shape: Black Bear",
+      "budget": "bonus",
+      "feature_id": "druid-wild-shape",
+      "minimum_level": 4,
+      "use": "wild-shape"
+    },
+    {
+      "action_id": "wild-shape-end",
+      "name": "End Wild Shape",
+      "budget": "bonus",
+      "in_form": true
+    },
+    {
+      "action_id": "martial-arts",
+      "name": "Martial Arts",
+      "budget": "bonus"
+    },
+    {
+      "action_id": "flurry-of-blows",
+      "name": "Flurry of Blows",
+      "budget": "bonus",
+      "feature_id": "monk-monks-focus",
+      "use": "focus"
+    },
+    {
+      "action_id": "patient-defense",
+      "name": "Patient Defense: Disengage",
+      "budget": "bonus",
+      "play": "self",
+      "feature_id": "monk-monks-focus",
+      "then": [
+        "disengage"
+      ],
+      "lines": [
+        "{name} disengages"
+      ]
+    },
+    {
+      "action_id": "patient-defense",
+      "variant_id": "dodge",
+      "name": "Patient Defense: Disengage and Dodge (1 Focus Point)",
+      "budget": "bonus",
+      "play": "self",
+      "feature_id": "monk-monks-focus",
+      "use": "focus",
+      "effect": {
+        "rider_id": "effect",
+        "effect_id": "dodge",
+        "ends": "source-next-turn-start"
+      },
+      "then": [
+        "disengage"
+      ],
+      "lines": [
+        "{name} disengages",
+        "{name} dodges"
+      ]
+    },
+    {
+      "action_id": "step-of-the-wind",
+      "name": "Step of the Wind: Dash, leave the battle",
+      "budget": "bonus",
+      "play": "self",
+      "feature_id": "monk-monks-focus",
+      "checks": [
+        "back-row",
+        "moves"
+      ],
+      "then": [
+        "leave"
+      ]
+    },
+    {
+      "action_id": "step-of-the-wind",
+      "variant_id": "disengage",
+      "name": "Step of the Wind: Disengage and Dash (1 Focus Point)",
+      "budget": "bonus",
+      "play": "self",
+      "feature_id": "monk-monks-focus",
+      "use": "focus",
+      "checks": [
+        "moves"
+      ],
+      "then": [
+        "disengage",
+        "leave"
+      ],
+      "lines": [
+        "{name} disengages"
+      ]
+    },
+    {
+      "action_id": "innate-sorcery",
+      "name": "Innate Sorcery",
+      "budget": "bonus",
+      "play": "self",
+      "use": "innate-sorcery",
+      "effect": {
+        "rider_id": "effect",
+        "effect_id": "innate-sorcery"
+      },
+      "lines": [
+        "{name} unleashes Innate Sorcery"
+      ]
+    },
+    {
+      "action_id": "font-of-magic",
+      "name": "Font of Magic",
+      "budget": "bonus"
+    },
+    {
+      "action_id": "healers-kit",
+      "name": "Healer's Kit",
+      "budget": "bonus",
+      "feature_id": "rogue-subclass"
+    },
+    {
+      "action_id": "potions",
+      "budget": "bonus"
+    },
+    {
+      "action_id": "off-hand",
+      "budget": "bonus"
+    },
+    {
+      "action_id": "spells",
+      "budget": "bonus"
+    }
+  ]
+}

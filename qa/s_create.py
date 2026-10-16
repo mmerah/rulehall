@@ -106,12 +106,13 @@ def body(s: Session) -> None:
     select(page, "Choose a frailty", "Never Walks Away")
     select(page, "Choose gear 1", "Pry Bar")
     select(page, "Choose gear 2", "Chalk and Wire")
-    shows(page, "Quiet Hands, Reads Old Stonework")
-    s.shot(page, "loner-filled")
-    preview = clean(page.inner_text("body"))
-    s.check(
-        "Quiet Hands, Reads Old Stonework" in preview, f"preview missing skills: {preview[-400:]}"
+    skills = ("quiet hands", "reads old stonework")
+    wait_until(
+        page, lambda: all(skill in clean(page.inner_text("body")).lower() for skill in skills)
     )
+    s.shot(page, "loner-filled")
+    preview = clean(page.inner_text("body")).lower()
+    s.check(all(skill in preview for skill in skills), f"preview missing skills: {preview[-400:]}")
     page.get_by_role("button", name="Create").click()
     page.wait_for_url("**/rules/loner4e?character=wren")
 
@@ -124,11 +125,11 @@ def body(s: Session) -> None:
     select(page, "Origin", "Android")
     select(page, "Body", "Case")
     select(page, "Skill increase", "Piloting")
-    shows(page, "Piloting d8")
+    shows(page, "d8 PILOTING")
     s.shot(page, "24xx-filled")
-    preview = clean(page.inner_text("body"))
+    preview = clean(page.inner_text("body")).lower()
     s.check(
-        "Hand-to-hand d8" in preview and "Piloting d8" in preview, f"24xx preview: {preview[-500:]}"
+        "d8 hand-to-hand" in preview and "d8 piloting" in preview, f"24xx preview: {preview[-500:]}"
     )
     page.get_by_role("button", name="Create").click()
     page.wait_for_url("**/rules/twentyfourxx?character=wren")

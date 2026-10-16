@@ -1,4 +1,8 @@
+from collections.abc import Sequence
+
 from rulehall.core.decisions import ActionOption, Decision
+from rulehall.core.views import PanelRows, Score, Tag
+from rulehall.engines.panels import gauge_row, score_block, tag_list, text_rows
 from rulehall.engines.tunnelgoons.sheet import ABILITIES, Goon
 
 SHEET_HELP = {
@@ -12,6 +16,40 @@ SHEET_HELP = {
     "Health": "Damage comes off it and a night's rest refills it; at 0 a character dies.",
     "Items": "What you set out with: each item named in a roll it helps adds 1.",
 }
+ABILITIES_HELP = "Each one is added to the 2d6 on the rolls it fits."
+ABILITY_NOTES = {"brute": "might", "skulker": "stealth", "erudite": "wits"}
+
+
+def person_rows(goon: Goon, *, carried: int | None = None) -> PanelRows:
+    sheet = goon.sheet
+    if sheet is None:
+        return text_rows("Health", SHEET_HELP["Health"], f"{goon.hp} (its Difficulty Score)")
+    abilities = tuple(
+        Score(
+            name=ability.capitalize(),
+            value=str(sheet.abilities[ability]),
+            note=ABILITY_NOTES[ability],
+            help=SHEET_HELP[ability.capitalize()],
+        )
+        for ability in ABILITIES
+    )
+    inventory = (
+        text_rows("Inventory", SHEET_HELP["Inventory"], str(sheet.inventory))
+        if carried is None or sheet.inventory == 0
+        else (
+            gauge_row("Inventory", SHEET_HELP["Inventory"], carried, sheet.inventory, look="pips"),
+        )
+    )
+    return (
+        gauge_row("Health", SHEET_HELP["Health"], goon.hp.current, goon.hp.maximum),
+        *score_block("Abilities", ABILITIES_HELP, abilities),
+        *inventory,
+        *text_rows("Level", SHEET_HELP["Level"], str(sheet.level)),
+    )
+
+
+def item_rows(names: Sequence[str]) -> PanelRows:
+    return tag_list("Items", SHEET_HELP["Items"], [Tag(name=name) for name in names])
 
 
 def level_up_decision(actor: Goon) -> Decision:

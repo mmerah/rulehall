@@ -40,7 +40,7 @@ def main() -> None:
             "characters_dir": work / "characters",
             "packs_dir": work / "packs",
             "server": ServerConfig(port=PORT),
-            "pokemon": read.pokemon.model_copy(update={"opponent": "scripted"}),
+            "battle": read.battle.model_copy(update={"opponent": "scripted"}),
         }
     )
     mount(Runtime(settings, roles=None if parsed.live else DemoRoles(DemoScript.read())))

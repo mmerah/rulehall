@@ -1,0 +1,54 @@
+{
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "changes": "Cut and adapted for 5e Lite",
+  "rows": {
+    "alert": {
+      "modifiers": [{"kind": "bonus", "to": "initiative", "amount": "proficiency-bonus"}]
+    },
+    "ability-score-improvement": {
+      "grants": {
+        "ability": 2
+      }
+    },
+    "archery": {
+      "modifiers": [{"kind": "bonus", "to": "ranged-attack", "amount": 2}]
+    },
+    "defense": {
+      "modifiers": [{"kind": "bonus", "to": "armored-armor-class"}]
+    },
+    "magic-initiate": {
+      "repeatable": false,
+      "grants": {
+        "initiate-list": 1,
+        "initiate-ability": 1,
+        "initiate-cantrip": 2,
+        "initiate-spell": 1
+      }
+    },
+    "skilled": {
+      "grants": {
+        "skilled": 3
+      }
+    },
+    "blessed-warrior": {
+      "name": "Blessed Warrior",
+      "type": "fighting-style",
+      "class_id": "paladin",
+      "cantrip_list": "cleric",
+      "description": "Learn two Cleric cantrips. Charisma is your spellcasting ability for them.",
+      "grants": {
+        "warrior-cantrip": 2
+      }
+    },
+    "druidic-warrior": {
+      "name": "Druidic Warrior",
+      "type": "fighting-style",
+      "class_id": "ranger",
+      "cantrip_list": "druid",
+      "description": "Learn two Druid cantrips. Wisdom is your spellcasting ability for them.",
+      "grants": {
+        "warrior-cantrip": 2
+      }
+    }
+  }
+}

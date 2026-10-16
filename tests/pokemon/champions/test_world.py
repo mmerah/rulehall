@@ -181,6 +181,23 @@ def test_a_registered_player_at_the_venue_plays_the_next_round_and_cannot_leave(
     assert world.battle is not None
 
 
+def test_a_key_trainer_does_not_walk_fall_or_die() -> None:
+    _, _, world = _registered()
+    rival = world.find_rival()
+    assert rival is not None
+    elsewhere = next(place for place in world.places.values() if place.id != world.current.id)
+    rival.place_id = elsewhere.id
+
+    with pytest.raises(Refusal, match="do not move, die or join"):
+        _ = world.walk(rival, world.current)
+    with pytest.raises(Refusal, match="do not move, die or join"):
+        _ = world.fall(rival)
+    rival.place_id = world.current.id
+    rival.known = True
+    with pytest.raises(Refusal, match="do not move, die or join"):
+        _ = world.kill(rival.id)
+
+
 def test_a_later_map_starts_at_its_venue() -> None:
     _, _, world = _registered()
     _play_event(world, won=True)

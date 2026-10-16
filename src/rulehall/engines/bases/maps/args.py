@@ -1,8 +1,8 @@
-from typing import Self
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
 
-from rulehall.core.validation import Frozen, Slug
+from rulehall.core.validation import Frozen, Slug, check_unique
 
 
 class MoveItem(Frozen):
@@ -34,36 +34,65 @@ class ExtendMap(Frozen):
     )
 
 
+class WalkChange(Frozen):
+    kind: Literal["walk"] = Field(
+        description="A dweller walks along one unlocked way, also into or out of the player's "
+        "place."
+    )
+    dweller_id: Slug = Field(description="Exact id of the dweller.")
+    to_id: Slug = Field(description="Exact id of the place.")
+
+
+class CarryChange(Frozen):
+    kind: Literal["carry"] = Field(description="An item goes to a place or to a living dweller.")
+    item_id: Slug = Field(description="Exact id of the item.")
+    to_id: Slug = Field(description="Exact id of the place or the dweller.")
+
+
+class ShutChange(Frozen):
+    kind: Literal["shut"] = Field(
+        description="A way that the player knows locks on both sides. The player always keeps "
+        "one open way out."
+    )
+    from_id: Slug = Field(description="Exact id of one end of the way.")
+    to_id: Slug = Field(description="Exact id of the other end of the way.")
+
+
+class OpenChange(Frozen):
+    kind: Literal["open"] = Field(
+        description="A locked way that the player knows unlocks on both sides."
+    )
+    from_id: Slug = Field(description="Exact id of one end of the way.")
+    to_id: Slug = Field(description="Exact id of the other end of the way.")
+
+
+class FallChange(Frozen):
+    kind: Literal["fall"] = Field(description="A dweller away from the player dies.")
+    dweller_id: Slug = Field(description="Exact id of the dweller.")
+
+
+type MeanwhileChange = Annotated[
+    WalkChange | CarryChange | ShutChange | OpenChange | FallChange, Field(discriminator="kind")
+]
+
+
 class Meanwhile(Frozen):
-    dweller_id: Slug | None = Field(
-        default=None, description="Exact id of a dweller elsewhere who walks to a new place."
-    )
-    dweller_to_id: Slug | None = Field(
-        default=None, description="Exact id of the place the dweller walks to."
-    )
-    item_id: Slug | None = Field(
-        default=None, description="Exact id of a loose item elsewhere that moves to a new place."
-    )
-    item_to_id: Slug | None = Field(
-        default=None, description="Exact id of the place the item moves to."
-    )
-    shut_from_id: Slug | None = Field(
-        default=None, description="Exact id of one end of the way that shuts."
-    )
-    shut_to_id: Slug | None = Field(
-        default=None, description="Exact id of the other end of the way that shuts."
+    changes: tuple[MeanwhileChange, ...] = Field(
+        description="Each dweller, item and way changes at most once. Party members and their "
+        "items never change."
     )
 
     @model_validator(mode="after")
-    def _paired(self) -> Self:
-        pairs = (
-            (self.dweller_id, self.dweller_to_id),
-            (self.item_id, self.item_to_id),
-            (self.shut_from_id, self.shut_to_id),
-        )
-        for first, second in pairs:
-            if (first is None) != (second is None):
-                raise ValueError("each of the three pairs takes both ends or neither")
-        if all(first is None for first, _ in pairs):
-            raise ValueError("give a dweller, an item or a way to shut")
+    def _once_each(self) -> Self:
+        check_unique("dwellers, items or ways in one call", map(_subject, self.changes))
         return self
+
+
+def _subject(change: MeanwhileChange) -> str:
+    match change:
+        case WalkChange() | FallChange():
+            return change.dweller_id
+        case CarryChange():
+            return change.item_id
+        case ShutChange() | OpenChange():
+            return " <-> ".join(sorted((change.from_id, change.to_id)))

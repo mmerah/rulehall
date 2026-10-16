@@ -1,0 +1,49 @@
+[
+  {
+    "trace": "the player arrives at The Old Mill[mill]",
+    "told": true,
+    "card": "Arrived at The Old Mill",
+    "dice": []
+  },
+  {
+    "trace": "arrival check: best passive Perception 14 (Kael[player])",
+    "told": false,
+    "card": "",
+    "dice": []
+  },
+  {
+    "trace": "Kael[player]: Search the mill floor — Investigation 5 vs DC 15",
+    "told": false,
+    "card": "",
+    "dice": [
+      {
+        "label": "Investigation",
+        "faces": [
+          20
+        ],
+        "rolled": [
+          2
+        ],
+        "highlight": []
+      }
+    ]
+  },
+  {
+    "trace": "the player Kael[player]: Search the mill floor — Investigation → failure",
+    "told": true,
+    "card": "Search the mill floor — Investigation → failure",
+    "dice": []
+  },
+  {
+    "trace": "learned of Hidden snare[snare]",
+    "told": true,
+    "card": "Hidden snare found",
+    "dice": []
+  },
+  {
+    "trace": "the game master directs: the loose boards creak, and something below the floor goes quiet",
+    "told": true,
+    "card": "",
+    "dice": []
+  }
+]

@@ -17,12 +17,13 @@ Rulehall is a browser game for solo tabletop role-playing. You type what your ch
 
 Python code owns the rules. It rolls the dice, checks every change the game master asks for, and keeps and saves the game state. The AI roles never touch the save.
 
-Four rule sets ship with the app:
+Five rule sets ship with the app:
 
 - **Loner 4e** plays in scenes. An oracle answers yes or no, sometimes with a twist, and you decide where the story goes next.
 - **Tunnel Goons** is a dungeon crawl on a map. You walk, fight and rest, and the map grows whenever you reach its edge.
 - **24XX** is science fiction in scenes: one skill die, three outcome bands, and gear that breaks to soften a hit.
 - **Pokemon** has two modes. **Journey** is a whole region on a map: skill checks roll a d20, and battles play out in the Pokemon Showdown simulator and its battle view. **Champions** is a season of VGC doubles events, with a team builder and the current Champions format.
+- **5e Lite** is fantasy on a map, compatible with fifth edition: d20 checks, a party of three, and the free SRD 5.2.1 rules for twelve classes up to level 5. You make a character, then walk, search, pick locks, shop, hire companions and rest, and the map grows as you go.
 
 A scenario is a backdrop, a premise, a scope and an opening scene. The worldsmith writes one from your prompt, or from a document you drop in (Markdown, text or PDF). A character is one sheet per rule set. Some of both come with the game, and you can make your own in the app. Each rule set plays from a pack, which is either its own tables or a full kit with a backdrop, names, traits and adventure seeds. Loner ships with twelve genre packs, and you can write a pack of your own on the **New pack** page.
 
@@ -67,7 +68,7 @@ You need `uv` and one AI provider from the table above. The default settings use
 
 3. Open the address the command prints.
 
-Everything else, the AI commands included, lives on the Settings page. Each setting is a key in `.env`, and saving applies it at once, except for the server address and port, which wait until the server next starts.
+Everything else, the AI commands included, lives on the Settings page. Each setting is a key in `.env`, and saving applies it at once, except for the server address and port, which wait until the server next starts. Who plays the foes in a battle is `BATTLE__OPPONENT`; it was `POKEMON__OPPONENT`, and an `.env` that still names the old key is ignored, so rename it.
 
 A role doesn't have to use a command. Under Roles, set its provider to `openrouter` or `local` and name a model that supports tool calls: `deepseek/deepseek-v4-flash-0731` on OpenRouter, for example, or a tool-capable model that Ollama serves at the local default, `http://localhost:11434/v1`. Each provider's base URL and key live under Providers. Over a completion API, the narrator and the worldsmith answer in one request each, and the master plays its tools inside the app's own process.
 
@@ -96,6 +97,19 @@ The Pokemon rule set runs its battles in Pokemon Showdown, a Node program, so it
 The setup downloads about 220 MB and takes a few minutes. The sprites cover every species in the dex, and once the setup is done the game needs no network. The dex export (`npm --prefix src/rulehall/engines/pokemon/showdown run export-dex`) the pack export (`npm --prefix src/rulehall/engines/pokemon/showdown run export-packs`) and the Champions data export (`npm --prefix src/rulehall/engines/pokemon/showdown run export-champions`, also run monthly by a workflow) do need the network, and they're only for maintainers.
 
 Rulehall is a free fan project, not affiliated with Nintendo, Creatures Inc., Game Freak or The Pokemon Company. The sprites, music and Pokedex entries belong to them. [docs/POKEMON.md](docs/POKEMON.md#licence-and-attribution) lists what comes from where.
+
+## 5e Lite art
+
+The 5e Lite portraits, foes and silhouettes come from the CC0 tileset Dungeon Crawl Stone Soup Full on OpenGameArt. Without them the game shows no sprites. Fetch them once with Node 22:
+
+```bash
+npm --prefix src/rulehall/engines/lite5e/srd ci
+npm --prefix src/rulehall/engines/lite5e/srd run fetch-assets
+```
+
+The script checks the archive's sha256, and a changed archive fails. It composes the sprites from the tiles that `srd/overlay/art.json` names. Once they are fetched, the game needs no Node and no network. The Docker image already holds them.
+
+The 5e Lite data export (`npm --prefix src/rulehall/engines/lite5e/srd run export-srd`, after the same `ci`) also needs the network, and it's only for maintainers. It reads the 5e-bits database as a codeload archive pinned to one commit. GitHub does not promise that a codeload archive stays the same byte for byte, so a changed archive fails the integrity check in `package-lock.json`, and its new hash is a reviewed change.
 
 ## Play from another device
 
@@ -128,7 +142,7 @@ The app has no login. Any device that can reach the port can play and change eve
 
 ## Run in Docker
 
-Every push to `master` publishes `ghcr.io/mmerah/rulehall`, tagged `latest` and `sha-<commit>`, and each release adds its version, like `0.1.0`. The image holds Python, Node, the Pokemon Showdown simulator, and the `claude` and `codex` commands. It holds no Pokemon art or sound: on its first start, the container fetches them (about 220 MB, a few minutes) into `/data` in the background. The other rule sets work at once, and Pokemon battles open once the log says `Pokemon art and sound: ready.` After that, the game needs no network. The image also installs Anthropic's Claude Code (proprietary, under Anthropic's terms) and OpenAI Codex (Apache-2.0); Rulehall's MIT licence does not cover them.
+Every push to `master` publishes `ghcr.io/mmerah/rulehall`, tagged `latest` and `sha-<commit>`, and each release adds its version, like `0.1.0`. The image holds Python, Node, the Pokemon Showdown simulator, and the `claude` and `codex` commands. It holds the 5e Lite art, but no Pokemon art or sound: on its first start, the container fetches them (about 220 MB, a few minutes) into `/data` in the background. The other rule sets work at once, and Pokemon battles open once the log says `Pokemon art and sound: ready.` After that, the game needs no network. The image also installs Anthropic's Claude Code (proprietary, under Anthropic's terms) and OpenAI Codex (Apache-2.0); Rulehall's MIT licence does not cover them.
 
 ```bash
 docker run -d -p 8080:8080 \
@@ -150,7 +164,7 @@ docker run -d -p 8080:8080 \
 - The [releases](https://github.com/mmerah/rulehall/releases) say what changed in each version.
 - [CONTRIBUTING.md](CONTRIBUTING.md) explains how to report a bug, suggest an idea or send a change.
 - [SECURITY.md](SECURITY.md) explains how to report a vulnerability.
-- The notes for [Loner 4e](docs/LONER-4E.md), [Tunnel Goons](docs/TUNNEL-GOONS.md) and [24XX](docs/24XX.md) cover sources, license, attribution, and where the app differs from the published rules. The [Pokemon notes](docs/POKEMON.md) cover sources, licenses, and the rules we chose.
+- The notes for [Loner 4e](docs/LONER-4E.md), [Tunnel Goons](docs/TUNNEL-GOONS.md) and [24XX](docs/24XX.md) cover sources, license, attribution, and where the app differs from the published rules. The [Pokemon notes](docs/POKEMON.md) cover sources, licenses, and the rules we chose. The [5e Lite notes](docs/5E-LITE.md) cover the same for 5e Lite.
 
 ## License
 
@@ -163,3 +177,5 @@ Loner 4e: Core Rules © 2026 Roberto Bisceglie. Licensed under CC BY-SA 4.0 — 
 Tunnel Goons is © Nate Treme, released under a Creative Commons 4.0 International License — attribution in the [Tunnel Goons notes](docs/TUNNEL-GOONS.md).
 
 24XX rules (v1.4) are CC BY Jason Tocci — attribution in the [24XX notes](docs/24XX.md).
+
+5e Lite uses SRD 5.2.1 material under CC BY 4.0, and data from the 5e-bits database (MIT, © 2018-2020 Adrian Padua, Christopher Ward), with the attribution in [docs/5E-LITE.md](docs/5E-LITE.md).

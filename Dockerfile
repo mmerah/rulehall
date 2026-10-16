@@ -1,3 +1,16 @@
+# 5e Lite art is CC0, so the image carries it. The fetch needs only pngjs; npm ci would also pull
+# the 5e-database archive.
+FROM node:22-bookworm-slim AS lite5e-art
+WORKDIR /lite5e
+COPY src/rulehall/engines/lite5e/srd/package.json pins.json
+COPY src/rulehall/engines/lite5e/srd/fetch-assets.js src/rulehall/engines/lite5e/srd/source.js srd/
+COPY src/rulehall/engines/lite5e/srd/overlay/art.json srd/overlay/
+COPY src/rulehall/engines/lite5e/data/character_options.json \
+     src/rulehall/engines/lite5e/data/bestiary.json \
+     data/
+RUN npm --prefix srd install --no-save "pngjs@$(node -p 'require("./pins.json").dependencies.pngjs')" \
+    && node srd/fetch-assets.js
+
 FROM node:22-bookworm-slim
 
 COPY --from=ghcr.io/astral-sh/uv:0.12.5 /uv /usr/local/bin/uv
@@ -24,6 +37,7 @@ RUN uv sync --locked --no-default-groups --no-install-project
 COPY scenarios scenarios
 COPY characters characters
 COPY src src
+COPY --from=lite5e-art /lite5e/assets src/rulehall/engines/lite5e/assets
 RUN uv sync --locked --no-default-groups
 
 # A file, not an env var: a NAS update copies the old container env onto the new image.

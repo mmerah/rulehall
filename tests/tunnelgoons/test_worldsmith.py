@@ -164,7 +164,7 @@ def test_attach_joins_at_the_current_place_and_the_world_validates() -> None:
     anchor = world.current.id
 
     region = _region()
-    world.apply_region(region)
+    world.apply_region(region, Way)
 
     assert FAR_HALL in world.places
     assert FAR_VAULT in world.places
@@ -199,7 +199,7 @@ def test_more_map_waits_for_no_open_way_and_a_joined_region_begins_as_an_unexplo
     assert ENGINE.player_view(draft).standing_options == (MORE_MAP,)
 
     region = _region()
-    draft.world.apply_region(region)
+    draft.world.apply_region(region, Way)
     view = ENGINE.player_view(draft.validated())
     assert view.standing_options == ()
     assert view.map is not None

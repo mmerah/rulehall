@@ -2,6 +2,7 @@ from pathlib import Path
 
 from rulehall.core.validation import EngineId
 from rulehall.engines.engine import AnyEngine
+from rulehall.engines.lite5e.engine import Lite5eEngine
 from rulehall.engines.loner4e.engine import Loner4eEngine
 from rulehall.engines.pokemon.champions.engine import ChampionsEngine
 from rulehall.engines.pokemon.journey.engine import JourneyEngine
@@ -18,6 +19,7 @@ def build_engines(packs_dir: Path) -> dict[EngineId, AnyEngine]:
             TwentyFourXXEngine,
             JourneyEngine,
             ChampionsEngine,
+            Lite5eEngine,
         )
     )
     ids = [engine.id for engine in engines]

@@ -1,0 +1,1185 @@
+{
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "changes": "Cut and adapted for 5e Lite",
+  "rows": {
+    "air-elemental/whirlwind": {
+      "riders": [
+        {
+          "rider_id": "push"
+        },
+        {
+          "condition": "prone"
+        }
+      ],
+      "target": {
+        "range_feet": 5
+      }
+    },
+    "allosaurus/claws": {
+      "special_id": "charge",
+      "follow_up_action_id": "bite",
+      "special_riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "animated-rug-of-smothering/smother": {
+      "verdict": "out",
+      "reason": "Smother smothers a grappled target"
+    },
+    "ankheg/bite": {
+      "riders": [
+        {
+          "rider_id": "conditional-advantage",
+          "condition": "grappled"
+        },
+        {
+          "rider_id": "grapple"
+        }
+      ]
+    },
+    "ankylosaurus/tail": {
+      "riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "barbed-devil/barbed-hide": {
+      "verdict": "drop",
+      "reason": "Barbed Hide is damage at the start of the devil's turn to the creatures it grapples, and no special plays damage at a turn start"
+    },
+    "barbed-devil/claws": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        }
+      ]
+    },
+    "barbed-devil/hurl-flame": {
+      "riders": [],
+      "reason": "burning objects are cut: a battle tracks no objects"
+    },
+    "basilisk/petrifying-gaze": {
+      "verdict": "out",
+      "reason": "petrification"
+    },
+    "bearded-devil/infernal-glaive": {
+      "verdict": "out",
+      "reason": "Infernal Glaive gives an infernal wound"
+    },
+    "berserker/bloodied-frenzy": {
+      "special_id": "bloodied-fury"
+    },
+    "black-pudding/split": {
+      "verdict": "out",
+      "reason": "an Ooze with Split"
+    },
+    "blink-dog/teleport": {
+      "verdict": "drop",
+      "reason": "a teleport has no use in rows"
+    },
+    "blood-hawk/beak": {
+      "verdict": "out",
+      "reason": "Beak deals more damage to a Bloodied target"
+    },
+    "boar/gore": {
+      "special_id": "charge",
+      "special_riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "brass-dragon-wyrmling/sleep-breath": {
+      "riders": [
+        {
+          "condition": "incapacitated",
+          "ends": "target-next-turn-end"
+        }
+      ],
+      "source": {
+        "usage": {
+          "type": "recharge on roll",
+          "dice": "1d6",
+          "min_value": 5
+        }
+      }
+    },
+    "bronze-dragon-wyrmling/repulsion-breath": {
+      "riders": [
+        {
+          "condition": "prone"
+        },
+        {
+          "rider_id": "push"
+        }
+      ],
+      "source": {
+        "usage": {
+          "type": "recharge on roll",
+          "dice": "1d6",
+          "min_value": 5
+        }
+      }
+    },
+    "brown-bear/claw": {
+      "riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "bugbear-stalker/quick-grapple": {
+      "verdict": "out",
+      "reason": "Quick Grapple is a bonus-action save"
+    },
+    "bugbear-warrior/abduct": {
+      "verdict": "drop",
+      "reason": "moving a grappled creature has no use in rows"
+    },
+    "bugbear-warrior/grab": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        }
+      ]
+    },
+    "bugbear-warrior/light-hammer": {
+      "riders": [
+        {
+          "rider_id": "conditional-advantage",
+          "condition": "grappled"
+        }
+      ]
+    },
+    "bulette/deadly-leap": {
+      "verdict": "drop",
+      "reason": "a leap into a space needs positions"
+    },
+    "bulette/leap": {
+      "verdict": "drop",
+      "reason": "a move has no use in rows"
+    },
+    "centaur-trooper/trampling-charge": {
+      "verdict": "out",
+      "reason": "Trampling Charge is a bonus-action save"
+    },
+    "chuul/paralyzing-tentacles": {
+      "riders": [
+        {
+          "condition": "poisoned",
+          "ends": "save-each-turn"
+        },
+        {
+          "condition": "paralyzed",
+          "ends": "save-each-turn"
+        }
+      ],
+      "target": {
+        "range_feet": 10,
+        "requires": [
+          "grappled-by-self"
+        ]
+      }
+    },
+    "chuul/pincer": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        }
+      ]
+    },
+    "cockatrice/petrifying-bite": {
+      "verdict": "out",
+      "reason": "petrification"
+    },
+    "commoner/training": {
+      "verdict": "drop",
+      "reason": "a skill of the GM's choice"
+    },
+    "constrictor-snake/constrict": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        }
+      ]
+    },
+    "copper-dragon-wyrmling/slowing-breath": {
+      "verdict": "drop",
+      "reason": "Slowing Breath changes Speed and Reactions, which rows do not use"
+    },
+    "couatl/bite": {
+      "riders": [
+        {
+          "condition": "poisoned",
+          "ends": "source-next-turn-end"
+        }
+      ]
+    },
+    "couatl/constrict": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        },
+        {
+          "condition": "restrained",
+          "ends": "escape"
+        }
+      ]
+    },
+    "couatl/divine-aid": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "couatl/spellcasting": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "crocodile/bite": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        },
+        {
+          "condition": "restrained",
+          "ends": "escape"
+        }
+      ]
+    },
+    "cultist-fanatic/spellcasting": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "cultist-fanatic/spiritual-weapon": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "darkmantle/crush": {
+      "verdict": "out",
+      "reason": "Crush attaches the darkmantle to its target"
+    },
+    "death-dog/bite": {
+      "riders": [
+        {
+          "ability": "constitution",
+          "condition": "poisoned"
+        }
+      ]
+    },
+    "dire-wolf/bite": {
+      "riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "doppelganger/shape-shift": {
+      "verdict": "out",
+      "reason": "a shapechanger"
+    },
+    "dretch/fetid-cloud": {
+      "riders": [
+        {
+          "condition": "poisoned",
+          "ends": "target-next-turn-end"
+        }
+      ]
+    },
+    "druid/spellcasting": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "dryad/spellcasting": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "dryad/tree-stride": {
+      "verdict": "drop",
+      "reason": "a teleport has no use in rows"
+    },
+    "dust-mephit/blinding-breath": {
+      "riders": [
+        {
+          "condition": "blinded",
+          "ends": "source-next-turn-end"
+        }
+      ]
+    },
+    "dust-mephit/sleep": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "earth-elemental/rock-launch": {
+      "riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "elephant/trample": {
+      "verdict": "out",
+      "reason": "Trample is a bonus-action save"
+    },
+    "elk/ram": {
+      "special_id": "charge",
+      "special_riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "ettercap/bite": {
+      "riders": [
+        {
+          "condition": "poisoned",
+          "ends": "source-next-turn-start"
+        }
+      ]
+    },
+    "ettercap/reel": {
+      "verdict": "drop",
+      "reason": "a pull has no use in rows"
+    },
+    "ettercap/web-strand": {
+      "riders": [
+        {
+          "size_max": "large",
+          "condition": "restrained",
+          "ends": "escape"
+        }
+      ]
+    },
+    "ettin/battleaxe": {
+      "riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "ettin/morningstar": {
+      "riders": [
+        {
+          "effect_id": "next-attack-disadvantage",
+          "ends": "target-next-turn-end",
+          "ends_on": [
+            "attack"
+          ]
+        }
+      ]
+    },
+    "fire-elemental/burn": {
+      "riders": [
+        {
+          "condition": "burning"
+        }
+      ]
+    },
+    "fire-elemental/fire-aura": {
+      "special_id": "fire-aura",
+      "special_riders": [
+        {
+          "condition": "burning"
+        }
+      ]
+    },
+    "fire-elemental/fire-form": {
+      "verdict": "drop",
+      "reason": "Fire Form needs positions"
+    },
+    "flesh-golem/berserk": {
+      "verdict": "out",
+      "reason": "Berserk makes it attack the nearest creature"
+    },
+    "gelatinous-cube/engulf": {
+      "verdict": "out",
+      "reason": "engulf"
+    },
+    "ghast/stench": {
+      "verdict": "out",
+      "reason": "Stench is a poison aura"
+    },
+    "ghost/etherealness": {
+      "verdict": "out",
+      "reason": "ethereal travel"
+    },
+    "ghoul/claw": {
+      "riders": [
+        {
+          "ability": "constitution",
+          "condition": "paralyzed",
+          "ends": "target-next-turn-end",
+          "spared_types": [
+            "undead"
+          ],
+          "spared_species_ids": [
+            "elf"
+          ]
+        }
+      ]
+    },
+    "giant-boar/gore": {
+      "special_id": "charge",
+      "special_riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "giant-centipede/bite": {
+      "riders": [
+        {
+          "condition": "poisoned",
+          "ends": "source-next-turn-start"
+        }
+      ]
+    },
+    "giant-constrictor-snake/constrict": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        }
+      ]
+    },
+    "giant-crab/claw": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        }
+      ]
+    },
+    "giant-crocodile/bite": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        },
+        {
+          "condition": "restrained",
+          "ends": "escape"
+        }
+      ]
+    },
+    "giant-crocodile/tail": {
+      "riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "giant-elk/ram": {
+      "special_id": "charge",
+      "special_riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "giant-frog/swallow": {
+      "verdict": "out",
+      "reason": "swallow"
+    },
+    "giant-goat/ram": {
+      "special_id": "charge",
+      "special_riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "giant-hyena/rampage": {
+      "special_id": "rampage",
+      "action_id": "bite"
+    },
+    "giant-octopus/tentacles": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        },
+        {
+          "condition": "restrained",
+          "ends": "escape"
+        }
+      ]
+    },
+    "giant-owl/spellcasting": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "giant-scorpion/claw": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        }
+      ]
+    },
+    "giant-seahorse/bubble-dash": {
+      "verdict": "drop",
+      "reason": "a move has no use in rows"
+    },
+    "giant-seahorse/ram": {
+      "special_id": "charge"
+    },
+    "giant-shark/water-breathing": {
+      "verdict": "out",
+      "reason": "it breathes only underwater"
+    },
+    "giant-spider/web": {
+      "riders": [
+        {
+          "condition": "restrained",
+          "ends": "escape"
+        }
+      ]
+    },
+    "giant-toad/swallow": {
+      "verdict": "out",
+      "reason": "swallow"
+    },
+    "giant-vulture/gouge": {
+      "riders": [
+        {
+          "condition": "poisoned",
+          "ends": "target-next-turn-end"
+        }
+      ]
+    },
+    "gibbering-mouther/gibbering": {
+      "verdict": "out",
+      "reason": "Gibbering takes the target's turn"
+    },
+    "gladiator/shield-bash": {
+      "riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "gnoll-warrior/rampage": {
+      "special_id": "rampage",
+      "action_id": "rend"
+    },
+    "goat/ram": {
+      "special_id": "charge"
+    },
+    "goblin-boss/scimitar": {
+      "riders": [
+        {
+          "rider_id": "advantage-damage"
+        }
+      ]
+    },
+    "goblin-boss/shortbow": {
+      "riders": [
+        {
+          "rider_id": "advantage-damage"
+        }
+      ]
+    },
+    "goblin-warrior/scimitar": {
+      "riders": [
+        {
+          "rider_id": "advantage-damage"
+        }
+      ]
+    },
+    "goblin-warrior/shortbow": {
+      "riders": [
+        {
+          "rider_id": "advantage-damage"
+        }
+      ]
+    },
+    "gold-dragon-wyrmling/weakening-breath": {
+      "verdict": "out",
+      "reason": "Weakening Breath weakens Strength tests and damage"
+    },
+    "gorgon/petrifying-breath": {
+      "verdict": "out",
+      "reason": "petrification"
+    },
+    "gray-ooze/corrosive-form": {
+      "verdict": "out",
+      "reason": "Corrosive Form corrodes weapons"
+    },
+    "green-hag/coven-magic": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "green-hag/spellcasting": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "grick/tentacles": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        }
+      ]
+    },
+    "griffon/rend": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        }
+      ]
+    },
+    "half-dragon/draconic-origin": {
+      "verdict": "out",
+      "reason": "Draconic Origin leaves its damage type to the GM"
+    },
+    "harpy/luring-song": {
+      "verdict": "out",
+      "reason": "Luring Song lures its targets"
+    },
+    "hill-giant/trash-lob": {
+      "riders": [
+        {
+          "condition": "poisoned",
+          "ends": "target-next-turn-end"
+        }
+      ]
+    },
+    "hill-giant/tree-club": {
+      "riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "hobgoblin-captain/aura-of-authority": {
+      "verdict": "out",
+      "reason": "Aura of Authority gives its allies Advantage"
+    },
+    "homunculus/bite": {
+      "riders": [
+        {
+          "ability": "constitution",
+          "condition": "poisoned",
+          "ends": "source-next-turn-end"
+        }
+      ]
+    },
+    "hunter-shark/bite": {
+      "riders": [
+        {
+          "rider_id": "conditional-advantage"
+        }
+      ]
+    },
+    "ice-mephit/fog-cloud": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "imp/invisibility": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "imp/shape-shift": {
+      "verdict": "drop",
+      "reason": "its forms change only its Speed"
+    },
+    "incubus/succubus-form": {
+      "verdict": "out",
+      "reason": "a shapechanger"
+    },
+    "lamia/corrupting-touch": {
+      "riders": [
+        {
+          "condition": "charmed"
+        },
+        {
+          "condition": "poisoned"
+        }
+      ]
+    },
+    "lamia/leap": {
+      "verdict": "drop",
+      "reason": "a move has no use in rows"
+    },
+    "lamia/spellcasting": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "lion/roar": {
+      "riders": [
+        {
+          "condition": "frightened",
+          "ends": "source-next-turn-start"
+        }
+      ]
+    },
+    "magmin/ignited-illumination": {
+      "verdict": "tag"
+    },
+    "magmin/touch": {
+      "riders": [
+        {
+          "condition": "burning"
+        }
+      ]
+    },
+    "mastiff/bite": {
+      "riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "merfolk-skirmisher/ocean-spear": {
+      "verdict": "out",
+      "reason": "Ocean Spear lowers the target's Speed"
+    },
+    "merrow/bite": {
+      "riders": [
+        {
+          "condition": "poisoned",
+          "ends": "source-next-turn-end"
+        }
+      ]
+    },
+    "merrow/harpoon": {
+      "verdict": "out",
+      "reason": "Harpoon pulls its target"
+    },
+    "mimic/shape-shift": {
+      "verdict": "out",
+      "reason": "a shapechanger"
+    },
+    "minotaur-of-baphomet/gore": {
+      "special_id": "charge",
+      "special_riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "minotaur-skeleton/gore": {
+      "special_id": "charge",
+      "special_riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "mummy/dreadful-glare": {
+      "riders": [
+        {
+          "condition": "frightened",
+          "ends": "source-next-turn-end"
+        }
+      ]
+    },
+    "mummy/rotting-fist": {
+      "riders": [],
+      "reason": "the curse is cut: it needs tracking after a battle"
+    },
+    "night-hag/shape-shift": {
+      "verdict": "out",
+      "reason": "a shapechanger"
+    },
+    "nightmare/ethereal-stride": {
+      "verdict": "out",
+      "reason": "ethereal travel"
+    },
+    "ochre-jelly/split": {
+      "verdict": "out",
+      "reason": "an Ooze with Split"
+    },
+    "otyugh/bite": {
+      "riders": [],
+      "reason": "the disease is cut: it needs tracking after a battle"
+    },
+    "otyugh/tentacle": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        }
+      ]
+    },
+    "otyugh/tentacle-slam": {
+      "riders": [
+        {
+          "condition": "stunned",
+          "ends": "source-next-turn-start"
+        }
+      ],
+      "target": {
+        "area": {
+          "shape": "emanation",
+          "feet": 10
+        },
+        "requires": [
+          "grappled-by-self"
+        ]
+      }
+    },
+    "phase-spider/ethereal-jaunt": {
+      "verdict": "out",
+      "reason": "ethereal travel"
+    },
+    "piranha/bite": {
+      "riders": [
+        {
+          "rider_id": "conditional-advantage"
+        }
+      ]
+    },
+    "pirate/enthralling-panache": {
+      "riders": [
+        {
+          "condition": "charmed",
+          "ends": "source-next-turn-start"
+        }
+      ]
+    },
+    "priest-acolyte/divine-aid": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "priest-acolyte/spellcasting": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "priest/divine-aid": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "priest/spellcasting": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "pseudodragon/sting": {
+      "riders": [
+        {
+          "condition": "poisoned"
+        }
+      ]
+    },
+    "quasit/invisibility": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "quasit/rend": {
+      "riders": [
+        {
+          "condition": "poisoned",
+          "ends": "source-next-turn-start"
+        }
+      ]
+    },
+    "quasit/scare": {
+      "riders": [
+        {
+          "condition": "frightened",
+          "ends": "save-each-turn"
+        }
+      ]
+    },
+    "quasit/shape-shift": {
+      "verdict": "drop",
+      "reason": "its forms change only its Speed"
+    },
+    "rhinoceros/gore": {
+      "special_id": "charge",
+      "special_riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "roper/reel": {
+      "verdict": "drop",
+      "reason": "a pull has no use in rows"
+    },
+    "roper/tentacle": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        },
+        {
+          "condition": "poisoned",
+          "ends": "escape"
+        }
+      ]
+    },
+    "rust-monster/antennae": {
+      "verdict": "out",
+      "reason": "Antennae corrode metal gear"
+    },
+    "sahuagin-warrior/blood-frenzy": {
+      "verdict": "out",
+      "reason": "Blood Frenzy gives Advantage against a hurt target"
+    },
+    "salamander/constrict": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        },
+        {
+          "condition": "restrained",
+          "ends": "escape"
+        }
+      ]
+    },
+    "salamander/flame-spear": {
+      "riders": [],
+      "reason": "the spear's return has no use in rows"
+    },
+    "satyr/hooves": {
+      "verdict": "out",
+      "reason": "Hooves push their target"
+    },
+    "sea-hag/vile-appearance": {
+      "verdict": "out",
+      "reason": "Vile Appearance is a fear aura"
+    },
+    "seahorse/bubble-dash": {
+      "verdict": "drop",
+      "reason": "a move has no use in rows"
+    },
+    "shadow/draining-swipe": {
+      "verdict": "out",
+      "reason": "Draining Swipe drains Strength"
+    },
+    "shambling-mound/engulf": {
+      "verdict": "out",
+      "reason": "engulf"
+    },
+    "silver-dragon-wyrmling/paralyzing-breath": {
+      "verdict": "out",
+      "reason": "Paralyzing Breath paralyzes on a second failure"
+    },
+    "sprite/enchanting-bow": {
+      "riders": [
+        {
+          "condition": "charmed",
+          "ends": "source-next-turn-start"
+        }
+      ]
+    },
+    "sprite/heart-sight": {
+      "verdict": "drop",
+      "reason": "Heart Sight has no effect in a battle"
+    },
+    "sprite/invisibility": {
+      "verdict": "drop",
+      "reason": "spellcasting: its other actions make a fair fight"
+    },
+    "spy/cunning-action": {
+      "special_id": "nimble-escape"
+    },
+    "steam-mephit/blurred-form": {
+      "verdict": "out",
+      "reason": "Blurred Form gives Disadvantage to attacks against it"
+    },
+    "stirge/proboscis": {
+      "verdict": "out",
+      "reason": "Proboscis attaches the stirge to its target"
+    },
+    "succubus/incubus-form": {
+      "verdict": "out",
+      "reason": "a shapechanger"
+    },
+    "swarm-of-bats/bites": {
+      "riders": [
+        {
+          "rider_id": "bloodied-damage"
+        }
+      ]
+    },
+    "swarm-of-crawling-claws/swarm-of-grasping-hands": {
+      "riders": [
+        {
+          "rider_id": "bloodied-damage"
+        },
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "swarm-of-insects/bites": {
+      "riders": [
+        {
+          "rider_id": "bloodied-damage"
+        }
+      ]
+    },
+    "swarm-of-piranhas/bites": {
+      "riders": [
+        {
+          "rider_id": "conditional-advantage"
+        },
+        {
+          "rider_id": "bloodied-damage"
+        }
+      ]
+    },
+    "swarm-of-rats/bites": {
+      "riders": [
+        {
+          "rider_id": "bloodied-damage"
+        }
+      ]
+    },
+    "swarm-of-ravens/beaks": {
+      "riders": [
+        {
+          "rider_id": "bloodied-damage"
+        }
+      ]
+    },
+    "swarm-of-ravens/cacophony": {
+      "riders": [
+        {
+          "condition": "deafened",
+          "ends": "source-next-turn-start"
+        }
+      ],
+      "target": {
+        "range_feet": 5
+      }
+    },
+    "swarm-of-venomous-snakes/bites": {
+      "riders": [
+        {
+          "rider_id": "bloodied-damage"
+        }
+      ]
+    },
+    "tiger/rend": {
+      "riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "tough-boss/warhammer": {
+      "riders": [
+        {
+          "rider_id": "push"
+        }
+      ]
+    },
+    "triceratops/gore": {
+      "special_id": "charge",
+      "special_riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "troll-limb/regeneration": {
+      "verdict": "out",
+      "reason": "Regeneration revives a limb at 0 Hit Points"
+    },
+    "troll/charge": {
+      "verdict": "drop",
+      "reason": "a move has no use in rows"
+    },
+    "troll/loathsome-limbs": {
+      "verdict": "drop",
+      "reason": "a severed limb needs a second creature"
+    },
+    "unicorn/legendary-resistance": {
+      "verdict": "out",
+      "reason": "Legendary Resistance"
+    },
+    "vampire-familiar/deathless-agility": {
+      "verdict": "drop",
+      "reason": "foes leave a battle only by morale"
+    },
+    "vampire-familiar/umbral-dagger": {
+      "riders": [],
+      "reason": "the paralysis at 0 HP is cut: it needs tracking after a battle"
+    },
+    "vampire-spawn/bite": {
+      "special_id": "life-drain",
+      "target": {
+        "range_feet": 5,
+        "requires": [
+          "grappled",
+          "incapacitated",
+          "restrained"
+        ]
+      }
+    },
+    "vampire-spawn/claw": {
+      "riders": [
+        {
+          "rider_id": "grapple"
+        }
+      ]
+    },
+    "vampire-spawn/deathless-agility": {
+      "verdict": "drop",
+      "reason": "foes leave a battle only by morale"
+    },
+    "warhorse-skeleton/hooves": {
+      "special_id": "charge",
+      "special_riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "warhorse/hooves": {
+      "special_id": "charge",
+      "special_riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "water-elemental/freeze": {
+      "verdict": "drop",
+      "reason": "Speed has no use in rows"
+    },
+    "water-elemental/slam": {
+      "riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "water-elemental/whelm": {
+      "verdict": "drop",
+      "reason": "Whelm engulfs and drags its targets"
+    },
+    "will-o-wisp/consume-life": {
+      "verdict": "out",
+      "reason": "Consume Life kills a dying target"
+    },
+    "winter-wolf/bite": {
+      "riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "wolf/bite": {
+      "riders": [
+        {
+          "condition": "prone"
+        }
+      ]
+    },
+    "worg/bite": {
+      "riders": [
+        {
+          "effect_id": "next-attack-advantage",
+          "ends": "source-next-turn-start",
+          "uses": 1
+        }
+      ]
+    },
+    "wraith/create-specter": {
+      "verdict": "drop",
+      "reason": "Create Specter needs a second creature"
+    },
+    "xorn/charge": {
+      "verdict": "drop",
+      "reason": "a move has no use in rows"
+    }
+  }
+}

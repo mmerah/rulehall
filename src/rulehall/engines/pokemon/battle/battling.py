@@ -1,8 +1,7 @@
 from pathlib import Path
 
-from rulehall.core.game import RoleAnswer
 from rulehall.core.validation import Refusal, Slug
-from rulehall.engines.battles import Transport
+from rulehall.engines.battles import BattleServices
 from rulehall.engines.pokemon.battle.simulator import SHOWDOWN, ShowdownRun
 from rulehall.engines.pokemon.battle.world import BattleGame
 
@@ -38,7 +37,10 @@ class ShowdownBattles:
         # The postinstall builds the simulator; a build run prints to stdout before the first block.
         return ("node", str(SIMULATOR), "simulate-battle", "--skip-build")
 
-    async def open_battle(
-        self, draft: BattleGame, transport: Transport, opponent: RoleAnswer | None
-    ) -> ShowdownRun:
-        return await ShowdownRun.start(draft, transport, opponent)
+    async def open_battle(self, draft: BattleGame, services: BattleServices, /) -> ShowdownRun:
+        transport = await services.start_transport(self.simulator_argv())
+        try:
+            return await ShowdownRun.start(draft, transport, services.opponent)
+        except BaseException:
+            await transport.close()
+            raise

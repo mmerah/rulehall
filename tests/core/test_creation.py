@@ -1,3 +1,5 @@
+from functools import partial
+
 import pytest
 from support.table import ENGINES_BUILT, TWENTYFOURXX
 
@@ -35,6 +37,16 @@ def test_a_constrained_step_still_loses_an_answer_it_no_longer_offers() -> None:
     engine = ENGINES_BUILT[TWENTYFOURXX]
     picks = dict(ANDROID) | {"body": "not-on-offer"}
 
-    drop_stale(engine.creation_steps("srd", picks), picks)
+    drop_stale(partial(engine.creation_steps, "srd"), picks)
 
     assert "body" not in picks
+
+
+def test_a_pick_whose_step_is_gone_drops() -> None:
+    engine = ENGINES_BUILT[TWENTYFOURXX]
+    picks = dict(ANDROID) | {"specialty": "face", "increase-1": "climbing"}
+
+    drop_stale(partial(engine.creation_steps, "srd"), picks)
+
+    assert picks.keys() == {"specialty", "origin", "body", "increase-1"}
+    check_picks(engine.creation_steps("srd", picks), picks)

@@ -1,5 +1,7 @@
+import json
+
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 from support.table import (
     change,
     refused,
@@ -18,15 +20,19 @@ from support.tunnelgoons import (
     START,
     VAULT,
     WARDEN,
+    WELL,
     YARD,
     keep,
     small_world,
 )
 
+from rulehall.core.decisions import Decision
 from rulehall.core.facts import Fact, told_cards
 from rulehall.core.game import WorldsmithRequest
+from rulehall.core.tools import tool_schema
 from rulehall.core.validation import Refusal
-from rulehall.engines.bases.maps.engine import MOVED_CARD, MOVES_OFFSCREEN
+from rulehall.engines.bases.maps.args import Meanwhile
+from rulehall.engines.bases.maps.engine import MEANWHILE_FIRST, MOVED_CARD, MOVES_OFFSCREEN
 from rulehall.engines.bases.maps.panels import map_view
 from rulehall.engines.bases.maps.world import (
     EXTEND_REQUEST,
@@ -38,7 +44,6 @@ from rulehall.engines.bases.maps.world import (
 )
 from rulehall.engines.bases.maps.worldsmith import check_next
 from rulehall.engines.sheet import PLAYER_ID, Gauge
-from rulehall.engines.tunnelgoons.engine import TunnelGoonsEngine
 from rulehall.engines.tunnelgoons.sheet import Goon
 from rulehall.engines.tunnelgoons.world import TunnelGoonsGame, TunnelGoonsWorld
 
@@ -187,7 +192,8 @@ def _moat_world() -> TunnelGoonsWorld:
             start_id=MOAT,
             region_name="The Outer Ward",
             recap="They left the dungeon.",
-        )
+        ),
+        Way,
     )
     _ = world.move(MOAT, ())
     return world
@@ -235,7 +241,8 @@ def test_the_map_edge_counts_only_the_region_the_player_is_in() -> None:
             start_id=MOAT,
             region_name="The Outer Ward",
             recap="They left the dungeon.",
-        )
+        ),
+        Way,
     )
     _ = world.move(MOAT, ())
 
@@ -272,40 +279,52 @@ def _walked(begun_map: TunnelGoonsGame) -> TunnelGoonsGame:
     return begun_map.draft()
 
 
-def _all_three(engine: TunnelGoonsEngine, draft: TunnelGoonsGame) -> list[Fact]:
-    """One armed call spending every power: the warden walks, the lantern moves, a way shuts."""
+def _meanwhile(draft: TunnelGoonsGame, *changes: dict[str, JsonValue]) -> list[Fact]:
     draft.world.meanwhile_due = True
-    return change(
-        engine,
-        draft,
-        "meanwhile",
-        dweller_id=WARDEN,
-        dweller_to_id=YARD,
-        item_id=LANTERN,
-        item_to_id=GATE,
-        shut_from_id=GATE,
-        shut_to_id=YARD,
-    )
+    return change(ENGINE, draft, "meanwhile", changes=list(changes))
 
 
-def test_meanwhile_moves_all_three_things_in_one_call() -> None:
+def _refused_meanwhile(draft: TunnelGoonsGame, *changes: dict[str, JsonValue]) -> str:
+    draft.world.meanwhile_due = True
+    return refused(ENGINE, draft, "meanwhile", changes=list(changes))
+
+
+def _walk(dweller_id: str, to_id: str) -> dict[str, JsonValue]:
+    return {"kind": "walk", "dweller_id": dweller_id, "to_id": to_id}
+
+
+def _carry(item_id: str, to_id: str) -> dict[str, JsonValue]:
+    return {"kind": "carry", "item_id": item_id, "to_id": to_id}
+
+
+def _way(kind: str, from_id: str, to_id: str) -> dict[str, JsonValue]:
+    return {"kind": kind, "from_id": from_id, "to_id": to_id}
+
+
+def _fall(dweller_id: str) -> dict[str, JsonValue]:
+    return {"kind": "fall", "dweller_id": dweller_id}
+
+
+def _offscreen(draft: TunnelGoonsGame) -> list[Fact]:
+    """One armed call away from the player: the warden walks and the lantern moves."""
+    return _meanwhile(draft, _walk(WARDEN, YARD), _carry(LANTERN, GATE))
+
+
+def test_meanwhile_applies_its_changes_in_one_call() -> None:
     draft = _walked(keep())
 
-    _ = _all_three(ENGINE, draft)
+    _ = _offscreen(draft)
 
     world = draft.world
     assert world.npcs[WARDEN].place_id == YARD
     assert world.items[LANTERN].holder_id == GATE
-    way = world.find_way(GATE, YARD)
-    assert way is not None
-    assert way.locked
     assert not world.meanwhile_due
 
 
 def test_meanwhile_never_reaches_the_narrator() -> None:
     draft = _walked(keep())
 
-    facts = _all_three(ENGINE, draft)
+    facts = _offscreen(draft)
 
     told = [fact for fact in facts if fact.told]
     assert len(told) == 1
@@ -318,12 +337,256 @@ def test_meanwhile_never_reaches_the_narrator() -> None:
     assert told_cards(facts) == (only,)
 
 
+def test_a_walk_along_a_locked_way_or_no_way_is_refused() -> None:
+    draft = _walked(keep())
+    draft.world.npcs[WARDEN].place_id = YARD
+
+    assert "no unlocked way" in _refused_meanwhile(draft, _walk(WARDEN, WELL))
+    assert "no unlocked way" in _refused_meanwhile(draft, _walk(WARDEN, GATE))
+
+
+def test_a_known_dweller_who_walks_in_is_told_with_no_generic_card() -> None:
+    draft = _walked(keep())
+    draft.world.npcs[WARDEN].place_id = YARD
+
+    facts = _meanwhile(draft, _walk(WARDEN, CELLAR))
+
+    assert [fact.card for fact in told_cards(facts)] == ["Warden walks in"]
+    assert draft.world.npcs[WARDEN].place_id == CELLAR
+
+
+def test_an_unknown_dweller_who_walks_in_stays_unknown_and_untold() -> None:
+    draft = _walked(keep())
+    warden = draft.world.npcs[WARDEN]
+    warden.place_id = YARD
+    warden.known = False
+
+    facts = _meanwhile(draft, _walk(WARDEN, CELLAR))
+
+    assert [fact.card for fact in told_cards(facts)] == [MOVED_CARD]
+    assert not warden.known
+    assert warden.place_id == CELLAR
+
+
+def test_a_walk_out_of_the_player_s_place_is_told_only_for_a_known_dweller() -> None:
+    for known, cards in ((True, ["Warden leaves"]), (False, [MOVED_CARD])):
+        draft = _walked(keep())
+        warden = draft.world.npcs[WARDEN]
+        warden.place_id = CELLAR
+        warden.known = known
+
+        facts = _meanwhile(draft, _walk(WARDEN, WELL))
+
+        assert [fact.card for fact in told_cards(facts)] == cards
+
+
+def test_a_dead_dweller_does_not_walk() -> None:
+    world = _walked(keep()).world
+    warden = world.npcs[WARDEN]
+    warden.alive = False
+
+    with pytest.raises(Refusal, match="is dead"):
+        _ = world.walk(warden, world.require_place(YARD))
+
+
+def test_a_walk_along_a_secret_way_names_no_end() -> None:
+    draft = _walked(keep())
+    draft.world.npcs[WARDEN].place_id = YARD
+    way = draft.world.find_way(YARD, CELLAR)
+    assert way is not None
+    way.known = False
+
+    facts = _meanwhile(draft, _walk(WARDEN, CELLAR))
+
+    assert [(fact.trace, fact.card) for fact in told_cards(facts)] == [
+        ("Warden[warden] walks in", "Warden walks in")
+    ]
+
+
+def test_a_carry_that_starts_and_ends_at_the_player_s_place_is_refused() -> None:
+    draft = _walked(keep())
+    draft.world.npcs[WARDEN].place_id = CELLAR
+    draft.world.items[LANTERN].holder_id = CELLAR
+
+    assert "move_item" in _refused_meanwhile(draft, _carry(LANTERN, WARDEN))
+
+
+def test_a_told_carry_out_never_names_where_the_item_went() -> None:
+    draft = _walked(keep())
+    lantern = draft.world.items[LANTERN]
+    lantern.holder_id = CELLAR
+    lantern.known = True
+
+    facts = _meanwhile(draft, _carry(LANTERN, YARD))
+
+    assert [(fact.trace, fact.card) for fact in told_cards(facts)] == [
+        ("Lantern[lantern] is gone", "Lantern is gone")
+    ]
+
+
+def test_a_carry_into_the_hands_of_an_unknown_dweller_here_is_untold() -> None:
+    draft = _walked(keep())
+    warden = draft.world.npcs[WARDEN]
+    warden.place_id = CELLAR
+    warden.known = False
+    draft.world.items[LANTERN].known = True
+
+    facts = _meanwhile(draft, _carry(LANTERN, WARDEN))
+
+    assert [fact.card for fact in told_cards(facts)] == [MOVED_CARD]
+
+
+def test_an_item_is_carried_to_a_dweller_and_refused_where_it_already_is() -> None:
+    draft = _walked(keep())
+
+    _ = _meanwhile(draft, _carry(LANTERN, WARDEN))
+
+    assert draft.world.items[LANTERN].holder_id == WARDEN
+    assert "already there" in _refused_meanwhile(draft, _carry(LANTERN, WARDEN))
+
+
+def test_a_known_item_carried_from_a_dweller_at_the_player_s_place_is_told() -> None:
+    draft = _walked(keep())
+    draft.world.npcs[WARDEN].place_id = CELLAR
+    lantern = draft.world.items[LANTERN]
+    lantern.holder_id = WARDEN
+    lantern.known = True
+
+    facts = _meanwhile(draft, _carry(LANTERN, GATE))
+
+    assert [fact.card for fact in told_cards(facts)] == ["Lantern is gone"]
+
+
+def test_a_hidden_item_carried_away_from_the_player_s_place_stays_hidden() -> None:
+    draft = _walked(keep())
+    lantern = draft.world.items[LANTERN]
+    lantern.holder_id = CELLAR
+
+    facts = _meanwhile(draft, _carry(LANTERN, GATE))
+
+    assert [fact.card for fact in told_cards(facts)] == [MOVED_CARD]
+    assert not lantern.known
+    assert lantern.holder_id == GATE
+
+
+def test_a_shut_locks_both_sides() -> None:
+    draft = _walked(keep())
+    draft.world.ways[YARD].append(Way(to_id=GATE))
+
+    _ = _meanwhile(draft, _way("shut", GATE, YARD))
+
+    for start, end in ((GATE, YARD), (YARD, GATE)):
+        way = draft.world.find_way(start, end)
+        assert way is not None
+        assert way.locked
+
+
+def test_a_shut_of_an_unknown_or_locked_way_is_refused() -> None:
+    draft = small_world().draft()
+
+    assert "has not found" in _refused_meanwhile(draft, _way("shut", START, VAULT))
+    assert "already shut" in _refused_meanwhile(draft, _way("shut", HALL, VAULT))
+
+
+def test_a_shut_at_the_player_s_place_is_told() -> None:
+    draft = _walked(keep())
+    draft.world.ways[CELLAR].append(Way(to_id=YARD))
+
+    facts = _meanwhile(draft, _way("shut", CELLAR, YARD))
+
+    assert [fact.card for fact in told_cards(facts)] == ["The way to Yard shuts"]
+
+
+def test_a_shut_that_leaves_the_player_no_way_out_is_refused() -> None:
+    draft = _walked(keep())
+
+    message = _refused_meanwhile(draft, _way("shut", CELLAR, WELL))
+
+    assert "no open way out" in message
+
+
+def test_an_open_unlocks_both_sides_and_refuses_a_way_that_is_not_locked() -> None:
+    draft = small_world().draft()
+    back = draft.world.find_way(VAULT, HALL)
+    assert back is not None
+    back.locked = True
+
+    _ = _meanwhile(draft, _way("open", HALL, VAULT))
+
+    way = draft.world.find_way(HALL, VAULT)
+    assert way is not None
+    assert not way.locked
+    assert not back.locked
+    assert "not locked" in _refused_meanwhile(draft, _way("open", START, HALL))
+
+
+def test_a_fall_kills_the_dweller_and_leaves_what_it_holds_at_its_place() -> None:
+    draft = _walked(keep())
+    draft.world.items[LANTERN].holder_id = WARDEN
+
+    _ = _meanwhile(draft, _fall(WARDEN))
+
+    assert not draft.world.npcs[WARDEN].alive
+    assert draft.world.items[LANTERN].holder_id == GATE
+
+
+def test_a_fall_at_the_player_s_place_is_refused() -> None:
+    message = _refused_meanwhile(keep().draft(), _fall(WARDEN))
+
+    assert "call kill" in message
+
+
+@pytest.mark.parametrize(("visited", "cap"), [(8, 2), (9, 3), (30, 6)])
+def test_the_cap_follows_the_visited_places(visited: int, cap: int) -> None:
+    world = keep().world
+    room_ids = [f"room-{index}" for index in range(visited)]
+    for room_id in room_ids:
+        world.places[room_id] = Place(
+            id=room_id, name=room_id, brief="b", known=True, description="d"
+        )
+    world.visited_place_ids = room_ids
+
+    assert world.meanwhile_cap() == cap
+
+
+def test_a_list_longer_than_the_cap_is_refused() -> None:
+    draft = _walked(keep())
+
+    message = _refused_meanwhile(
+        draft, _walk(WARDEN, YARD), _carry(LANTERN, GATE), _way("shut", YARD, CELLAR)
+    )
+
+    assert "at most 2 changes" in message
+
+
+def test_a_subject_in_two_changes_of_one_call_is_refused() -> None:
+    draft = _walked(keep())
+
+    assert "duplicate" in _refused_meanwhile(draft, _walk(WARDEN, YARD), _fall(WARDEN))
+    assert "duplicate" in _refused_meanwhile(
+        draft, _way("shut", YARD, CELLAR), _way("open", CELLAR, YARD)
+    )
+
+
+def test_the_party_and_what_it_holds_never_change() -> None:
+    draft = keep().draft()
+    _ = change(ENGINE, draft, "join_party", target_id=WARDEN)
+    lantern = draft.world.items[LANTERN]
+    lantern.known = True
+
+    assert "travels with the player" in _refused_meanwhile(draft, _walk(WARDEN, YARD))
+    assert "travels with the player" in _refused_meanwhile(draft, _fall(WARDEN))
+    for holder_id in (PLAYER_ID, WARDEN):
+        lantern.holder_id = holder_id
+        _ = _refused_meanwhile(draft, _carry(LANTERN, YARD))
+        assert lantern.holder_id == holder_id
+
+
 def test_meanwhile_refuses_to_walk_an_npc_who_left_the_map() -> None:
     draft = _walked(keep())
     draft.world.npcs[WARDEN].place_id = OFF_MAP_ID
-    draft.world.meanwhile_due = True
 
-    message = refused(ENGINE, draft, "meanwhile", dweller_id=WARDEN, dweller_to_id=YARD)
+    message = _refused_meanwhile(draft, _walk(WARDEN, YARD))
 
     assert "has left the map" in message
 
@@ -363,13 +626,80 @@ def test_the_clock_counts_only_a_turn_that_acted_and_arms_at_the_tempo() -> None
     assert (draft.world.turns_since_meanwhile, draft.world.meanwhile_due) == (0, True)
 
 
-def test_a_counted_turn_spends_the_armed_flag() -> None:
+def test_the_armed_flag_stays_over_counted_turns_and_the_counter_waits() -> None:
     draft = _walked(keep())
     draft.world.meanwhile_due = True
 
-    ENGINE.after_master_turn(draft, acted=True)
+    for _ in range(MEANWHILE_EVERY + 1):
+        ENGINE.after_master_turn(draft, acted=True)
 
+    assert (draft.world.turns_since_meanwhile, draft.world.meanwhile_due) == (0, True)
+
+
+def test_the_clock_arms_only_when_something_offscreen_can_change() -> None:
+    for place_ids, lantern_holder_id, armed in (
+        ([GATE, YARD], YARD, True),
+        ([GATE, YARD], PLAYER_ID, False),
+        ([GATE], YARD, False),
+    ):
+        draft = keep().draft()
+        draft.world.regions[0].place_ids = place_ids
+        draft.world.items[LANTERN].holder_id = lantern_holder_id
+
+        for _ in range(MEANWHILE_EVERY):
+            ENGINE.after_master_turn(draft, acted=True)
+
+        assert draft.world.meanwhile_due == armed
+
+
+def test_direct_waits_for_meanwhile_and_an_empty_call_clears_the_window() -> None:
+    draft = keep().draft()
+    draft.world.meanwhile_due = True
+
+    assert refused(ENGINE, draft, "direct", text="On.") == MEANWHILE_FIRST
+
+    assert change(ENGINE, draft, "meanwhile", changes=[]) == []
     assert not draft.world.meanwhile_due
+    assert change(ENGINE, draft, "direct", text="On.")[0].told
+
+
+def test_direct_works_while_a_decision_is_pending() -> None:
+    draft = keep().draft()
+    draft.world.meanwhile_due = True
+    draft.pending = Decision(kind="pick", prompt="Pick.", options=(), allows_text=True)
+
+    assert change(ENGINE, draft, "direct", text="On.")[0].told
+
+
+def test_a_place_one_way_from_the_player_is_marked_next_to_the_player() -> None:
+    world = _walked(keep()).world
+
+    lines = world.elsewhere_lines().splitlines()
+
+    assert lines[0] == "at most 2 changes in one call"
+    assert [line.startswith("- Yard[yard] (next to the player) — ") for line in lines[1:]] == [
+        False,
+        True,
+        False,
+    ]
+    assert "Well[well] (locked) (unfound)" not in lines[2]
+    assert "Well[well] (locked)" in lines[2]
+
+
+def test_the_meanwhile_schema_lists_the_five_changes_in_an_any_of() -> None:
+    schema = json.dumps(tool_schema(Meanwhile))
+
+    kinds = json.loads(schema)["properties"]["changes"]["items"]["anyOf"]
+
+    assert [kind["properties"]["kind"]["const"] for kind in kinds] == [
+        "walk",
+        "carry",
+        "shut",
+        "open",
+        "fall",
+    ]
+    assert "oneOf" not in schema
+    assert "$ref" not in schema
 
 
 def test_the_arc_reaches_the_master_and_the_worldsmith_and_nobody_else() -> None:

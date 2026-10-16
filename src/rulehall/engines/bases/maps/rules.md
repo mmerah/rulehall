@@ -38,7 +38,10 @@ to make such a scene easier.
 
 ## Meanwhile
 
-Call `meanwhile` to make time pass where the player is not. One call can move a dweller, move a
-loose item, and shut a way the player knows. Use any combination in one call. Each destination
-must be a place the player has walked away from. A destination is never the place the player
-stands in now. Call `meanwhile` only on a turn that shows ELSEWHERE.
+When a turn shows ELSEWHERE, call `meanwhile` before `direct`. Move the people of the world toward
+what they want. Most calls move nobody toward the player. An empty list means that nothing moves.
+
+A dweller at a place marked "next to the player" can walk in now. The player sees a change at their
+place only when they know what changed. A stranger who walks in stays unseen until you reveal them.
+
+For example: a patrol walks in from the hall. A thief takes the jewel and walks out.

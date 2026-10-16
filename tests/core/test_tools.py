@@ -1,3 +1,4 @@
+import json
 from random import Random
 from typing import Annotated, Literal
 
@@ -7,7 +8,14 @@ from pydantic import Field
 from rulehall.core.answer_repair import parse_with_repairs
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyGame
-from rulehall.core.tools import PlayerFacing, action, marked_methods, player_facing_texts, tool
+from rulehall.core.tools import (
+    PlayerFacing,
+    action,
+    marked_methods,
+    player_facing_texts,
+    tool,
+    tool_schema,
+)
 from rulehall.core.validation import Frozen, Refusal, Slug
 
 type Kind = Literal["gear", "condition"]
@@ -85,6 +93,18 @@ class Telling(Frozen):
     plain: str = Field(default="", description="A text the player never reads.")
 
 
+class Door(Frozen):
+    kind: Literal["door"]
+
+
+class Window(Frozen):
+    kind: Literal["window"]
+
+
+class Opening(Frozen):
+    ways: tuple[Annotated[Door | Window, Field(discriminator="kind")], ...]
+
+
 class Quiet:
     def touch(self, _draft: AnyGame, args: Word, _rng: Random) -> list[Fact]:
         return [Fact(trace=args.word)]
@@ -142,3 +162,11 @@ def test_a_field_no_schema_names_is_dropped_at_every_depth_and_a_cast_key_is_kep
     assert mended == Cast(cast={"rats": Filed()})
     with pytest.raises(Refusal, match="Rats"):
         _ = parse_with_repairs(Cast, {"cast": {"Rats": {}}})
+
+
+def test_a_discriminated_union_is_one_any_of_of_plain_objects() -> None:
+    text = json.dumps(tool_schema(Opening))
+
+    members = json.loads(text)["properties"]["ways"]["items"]["anyOf"]
+    assert [member["type"] for member in members] == ["object", "object"]
+    assert not any(key in text for key in ('"oneOf":', '"discriminator":', '"$ref":'))

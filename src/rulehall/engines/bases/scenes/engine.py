@@ -1,15 +1,14 @@
 from abc import abstractmethod
-from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
 from random import Random
-from typing import Any, ClassVar
+from typing import Any
 
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyCharacter, AnyScenario, Game
 from rulehall.core.prompt import Sections, render_log, section_if
 from rulehall.core.tools import tool
-from rulehall.core.views import Panel, PanelRow
+from rulehall.core.views import Panel, PanelRows
 from rulehall.engines.bases.scenes.args import Enter, Leave
 from rulehall.engines.bases.scenes.panels import trail_panel
 from rulehall.engines.bases.scenes.world import NextProposal, SceneProposal, SceneWorld
@@ -36,8 +35,6 @@ class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](
     base_dir = Path(__file__).parent
     opening_sections = OPENING_SECTIONS
     opening_intent = OPENING
-    # The sheet help speaks of the player: a companion's luck and goal work otherwise.
-    party_help: ClassVar[Mapping[str, str]] = {}
 
     def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> W:
         proposal: SceneProposal[P] = scenario.opening.filed_by_name()
@@ -54,7 +51,7 @@ class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](
             ("SCENE", self.scene_text(state)),
             *self.player_sections(state),
             ("HERE WITH THE PLAYER", world.here_lines()),
-            *party_section(world.party_members()),
+            *party_section([member.line() for member in world.party_members()]),
             *section_if("SETTLED THIS SCENE", world.settled_lines()),
             *section_if(HIDDEN_TITLE, world.hidden_lines()),
             *section_if(SCENE_ARC_TITLE, world.arc),
@@ -87,7 +84,7 @@ class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](
         world = state.world
         return (
             *self.lead_panels(state),
-            party_panel(world.party_members(), self.party_help, partial(self.member_rows, world)),
+            party_panel(world.party_members(), partial(self.member_rows, world)),
             here_panel(other.subject() for other in world.others()),
             trail_panel(scene.title for scene in world.scenes),
         )
@@ -95,8 +92,8 @@ class SceneEngine[P: Person, W: SceneWorld[Any], K: Pack, R: NextProposal[Any]](
     @abstractmethod
     def lead_panels(self, state: Game[W], /) -> tuple[Panel | None, ...]: ...
 
-    def member_rows(self, _world: W, _member: P, /) -> tuple[PanelRow, ...]:
-        return ()
+    def member_rows(self, _world: W, member: P, /) -> PanelRows:
+        return self.person_rows(member)
 
     @tool
     def enter(self, draft: Game[W], args: Enter, _rng: Random) -> list[Fact]:

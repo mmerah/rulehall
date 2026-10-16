@@ -3,8 +3,8 @@ from collections.abc import Sequence
 from rulehall.core.decisions import ActionOption, Decision
 from rulehall.core.facts import notation
 from rulehall.core.validation import Slug, slug
-from rulehall.core.views import Panel, PanelRow, Tag
-from rulehall.engines.panels import character_panel
+from rulehall.core.views import Panel, PanelRow, PanelRows, Score, Tag
+from rulehall.engines.panels import character_panel, score_block, tag_list, text_rows
 from rulehall.engines.twentyfourxx.args import DefendHit, Roll
 from rulehall.engines.twentyfourxx.rules import DEFAULT_DIE, HINDERED_DIE, LADDER, next_die
 from rulehall.engines.twentyfourxx.sheet import Crewmate, CrewSheet, Gear, GearMark
@@ -22,6 +22,9 @@ SHEET_HELP = {
     f"a d{HINDERED_DIE}.",
     "Gear": "What you carry: bulky items weigh on you, and an item can break to spare you a hit.",
 }
+HINDRANCE_COLOUR = "#c25450"
+TRAIT_HELP = "A gift of your origin: name it when it helps what you try."
+HINDRANCE_HELP = f"When it bears on a roll, your die drops to a d{HINDERED_DIE}."
 SKILL_INCREASE_HELP = (
     f"Raises one skill a step: a new skill starts at {', then '.join(f'd{die}' for die in LADDER)}."
 )
@@ -53,9 +56,38 @@ CANNOT_SUCCEED = "Cannot succeed without help."
 
 def sheet_panel(world: TwentyFourXXWorld) -> Panel:
     player = world.player
-    return character_panel(
-        player.subject(), player.rows(), *gear_rows(world, player), sheet_help=SHEET_HELP
+    return character_panel(player.subject(), (*person_rows(player), *gear_rows(world, player)))
+
+
+def person_rows(crewmate: Crewmate) -> PanelRows:
+    sheet = crewmate.sheet
+    if sheet is None:
+        return ()
+    traits = [Tag(name=trait, help=TRAIT_HELP) for trait in sheet.traits]
+    skills = [
+        Score(
+            name=skill, value=f"d{die}", help=f"Rolls a d{die} when it applies; 5 or more succeeds."
+        )
+        for skill, die in sheet.skills.items()
+    ]
+    hindrances = [
+        Tag(name=hindrance, colour=HINDRANCE_COLOUR, help=HINDRANCE_HELP)
+        for hindrance in sheet.hindrances
+    ]
+    return (
+        *text_rows("Specialty", SHEET_HELP["Specialty"], sheet.specialty),
+        *text_rows("Origin", SHEET_HELP["Origin"], sheet.origin),
+        *tag_list("Traits", SHEET_HELP["Traits"], traits),
+        *score_block("Skills", SHEET_HELP["Skills"], skills),
+        *text_rows("Credits", SHEET_HELP["Credits"], f"₡{sheet.credits}"),
+        *tag_list("Hindrances", SHEET_HELP["Hindrances"], hindrances),
     )
+
+
+def gear_list(crewmate: Crewmate) -> PanelRows:
+    items = crewmate.require_sheet().items.values()
+    gear = [Tag(name=item.name, help=item.notes()) for item in items]
+    return tag_list("Gear", SHEET_HELP["Gear"], gear)
 
 
 def gear_rows(world: TwentyFourXXWorld, actor: Crewmate) -> tuple[PanelRow, ...]:
@@ -65,6 +97,7 @@ def gear_rows(world: TwentyFourXXWorld, actor: Crewmate) -> tuple[PanelRow, ...]
         PanelRow(
             name=item.name,
             brief="",
+            help=item.notes() or SHEET_HELP["Gear"],
             tags=_mark_tags(item),
             options=(
                 ActionOption(
@@ -101,7 +134,7 @@ def crew_rows(world: TwentyFourXXWorld, member: Crewmate) -> tuple[PanelRow, ...
         help="Hired to act like you: they roll their own skills and can help on your rolls.",
         options=(let_go,),
     )
-    return (*gear_rows(world, member), hired)
+    return (*person_rows(member), *gear_rows(world, member), hired)
 
 
 def ship_panel(world: TwentyFourXXWorld) -> Panel:

@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Awaitable, Callable, Generator
+from collections.abc import Generator
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -9,7 +9,7 @@ from random import Random
 from rulehall.app.battle_process import start_battle_process
 from rulehall.app.catalog import SavedGameKey
 from rulehall.app.gate import Busy, Gate
-from rulehall.app.illustration import Illustrator
+from rulehall.app.illustration import Illustrator, find_sprite
 from rulehall.app.role_prompts import (
     OPENING_NARRATION,
     Debrief,
@@ -30,7 +30,7 @@ from rulehall.core.narration import Narration, NarratorView, partial_lines
 from rulehall.core.stores import Library, SaveStore
 from rulehall.core.validation import Frozen, Refusal, Slug
 from rulehall.core.views import PlayerView, ScreenSlot, Sprite
-from rulehall.engines.battles import BattleRun, BattleSupport, Transport
+from rulehall.engines.battles import BattleRun, BattleServices, StartTransport
 from rulehall.engines.engine import AnyEngine
 
 LOGGER = logging.getLogger(__name__)
@@ -125,7 +125,7 @@ class GameSession:
     gate: "Gate[GameSession]" = field(repr=False, compare=False)
     illustrator: Illustrator
     speaker: Speaker
-    start_transport: Callable[[BattleSupport], Awaitable[Transport]] = start_battle_process
+    start_transport: StartTransport = start_battle_process
     live_settings: LiveSettings
     rng: Random = field(default_factory=Random)
     working_role: Role | None = None
@@ -167,21 +167,18 @@ class GameSession:
                 or not battles.in_battle(self.state)
             ):
                 return
-            transport = await self.start_transport(battles)
             draft = self.state.draft()
             opponent = role_answer(self.roles, "opponent") if ask_opponent else None
-            try:
-                run = self.battle_run = await battles.open_battle(draft, transport, opponent)
-            except BaseException:
-                await transport.close()
-                raise
+            services = BattleServices(opponent=opponent, start_transport=self.start_transport)
+            run = self.battle_run = await battles.open_battle(draft, services)
             await self._save_battle_progress(run, draft)
 
     async def battle_command(self, command: str) -> None:
         with self.gate.admit(self):
             if (run := self.battle_run) is None:
                 raise Refusal("the battle is still starting")
-            run.require_command(command)
+            require_not_over(self.engine, self.state)
+            run.require_command(self.state, command)
             draft = self.state.draft()
             try:
                 await run.choose(draft, command, self.rng)
@@ -241,7 +238,10 @@ class GameSession:
             battle=None
             if run is None
             else BattleSnapshot(
-                run=run, log=tuple(run.log), facts=tuple(run.facts), view=run.view()
+                run=run,
+                log=tuple(run.log(self.state)),
+                facts=tuple(run.facts(self.state)),
+                view=run.view(self.state),
             ),
             screen_slots=self.screen_slots(),
         )
@@ -278,10 +278,7 @@ class GameSession:
         return self.illustrator.icon(entity_id) if sprite is None else self.find_asset(sprite)
 
     def find_asset(self, sprite: Sprite) -> Sprite | None:
-        assets = self.engine.assets
-        if assets is None or not (assets / sprite.path).is_file():
-            return None
-        return sprite.model_copy(update={"path": assets / sprite.path})
+        return find_sprite(self.engine.assets, sprite)
 
     def save(self, state: AnyGame) -> None:
         self.store.write(self.key.save_id, state)
@@ -394,11 +391,13 @@ class GameSession:
 
     async def _grow_world(self, *, words: str, cause: Cause | None) -> bool:
         if (request := self.state.request) is None:
+            self._write_back_if_grown()
             return False
         draft = self.state.draft()
         draft.request = None
         if self.engine.ending(self.state) is not None:
             self.save(self.engine.accept(draft))
+            self._write_back_if_grown()
             return False
         handler = self.engine.request_handlers()[request.kind]
         world_grew = True
@@ -416,18 +415,19 @@ class GameSession:
             landed = self.engine.record(draft, (), failure, words=words, cause=cause)
             world_grew = False
         self.save(landed)
-        if (character := self.engine.grown_character(self.state)) is not None:
-            self._write_back(character)
+        self._write_back_if_grown()
         self.illustrate_later()
         return world_grew
 
-    def _write_back(self, character: AnyCharacter) -> None:
+    def _write_back_if_grown(self) -> None:
+        character = self.engine.grown_character(self.state)
+        if character is None or character == self.character:
+            return
+        self.character = character
         try:
             self.library.rewrite_character(character)
         except Refusal as refused:
             LOGGER.warning("the grown sheet was not written back: %s", refused)
-            return
-        self.character = character
 
     async def _narrate_and_record(
         self, draft: AnyGame, resolution: Resolution, *, words: str, cause: Cause | None
@@ -518,8 +518,12 @@ class GameSession:
         self.battle_run = None
 
 
-def require_playable(engine: AnyEngine, state: AnyGame) -> None:
+def require_not_over(engine: AnyEngine, state: AnyGame) -> None:
     if (ended := engine.ending(state)) is not None:
         raise Refusal(GAME_OVER_FOR_PLAYER.format(ending=ended.rstrip(".")))
+
+
+def require_playable(engine: AnyEngine, state: AnyGame) -> None:
+    require_not_over(engine, state)
     if engine.in_battle(state):
         raise Refusal(BATTLE_ON)

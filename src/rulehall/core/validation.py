@@ -5,7 +5,13 @@ from collections import Counter
 from collections.abc import Iterable
 from typing import Annotated, NewType, cast
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    ValidationError,
+)
 
 SLUG_PATTERN = r"[a-z0-9]+(?:-[a-z0-9]+)*"
 SLUG_MAX = 64

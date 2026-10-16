@@ -1,0 +1,166 @@
+{
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "changes": "Cut and adapted for 5e Lite",
+  "rows": {
+    "effects": {
+      "antitoxin": {
+        "modifiers": [{"kind": "advantage", "on": "save", "keys": ["poisoned"]}]
+      },
+      "bane": {
+        "state": "baned",
+        "roll_die": -4
+      },
+      "bardic-inspiration": {
+        "tag": "Bardic Inspiration"
+      },
+      "barkskin": {
+        "modifiers": [{"kind": "bonus", "to": "minimum-armor-class", "amount": 17}]
+      },
+      "beacon-of-hope": {
+        "modifiers": [{"kind": "advantage", "on": "save", "keys": ["wisdom"]}]
+      },
+      "bless": {
+        "roll_die": 4
+      },
+      "blur": {
+        "modifiers": [{"kind": "disadvantage", "on": "attacked", "reason": "target blurred"}]
+      },
+      "burning": {
+        "turn_damage": {"dice": "1d4", "bonus": 0, "damage_type": "fire"}
+      },
+      "command-flee": {
+        "state": "commanded to flee"
+      },
+      "command-grovel": {
+        "state": "commanded to grovel"
+      },
+      "command-halt": {
+        "state": "commanded to halt"
+      },
+      "divine-favor": {
+        "hit_damage": "spell"
+      },
+      "dodge": {
+        "modifiers": [
+          {"kind": "disadvantage", "on": "attacked", "reason": "target dodging"},
+          {"kind": "advantage", "on": "save", "keys": ["dexterity"]}
+        ]
+      },
+      "faerie-fire": {
+        "state": "outlined in faerie fire",
+        "modifiers": [{"kind": "advantage", "on": "attacked", "reason": "faerie fire"}]
+      },
+      "heroism": {
+        "modifiers": [{"kind": "immunity", "conditions": ["frightened"]}],
+        "ends_conditions": ["frightened"],
+        "turn_temp_hp": true
+      },
+      "hex": {
+        "tag": "Hex",
+        "state": "hexed",
+        "hit_damage": "spell",
+        "moves_on_drop": true
+      },
+      "hunters-mark": {
+        "tag": "Hunter's Mark",
+        "state": "hunted",
+        "hit_damage": "spell",
+        "moves_on_drop": true
+      },
+      "innate-sorcery": {
+        "tag": "Innate Sorcery"
+      },
+      "jeer": {
+        "tag": "Jeered"
+      },
+      "lesser-restoration": {
+        "ends_conditions": ["blinded", "deafened", "paralyzed", "poisoned"],
+        "ends_one": true
+      },
+      "magic-weapon": {
+        "modifiers": [{"kind": "bonus", "to": "weapon"}]
+      },
+      "next-attack-advantage": {
+        "state": "marked"
+      },
+      "next-attack-disadvantage": {
+        "state": "staggered",
+        "modifiers": [{"kind": "disadvantage", "on": "attack", "reason": "staggered"}]
+      },
+      "no-healing": {
+        "state": "cut off from healing"
+      },
+      "no-opportunity-attack": {
+        "state": "addled"
+      },
+      "pact-weapon": {
+        "tag": "Pact weapon"
+      },
+      "protection-from-evil-and-good": {
+        "modifiers": [
+          {
+            "kind": "disadvantage",
+            "on": "attacked",
+            "reason": "target warded",
+            "keys": ["aberration", "celestial", "elemental", "fey", "fiend", "undead", "swarm of tiny undead"]
+          }
+        ]
+      },
+      "protection-from-energy": {
+        "modifiers": [{"kind": "resistance", "damage_types": []}]
+      },
+      "protection-from-poison": {
+        "modifiers": [
+          {"kind": "resistance", "damage_types": ["poison"]},
+          {"kind": "advantage", "on": "save", "keys": ["poisoned"]}
+        ],
+        "ends_conditions": ["poisoned"]
+      },
+      "ray-of-enfeeblement": {
+        "state": "enfeebled"
+      },
+      "rage": {
+        "tag": "Raging",
+        "modifiers": [
+          {"kind": "resistance", "damage_types": ["bludgeoning", "piercing", "slashing"]},
+          {"kind": "advantage", "on": "save", "keys": ["strength"]}
+        ]
+      },
+      "reckless": {
+        "tag": "Reckless",
+        "modifiers": [{"kind": "advantage", "on": "attacked", "reason": "target reckless"}]
+      },
+      "sacred-weapon": {
+        "tag": "Sacred Weapon"
+      },
+      "shield-of-faith": {
+        "modifiers": [{"kind": "bonus", "to": "armor-class", "amount": 2}]
+      },
+      "searing-smite": {
+        "state": "searing",
+        "turn_damage": "spell",
+        "turn_save": "constitution"
+      },
+      "shining-smite": {
+        "state": "shedding a revealing light",
+        "modifiers": [{"kind": "advantage", "on": "attacked", "reason": "target shining"}]
+      },
+      "slow": {
+        "state": "slowed",
+        "modifiers": [
+          {"kind": "bonus", "to": "armor-class", "amount": -2},
+          {"kind": "bonus", "to": "save", "amount": -2, "keys": ["dexterity"]}
+        ]
+      },
+      "spare-the-dying": {
+        "stabilizes": true
+      },
+      "ward": {
+        "modifiers": [{"kind": "bonus", "to": "armor-class", "amount": 5}]
+      },
+      "wild-shape": {
+        "tag": "Wild Shape"
+      }
+    }
+  }
+}

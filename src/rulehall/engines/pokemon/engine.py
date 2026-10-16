@@ -12,9 +12,12 @@ from rulehall.engines.pokemon.battle.battling import ASSETS, BATTLE_SCREEN_ID, S
 RULE_SET_ID = EngineId("pokemon")
 
 
-class PokemonEngine[P: Dweller, W: MapWorld[Any], K: Pack, R: RegionProposal[Any]](
-    Joining[W], MapEngine[P, W, K, R]
-):
+class PokemonEngine[
+    P: Dweller,
+    W: MapWorld[Any, Any, Any, Any],
+    K: Pack,
+    R: RegionProposal[Any, Any, Any, Any],
+](Joining[W], MapEngine[P, W, K, R]):
     title = "POKEMON"
     art_style = "Bright anime-style illustration, clean lines, soft colours, no text or lettering."
     portraits = False

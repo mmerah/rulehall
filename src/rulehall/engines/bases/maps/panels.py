@@ -3,7 +3,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from rulehall.core.decisions import ActionOption
 from rulehall.core.validation import Slug
 from rulehall.core.views import MapEdge, MapNode, MapNodeKind, MapView, Panel, PanelRow
-from rulehall.engines.bases.maps.world import EXTEND_REQUEST, Dweller, MapWorld, Place, Way
+from rulehall.engines.bases.maps.world import EXTEND_REQUEST, Dweller, Item, MapWorld, Place, Way
 
 MORE_MAP = ActionOption(
     id=EXTEND_REQUEST,
@@ -20,7 +20,9 @@ UNEXPLORED_NAME = "???"
 UNEXPLORED_HELP = "A way you have not taken yet; where it leads is unknown until you go."
 
 
-def carried_panel[P: Dweller](world: MapWorld[P]) -> Panel:
+def carried_panel[P: Dweller, I: Item, L: Place, WayT: Way](
+    world: MapWorld[P, I, L, WayT],
+) -> Panel:
     return Panel(
         title="Carrying",
         help="What you hold; drop an item to leave it in this place.",
@@ -43,7 +45,7 @@ def carried_panel[P: Dweller](world: MapWorld[P]) -> Panel:
     )
 
 
-def ways_panel[P: Dweller](world: MapWorld[P]) -> Panel:
+def ways_panel[P: Dweller, I: Item, L: Place, WayT: Way](world: MapWorld[P, I, L, WayT]) -> Panel:
     return Panel(
         title="Ways out",
         help="The known ways on from this place; a locked one must be opened before you pass.",
@@ -53,7 +55,7 @@ def ways_panel[P: Dweller](world: MapWorld[P]) -> Panel:
     )
 
 
-def map_view[P: Dweller](world: MapWorld[P]) -> MapView:
+def map_view[P: Dweller, I: Item, L: Place, WayT: Way](world: MapWorld[P, I, L, WayT]) -> MapView:
     here = world.current
     region = world.current_region
     region_places = world.visited_region_places()
@@ -133,14 +135,18 @@ def map_view[P: Dweller](world: MapWorld[P]) -> MapView:
     )
 
 
-def _way_row[P: Dweller](world: MapWorld[P], way: Way) -> PanelRow:
+def _way_row[P: Dweller, I: Item, L: Place, WayT: Way](
+    world: MapWorld[P, I, L, WayT], way: WayT
+) -> PanelRow:
     brief = "locked" if way.locked else ""
     if world.is_unexplored(way):
         return PanelRow(name=UNEXPLORED_NAME, brief=brief, help=UNEXPLORED_HELP)
     return PanelRow(name=world.require_place(way.to_id).name, brief=brief)
 
 
-def _map_node[P: Dweller](world: MapWorld[P], place: Place, *, kind: MapNodeKind) -> MapNode:
+def _map_node[P: Dweller, I: Item, L: Place, WayT: Way](
+    world: MapWorld[P, I, L, WayT], place: L, *, kind: MapNodeKind
+) -> MapNode:
     here_id = world.current.id
     way = world.find_way(here_id, place.id)
     if place.id == here_id:
@@ -152,7 +158,9 @@ def _map_node[P: Dweller](world: MapWorld[P], place: Place, *, kind: MapNodeKind
     return MapNode(id=place.id, name=place.name, kind=kind, prefill=text.format(name=place.name))
 
 
-def _node_id[P: Dweller](world: MapWorld[P], boxes: Mapping[Slug, MapNode], place_id: Slug) -> Slug:
+def _node_id[P: Dweller, I: Item, L: Place, WayT: Way](
+    world: MapWorld[P, I, L, WayT], boxes: Mapping[Slug, MapNode], place_id: Slug
+) -> Slug:
     start_id = world.require_region(place_id).start_id
     return start_id if start_id in boxes else place_id
 

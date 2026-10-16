@@ -119,11 +119,13 @@ class PokemonSettings(Configured):
         default="2d",
         description="The battle sprites: 2d is the gen 5 pixel art, 3d the animated models.",
     )
+
+
+class BattleSettings(Configured):
     opponent: Literal["scripted", "model"] = Field(
         default="model",
-        description="Who plays a gym leader's or the rival's side: scripted picks the move that "
-        "deals the most damage, model asks the opponent role with every damage range. Other "
-        "trainers always play scripted, and a wild Pokemon picks at random.",
+        description="Who plays the foes in a battle: scripted follows the engine's fixed pick, "
+        "model asks the opponent role.",
     )
 
 
@@ -176,6 +178,7 @@ class Settings(BaseSettings):
     media: MediaConfig = MediaConfig()
     speech: SpeechConfig = Field(default_factory=SpeechConfig)
     pokemon: PokemonSettings = PokemonSettings()
+    battle: BattleSettings = BattleSettings()
     server: ServerConfig = ServerConfig()
     saves_dir: Path = Path("saves")
     scenarios_dir: Path = Path("user/scenarios")

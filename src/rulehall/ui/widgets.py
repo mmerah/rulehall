@@ -88,29 +88,46 @@ class Confirm(ui.dialog):
         return await self is True
 
 
-def help_tip(text: str, anchor: ui.element | None = None) -> None:
-    """Hover shows a tooltip; a touch screen, where a tooltip shows only while pressed, taps."""
-    if not text:
+def help_tip(
+    text: str,
+    anchor: ui.element | None = None,
+    *,
+    on_open: Callable[[], object] | None = None,
+    taps: bool = True,
+) -> None:
+    """Hover shows a tooltip; a touch screen, where a tooltip shows only while pressed, taps.
+    Without `taps` the anchor leaves the tap to the control around it, and only a press shows it."""
+    if not text and on_open is None:
         return
     target = (
         ui.icon(HELP_ICON)
         .classes("game-help-icon")
         .props('tabindex=0 role=button aria-hidden=false aria-label="What this means"')
         if anchor is None
-        else anchor.classes("game-help")
+        else anchor
     )
     # Children, not `.tooltip()`: its `#id` target is missing when a hidden tab redraws.
     with target:
-        ui.tooltip(text).classes("game-help-tip")
-        with ui.menu().props("no-parent-event").classes("game-help-pop") as pop:
-            ui.label(text)
-    show = f"runMethod({pop.id}, 'show', [])"
+        if text:
+            ui.tooltip(text).classes("game-help-tip")
+    if not taps:
+        return
     if anchor is not None:
+        anchor.classes("game-help").props("tabindex=0 role=button")
+    if on_open is not None:
+        target.classes("game-help-opens").on("click.stop", on_open)
+        for key in ("enter", "space"):
+            target.on(f"keydown.{key}.stop.prevent", on_open)
+        return
+    with target, ui.menu().props("no-parent-event").classes("game-help-pop") as pop:
+        ui.label(text)
+    show = f"runMethod({pop.id}, 'show', [])"
+    if anchor is None:
+        target.on("click.stop", js_handler=f"() => {{ if ({ON_TOUCH}) {show} }}")
+    else:
         target.on(
             "click", js_handler=f"(e) => {{ if ({ON_TOUCH}) {{ e.stopPropagation(); {show} }} }}"
         )
-        return
-    target.on("click.stop", js_handler=f"() => {{ if ({ON_TOUCH}) {show} }}")
     for key in ("enter", "space"):
         target.on(f"keydown.{key}.stop.prevent", js_handler=f"() => {show}")
 

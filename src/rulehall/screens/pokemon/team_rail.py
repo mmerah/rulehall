@@ -76,7 +76,7 @@ class TeamRail:
             with ui.column().classes("game-gap-0 game-builder-card-body"):
                 ui.label(name).classes("game-builder-card-name")
                 if slot.tags:
-                    tag_row(slot.tags)
+                    tag_row(slot.tags, opens=False)
                 if slot.brief:
                     ui.label(slot.brief).classes("game-builder-card-brief")
                 elif (suggestion := _suggestion(slot)) is not None:

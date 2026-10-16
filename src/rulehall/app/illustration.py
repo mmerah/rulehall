@@ -11,7 +11,7 @@ from rulehall.config import LiveSettings
 from rulehall.core.narration import NarratorView
 from rulehall.core.stores import write_atomically
 from rulehall.core.validation import Loose, Refusal, Slug, parse_json
-from rulehall.core.views import Subject
+from rulehall.core.views import Sprite, Subject
 
 LOGGER = logging.getLogger(__name__)
 
@@ -141,6 +141,12 @@ def scene_key(scene: NarratorView) -> str:
 def find_image(directory: Path, stem: str) -> Path | None:
     candidates = (directory / f"{stem}{suffix}" for suffix in SUFFIXES.values())
     return next((path for path in candidates if path.is_file()), None)
+
+
+def find_sprite(assets: Path | None, sprite: Sprite) -> Sprite | None:
+    if assets is None or not (assets / sprite.path).is_file():
+        return None
+    return sprite.model_copy(update={"path": assets / sprite.path})
 
 
 def find_cover(media: Path) -> Path | None:

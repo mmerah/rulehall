@@ -1,0 +1,320 @@
+{
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "changes": "Cut and adapted for 5e Lite",
+  "rows": {
+    "monsters": {
+      "mule": {
+        "index": "mule",
+        "name": "Mule",
+        "size": "Medium",
+        "type": "beast",
+        "alignment": "unaligned",
+        "armor_class": [
+          {
+            "value": 10
+          }
+        ],
+        "hit_points": 11,
+        "hit_dice": "2d8",
+        "hit_points_roll": "2d8 + 2",
+        "speed": {
+          "walk": "40 ft."
+        },
+        "strength": 14,
+        "dexterity": 10,
+        "constitution": 13,
+        "intelligence": 2,
+        "wisdom": 10,
+        "charisma": 5,
+        "damage_resistances": [],
+        "damage_vulnerabilities": [],
+        "damage_immunities": [],
+        "condition_immunities": [],
+        "senses": {
+          "passive_perception": 10
+        },
+        "languages": "None",
+        "challenge_rating": 0.125,
+        "special_abilities": [
+          {
+            "name": "Beast of Burden",
+            "desc": "The mule counts as one size larger for the purpose of determining its carrying capacity."
+          }
+        ],
+        "actions": [
+          {
+            "name": "Hooves",
+            "desc": "Melee Attack Roll: +4, reach 5 ft. Hit: 4 (1d4 + 2) Bludgeoning damage.",
+            "damage": [
+              {
+                "damage_type": {
+                  "index": "bludgeoning",
+                  "name": "Bludgeoning",
+                  "url": "/api/2024/damage-types/bludgeoning"
+                },
+                "damage_dice": "1d4+2"
+              }
+            ],
+            "attack_bonus": 4
+          }
+        ],
+        "legendary_actions": [],
+        "proficiencies": [],
+        "proficiency_bonus": 2,
+        "xp": 25
+      }
+    },
+    "multiattacks": {
+      "barbed-devil": {
+        "total": 2,
+        "fixed": [
+          {
+            "action_id": "claws",
+            "count": 1
+          },
+          {
+            "action_id": "tail",
+            "count": 1
+          }
+        ],
+        "options": [],
+        "choose": 0
+      },
+      "gladiator": {
+        "total": 3,
+        "fixed": [
+          {
+            "action_id": "spear",
+            "count": 2
+          }
+        ],
+        "options": [
+          "spear",
+          "shield-bash"
+        ],
+        "choose": 1
+      },
+      "lamia": {
+        "total": 2,
+        "fixed": [
+          {
+            "action_id": "claw",
+            "count": 1
+          }
+        ],
+        "options": [
+          "claw",
+          "corrupting-touch"
+        ],
+        "choose": 1
+      },
+      "lion": {
+        "total": 2,
+        "fixed": [
+          {
+            "action_id": "rend",
+            "count": 1
+          }
+        ],
+        "options": [
+          "rend",
+          "roar"
+        ],
+        "choose": 1
+      },
+      "pirate": {
+        "total": 2,
+        "fixed": [
+          {
+            "action_id": "dagger",
+            "count": 1
+          }
+        ],
+        "options": [
+          "dagger",
+          "enthralling-panache"
+        ],
+        "choose": 1
+      },
+      "roper": {
+        "total": 4,
+        "fixed": [
+          {
+            "action_id": "tentacle",
+            "count": 2
+          },
+          {
+            "action_id": "bite",
+            "count": 2
+          }
+        ],
+        "options": [],
+        "choose": 0
+      },
+      "salamander": {
+        "total": 2,
+        "fixed": [
+          {
+            "action_id": "flame-spear",
+            "count": 1
+          }
+        ],
+        "options": [
+          "flame-spear",
+          "constrict"
+        ],
+        "choose": 1
+      },
+      "wight": {
+        "total": 2,
+        "fixed": [],
+        "options": [
+          "necrotic-sword",
+          "necrotic-bow",
+          "life-drain"
+        ],
+        "choose": 2
+      }
+    },
+    "spells": {
+      "protection-from-evil-and-good": {
+        "concentration": true
+      }
+    },
+    "species": {
+      "human": {
+        "sizes": [
+          "small",
+          "medium"
+        ]
+      }
+    },
+    "classes": {
+      "bard": {
+        "gear_option_a": {
+          "gear_categories": [
+            {
+              "category_id": "musical-instruments",
+              "count": 1
+            }
+          ]
+        }
+      },
+      "monk": {
+        "weapon_proficiencies": [
+          "simple",
+          "martial-light"
+        ],
+        "cut_tool_choices": [
+          "disguise-kit",
+          "forgery-kit"
+        ]
+      },
+      "rogue": {
+        "weapon_proficiencies": [
+          "simple",
+          "martial-finesse-or-light"
+        ]
+      },
+      "sorcerer": {
+        "gear_option_a": {
+          "gear": [
+            {
+              "gear_id": "spear",
+              "count": 1
+            },
+            {
+              "gear_id": "dagger",
+              "count": 2
+            },
+            {
+              "gear_id": "crystal",
+              "count": 1
+            },
+            {
+              "gear_id": "dungeoneer-pack",
+              "count": 1
+            }
+          ]
+        }
+      }
+    },
+    "prices": {
+      "alchemists-fire": {
+        "quantity": 50,
+        "unit": "gp"
+      },
+      "basket": {
+        "quantity": 4,
+        "unit": "sp"
+      },
+      "bedroll": {
+        "quantity": 1,
+        "unit": "gp"
+      },
+      "blanket": {
+        "quantity": 5,
+        "unit": "sp"
+      },
+      "caltrops": {
+        "quantity": 1,
+        "unit": "gp"
+      },
+      "chest": {
+        "quantity": 5,
+        "unit": "gp"
+      },
+      "clothes-travelers": {
+        "quantity": 2,
+        "unit": "gp"
+      },
+      "component-pouch": {
+        "quantity": 25,
+        "unit": "gp"
+      },
+      "dart": {
+        "quantity": 5,
+        "unit": "cp"
+      },
+      "hand-crossbow": {
+        "quantity": 75,
+        "unit": "gp"
+      },
+      "javelin": {
+        "quantity": 5,
+        "unit": "sp"
+      },
+      "longbow": {
+        "quantity": 50,
+        "unit": "gp"
+      },
+      "parchment": {
+        "quantity": 1,
+        "unit": "sp"
+      },
+      "poisoners-kit": {
+        "quantity": 50,
+        "unit": "gp"
+      },
+      "spear": {
+        "quantity": 1,
+        "unit": "gp"
+      }
+    },
+    "pack_contents": {
+      "scholars-pack": {
+        "backpack": 1,
+        "book": 1,
+        "ink": 1,
+        "ink-pen": 1,
+        "lamp": 1,
+        "oil": 10,
+        "parchment": 10,
+        "tinderbox": 1
+      }
+    },
+    "armor_categories": {
+      "hide-armor": "medium"
+    }
+  }
+}

@@ -8,7 +8,13 @@ from rulehall.core.facts import Fact, Resolution, roll
 from rulehall.core.game import Game
 from rulehall.core.validation import Frozen, Mutable, Refusal, Slug, check_unique, refuse
 from rulehall.core.views import Rows
-from rulehall.engines.bases.maps.world import OFF_MAP_ID, MapProposal, MapWorld, RegionProposal
+from rulehall.engines.bases.maps.world import (
+    OFF_MAP_ID,
+    MapProposal,
+    MapWorld,
+    Place,
+    RegionProposal,
+)
 from rulehall.engines.pokemon.battle.models import (
     DOUBLE_TEAM_MIN,
     LEVEL_MAX,
@@ -221,9 +227,16 @@ class JourneyWorld(MapWorld[JourneyTrainer]):
     def player_sheet(self) -> JourneySheet:
         return self.player.require_sheet()
 
-    def kill(self, entity_id: Slug) -> list[Fact]:
-        self._refuse_key(entity_id)
-        return super().kill(entity_id)
+    def die(self, person: JourneyTrainer) -> str:
+        self._refuse_key(person.id)
+        return super().die(person)
+
+    def walk(self, npc: JourneyTrainer, place: Place) -> Fact:
+        self._refuse_key(npc.id)
+        return super().walk(npc, place)
+
+    def is_pinned(self, npc: JourneyTrainer) -> bool:
+        return npc.legendary_id is not None or npc.is_key(self.evil_team.key_ids())
 
     def join(self, person: JourneyTrainer) -> list[Fact]:
         self._refuse_key(person.id)
@@ -781,12 +794,13 @@ class JourneyWorld(MapWorld[JourneyTrainer]):
 
     def _refuse_key(self, entity_id: Slug) -> None:
         person = self.find_person(entity_id)
-        if person is None:
+        if person is None or not self.is_pinned(person):
             return
         if person.legendary_id is not None:
-            raise Refusal(f"{person.name} is a legendary Pokemon; it does not die or join you")
-        if person.is_key(self.evil_team.key_ids()):
-            raise Refusal(f"{person.name} has a part to play; they do not die or join you")
+            raise Refusal(
+                f"{person.name} is a legendary Pokemon; it does not move, die or join you"
+            )
+        raise Refusal(f"{person.name} has a part to play; they do not move, die or join you")
 
     def _bury(self, setup: BattleSetup) -> list[Fact]:
         sheet = self.player_sheet

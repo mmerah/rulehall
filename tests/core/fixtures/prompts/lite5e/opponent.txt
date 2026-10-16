@@ -1,0 +1,68 @@
+You play the foes in a battle against the party of Mira, Rook.
+
+# YOUR TASK
+Each call names the foes whose turns come before the party acts again. Pick one plan for each of them from THE CHOICES. Aim to win the battle: drop the party's members and keep your foes standing. Before you answer, check who is hurt, who is in reach, and what each stat block does best. Answer with JSON only.
+
+# HOW A BATTLE WORKS
+- There is no grid. Each side has a front row and a back row. When a side's front row has no active creature, its back row counts as its front row.
+- Range bands: a creature in your own row is close, and your own other row is near. Your front row to the enemy front row is close; your front row to the enemy back row, or your back row to the enemy front row, is near; your back row to the enemy back row is far.
+- Melee reaches close. A reach of 10 ft also reaches near, from your back row onto the enemy front row only. A range of 30 ft or less reaches near; a longer range reaches far.
+- A ranged attack from your front row has disadvantage while the enemy front row has an active creature.
+- A creature that moves from its front row to its back row while the enemy front row has an active creature takes an opportunity attack, unless it disengages.
+- Health bands: unhurt, hurt, bloodied (half HP or less) and down (0 HP). A member who is down makes death saves; an attack on it has advantage.
+
+# PLANS
+- Each plan in THE CHOICES is a whole turn: the move when one is needed (`front, ` or `back, `), then the attack or action and the id of its first target, such as `scimitar mira` or `back, shortbow rook`. A note in brackets, such as (disadvantage), tells how the roll goes; you can leave it out.
+- `escape` tries to break free of a grapple, a web or a net. `front` only moves to the front row. `hold` does nothing.
+- A foe with bonus plans can add one after a semicolon: `scimitar mira; nimble escape: back`.
+- Give one command for each foe, in the order of THE CHOICES, each written as listed there.
+
+# YOUR STAT BLOCKS
+Bandit (medium humanoid): AC 12, HP 11, Speed 30 ft.
+STR 11, DEX 12, CON 12, INT 10, WIS 10, CHA 10
+- Scimitar [scimitar]: melee, +3 to hit, reach 5 ft, 1d6+1 slashing
+- Light Crossbow [light-crossbow]: ranged, +3 to hit, range 80 ft, 1d8+1 piercing
+
+Wolf (medium beast): AC 12, HP 11, Speed 40 ft.
+STR 14, DEX 15, CON 12, INT 3, WIS 12, CHA 6
+Traits: pack-tactics
+- Bite [bite]: melee, +4 to hit, reach 5 ft, 1d6+2 piercing, also condition prone
+
+# ROUND 3
+Light: bright. Cover: no.
+
+# YOUR FOES
+- Bandits-1 [bandits-1], Bandit, back row, HP 11/11
+- Bandits-2 [bandits-2], Bandit, front row, HP 11/11
+- Wolf [wolf], Wolf, front row, HP 11/11
+
+# THE PARTY
+- Mira [mira], front row, unhurt
+- Rook [rook], back row, unhurt
+
+# RECENT TURNS
+- Round 2
+- Wolf → Mira, Bite: 14: hit
+- Round 3
+- Mira → Wolf, Longsword: 7: miss
+
+# THE CHOICES
+For Bandits-1 (bandits-1):
+- light-crossbow mira
+- light-crossbow rook
+- front, light-crossbow mira (disadvantage)
+- front, light-crossbow rook (disadvantage)
+- front, scimitar mira
+
+For Bandits-2 (bandits-2):
+- light-crossbow mira (disadvantage)
+- light-crossbow rook (disadvantage)
+- scimitar mira
+- back, light-crossbow mira
+- back, light-crossbow rook
+
+For Wolf (wolf):
+- bite mira (advantage)
+
+# ANSWER WITH
+<<schema>>

@@ -3,19 +3,21 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import cast
 
+import pytest
 from nicegui import Client, background_tasks
 from support.journey import into_wild_battle
-from support.showdown import ScriptedSimulator, started
+from support.showdown import ScriptedSimulator, simulator_assets, started
 
 from rulehall.app.game_session import SessionSnapshot
-from rulehall.engines.battles import BattleSupport
 from rulehall.screens.pokemon.battle import BattleScreen
 from rulehall.ui.screen_host import ScreenHost
 from rulehall.ui.widgets import Sounds
 
 NO_BLOCK_LEFT = "the scripted simulator has no block left"
+__all__ = ["simulator_assets"]
 
 
+@pytest.mark.usefixtures("simulator_assets")
 async def test_a_refused_command_keeps_the_battle_screen_and_only_a_refused_opening_leaves_it(
     tmp_path: Path, page: Callable[[], Client], notified: list[str]
 ) -> None:
@@ -24,7 +26,7 @@ async def test_a_refused_command_keeps_the_battle_screen_and_only_a_refused_open
     assert battle is not None
     simulator = ScriptedSimulator(started(battle.setup))
 
-    async def start(_battles: BattleSupport) -> ScriptedSimulator:
+    async def start(_argv: tuple[str, ...]) -> ScriptedSimulator:
         return simulator
 
     table.session.start_transport = start

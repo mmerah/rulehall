@@ -12,7 +12,7 @@ from rulehall.core.narration import NarratorView
 from rulehall.core.prompt import Sections, section_if
 from rulehall.core.tools import action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
-from rulehall.core.views import Panel, PanelRow, Rows
+from rulehall.core.views import Panel, PanelRows
 from rulehall.engines.args import Words
 from rulehall.engines.bases.scenes.engine import SceneEngine
 from rulehall.engines.engine import RequestHandler, Revealing
@@ -51,9 +51,11 @@ from rulehall.engines.twentyfourxx.panels import (
     SKILL_INCREASE_HELP,
     commit_decision,
     crew_rows,
+    gear_list,
     job_panel,
     look_again_option,
     newcomer_decision,
+    person_rows,
     raise_decision,
     sheet_panel,
     ship_panel,
@@ -172,7 +174,6 @@ class TwentyFourXXEngine(
     next_proposal_model = TwentyFourXXNextProposal
     hire_model = SheetProposal
     hire_intent = HIRING
-    sheet_help = party_help = SHEET_HELP
 
     def request_handlers(self) -> Mapping[Slug, RequestHandler[TwentyFourXXWorld]]:
         return {
@@ -285,9 +286,12 @@ class TwentyFourXXEngine(
     def build_sheet(self, pack_id: Slug, proposal: SheetProposal) -> CrewSheet:
         return proposal.build_sheet(*self._offered(pack_id), self.packs.srd())
 
-    def preview_character(self, character: AnyCharacter) -> Rows:
-        sheet = self.player_of(character).require_sheet()
-        return (*sheet.rows(), ("Gear", sheet.gear_text()))
+    def preview_character(self, character: AnyCharacter) -> PanelRows:
+        player = self.player_of(character)
+        return (*person_rows(player), *gear_list(player))
+
+    def person_rows(self, person: Crewmate, /) -> PanelRows:
+        return person_rows(person)
 
     def player_sections(self, state: TwentyFourXXGame) -> Sections:
         world = state.world
@@ -314,7 +318,7 @@ class TwentyFourXXEngine(
         world = state.world
         return (sheet_panel(world), job_panel(world), ship_panel(world))
 
-    def member_rows(self, world: TwentyFourXXWorld, member: Crewmate, /) -> tuple[PanelRow, ...]:
+    def member_rows(self, world: TwentyFourXXWorld, member: Crewmate, /) -> PanelRows:
         return crew_rows(world, member)
 
     @tool

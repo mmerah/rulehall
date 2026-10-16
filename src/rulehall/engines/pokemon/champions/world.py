@@ -7,7 +7,7 @@ from pydantic import Field, model_validator
 from rulehall.core.facts import Fact, Resolution, roll
 from rulehall.core.game import Game
 from rulehall.core.validation import Frozen, Refusal, Slug, refuse
-from rulehall.engines.bases.maps.world import MapProposal, MapWorld, RegionProposal
+from rulehall.engines.bases.maps.world import MapProposal, MapWorld, Place, RegionProposal
 from rulehall.engines.packs import Names
 from rulehall.engines.pokemon.battle.models import (
     Battle,
@@ -139,9 +139,16 @@ class ChampionsWorld(MapWorld[ChampionsTrainer]):
     def find_rival(self) -> ChampionsTrainer | None:
         return find_rival(self.npcs.values())
 
-    def kill(self, entity_id: Slug) -> list[Fact]:
-        self._refuse_key(entity_id)
-        return super().kill(entity_id)
+    def die(self, person: ChampionsTrainer) -> str:
+        self._refuse_key(person.id)
+        return super().die(person)
+
+    def walk(self, npc: ChampionsTrainer, place: Place) -> Fact:
+        self._refuse_key(npc.id)
+        return super().walk(npc, place)
+
+    def is_pinned(self, npc: ChampionsTrainer) -> bool:
+        return npc.is_key()
 
     def join(self, person: ChampionsTrainer) -> list[Fact]:
         self._refuse_key(person.id)
@@ -638,9 +645,9 @@ class ChampionsWorld(MapWorld[ChampionsTrainer]):
 
     def _refuse_key(self, entity_id: Slug) -> None:
         person = self.find_person(entity_id)
-        if person is not None and person.is_key():
+        if person is not None and self.is_pinned(person):
             raise Refusal(
-                f"{person.name} has a part to play in the season; they do not die or join you"
+                f"{person.name} has a part to play in the season; they do not move, die or join you"
             )
 
 

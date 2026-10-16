@@ -213,6 +213,7 @@ html:has(> body.game-fit), body.game-fit { height: 100%; overflow: hidden; overs
 .game-choice .game-help-icon { margin-left: .1rem; font-size: .9em }
 .game-help-icon:hover, .game-help-icon:focus-visible { color: var(--game-accent); opacity: 1 }
 .game-help-icon:focus-visible { outline: 2px solid var(--game-accent); outline-offset: 0 }
+.game-help:focus-visible { outline: 2px solid var(--game-accent); outline-offset: 2px }
 .q-tooltip.game-help-tip { max-width: 18rem; font-weight: 500; line-height: 1.4 }
 .game-help-pop {
   max-width: min(18rem, calc(100vw - 2rem)); padding: .6rem .8rem;
@@ -319,6 +320,11 @@ html:has(> body.game-fit), body.game-fit { height: 100%; overflow: hidden; overs
 }
 .game-choice .q-btn__content { justify-content: flex-start }
 .game-choice:not(.disabled):hover { transform: translateY(-2px); box-shadow: 0 12px 24px -12px var(--game-accent-glow) }
+/* While a pick resolves, it stays lit and the rest step back. */
+.game-battle-resolving .game-choice { pointer-events: none }
+.game-battle-resolving .game-choice:not(.game-choice-picked) { opacity: .35 !important; filter: saturate(.3) }
+.q-btn.game-choice-picked { box-shadow: 0 0 0 2px var(--game-accent), 0 0 22px -4px var(--game-accent-glow) !important; animation: game-picked 1.2s var(--game-ease) infinite alternate }
+@keyframes game-picked { to { box-shadow: 0 0 0 2px var(--game-accent), 0 0 8px -4px var(--game-accent-glow) } }
 .q-btn:focus-visible, .q-field:focus-within .q-field__control {
   outline: 2px solid var(--game-accent);
   outline-offset: 3px;
@@ -883,9 +889,53 @@ a.game-chip { display: inline-flex; align-items: center; min-height: 2.4rem; pad
   text-shadow: 0 1px 1px rgb(0 0 0 / .35);
 }
 .game-tag-light { color: #1b1b1f; text-shadow: none }
+.game-tag .game-meter-track { flex: none; width: 1.8rem; height: .3rem; margin-left: .3em; background: rgb(0 0 0 / .3) }
+.game-tag.game-help {
+  text-decoration: none; gap: .3em;
+  transition: border-color var(--game-fast) var(--game-ease), box-shadow var(--game-fast) var(--game-ease), filter var(--game-fast) var(--game-ease);
+}
+.game-tag.game-help:after {
+  content: 'i'; display: inline-grid; place-items: center; flex: none;
+  width: max(1.15em, 13px); height: max(1.15em, 13px); margin-right: -.25em;
+  border-radius: 50%; font: italic 700 max(.9em, 10px)/1 Georgia, serif; text-transform: none; letter-spacing: 0;
+  background: color-mix(in srgb, currentColor 22%, transparent);
+}
+.game-help-opens { cursor: pointer }
+.game-tag.game-help:hover { border-color: var(--game-accent); box-shadow: 0 0 0 2px var(--game-accent-soft) }
+.game-tag-coloured.game-help:hover { filter: brightness(1.12); box-shadow: 0 0 0 2px color-mix(in srgb, var(--game-tag) 35%, transparent) }
+.game-pips { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem }
+.game-pip {
+  width: .7rem; height: .7rem; border-radius: 50%;
+  background: color-mix(in srgb, var(--game-muted) 30%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--game-muted);
+  transition: background-color var(--game-medium) var(--game-ease);
+}
+.game-pip-on { background: var(--game-meter); box-shadow: 0 0 6px -1px var(--game-meter) }
+.game-pip-over { background: var(--game-danger); box-shadow: 0 0 6px -1px var(--game-danger) }
+.game-scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(4.75rem, 1fr)); gap: .4rem; width: 100%; margin: .3rem 0 .35rem }
+.game-scores:has(> :nth-child(6):last-child) { grid-template-columns: repeat(3, 1fr) }
+.game-score {
+  --game-score: var(--game-accent);
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  padding: .45rem .2rem .4rem; border-radius: calc(var(--game-radius) * .6);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--game-score) 12%, transparent), var(--game-wash));
+  border: 1px solid color-mix(in srgb, var(--game-score) 30%, var(--game-border-soft));
+  box-shadow: var(--game-highlight); text-align: center; min-width: 0;
+}
+.game-score.game-help { text-decoration: none; transition: border-color var(--game-fast) var(--game-ease), box-shadow var(--game-fast) var(--game-ease) }
+.game-score.game-help:hover { border-color: var(--game-score); box-shadow: 0 0 0 2px color-mix(in srgb, var(--game-score) 25%, transparent) }
+.game-score-value { font-family: var(--game-heading); font-size: 1.35rem; font-weight: 700; line-height: 1.1; color: var(--game-score); font-variant-numeric: tabular-nums }
+.game-score-name { margin-top: .15rem; font-size: .66rem; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--game-text); max-width: 100%; line-height: 1.2; overflow-wrap: anywhere }
+.game-score-note { font-size: .64rem; color: var(--game-muted); line-height: 1.2 }
+.game-tag-detail { padding: .15rem 0 .15rem .75rem; border-left: 3px solid var(--game-tag); display: flex; flex-direction: column; gap: .2rem }
+.game-tag-detail + .game-tag-detail { margin-top: .35rem }
+.game-tag-detail-name { font-size: 1rem; font-weight: 600 }
+.game-tag-detail-text { color: var(--game-muted); font-size: .85rem; line-height: 1.5 }
 .game-meters { display: grid; grid-template-columns: repeat(2, 1fr); gap: .15rem .8rem; width: 100%; margin: .3rem 0 .35rem }
 .game-meter { display: grid; grid-template-columns: 2.75rem 1fr auto; align-items: center; gap: .35rem; font-size: .68rem }
 .game-meter:first-child { grid-column: 1 / -1; font-size: .78rem; margin-bottom: .15rem }
+.game-meter:nth-child(even):last-child { grid-column: 1 / -1 }
+.game-meter-bare { grid-template-columns: 1fr auto }
 .game-meter-label { color: var(--game-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap }
 .game-meter-track {
   height: .4rem; border-radius: 999px; overflow: hidden;

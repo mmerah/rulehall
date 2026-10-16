@@ -133,59 +133,137 @@
   },
   {
     "name": "meanwhile",
-    "description": "Pass time where the player is not: move a dweller, move a loose item, and shut a way the player knows. Use any combination in one call. Call this only while ELSEWHERE is shown.",
+    "description": "Pass time in the world. Call this before `direct` on each turn that shows ELSEWHERE. Give at most the number of changes that ELSEWHERE shows. Give an empty list when nothing moves.",
     "parameters": {
       "additionalProperties": false,
       "properties": {
-        "dweller_id": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "Exact id of a dweller elsewhere who walks to a new place."
-        },
-        "dweller_to_id": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "Exact id of the place the dweller walks to."
-        },
-        "item_id": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "Exact id of a loose item elsewhere that moves to a new place."
-        },
-        "item_to_id": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "Exact id of the place the item moves to."
-        },
-        "shut_from_id": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "Exact id of one end of the way that shuts."
-        },
-        "shut_to_id": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "Exact id of the other end of the way that shuts."
+        "changes": {
+          "description": "Each dweller, item and way changes at most once. Party members and their items never change.",
+          "items": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "walk",
+                    "description": "A dweller walks along one unlocked way, also into or out of the player's place.",
+                    "type": "string"
+                  },
+                  "dweller_id": {
+                    "description": "Exact id of the dweller.",
+                    "type": "string"
+                  },
+                  "to_id": {
+                    "description": "Exact id of the place.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "dweller_id",
+                  "to_id"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "carry",
+                    "description": "An item goes to a place or to a living dweller.",
+                    "type": "string"
+                  },
+                  "item_id": {
+                    "description": "Exact id of the item.",
+                    "type": "string"
+                  },
+                  "to_id": {
+                    "description": "Exact id of the place or the dweller.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "item_id",
+                  "to_id"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "shut",
+                    "description": "A way that the player knows locks on both sides. The player always keeps one open way out.",
+                    "type": "string"
+                  },
+                  "from_id": {
+                    "description": "Exact id of one end of the way.",
+                    "type": "string"
+                  },
+                  "to_id": {
+                    "description": "Exact id of the other end of the way.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "from_id",
+                  "to_id"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "open",
+                    "description": "A locked way that the player knows unlocks on both sides.",
+                    "type": "string"
+                  },
+                  "from_id": {
+                    "description": "Exact id of one end of the way.",
+                    "type": "string"
+                  },
+                  "to_id": {
+                    "description": "Exact id of the other end of the way.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "from_id",
+                  "to_id"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "fall",
+                    "description": "A dweller away from the player dies.",
+                    "type": "string"
+                  },
+                  "dweller_id": {
+                    "description": "Exact id of the dweller.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "dweller_id"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "type": "array"
         }
       },
+      "required": [
+        "changes"
+      ],
       "type": "object"
     }
   },

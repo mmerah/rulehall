@@ -31,7 +31,6 @@ from support.table import CHAMPIONS
 from rulehall.core.game import Check
 from rulehall.core.prompt import Prompt
 from rulehall.core.validation import Refusal, parse_json
-from rulehall.core.views import Tag
 from rulehall.engines.pokemon.battle.choices import (
     SeatRequest,
     SideRequest,
@@ -83,14 +82,14 @@ async def test_a_recorded_battle_plays_to_its_result() -> None:
     draft = _battling(WILD_SETUP)
     run = await ShowdownRun.start(draft, ScriptedSimulator(recorded()))
     while run.result is None:
-        command = next(choice.command for choice in run.view().choices if not choice.refusal)
+        command = next(choice.command for choice in run.view(draft).choices if not choice.refusal)
         await run.choose(draft, command, Random(0))
 
     assert run.result.outcome == "won"
     assert [foe.mon_id for foe in run.result.fainted_foes()] == [RATTATA.mon_id]
     assert run.resolution is not None
     assert draft.world.battle is None
-    assert not [line for line in run.log if line.startswith(("||", "|split|", "|-status|"))]
+    assert not [line for line in run.log_lines if line.startswith(("||", "|split|", "|-status|"))]
 
 
 async def test_a_resumed_battle_replays_its_inputs_and_waits_on_the_player() -> None:
@@ -114,9 +113,9 @@ async def test_a_resumed_battle_replays_its_inputs_and_waits_on_the_player() -> 
 async def test_a_doubles_turn_takes_a_choice_and_a_target_for_each_slot() -> None:
     draft = _battling(DOUBLES_SETUP)
     run = await ShowdownRun.start(draft, ScriptedSimulator(recorded(RECORDED_DOUBLES)))
-    assert [choice.command for choice in run.view().choices] == ["team 1", "team 2", "leave"]
+    assert [choice.command for choice in run.view(draft).choices] == ["team 1", "team 2", "leave"]
     await run.choose(draft, "team 1", Random(0))
-    assert [(choice.command, choice.refusal) for choice in run.view().choices][:2] == [
+    assert [(choice.command, choice.refusal) for choice in run.view(draft).choices][:2] == [
         ("team 1", "Picked for another Pokemon"),
         ("team 2", ""),
     ]
@@ -124,7 +123,7 @@ async def test_a_doubles_turn_takes_a_choice_and_a_target_for_each_slot() -> Non
         await run.choose(draft, command, Random(0))
     assert run.inputs[:2] == [">p1 team 1, 2", ">p2 team 1, 2"]
 
-    assert [(choice.command, choice.name) for choice in run.view().choices][:4] == [
+    assert [(choice.command, choice.name) for choice in run.view(draft).choices][:4] == [
         ("move 1 1", "Thunder Shock at Rattata"),
         ("move 1 2", "Thunder Shock at Pidgey"),
         ("move 1 -2", "Thunder Shock at your ally Charmander"),
@@ -174,7 +173,10 @@ async def test_the_conditions_go_in_once_the_leads_are_out_and_replay_the_same()
     assert played.sent[played.sent.index(">p2 team 1") + 1] == conditions
     assert "'raindance'" in conditions
     assert "setStatus('slp'" in conditions
-    assert [fact.trace for fact in run.facts] == ["Rain falls", "Edge: the wild Rattata is asleep"]
+    assert [fact.trace for fact in run.battle_facts] == [
+        "Rain falls",
+        "Edge: the wild Rattata is asleep",
+    ]
     replayed = ScriptedSimulator(recorded())
     _ = await ShowdownRun.start(draft.validated().draft(), replayed)
     assert replayed.sent == played.sent
@@ -186,7 +188,7 @@ async def test_the_choices_end_with_the_balls_and_the_way_out() -> None:
     run = await ShowdownRun.start(draft, ScriptedSimulator(recorded()))
     await run.choose(draft, "team 1", Random(0))
 
-    kinds = [(choice.kind, choice.command, choice.refusal) for choice in run.view().choices]
+    kinds = [(choice.kind, choice.command, choice.refusal) for choice in run.view(draft).choices]
 
     assert kinds[-2:] == [("item", "ball poke-ball", ""), ("leave", "leave", "")]
 
@@ -231,7 +233,7 @@ async def test_the_model_opponent_thinks_at_the_request_and_its_choice_is_record
     assert run.inputs == [">p1 team 1", ">p2 team 1", ">p1 move 1", ">p2 move 1"]
     assert "the foe's Charmander's Ember: 53-69%, 2x super effective" in asked[0].user
     assert run.result is not None and run.result.outcome == "won"
-    assert run.log[-2:] == ["|c|Rook|You will not win!", "|win|Kael"]
+    assert run.log_lines[-2:] == ["|c|Rook|You will not win!", "|win|Kael"]
 
 
 async def test_a_refused_model_opponent_falls_back_to_the_scripted_choice() -> None:
@@ -267,7 +269,7 @@ async def test_a_refused_model_opponent_falls_back_to_the_scripted_choice() -> N
     assert simulator.sent.count(assess_line(setup, "foe")) == 2
     assert run.inputs[-2:] == [">p1 move 1", ">p2 move 1"]
     assert run.result is not None and run.result.outcome == "won"
-    assert not any(line.startswith("|c|Rook|") for line in run.log)
+    assert not any(line.startswith("|c|Rook|") for line in run.log_lines)
 
 
 def test_an_answer_outside_the_choices_is_refused_with_the_choices() -> None:
@@ -335,7 +337,7 @@ def test_a_choice_carries_its_types_and_pp() -> None:
     assert move.brief == "40 BP · 100%"
     assert [(meter.name, meter.current, meter.maximum) for meter in move.meters] == [("PP", 30, 48)]
     assert switch.command == "switch 2"
-    assert switch.tags == (Tag(name="Normal", colour="#a8a878"),)
+    assert [(tag.name, tag.colour) for tag in switch.tags] == [("Normal", "#a8a878")]
     assert switch.kind == "switch"
     assert [(meter.current, meter.maximum) for meter in switch.meters] == [(15, 15)]
     preview = _request({"teamPreview": True, "side": side})
@@ -450,7 +452,7 @@ async def test_a_tag_battle_puts_both_teams_on_p1_and_the_ally_leads_second() ->
         "Charmander",
         "Rattata",
     ]
-    assert [choice.command for choice in run.view().choices] == ["team 1", "team 2", "leave"]
+    assert [choice.command for choice in run.view(draft).choices] == ["team 1", "team 2", "leave"]
     await run.choose(draft, "team 2", Random(0))
     assert run.inputs == [">p1 team 2, 3", ">p2 team 1, 2"]
 
@@ -483,7 +485,7 @@ def test_a_tag_player_keeps_their_slot_when_a_drag_brings_in_the_ally_pokemon() 
     assert player.deciding_slots() == (0,)
     choices = player.choices(0, ())
     assert [choice.command for choice in choices] == ["move 1", "switch 3", "switch 4"]
-    assert choices[0].tags[0] == Tag(name="Normal", colour="#a8a878")
+    assert (choices[0].tags[0].name, choices[0].tags[0].colour) == ("Normal", "#a8a878")
     assert _seat_request(request, dragged, frozenset({0, 1}), 1).deciding_slots() == (1,)
 
 
@@ -555,36 +557,36 @@ def test_an_item_used_up_in_battle_is_gone_after_it() -> None:
 async def test_a_champions_battle_brings_four_of_six_and_each_side_mega_evolves_once() -> None:
     draft = StubBattleGame(StubBattleWorld(Battle(setup=CHAMPIONS_SETUP, inputs=[])))
     run = await ShowdownRun.start(draft, ScriptedSimulator(recorded(RECORDED_CHAMPIONS)))
-    first = run.view().choices
+    first = run.view(draft).choices
     assert [choice.command for choice in first] == [f"team {at}" for at in range(1, 7)] + ["leave"]
     assert {choice.group for choice in first[:6]} == {"Lead 1"}
     await run.choose(draft, "team 3", Random(0))
-    assert run.view().choices[2].refusal == "Picked: Lead 1"
+    assert run.view(draft).choices[2].refusal == "Picked: Lead 1"
     await run.choose(draft, "back", Random(0))
     for command in ("team 3", "team 1", "team 5", "team 2"):
         await run.choose(draft, command, Random(0))
     assert run.inputs[0] == ">p1 team 3, 1, 5, 2"
     sheet = open_sheet_line(CHAMPIONS_SETUP.foes)
-    assert run.log.count(sheet) == 1
-    assert run.log[run.log.index(sheet) - 1].startswith("|teampreview")
-    assert [line for line in run.log if line.startswith("|showteam|")] == [sheet]
-    assert not [line for line in run.log if "otsrequest" in line or "custom rule" in line]
+    assert run.log_lines.count(sheet) == 1
+    assert run.log_lines[run.log_lines.index(sheet) - 1].startswith("|teampreview")
+    assert [line for line in run.log_lines if line.startswith("|showteam|")] == [sheet]
+    assert not [line for line in run.log_lines if "otsrequest" in line or "custom rule" in line]
     assert run.snapshot is not None and (len(run.snapshot.p1), len(run.snapshot.p2)) == (4, 4)
 
     await run.choose(draft, "move 1", Random(0))
-    assert "mega" not in [choice.command for choice in run.view().choices]
+    assert "mega" not in [choice.command for choice in run.view(draft).choices]
     await run.choose(draft, "move 1 1", Random(0))
-    assert "mega" in [choice.command for choice in run.view().choices]
+    assert "mega" in [choice.command for choice in run.view(draft).choices]
     await run.choose(draft, "mega", Random(0))
-    assert [choice.name for choice in run.view().choices if choice.kind == "mega"] == [
+    assert [choice.name for choice in run.view(draft).choices if choice.kind == "mega"] == [
         "Mega Evolution: on"
     ]
     await run.choose(draft, "move 1", Random(0))
 
     assert run.inputs[2] == ">p1 move 1 1, move 1 mega"
     assert run.inputs[3].endswith(" mega")
-    assert not [choice for choice in run.view().choices if choice.kind == "mega"]
-    charizard = next(mon for mon in run.view().header.fielded if mon.name == "Charizard")
+    assert not [choice for choice in run.view(draft).choices if choice.kind == "mega"]
+    charizard = next(mon for mon in run.view(draft).header.fielded if mon.name == "Charizard")
     assert "Mega" in [tag.name for tag in charizard.tags]
     assert charizard.sprite == mon_sprite(dex().species["charizardmegay"])
     await run.choose(draft, "leave", Random(0))

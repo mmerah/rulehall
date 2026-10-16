@@ -1,0 +1,88 @@
+{
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "changes": "Cut and adapted for 5e Lite",
+  "rows": {
+    "second-wind": {
+      "recovery": "short-rest-one",
+      "class_field": "second_wind_uses"
+    },
+    "channel-divinity": {
+      "recovery": "short-rest-one",
+      "class_field": "channel_divinity_charges"
+    },
+    "action-surge": {
+      "recovery": "short-rest-all"
+    },
+    "arcane-recovery": {},
+    "magic-initiate": {},
+    "breath-weapon": {
+      "source_id": "dragonborn",
+      "amount": "proficiency-bonus"
+    },
+    "relentless-endurance": {},
+    "adrenaline-rush": {
+      "amount": "proficiency-bonus",
+      "recovery": "short-rest-all"
+    },
+    "clouds-jaunt": {
+      "amount": "proficiency-bonus"
+    },
+    "fires-burn": {
+      "amount": "proficiency-bonus"
+    },
+    "frosts-chill": {
+      "amount": "proficiency-bonus"
+    },
+    "hills-tumble": {
+      "amount": "proficiency-bonus"
+    },
+    "stones-endurance": {
+      "amount": "proficiency-bonus"
+    },
+    "storms-thunder": {
+      "amount": "proficiency-bonus"
+    },
+    "large-form": {},
+    "rage": {
+      "recovery": "short-rest-one",
+      "class_field": "rage_count"
+    },
+    "lay-on-hands": {
+      "amount": {
+        "per_level": 5
+      }
+    },
+    "magical-cunning": {},
+    "favored-enemy": {
+      "free_cast_spell_id": "hunters-mark",
+      "class_field": "favored_enemies"
+    },
+    "paladins-smite": {
+      "free_cast_spell_id": "divine-smite"
+    },
+    "bardic-inspiration": {
+      "amount": {
+        "ability": "charisma"
+      },
+      "short_rest_with": "bard-font-of-inspiration"
+    },
+    "wild-shape": {
+      "recovery": "short-rest-one",
+      "class_field": "wild_shape_uses"
+    },
+    "focus": {
+      "source_id": "monk-monks-focus",
+      "recovery": "short-rest-all",
+      "class_field": "focus_points"
+    },
+    "uncanny-metabolism": {},
+    "innate-sorcery": {
+      "amount": 2
+    },
+    "sorcery-points": {
+      "source_id": "sorcerer-font-of-magic",
+      "class_field": "sorcery_points"
+    },
+    "sorcerous-restoration": {}
+  }
+}

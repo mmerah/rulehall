@@ -1,0 +1,54 @@
+{
+  "attribution": "This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+  "changes": "Cut and adapted for 5e Lite",
+  "rows": {
+    "brave": {
+      "modifiers": [{"kind": "advantage", "on": "save", "keys": ["frightened"]}]
+    },
+    "draconic-flight": {
+      "tag": "Draconic Flight"
+    },
+    "dwarven-resilience": {
+      "modifiers": [
+        {"kind": "advantage", "on": "save", "keys": ["poisoned"]},
+        {"kind": "resistance", "damage_types": ["poison"]}
+      ]
+    },
+    "dwarven-toughness": {
+      "modifiers": [{"kind": "bonus", "to": "hit-points", "amount": {"per_level": 1}}]
+    },
+    "fey-ancestry": {
+      "modifiers": [{"kind": "advantage", "on": "save", "keys": ["charmed"]}]
+    },
+    "gnomish-cunning": {
+      "modifiers": [
+        {"kind": "advantage", "on": "save", "keys": ["intelligence", "wisdom", "charisma"]}
+      ]
+    },
+    "halfling-nimbleness": {
+      "tag": "Halfling Nimbleness"
+    },
+    "large-form": {
+      "tag": "Large Form"
+    },
+    "naturally-stealthy": {
+      "tag": "Naturally Stealthy"
+    },
+    "otherworldly-presence": {
+      "spell_ids": [
+        "thaumaturgy"
+      ]
+    },
+    "stonecunning": {
+      "tag": "Stonecunning"
+    },
+    "trance": {
+      "tag": "Trance"
+    },
+    "versatile": {
+      "grants": {
+        "origin-feat": 1
+      }
+    }
+  }
+}

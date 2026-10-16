@@ -1,0 +1,117 @@
+{
+  "id": "corvin",
+  "engine_id": "lite5e",
+  "person": {
+    "id": "player",
+    "name": "Corvin",
+    "brief": "A tiefling envoy who made a bargain to save his town and still pays for it.",
+    "known": true,
+    "voice": "masculine",
+    "alive": true,
+    "place_id": "player",
+    "sheet": {
+      "class_id": "warlock",
+      "level": 1,
+      "species_id": "tiefling",
+      "subspecies_id": "fiendish-legacy-infernal",
+      "species_ability": "charisma",
+      "background_id": "envoy",
+      "base_scores": {
+        "strength": 8,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 10,
+        "wisdom": 12,
+        "charisma": 15
+      },
+      "background_increases": {
+        "charisma": 2,
+        "dexterity": 1
+      },
+      "background_skills": [
+        "history",
+        "insight"
+      ],
+      "background_tool_id": "dragonchess",
+      "background_feat_id": "alert",
+      "picks": {
+        "class-skill": [
+          "arcana",
+          "deception"
+        ],
+        "cantrip": [
+          "eldritch-blast",
+          "minor-illusion"
+        ],
+        "prepared": [
+          "hex",
+          "charm-person"
+        ],
+        "invocation": [
+          "pact-of-the-blade"
+        ],
+        "pact-weapon": [
+          "longsword"
+        ]
+      },
+      "replacements_due": [],
+      "vitals": {
+        "hp": {
+          "current": 10,
+          "maximum": 10
+        },
+        "death_successes": 0,
+        "death_failures": 0,
+        "stable": false
+      },
+      "temp_hp": 0,
+      "hit_dice_spent": 0,
+      "slots_spent": {},
+      "made_slots": {},
+      "uses_spent": {},
+      "lineage_casts_spent": {},
+      "concentration_spell_id": null,
+      "gear": {
+        "leather-armor": 1,
+        "sickle": 1,
+        "dagger": 3,
+        "orb": 1,
+        "book": 2,
+        "backpack": 1,
+        "ink": 1,
+        "ink-pen": 1,
+        "lamp": 1,
+        "oil": 10,
+        "parchment": 10,
+        "tinderbox": 1,
+        "dragonchess": 1,
+        "clothes-fine": 1,
+        "case-map-or-scroll": 1,
+        "paper": 5,
+        "perfume": 1
+      },
+      "equipped_ids": [
+        "leather-armor",
+        "sickle"
+      ],
+      "exhaustion": 0,
+      "inspiration": false,
+      "inspired_since_long_rest": false,
+      "coins_cp": 4000,
+      "xp": 0,
+      "aid_hp": 0,
+      "hp_max_cut": 0,
+      "effects": []
+    },
+    "stat_block_id": "commoner",
+    "count": 1,
+    "hostile": false,
+    "captive": false,
+    "conditions": [],
+    "stat_block_vitals": null,
+    "portrait_id": "tiefling-fiendish-legacy-infernal-warlock",
+    "formation_row": "front",
+    "routed": false,
+    "xp_paid": false
+  }
+}

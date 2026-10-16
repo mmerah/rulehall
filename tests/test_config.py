@@ -28,7 +28,7 @@ def test_a_removed_setting_is_named_but_does_not_stop_startup(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     _ = (tmp_path / ".env").write_text(
-        "POKEMON__EXPERT_TEAM_BUILDER=true\nARENA__OPPONENT=model\nPOKEMON__SPRITES=3d\n"
+        "POKEMON__EXPERT_TEAM_BUILDER=true\nARENA__OPPONENT=model\nPOKEMON__SPRITES=3d\nPOKEMON__OPPONENT=model\n"
     )
     monkeypatch.setenv("ROLES__MASTER__MAX_ROUNDS", "30")
     monkeypatch.setenv("UNRELATED__VARIABLE", "1")
@@ -37,6 +37,7 @@ def test_a_removed_setting_is_named_but_does_not_stop_startup(
     assert unknown_setting_keys() == (
         "ARENA__OPPONENT",
         "POKEMON__EXPERT_TEAM_BUILDER",
+        "POKEMON__OPPONENT",
         "ROLES__MASTER__MAX_ROUNDS",
     )
 

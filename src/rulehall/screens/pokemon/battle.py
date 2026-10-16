@@ -1,12 +1,9 @@
 from collections.abc import Sequence
 from functools import partial
 
-from nicegui import background_tasks, ui
+from nicegui import ui
 
 from rulehall.app.game_session import SessionSnapshot
-from rulehall.core.facts import Fact
-from rulehall.core.views import require_view
-from rulehall.engines.battles import BattleRun
 from rulehall.engines.pokemon.battle.battling import BATTLE_SCREEN_ID
 from rulehall.engines.pokemon.battle.views import (
     BattleChoice,
@@ -16,46 +13,32 @@ from rulehall.engines.pokemon.battle.views import (
     BattleView,
 )
 from rulehall.ui import transcript
+from rulehall.ui.battle_screen import RESOLVING, BattleScreenBase, facts_of
 from rulehall.ui.panel_parts import avatar, choice_button, meter_grid, tag_row, tint
 from rulehall.ui.routes import assets_route
-from rulehall.ui.screen_host import ScreenHost, screen_banner
-from rulehall.ui.widgets import attempt, failure_notice, heading, help_tip
+from rulehall.ui.screen_host import ScreenHost
+from rulehall.ui.widgets import heading, help_tip
 
-BATTLE_FAILED = failure_notice("The battle did not start.")
-MOVE_FAILED = failure_notice("The move was not played.")
 FOOT_KINDS = frozenset({"next", "back", "item", "leave"})
 TEAM_OPEN = "game-battle-team-open"
-RESOLVING = "game-battle-resolving"
-PICKED = "game-choice-picked"
 
 
 class ShowdownView(ui.element, component="showdown_view.js"):
     pass
 
 
-class BattleScreen:
-    opener_label = "Battle"
-    opener_icon = "sym_r_swords"
+class BattleScreen(BattleScreenBase[BattleView]):
+    screen_id = BATTLE_SCREEN_ID
+    view_type = BattleView
 
     def __init__(self, host: ScreenHost) -> None:
-        self.host = host
-        self.session = host.session
-        self.shown = False
-        self.opening = False
+        super().__init__(host)
         self.battle_view_element: ui.element | None = None
-        self.choice_buttons: dict[str, ui.button] = {}
-        self.banner: ui.column
-        self.column: ui.column
-        self.hint: ui.label
         self.grid: ui.element
         self.log_dock: ui.element
-        self.cards: ui.element
-
-    def build_banner(self) -> None:
-        self.banner, _ = screen_banner(self, "battle", "A battle waits for you.")
 
     def build(self, now: SessionSnapshot) -> None:
-        view = _battle_view(now)
+        view = self.battle_view(now)
         with ui.column().classes("w-full flex-grow min-h-0 game-battle game-gap-0") as self.column:
             self.hint = ui.label("Starting the battle…").classes("game-hint")
             with ui.element("div").classes("game-battle-grid") as self.grid:
@@ -73,25 +56,11 @@ class BattleScreen:
                     self.draw_fielded(_header(view))
                     self.draw_choices(_choices(view))
         self.column.set_visibility(False)
-        self._draw_cards(_facts(now))
-
-    def show(self) -> None:
-        self.shown = True
-        self.host.on_toggle()
-
-    def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
-        live = now.require_screen_slot(BATTLE_SCREEN_ID).live and now.working_role is None
-        closed = now.battle is None and drawn.battle is not None and not self.opening
-        self.shown = self.shown and live and not closed
-        if self.shown and not self.column.visible and now.battle is None:
-            self._open()
-        self.column.set_visibility(self.shown)
-        self.banner.set_visibility(live and not self.shown)
-        self._draw(now, drawn)
+        self._draw_cards(facts_of(now), live=False)
 
     @ui.refreshable_method
     def draw_battle_screen(self, now: SessionSnapshot) -> None:
-        if (view := _battle_view(now)) is None:
+        if (view := self.battle_view(now)) is None:
             self.battle_view_element = None
             return
         settings = self.session.live_settings.current.pokemon
@@ -181,24 +150,21 @@ class BattleScreen:
                 for choice in team:
                     self._draw_choice(choice)
 
-    def _draw(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
-        view, before = _battle_view(now), _battle_view(drawn)
-        header, choices = _header(view), _choices(view)
-        self.hint.set_visibility(now.battle is None)
+    def _redraw(self, now: SessionSnapshot) -> None:
+        view = self.battle_view(now)
+        header = _header(view)
+        self.draw_header.refresh(header)
+        self.draw_battle_screen.refresh(now)
+        self.draw_speech.refresh(header)
+        self.draw_fielded.refresh(header)
+        self._refresh_choices(_choices(view))
+
+    def _update(self, now: SessionSnapshot, drawn: SessionSnapshot) -> bool:
         lines = transcript.appended_since(_lines(now), _lines(drawn))
-        fresh = transcript.appended_since(_facts(now), _facts(drawn))
-        if _run(now) is not _run(drawn) or lines is None or fresh is None:
-            # A throw that ends the battle closes the run before this sync; its die plays here.
-            if (closing := drawn.battle) is not None:
-                self.host.sounds.roll_dice(closing.run.facts[len(closing.facts) :])
-            self.draw_header.refresh(header)
-            self.draw_battle_screen.refresh(now)
-            self.draw_speech.refresh(header)
-            self.draw_fielded.refresh(header)
-            self._refresh_choices(choices)
-            self.cards.clear()
-            self._draw_cards(_facts(now))
-            return
+        if lines is None:
+            return False
+        view, before = self.battle_view(now), self.battle_view(drawn)
+        header, choices = _header(view), _choices(view)
         if self.battle_view_element is not None and lines:
             self.battle_view_element.run_method("add", list(lines))
         if header != _header(before):
@@ -208,14 +174,12 @@ class BattleScreen:
             self.draw_speech.refresh(header)
         if choices != _choices(before):
             self._refresh_choices(choices)
-        with self.cards:
-            for fact in fresh:
-                transcript.draw_fact_card(fact, live=True)
-        self.host.sounds.roll_dice(fresh)
+        return True
 
     def _refresh_choices(self, choices: tuple[BattleChoice, ...]) -> None:
         self.choice_buttons.clear()
-        self.grid.classes(remove=f"{TEAM_OPEN} {RESOLVING}")
+        self.grid.classes(remove=TEAM_OPEN)
+        self.column.classes(remove=RESOLVING)
         self.draw_choices.refresh(choices)
         self.draw_team.refresh(choices)
 
@@ -251,7 +215,7 @@ class BattleScreen:
                         "game-move-pp"
                     ).style(f"--game-pp: {meter.colour}")
             with ui.element("div").classes("game-move-info"):
-                tag_row(choice.tags)
+                tag_row(choice.tags, opens=False)
                 if stats := choice.refusal or choice.brief:
                     ui.label(stats).classes("game-move-stats")
         self.choice_buttons[choice.command] = button
@@ -268,62 +232,12 @@ class BattleScreen:
             icon=None if choice.sprite is None else self.session.find_asset(choice.sprite),
         ).classes(f"game-choice-{choice.kind}")
 
-    def _draw_cards(self, facts: Sequence[Fact]) -> None:
-        with self.cards:
-            for fact in facts:
-                transcript.draw_fact_card(fact)
-
     def _show_team(self, *, show: bool) -> None:
         self.grid.classes(add=TEAM_OPEN if show else "", remove="" if show else TEAM_OPEN)
-
-    def _open(self) -> None:
-        self.opening = True
-        background_tasks.create(self._open_battle(), name="open battle")  # pyright: ignore[reportUnknownMemberType]
-
-    async def _open_battle(self) -> None:
-        try:
-            opponent = self.session.live_settings.current.pokemon.opponent
-            with self.column:
-                _ = await attempt(
-                    partial(self.session.open_battle, ask_opponent=opponent == "model"),
-                    failed=BATTLE_FAILED,
-                )
-        finally:
-            # A bug must not reopen the battle and leak a simulator on every Battle click.
-            self.shown = self.shown and self.session.battle_run is not None
-            self.opening = False
-
-    async def _choose(self, command: str) -> None:
-        picked = self.choice_buttons.get(command)
-        self.grid.classes(RESOLVING)
-        if picked is not None:
-            picked.classes(PICKED)
-        # The sync may have deleted the clicked button while the model was thinking.
-        with self.column:
-            chosen = await attempt(lambda: self.session.battle_command(command), failed=MOVE_FAILED)
-        if self.column.is_deleted:
-            return
-        self.grid.classes(remove=RESOLVING)
-        if picked is not None and not picked.is_deleted:
-            picked.classes(remove=PICKED)
-        if not chosen and self.shown and self.session.battle_run is None:
-            self._open()
-
-
-def _battle_view(now: SessionSnapshot) -> BattleView | None:
-    return None if now.battle is None else require_view(now.battle.view, BattleView)
-
-
-def _run(now: SessionSnapshot) -> BattleRun | None:
-    return None if now.battle is None else now.battle.run
 
 
 def _lines(now: SessionSnapshot) -> tuple[str, ...]:
     return () if now.battle is None else now.battle.log
-
-
-def _facts(now: SessionSnapshot) -> tuple[Fact, ...]:
-    return () if now.battle is None else now.battle.facts
 
 
 def _header(view: BattleView | None) -> BattleHeader | None:

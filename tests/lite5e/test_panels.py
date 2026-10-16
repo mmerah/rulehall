@@ -1,0 +1,17 @@
+from support.lite5e import hero, sheet_proposal, world
+
+from rulehall.core.decisions import ActionOption
+from rulehall.core.views import Panel
+from rulehall.engines.lite5e.panels import gear_panel
+
+
+def _option(panel: Panel | None, option_id: str) -> ActionOption:
+    assert panel is not None
+    return next(option for option in panel.options() if option.id == option_id)
+
+
+def test_the_gear_panel_refuses_untrained_armor() -> None:
+    built = world(player=hero(sheet_proposal("wizard", background_id="sage")))
+    built.player.require_sheet().add_gear("leather-armor", 1)
+
+    assert _option(gear_panel(built), "equip-player-leather-armor").refusal

@@ -70,8 +70,7 @@ class Entity(Mutable):
 
     def line(self, *, rows: Rows | None = None, detail: str = "") -> str:
         parts = [f"- {self.headline}"]
-        shown = self.rows() if rows is None else rows
-        if sheet := "; ".join(f"{label.lower()}: {value}" for label, value in shown):
+        if sheet := rows_text(self.rows() if rows is None else rows):
             parts.append(f"  {sheet}")
         if detail:
             parts.append(f"  {detail}")
@@ -129,6 +128,10 @@ class Sheeted[S: Mutable](Person):
         if self.sheet is None:
             raise Refusal(NO_SHEET.format(name=self.name))
         return self.sheet
+
+
+def rows_text(rows: Rows) -> str:
+    return "; ".join(f"{label.lower()}: {value}" for label, value in rows)
 
 
 def changed_tags(

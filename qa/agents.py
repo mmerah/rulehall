@@ -10,9 +10,11 @@ Loner question the player asks is rolled as `ask(question: null)`.
 
 The narrator echoes what it was given, so every screenshot shows what the page was told. The
 worldsmith answers each request shape with a small valid draft; a Pokemon region carries the evil
-team's operation or its lair when the request asks, else a gym that gives a badge.
+team's operation or its lair when the request asks, else a gym that gives a badge. A 5e Lite
+region is a road with a shop and a guard, and a den of wolves and a captain. A 5e Lite hire signs
+on the `HIRE={...}` JSON in the terms, else a Fighter class companion.
 The opponent takes its first choice, a Pokemon not picked yet at team preview, and Mega Evolves
-when it is offered.
+when it is offered; a 5e Lite foe also says a line that names its plan.
 """
 
 import json
@@ -44,11 +46,28 @@ type Fault = Literal["fail", "bad", "hold"]
 SUBMIT_ATTEMPTS = 2
 
 DEFAULT_ROLLS: dict[str, tuple[str, dict[str, JsonValue]]] = {
+    "lite5e": (
+        "check",
+        {
+            "what": "Try it",
+            "actor_id": "player",
+            "skill": "perception",
+            "dc": {"kind": "difficulty", "difficulty": "easy"},
+        },
+    ),
     "loner4e": ("ask", {"question": "Does the player get what they want?"}),
     "pokemon": ("check", {"what": "Try it", "skill": "athletics", "difficulty": "easy"}),
     "pokemon-champions": ("direct", {"text": "The player looks around; nothing stands out."}),
     "tunnelgoons": ("roll", {"what": "Try it", "ability": "skulker", "difficulty": 8}),
     "twentyfourxx": ("roll", {"what": "Try it", "skill": "Stealth"}),
+}
+
+HIRE_MARK = "HIRE="
+DEFAULT_HIRE: JsonValue = {
+    "kind": "class",
+    "class_id": "fighter",
+    "species_id": "human",
+    "background_id": "soldier",
 }
 
 
@@ -191,6 +210,11 @@ class ScriptedAgents:
 
     def _opponent(self, prompt: str) -> str:
         blocks = _section(prompt, "THE CHOICES").split("\n\n")
+        if _section(prompt, "PLANS"):
+            # 5e Lite: each foe takes the first plan of its list.
+            plans = [re.search(r"^- (.+)$", block, re.M) for block in blocks]
+            commands = [found.group(1) for found in plans if found]
+            return json.dumps({"commands": commands, "line": f"QA foe line: {commands[0]}."})
         # A preview picks each Pokemon once: every block takes the first one not picked yet.
         preview = bool(_section(prompt, "TEAM PREVIEW"))
         commands: list[str] = []
@@ -221,10 +245,14 @@ class ScriptedAgents:
                     "events": [f"Events line {number}."],
                 }
             )
+        if '"stat_block"' in schema:
+            return json.dumps({"hire": _lite5e_hire(prompt)})
         # A scene draft nests its cast sheet, so its schema also carries the hire probes below.
         if '"situation"' in schema:
             opening = _section(prompt, "THE SCENE NOW") == "(none yet)"
             return self._scene(schema, number, opening=opening)
+        if '"stat_block_id"' in schema:
+            return self._lite5e_region(number, opening="(no map yet)" in prompt)
         if '"places"' in schema:
             opening = "(no map yet)" in prompt
             room = f"qa-room-{number}"
@@ -345,6 +373,80 @@ class ScriptedAgents:
             "avatar_id": "roughneck",
         }
 
+    def _lite5e_region(self, number: int, *, opening: bool) -> str:
+        """A road with a shop and a guard, and a den of wolves and their captain past a trap."""
+        road, den = f"qa-road-{number}", f"qa-den-{number}"
+        recap = {} if opening else {"recap": f"Recap of the region before {number}."}
+        return json.dumps(
+            {
+                **recap,
+                "start_id": road,
+                "region_name": f"QA Region {number}",
+                "places": {
+                    road: {
+                        "id": road,
+                        "name": f"QA Road {number}",
+                        "brief": "A test road with a smithy.",
+                        "known": opening,
+                        "description": f"Road {number}, written by the scripted worldsmith.",
+                        "shop": ["weapon-1-longsword", "potion-of-healing"],
+                    },
+                    den: {
+                        "id": den,
+                        "name": f"QA Den {number}",
+                        "brief": "A test den.",
+                        "description": f"Den {number}, written by the scripted worldsmith.",
+                        "light": "dim",
+                        "cover": True,
+                    },
+                },
+                "ways": {road: [{"to_id": den}], den: [{"to_id": road}]},
+                "npcs": {
+                    f"qa-guard-{number}": {
+                        "id": f"qa-guard-{number}",
+                        "name": f"QA Guard {number}",
+                        "brief": "A test guard for hire.",
+                        "known": True,
+                        "voice": "feminine",
+                        "place_id": road,
+                        "stat_block_id": "guard",
+                    },
+                    f"qa-wolves-{number}": {
+                        "id": f"qa-wolves-{number}",
+                        "name": f"QA Wolves {number}",
+                        "brief": "A test pack.",
+                        "known": True,
+                        "voice": "other",
+                        "place_id": den,
+                        "stat_block_id": "wolf",
+                        "count": 2,
+                        "hostile": True,
+                    },
+                    f"qa-captain-{number}": {
+                        "id": f"qa-captain-{number}",
+                        "name": f"QA Captain {number}",
+                        "brief": "A test captain.",
+                        "known": True,
+                        "voice": "masculine",
+                        "place_id": den,
+                        "stat_block_id": "bandit-captain",
+                        "hostile": True,
+                    },
+                },
+                "items": {
+                    f"qa-trap-{number}": {
+                        "id": f"qa-trap-{number}",
+                        "name": f"QA Trap {number}",
+                        "brief": "A test pit.",
+                        "holder_id": den,
+                        "find": "hard",
+                        "trap": {"ability": "dexterity", "difficulty": "easy", "disarm": "easy"},
+                    }
+                },
+                "goals": {f"qa-goal-{number}": {"brief": f"Clear den {number}", "size": "high"}},
+            }
+        )
+
     def _scene(self, schema: str, number: int, *, opening: bool) -> str:
         scene: dict[str, JsonValue] = {
             "place_id": f"qa-place-{number}",
@@ -393,6 +495,16 @@ class ScriptedAgents:
         playing = self.tool_providers.require(self.token)
         assert isinstance(playing, Turn)
         return playing.engine.id
+
+
+def _lite5e_hire(prompt: str) -> JsonValue:
+    # Only WHAT COMES NEXT holds the current terms; SCENES SO FAR repeats older hires.
+    asked = _section(prompt, "WHAT COMES NEXT")
+    start = asked.find(HIRE_MARK)
+    if start < 0:
+        return DEFAULT_HIRE
+    hire: JsonValue = json.JSONDecoder().raw_decode(asked, start + len(HIRE_MARK))[0]
+    return hire
 
 
 def _section(prompt: str, name: str) -> str:

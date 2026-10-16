@@ -1,0 +1,930 @@
+[
+  {
+    "name": "kill",
+    "description": "Kill a captive here. Nobody else dies by this tool.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of who here died.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "leave_party",
+    "description": "Make a party member stop travelling with the player.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of the party member leaving.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "direct",
+    "description": "End the turn and give notes to the narrator. Call this last, once per turn. Include the answer or result, its known reason, and facts needed for the next choice. Share only facts the player can know now. Apply world changes through the other tools before calling direct.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "description": "Brief factual notes for the narrator to phrase. Answer each question in the player action. Include the result, its known reason, and details needed for the next choice. For a request or warning, give what the person wants and the reason they share. Use facts the player can know now. Identify claims and unknown reasons as such. Keep every outcome consistent with tool results.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "reveal",
+    "description": "Make a hidden entity here known to the player. HIDDEN HERE lists what the player has not found: call this before you tell a hidden thing.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of something hidden here.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "move_item",
+    "description": "Move an item to a new holder. Gear that a party member takes joins their gear.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "description": "Exact id of an item here or carried.",
+          "type": "string"
+        },
+        "holder_id": {
+          "description": "Exact id of the player, an npc here, or this place.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "holder_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "unlock_way",
+    "description": "Open a locked way out of this place when the story opens it. A way with a lock opens here only when a party member carries its key, a story item from `make_item` that opens this way; otherwise pick or force the lock with `check`.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "to_id": {
+          "description": "Exact id of the locked way's destination.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "to_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "move",
+    "description": "Move the player through an unlocked way out of this place. On arrival, the party's best passive Perception meets each hidden person, and each hidden item with a find word.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "to_id": {
+          "description": "Exact id of the place to move to.",
+          "type": "string"
+        },
+        "with_ids": {
+          "default": [],
+          "description": "Exact ids of living npcs here who follow one time. Party members come without this field.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "to_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "meanwhile",
+    "description": "Pass time in the world. Call this before `direct` on each turn that shows ELSEWHERE. Give at most the number of changes that ELSEWHERE shows. Give an empty list when nothing moves. A hidden person who walks in rolls Stealth against the party's passive Perception.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "changes": {
+          "description": "Each dweller, item and way changes at most once. Party members and their items never change.",
+          "items": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "walk",
+                    "description": "A dweller walks along one unlocked way, also into or out of the player's place.",
+                    "type": "string"
+                  },
+                  "dweller_id": {
+                    "description": "Exact id of the dweller.",
+                    "type": "string"
+                  },
+                  "to_id": {
+                    "description": "Exact id of the place.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "dweller_id",
+                  "to_id"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "carry",
+                    "description": "An item goes to a place or to a living dweller.",
+                    "type": "string"
+                  },
+                  "item_id": {
+                    "description": "Exact id of the item.",
+                    "type": "string"
+                  },
+                  "to_id": {
+                    "description": "Exact id of the place or the dweller.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "item_id",
+                  "to_id"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "shut",
+                    "description": "A way that the player knows locks on both sides. The player always keeps one open way out.",
+                    "type": "string"
+                  },
+                  "from_id": {
+                    "description": "Exact id of one end of the way.",
+                    "type": "string"
+                  },
+                  "to_id": {
+                    "description": "Exact id of the other end of the way.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "from_id",
+                  "to_id"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "open",
+                    "description": "A locked way that the player knows unlocks on both sides.",
+                    "type": "string"
+                  },
+                  "from_id": {
+                    "description": "Exact id of one end of the way.",
+                    "type": "string"
+                  },
+                  "to_id": {
+                    "description": "Exact id of the other end of the way.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "from_id",
+                  "to_id"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "fall",
+                    "description": "A dweller away from the player dies.",
+                    "type": "string"
+                  },
+                  "dweller_id": {
+                    "description": "Exact id of the dweller.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "dweller_id"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "changes"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "extend_map",
+    "description": "Extend the map past its edge. Call this when MAP EDGE shows and the player heads past it: after the goal here is met, or when they set out somewhere new. Call it last: it ends your turn.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "heading": {
+          "description": "Where the player heads past the map's edge, in their own words.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "heading"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "join_party",
+    "description": "Make a person here travel with the player. Set `terms` when the player hires them to work, also someone who already travels with the player: the worldsmith writes their sheet at the end of the turn, and nothing more happens this turn. Leave `terms` empty for someone who only comes along. The party holds two hired companions at most. A group never joins whole: one person steps out of it and joins.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "description": "Exact id of who here joins or is hired.",
+          "type": "string"
+        },
+        "terms": {
+          "default": "",
+          "description": "Empty when they only come along. When the player hires them to work: what for and on what terms, as agreed.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "check",
+    "description": "Roll one ability check for a party member. Roll only when the result is uncertain and a failure costs something. A difficulty word or a target sets the DC. A target is a hidden thing (perception or investigation), a locked way (thieves-tools, or athletics to force it), a trap (thieves-tools or sleight-of-hand to disarm it), or a person (deception, intimidation, performance, persuasion, insight, stealth, sleight-of-hand, or animal-handling on a beast or a monstrosity). A success applies itself: a search reveals the hidden thing, a lock check unlocks the way, and a disarm removes the trap. An intimidation success against a routed group here makes it a captive group with no battle: it is the one check on a person that changes the state. After a failure, the same member cannot try the same thing here again until the party moves or rests.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "what": {
+          "description": "The attempt, in a few words the player reads.",
+          "type": "string"
+        },
+        "actor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a hired party member here who acts. Null for the player."
+        },
+        "skill": {
+          "enum": [
+            "acrobatics",
+            "animal-handling",
+            "arcana",
+            "athletics",
+            "deception",
+            "history",
+            "insight",
+            "intimidation",
+            "investigation",
+            "medicine",
+            "nature",
+            "perception",
+            "performance",
+            "persuasion",
+            "religion",
+            "sleight-of-hand",
+            "stealth",
+            "survival"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "The skill, or null."
+        },
+        "tool_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a tool the actor carries, or null."
+        },
+        "ability": {
+          "enum": [
+            "strength",
+            "dexterity",
+            "constitution",
+            "intelligence",
+            "wisdom",
+            "charisma"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "The ability, only for a check with no skill and no tool."
+        },
+        "dc": {
+          "description": "What sets the DC: a difficulty word or a target.",
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "difficulty",
+                  "description": "A difficulty word sets the DC.",
+                  "type": "string"
+                },
+                "difficulty": {
+                  "description": "easy is DC 10: A capable person does it most of the time. medium is DC 15: It needs training or luck. hard is DC 20: A trained person often fails.",
+                  "enum": [
+                    "easy",
+                    "medium",
+                    "hard"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "difficulty"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "target",
+                  "description": "The world sets the DC from a target here.",
+                  "type": "string"
+                },
+                "target_id": {
+                  "description": "Exact id of a hidden thing, a trap, a person here, or the place behind a locked way.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "target_id"
+              ],
+              "type": "object"
+            }
+          ]
+        },
+        "helper_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a party member here who helps, or null. It gives Advantage."
+        },
+        "edge": {
+          "default": "none",
+          "description": "Your own Advantage or Disadvantage, if any.",
+          "enum": [
+            "none",
+            "advantage",
+            "disadvantage"
+          ],
+          "type": "string"
+        },
+        "edge_reason": {
+          "default": "",
+          "description": "Why, in a few words the player reads. Empty with no edge.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "what",
+        "dc"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "harm",
+    "description": "Harm party members: a trap here fires, a danger allows a dodge (a save), harm that the story makes certain, or a fall. It never takes a member below 1 HP.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_ids": {
+          "description": "Exact ids of the party members it hits. 'player' for the player.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "danger": {
+          "description": "What threatens them.",
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "trap",
+                  "description": "A trap here fires: a save. It sets the ability, the DC, the damage and the condition.",
+                  "type": "string"
+                },
+                "hazard_id": {
+                  "description": "Exact id of the trap here.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "hazard_id"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "ability": {
+                  "description": "The ability that saves.",
+                  "enum": [
+                    "strength",
+                    "dexterity",
+                    "constitution",
+                    "intelligence",
+                    "wisdom",
+                    "charisma"
+                  ],
+                  "type": "string"
+                },
+                "difficulty": {
+                  "description": "easy is DC 10: A capable person does it most of the time. medium is DC 15: It needs training or luck. hard is DC 20: A trained person often fails.",
+                  "enum": [
+                    "easy",
+                    "medium",
+                    "hard"
+                  ],
+                  "type": "string"
+                },
+                "damage": {
+                  "default": "none",
+                  "description": "The damage of a failure. A success takes half.",
+                  "enum": [
+                    "none",
+                    "light",
+                    "moderate",
+                    "heavy"
+                  ],
+                  "type": "string"
+                },
+                "damage_type": {
+                  "enum": [
+                    "acid",
+                    "bludgeoning",
+                    "cold",
+                    "fire",
+                    "force",
+                    "lightning",
+                    "necrotic",
+                    "piercing",
+                    "poison",
+                    "psychic",
+                    "radiant",
+                    "slashing",
+                    "thunder"
+                  ],
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "default": null,
+                  "description": "The damage type, such as fire or bludgeoning. Null with no damage."
+                },
+                "on_fail": {
+                  "enum": [
+                    "poisoned",
+                    "prone",
+                    "exhaustion"
+                  ],
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "default": null,
+                  "description": "What a failure adds, or null. One Exhaustion level at most per place between rests."
+                },
+                "kind": {
+                  "const": "save",
+                  "description": "A danger that allows a dodge: a save. A success takes half the damage.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "ability",
+                "difficulty",
+                "kind"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "certain",
+                  "description": "Harm that the story makes certain: no save.",
+                  "type": "string"
+                },
+                "damage": {
+                  "description": "The size of the damage.",
+                  "enum": [
+                    "light",
+                    "moderate",
+                    "heavy"
+                  ],
+                  "type": "string"
+                },
+                "damage_type": {
+                  "description": "The damage type, such as fire or bludgeoning.",
+                  "enum": [
+                    "acid",
+                    "bludgeoning",
+                    "cold",
+                    "fire",
+                    "force",
+                    "lightning",
+                    "necrotic",
+                    "piercing",
+                    "poison",
+                    "psychic",
+                    "radiant",
+                    "slashing",
+                    "thunder"
+                  ],
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "What hurts, in a few words.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "damage",
+                "damage_type",
+                "reason"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "fall",
+                  "description": "A fall: no save, bludgeoning damage.",
+                  "type": "string"
+                },
+                "falling_feet": {
+                  "description": "How far the fall is, in feet.",
+                  "minimum": 10,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "kind",
+                "falling_feet"
+              ],
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "required": [
+        "actor_ids",
+        "danger"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "cast",
+    "description": "Cast a spell outside a battle. Call it before you tell any effect. The engine spends the slot, rolls the saves of the persons it targets, and returns the effect: play it as established. Story spells, rituals and healing spells work here. Other battle spells wait for the battle.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a hired party member here who acts. Null for the player."
+        },
+        "spell_id": {
+          "description": "Exact id of the spell.",
+          "type": "string"
+        },
+        "slot_level": {
+          "maximum": 9,
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "default": null,
+          "description": "A slot above the spell's level, to cast it higher. Null otherwise."
+        },
+        "target_ids": {
+          "default": [],
+          "description": "Exact ids of the persons, party members or items it affects. Empty for the caster or no target.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "spell_id"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "rest",
+    "description": "Rest the party here. A long rest needs a battle or a first visit to a place since the last long rest. At most two short rests come between long rests. No rest while a hostile person is here or one way away; captives and routed groups do not count. A hostile group with a path to the party can break a long rest.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "description": "A short rest or a long rest.",
+          "enum": [
+            "short",
+            "long"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "reward",
+    "description": "Reward the party: Heroic Inspiration for a party member, the XP of a completed goal, or a change of the party's coins.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "reward": {
+          "description": "What the party gets or loses.",
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "inspiration",
+                  "description": "Heroic Inspiration for a bold or fitting choice. A member holds one at most, and gets one at most between long rests.",
+                  "type": "string"
+                },
+                "actor_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "default": null,
+                  "description": "Exact id of the hired party member who gets it. Null for the player."
+                },
+                "reason": {
+                  "description": "The bold or fitting choice.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "reason"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "goal",
+                  "description": "The XP of a goal that GOALS lists, when the party completes it. Each goal pays once. The party levels up when its XP is enough.",
+                  "type": "string"
+                },
+                "goal_id": {
+                  "description": "Exact id of the goal that is done.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "goal_id"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "coins",
+                  "description": "Give or take the party's coins for the story: a reward, a bribe or a fee. One change is 100 gp at most.",
+                  "type": "string"
+                },
+                "cp": {
+                  "description": "The change in copper pieces: 100 cp is 1 gp. Positive gives, negative takes.",
+                  "type": "integer"
+                },
+                "reason": {
+                  "description": "Why, in a few words.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "cp",
+                "reason"
+              ],
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "required": [
+        "reward"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "make_item",
+    "description": "Make a story item with a name and a note, such as a letter, a map, a key or a trophy. It has no rules. A party member, a living person here or this place holds it. The name of SRD gear or of a magic item is refused. A key names the way with a lock that it opens with `unlock_way`.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "holder_id": {
+          "description": "Exact id of a party member, a living person here, or this place.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The item's name. Name it in three or four words, never more than 48 characters.",
+          "type": "string"
+        },
+        "note": {
+          "description": "What it is or says, in one line.",
+          "type": "string"
+        },
+        "opens": {
+          "additionalProperties": false,
+          "properties": {
+            "from_id": {
+              "description": "Exact id of one end of the way with a lock.",
+              "type": "string"
+            },
+            "to_id": {
+              "description": "Exact id of the other end of the way.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "from_id",
+            "to_id"
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "default": null,
+          "description": "The way with a lock that this item is the key to. Null: it is no key."
+        }
+      },
+      "required": [
+        "holder_id",
+        "name",
+        "note"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "trade",
+    "description": "Buy or sell gear at the shop here for a party member. A shop sells SRD gear at SRD prices, and only the magic items of its stock. It buys gear for half its price.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "gear_id": {
+          "description": "Exact id of SRD gear or of a magic item. Magic armor and magic weapons join the magic item id to the id of the base piece: armor-1-chain-mail is Chain Mail +1, weapon-2-longsword is Longsword +2.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "buy with the party's coins, or sell gear a party member holds for half its price.",
+          "enum": [
+            "buy",
+            "sell"
+          ],
+          "type": "string"
+        },
+        "actor_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Exact id of a hired party member here who acts. Null for the player."
+        },
+        "count": {
+          "default": 1,
+          "description": "How many.",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "gear_id",
+        "kind"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "start_battle",
+    "description": "Start a battle with persons here as the foes. Any person here can fight, a friend too: the hostile flag does not limit it. A group fights whole. Pick how it opens: face_to_face, party_ambush when the party strikes first from hiding, or foe_ambush when hidden persons here strike first (only hidden foes can). The engine rolls the opening and Initiative, and the battle screen plays the battle: your turn ends here.",
+    "parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "foe_ids": {
+          "description": "Exact ids of the persons here who fight the party. A group fights whole.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "opening": {
+          "description": "face_to_face: nobody is surprised. party_ambush: the party strikes first from hiding. foe_ambush: the hidden foes here strike first.",
+          "enum": [
+            "face_to_face",
+            "party_ambush",
+            "foe_ambush"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "foe_ids",
+        "opening"
+      ],
+      "type": "object"
+    }
+  }
+]

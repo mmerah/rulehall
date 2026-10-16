@@ -1,0 +1,20 @@
+The battle begins face to face
+Initiative: Player, Bandits
+Round 1
+Player → Bandits, Longsword: 9: miss
+Bandits → Player, Light Crossbow: 6: miss (disadvantage: ranged while engaged)
+Round 2
+Player → Bandits, Longsword: 8: miss
+Bandits → Player, Light Crossbow: 18: hit (disadvantage: ranged while engaged)
+Player: -8 HP → 5/13
+Round 3
+Player → Bandits, Longsword: 11: miss
+Bandits → Player, Light Crossbow: 4: miss (disadvantage: ranged while engaged)
+Round 4
+Player → Bandits, Longsword: 17: hit
+Bandits takes 12 slashing damage
+Bandits drops
+Victory
++25 XP each
+Bandits is dead
+Left on the ground: Scimitar, Light Crossbow

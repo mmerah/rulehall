@@ -14,6 +14,7 @@ from rulehall.engines.sheet import Entity, Person, Sheeted
 ARC_TITLE = "THE ARC (the player has not found this)"
 ARC_SO_FAR_TITLE = "THE ARC SO FAR"
 HIDDEN_TITLE = "HIDDEN HERE (the player has not found these)"
+PARTY_TITLE = "THE PARTY (led by the player)"
 UNKNOWN_ID = "unknown id {entity_id!r}; use only the ids you were shown"
 IS_DEAD = "{name} is dead and takes no further part"
 NOT_AN_ACTOR = "{name} is not the player or a hired party member"
@@ -88,9 +89,12 @@ class World[P: Person](Mutable):
         return [member.fact(trace, card=f"{member.name} leaves your party")]
 
     def refuse_unmet_names(self, *texts: str) -> None:
-        named = unmet_people_named("\n".join(texts), self.people())
+        named = unmet_people_named("\n".join(texts), self.people(), self.known_names())
         if leaked := sorted({person.name for person in named}):
             raise Refusal(f"this names what the player has not met: {leaked}; say it another way")
+
+    def known_names(self) -> Iterable[str]:
+        return ()
 
     def meet_people_named(self, *texts: str) -> None:
         pass
@@ -117,10 +121,8 @@ class World[P: Person](Mutable):
         return self.player.rows()
 
 
-def party_section(members: Sequence[Entity]) -> Sections:
-    if not members:
-        return ()
-    return (("THE PARTY (led by the player)", "\n".join(member.line() for member in members)),)
+def party_section(lines: Sequence[str]) -> Sections:
+    return ((PARTY_TITLE, "\n".join(lines)),) if lines else ()
 
 
 def check_filing(pool: Mapping[Slug, Entity]) -> None:

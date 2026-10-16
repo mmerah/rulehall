@@ -5,8 +5,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Self
 
-from rulehall.app.illustration import ICON_DIR, find_cover, find_image
-from rulehall.core.game import AnyGame, AnyScenario, for_engine_of
+from rulehall.app.illustration import ICON_DIR, find_cover, find_image, find_sprite
+from rulehall.core.game import AnyGame, AnyScenario, CharacterHeader, for_engine_of
 from rulehall.core.stores import Library, SaveStore
 from rulehall.core.validation import EngineId, Refusal, Slug
 from rulehall.engines.engine import AnyEngine
@@ -100,7 +100,8 @@ class LauncherCatalog:
                 engine_id=engine_id,
                 name=header.person.name,
                 brief=header.person.brief,
-                portrait=find_image(library.character_folder(character_id) / ICON_DIR, PLAYER_ID),
+                portrait=_portrait(engines[engine_id], header)
+                or find_image(library.character_folder(character_id) / ICON_DIR, PLAYER_ID),
             )
             for character_id, engine_id, header in library.read_characters(engines)
         )
@@ -173,3 +174,10 @@ def _save_option(
         saved_at=saved_at,
         cover=find_cover(store.media_dir(save_id)),
     )
+
+
+def _portrait(engine: AnyEngine, header: CharacterHeader) -> Path | None:
+    portrait_id = header.person.portrait_id
+    sprite = None if portrait_id is None else engine.portrait(portrait_id)
+    found = None if sprite is None else find_sprite(engine.assets, sprite)
+    return None if found is None else found.path

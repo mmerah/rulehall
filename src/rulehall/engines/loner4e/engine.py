@@ -17,7 +17,7 @@ from rulehall.core.narration import NarratorView
 from rulehall.core.prompt import Sections, section_if
 from rulehall.core.tools import NoArgs, ToolSpec, action, tool
 from rulehall.core.validation import EngineId, Refusal, Slug
-from rulehall.core.views import Panel
+from rulehall.core.views import Panel, PanelRows
 from rulehall.engines.args import Words
 from rulehall.engines.bases.scenes.engine import SceneEngine
 from rulehall.engines.bases.scenes.worldsmith import OPENING
@@ -39,6 +39,7 @@ from rulehall.engines.loner4e.panels import (
     living_world_decision,
     loner_options,
     own_ending_decision,
+    person_rows,
     proposed_ending_decision,
     scene_panel,
     sheet_panel,
@@ -181,7 +182,6 @@ class Loner4eEngine(
     next_proposal_model = Loner4eNextProposal
     opening_intent = f"{OPENING} {OPENING_FRAME}"
     play_hint = "What does {name} do? Or ask the oracle."
-    sheet_help = SHEET_HELP
 
     def request_handlers(self) -> Mapping[Slug, RequestHandler[Loner4eWorld]]:
         return {
@@ -222,6 +222,9 @@ class Loner4eEngine(
             "condition it no longer shows has passed, so never describe it."
         )
         return view.model_copy(update={"situation": situation})
+
+    def person_rows(self, person: Loner4ePerson) -> PanelRows:
+        return person_rows(person)
 
     def lead_panels(self, state: Loner4eGame, /) -> tuple[Panel | None, ...]:
         world = state.world

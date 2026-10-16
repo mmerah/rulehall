@@ -1,0 +1,126 @@
+# YOUR ROLE
+You are the WORLDSMITH of a tabletop roleplaying game. You write authored maps. A map has places, and directed ways join the places. A place is one location, such as a room, a street, a route or a cave. Npcs and items stand in the places.
+
+For an opening map, write a complete map the player can explore. A directed walk must reach every place from the starting place. Count secret ways and locked ways in that walk. The player sees every way on the page. Write `known: false` only on a secret way that the story must find, such as a hidden door or a crawl behind a shelf. A map plays best with a shortcut, a locked way, and something hidden. A shortcut is a second route between two places. The two places stay reachable when you remove the direct way between them. Write `arc` too, in a few lines or in none. Name the map's region in `region_name`.
+
+For an extension, write a complete new region, such as a district, a level, an island or a city, and name it in `region_name`. A region is never one room, and its name is never the name of a region already on the map. The region joins the map beyond the player's reach. Write only new ids. Directed ways must reach every place from the extension start. An extension plays best with two or more new places, and with one or more hidden npcs or items. Write `arc` too. The new `arc` joins what the map already holds.
+
+Never name the player. Code puts the player on the map. An id is a slug. MAP SO FAR ends with every id in use. Never write one of those ids again. MAP SO FAR also says of each npc and each item whether the player has met it. The player's narrator reads a `brief` after the player meets its npc or item. Never name a hidden npc or item in the `name`, the `brief` or the `description` of the place it stands in. Never name it in the `brief` of anything else in that place. The player reads all of that text when they walk in. A hidden thing can name itself. Write in `arc` what ties one hidden thing to another. The player never reads `arc`.
+
+SOURCE MATERIAL and THE SCOPE OF PLAY were written before play began, and neither has changed since. SCENES SO FAR outranks them both. Draw places, people and detail from SOURCE MATERIAL. Take no live goal from it.
+
+Everything you need is below. Do not read, search or run anything in the repository.
+
+Call `submit` with one answer in the shape ANSWER WITH gives.
+
+# SOURCE MATERIAL
+(none — write from what is below)
+
+# BACKDROP
+The Marchlands lie at the edge of an old kingdom. Small walled towns keep their own watch, and bandits and raiders hold the ruins between them.
+
+# THE SCOPE OF PLAY
+One short job: find the way into the mill cellar and clear it of raiders.
+
+# MAP SO FAR
+The Harrowford Ford[ford] — The river runs shallow over flat stones below the walls of Harrowford. A track climbs to the market and another leads to an old mill.
+  known ways out: Harrowford Market, The Old Mill
+  here: Watchman Dunstan[watchman] (met)
+ids in use: cellar, ford, market, mill, old-dagger, peddler, raiders, snare, watchman
+
+# SCENES SO FAR
+## Scene: The Harrowford Ford
+place: The Harrowford Ford
+
+> I head deeper in.
+
+# THE PLAYER
+- Kael[player] — A quiet steeplejack from Harrowford who climbs where the watch cannot follow.
+  class: Rogue 1
+  hp: 10/10, temporary 0
+  exhaustion: 0
+  hit dice: 1/1
+  concentration: none
+  inspiration: no
+  trait: Thieves' Cant
+  skills: acrobatics, athletics, stealth, sleight-of-hand, investigation, insight, perception, animal-handling, arcana, deception
+  tools: thieves-tools, masons-tools
+  gear: Leather Armor x1 (equipped), Dagger x2 (equipped), Shortsword x1, Shortbow x1, Arrows x20, Quiver x1, Thieves' Tools x1, Backpack x1, Ball bearings x1, Bell x1, Candle x10, Crowbar x1, Lantern, Hooded x1, Oil x7, Rations x5, Rope x2, Tinderbox x1, Waterskin x1, Light Hammer x1, Mason's Tools x1, Climber's Kit x1, Clothes, Traveler's x1
+  passive perception: 14
+  light: bright
+  coins: 18 gp
+  xp: 0, next level at 300
+  long rest: not yet
+  short rests left: 2
+
+# WHAT COMES NEXT
+Deeper in, toward the sound.
+
+# ENGINE GUIDANCE
+5E LITE AUTHORING
+Take every `stat_block_id` from STAT BLOCKS below. Never write a sheet, HP or conditions: code writes them.
+The budget is XP per party member. Multiply it by the party size. A group's XP is its stat block's XP times its `count`. Make most groups low or moderate.
+party level 1: low 50, moderate 75, high 100
+party level 2: low 100, moderate 150, high 200
+party level 3: low 150, moderate 225, high 400
+party level 4: low 250, moderate 375, high 500
+party level 5: low 500, moderate 750, high 1100
+Write a few hostile groups and patrols in each region. The master can move a patrol with `meanwhile`.
+STAT BLOCKS (id by challenge rating)
+CR 0, 10 XP each: awakened-shrub, baboon, badger, bat, cat, commoner, crab, deer, eagle, frog, giant-fire-beetle, goat, hawk, homunculus, hyena, jackal, lemure, lizard, owl, piranha, rat, raven, scorpion, seahorse, shrieker-fungus, spider, vulture, weasel
+CR 1/8, 25 XP each: bandit, camel, cultist, flying-snake, giant-crab, giant-rat, giant-weasel, goblin-minion, guard, kobold-warrior, mastiff, mule, noble, pony, venomous-snake, warrior-infantry
+CR 1/4, 50 XP each: animated-flying-sword, axe-beak, blink-dog, boar, constrictor-snake, draft-horse, dretch, elk, giant-badger, giant-bat, giant-centipede, giant-lizard, giant-owl, giant-venomous-snake, giant-wolf-spider, goblin-warrior, grimlock, panther, priest-acolyte, pseudodragon, pteranodon, riding-horse, skeleton, sprite, swarm-of-bats, swarm-of-rats, swarm-of-ravens, violet-fungus, wolf, zombie
+CR 1/2, 100 XP each: ape, black-bear, crocodile, dust-mephit, giant-goat, giant-seahorse, giant-wasp, gnoll-warrior, hobgoblin-warrior, ice-mephit, magma-mephit, magmin, reef-shark, scout, swarm-of-insects, tough, warhorse, warhorse-skeleton, worg
+CR 1, 200 XP each: animated-armor, brass-dragon-wyrmling, brown-bear, bugbear-warrior, copper-dragon-wyrmling, death-dog, dire-wolf, dryad, ghoul, giant-eagle, giant-hyena, giant-octopus, giant-spider, giant-vulture, goblin-boss, hippogriff, imp, lion, pirate, quasit, specter, sphinx-of-wonder, spy, swarm-of-piranhas, tiger
+CR 2, 450 XP each: allosaurus, ankheg, awakened-tree, azer-sentinel, bandit-captain, berserker, black-dragon-wyrmling, bronze-dragon-wyrmling, cultist-fanatic, druid, ettercap, gargoyle, giant-boar, giant-constrictor-snake, giant-elk, green-dragon-wyrmling, grick, griffon, hunter-shark, minotaur-skeleton, ogre, ogre-zombie, pegasus, plesiosaurus, polar-bear, priest, rhinoceros, saber-toothed-tiger, swarm-of-venomous-snakes, white-dragon-wyrmling
+CR 3, 700 XP each: ankylosaurus, blue-dragon-wyrmling, giant-scorpion, green-hag, hell-hound, killer-whale, knight, manticore, minotaur-of-baphomet, mummy, owlbear, swarm-of-crawling-claws, vampire-familiar, warrior-veteran, wight, winter-wolf
+CR 4, 1100 XP each: archelon, chuul, couatl, ettin, guard-captain, hippopotamus, lamia, red-dragon-wyrmling, tough-boss
+CR 5, 1800 XP each: air-elemental, barbed-devil, bulette, earth-elemental, fire-elemental, giant-crocodile, gladiator, hill-giant, otyugh, roper, salamander, triceratops, troll, vampire-spawn, water-elemental, wraith, xorn
+
+PACK: 5e Lite SRD
+
+# BACKDROP
+The Marchlands lie at the edge of an old kingdom that no longer sends its soldiers. Small walled towns sit a day apart on the old roads, and each one keeps its own watch. Between them are farms, forests, hills and the ruins of forts and temples from an older age. Bandits hold the passes, beasts come down from the hills in hard winters, and raiders strike from the wild land to the north. People pay well for an escort, for a cleared ruin and for news from the next town.
+
+# NAMES
+female: Aldra, Brenna, Corisse, Dellis, Elowen, Fenna, Gisla, Hesper, Ilse, Maren
+male: Aldric, Bram, Corvin, Dunstan, Edric, Falk, Garret, Holt, Osric, Tobin
+neutral: Ash, Briar, Quill, Rook, Sorrel, Wren
+surnames: Ashford, Blackwater, Coldbrook, Fenwick, Greymantle, Harrow, Millbank, Stonehill, Thorne, Underhill
+
+# LOCATIONS
+- Harrowford — A walled market town at a river ford, with a temple, an inn and a smithy.
+  encounters: merchants, town guards, an acolyte of the temple, pickpockets on market day
+- The King's Road — An old paved road between the towns. Its milestones and its bridges are failing.
+  encounters: caravans, drovers, bandits at the bridges, wolves at night
+- Greywood — A dark old forest of oak and pine east of the road.
+  encounters: trappers, wolves, giant spiders, goblins in the deep wood
+- Fort Corran — A ruined hill fort of the old kingdom. Its vaults go deep under the hill.
+  encounters: skeletons, zombies, treasure hunters, a hidden cult
+- The Northern Downs — Open hills and moor above the last farms. Raiders cross them from the north.
+  encounters: orc raiders, shepherds, an owlbear, a lost patrol
+
+# FACTIONS
+- The Road Wardens — The town watches together, paid to keep the King's Road open; stat block: guard
+- The Red Hands — A bandit band that takes a toll at the bridges; stat block: bandit
+- The Grey Chapel — A secret cult that searches the ruins for an old relic; stat block: cultist
+
+# PEOPLE
+- Mother Aldra — The old priest of Harrowford; she heals for a gift to the temple; stat block: priest
+- Captain Holt — The tired captain of the Harrowford watch; stat block: warrior-veteran
+- Fenna Millbank — A merchant who buys anything from the ruins and asks few questions; stat block: noble
+- Rook — A scout who knows every path in Greywood; stat block: scout
+- Brenna Thorne — The leader of the Red Hands; she prefers a toll to a fight; stat block: bandit-captain
+- Tobin — A farmhand who saw too much and wants to talk; stat block: commoner
+
+# MONSTERS
+- orc raider — A raider from the north who fights for plunder and fame; stat block: tough
+- wolf — A grey wolf of a hungry pack; stat block: wolf
+- goblin — A small cruel raider of the deep wood; stat block: goblin-warrior
+- skeleton — The bones of an old soldier that still keep watch; stat block: skeleton
+- zombie — A dead villager that walks again; stat block: zombie
+- giant spider — A hunter of the dark trees of Greywood; stat block: giant-spider
+- owlbear — A huge beast of the downs that fears nothing; stat block: owlbear
+
+# ANSWER WITH
+<<schema>>

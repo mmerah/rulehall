@@ -1,0 +1,108 @@
+{
+  "id": "jory",
+  "engine_id": "lite5e",
+  "person": {
+    "id": "player",
+    "name": "Jory",
+    "brief": "A bell-tower keeper who trained his body on the long climbs and the long silences.",
+    "known": true,
+    "voice": "masculine",
+    "alive": true,
+    "place_id": "player",
+    "sheet": {
+      "class_id": "monk",
+      "level": 1,
+      "species_id": "orc",
+      "subspecies_id": null,
+      "species_ability": null,
+      "background_id": "steeplejack",
+      "base_scores": {
+        "strength": 12,
+        "dexterity": 15,
+        "constitution": 13,
+        "intelligence": 8,
+        "wisdom": 14,
+        "charisma": 10
+      },
+      "background_increases": {
+        "dexterity": 2,
+        "wisdom": 1
+      },
+      "background_skills": [
+        "acrobatics",
+        "athletics"
+      ],
+      "background_tool_id": "masons-tools",
+      "background_feat_id": "skilled",
+      "picks": {
+        "class-skill": [
+          "insight",
+          "stealth"
+        ],
+        "tool": [
+          "calligraphers-supplies"
+        ],
+        "skilled": [
+          "perception",
+          "history",
+          "medicine"
+        ]
+      },
+      "replacements_due": [],
+      "vitals": {
+        "hp": {
+          "current": 9,
+          "maximum": 9
+        },
+        "death_successes": 0,
+        "death_failures": 0,
+        "stable": false
+      },
+      "temp_hp": 0,
+      "hit_dice_spent": 0,
+      "slots_spent": {},
+      "made_slots": {},
+      "uses_spent": {},
+      "lineage_casts_spent": {},
+      "concentration_spell_id": null,
+      "gear": {
+        "spear": 1,
+        "dagger": 5,
+        "backpack": 1,
+        "bedroll": 1,
+        "oil": 2,
+        "rations": 10,
+        "rope": 2,
+        "tinderbox": 1,
+        "torch": 10,
+        "waterskin": 1,
+        "light-hammer": 1,
+        "masons-tools": 1,
+        "climbers-kit": 1,
+        "clothes-travelers": 1,
+        "calligraphers-supplies": 1
+      },
+      "equipped_ids": [
+        "spear"
+      ],
+      "exhaustion": 0,
+      "inspiration": false,
+      "inspired_since_long_rest": false,
+      "coins_cp": 2100,
+      "xp": 0,
+      "aid_hp": 0,
+      "hp_max_cut": 0,
+      "effects": []
+    },
+    "stat_block_id": "commoner",
+    "count": 1,
+    "hostile": false,
+    "captive": false,
+    "conditions": [],
+    "stat_block_vitals": null,
+    "portrait_id": "orc-monk",
+    "formation_row": "front",
+    "routed": false,
+    "xp_paid": false
+  }
+}

@@ -409,7 +409,7 @@ class TwentyFourXXWorld(SceneWorld[Crewmate]):
 
     def meet_people_named(self, *texts: str) -> None:
         hidden = self.hidden()
-        for person in unmet_people_named("\n".join(texts), self.people()):
+        for person in unmet_people_named("\n".join(texts), self.people(), self.known_names()):
             if person.id not in hidden:
                 person.known = True
 

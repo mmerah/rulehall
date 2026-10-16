@@ -1,0 +1,102 @@
+{
+  "id": "garret",
+  "engine_id": "lite5e",
+  "person": {
+    "id": "player",
+    "name": "Garret",
+    "brief": "A veteran of the border wars, built like a gate, who guards the road for coin.",
+    "known": true,
+    "voice": "masculine",
+    "alive": true,
+    "place_id": "player",
+    "sheet": {
+      "class_id": "fighter",
+      "level": 1,
+      "species_id": "goliath",
+      "subspecies_id": "giant-ancestry-stones-endurance",
+      "species_ability": null,
+      "background_id": "soldier",
+      "base_scores": {
+        "strength": 15,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 8,
+        "wisdom": 12,
+        "charisma": 10
+      },
+      "background_increases": {
+        "strength": 1,
+        "dexterity": 1,
+        "constitution": 1
+      },
+      "background_skills": [
+        "athletics",
+        "intimidation"
+      ],
+      "background_tool_id": "dragonchess",
+      "background_feat_id": "savage-attacker",
+      "picks": {
+        "class-skill": [
+          "insight",
+          "perception"
+        ],
+        "fighting-style": [
+          "archery"
+        ]
+      },
+      "replacements_due": [],
+      "vitals": {
+        "hp": {
+          "current": 12,
+          "maximum": 12
+        }
+      },
+      "temp_hp": 0,
+      "hit_dice_spent": 0,
+      "slots_spent": {},
+      "made_slots": {},
+      "uses_spent": {},
+      "lineage_casts_spent": {},
+      "concentration_spell_id": null,
+      "gear": {
+        "chain-mail": 1,
+        "greatsword": 1,
+        "flail": 1,
+        "javelin": 8,
+        "backpack": 1,
+        "caltrops": 10,
+        "crowbar": 1,
+        "oil": 2,
+        "rations": 10,
+        "rope": 1,
+        "tinderbox": 1,
+        "torch": 10,
+        "waterskin": 1,
+        "spear": 1,
+        "shortbow": 1,
+        "arrows": 20,
+        "dragonchess": 1,
+        "healers-kit": 1,
+        "quiver": 1,
+        "clothes-travelers": 1
+      },
+      "equipped_ids": [
+        "chain-mail",
+        "greatsword"
+      ],
+      "exhaustion": 0,
+      "inspiration": false,
+      "inspired_since_long_rest": false,
+      "coins_cp": 1800,
+      "xp": 0,
+      "aid_hp": 0
+    },
+    "stat_block_id": "commoner",
+    "count": 1,
+    "hostile": false,
+    "captive": false,
+    "conditions": [],
+    "stat_block_vitals": null,
+    "portrait_id": "goliath-giant-ancestry-stones-endurance-fighter"
+  }
+}
