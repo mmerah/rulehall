@@ -7,11 +7,11 @@ license-files = ["LICENSE"]
 requires-python = ">=3.13"
 dependencies = [
     "nicegui==3.18.0",
-    "pydantic==2.14.0",
+    "pydantic==2.14.1",
     "pydantic-settings==2.15.0",
     "python-dotenv==1.2.4",
     "httpx==0.28.1",
-    "pypdf==6.19.0",
+    "pypdf==6.20.1",
     "mcp==2.3.0",
 ]
 
@@ -30,7 +30,7 @@ dev = [
     "basedpyright==1.40.2",
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
-    "ruff==0.16.10",
+    "ruff==0.17.0",
 ]
 qa = [
     "playwright==1.63.0",
