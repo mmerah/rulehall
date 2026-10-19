@@ -16,8 +16,6 @@
       "subspecies_id": null,
       "species_ability": null,
       "background_id": "pilgrim",
-      "background_name": "Pilgrim",
-      "background_brief": "You walked from shrine to shrine on a vow.",
       "base_scores": {
         "wisdom": 15,
         "constitution": 14,

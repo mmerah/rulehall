@@ -16,8 +16,6 @@
       "subspecies_id": "fiendish-legacy-infernal",
       "species_ability": "charisma",
       "background_id": "envoy",
-      "background_name": "Envoy",
-      "background_brief": "You carried a lord's word to other courts.",
       "base_scores": {
         "strength": 8,
         "dexterity": 13,

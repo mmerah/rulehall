@@ -314,10 +314,10 @@ class Lite5eEngine(
 
     def preview_character(self, character: AnyCharacter) -> PanelRows:
         player = self.player_of(character)
-        return (*person_rows(player), *kit_rows(player.require_sheet()))
+        return (*person_rows(player, self.require_background), *kit_rows(player.require_sheet()))
 
     def person_rows(self, person: Lite5ePerson, /) -> PanelRows:
-        return person_rows(person)
+        return person_rows(person, self.require_background)
 
     def new_game(self, scenario: AnyScenario, character: AnyCharacter) -> Lite5eWorld:
         opening: Lite5eMapProposal = scenario.opening
@@ -345,8 +345,8 @@ class Lite5eEngine(
     def view_panels(self, state: Lite5eGame, /) -> tuple[Panel | None, ...]:
         world = state.world
         return (
-            sheet_panel(world),
-            party_panel(world),
+            sheet_panel(world, self.require_background),
+            party_panel(world, self.require_background),
             gear_panel(world),
             here_panel(other.subject() for other in world.others()),
             carried_panel(world),
@@ -539,6 +539,13 @@ class Lite5eEngine(
     @edit
     def set_formation_row(self, draft: Lite5eGame, args: FormationEdit, _rng: Random) -> None:
         draft.world.require_actor(args.actor_id).formation_row = args.row
+
+    def require_background(self, background_id: Slug) -> Background:
+        for pack in self.packs.installed.values():
+            for background in pack.backgrounds:
+                if background.id == background_id:
+                    return background
+        raise ValueError(f"no installed pack holds background {background_id!r}")
 
     def _backgrounds(self, pack_id: Slug) -> tuple[Background, ...]:
         return unique_options(

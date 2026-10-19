@@ -16,8 +16,6 @@
       "subspecies_id": null,
       "species_ability": null,
       "background_id": "herbalist",
-      "background_name": "Herbalist",
-      "background_brief": "You gathered herbs and treated the sick of your village.",
       "base_scores": {
         "strength": 10,
         "dexterity": 13,

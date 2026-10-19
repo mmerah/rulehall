@@ -238,8 +238,6 @@ class Lite5eSheet(Mutable):
     subspecies_id: SubspeciesId | None
     species_ability: CastingAbility | None
     background_id: Slug
-    background_name: str
-    background_brief: str
     base_scores: AbilityScores
     background_increases: dict[Ability, int]
     background_skills: tuple[Skill, ...]
@@ -311,8 +309,6 @@ class Lite5eSheet(Mutable):
             subspecies_id=subspecies_id,
             species_ability=species_ability,
             background_id=background.id,
-            background_name=background.name,
-            background_brief=background.brief,
             base_scores=dict(scores),
             background_increases=dict(increases),
             background_skills=background.skill_ids,

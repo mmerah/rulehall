@@ -1,4 +1,4 @@
-from support.lite5e import hero, sheet_proposal, world
+from support.lite5e import PACK, hero, sheet_proposal, world
 
 from rulehall.core.decisions import ActionOption
 from rulehall.core.views import Panel
@@ -20,7 +20,12 @@ def test_the_gear_panel_refuses_untrained_armor() -> None:
 def test_the_ability_detail_names_each_part_of_the_score() -> None:
     built = world(player=hero(sheet_proposal("wizard", background_id="sage")))
     sheet = built.player.require_sheet()
-    scores = {score.name: score for row in person_rows(built.player, built) for score in row.scores}
+    backgrounds = {background.id: background for background in PACK.backgrounds}
+    scores = {
+        score.name: score
+        for row in person_rows(built.player, backgrounds.__getitem__, built)
+        for score in row.scores
+    }
 
     for ability, increase in sheet.background_increases.items():
         score = scores[ability[:3].upper()]

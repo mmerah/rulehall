@@ -16,8 +16,6 @@
       "subspecies_id": "giant-ancestry-stones-endurance",
       "species_ability": null,
       "background_id": "soldier",
-      "background_name": "Soldier",
-      "background_brief": "You trained for war and served in a company.",
       "base_scores": {
         "strength": 15,
         "dexterity": 13,

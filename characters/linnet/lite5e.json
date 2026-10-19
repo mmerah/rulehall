@@ -16,8 +16,6 @@
       "subspecies_id": null,
       "species_ability": null,
       "background_id": "minstrel",
-      "background_name": "Minstrel",
-      "background_brief": "You sang for coin in taverns and at fairs.",
       "base_scores": {
         "strength": 8,
         "dexterity": 14,

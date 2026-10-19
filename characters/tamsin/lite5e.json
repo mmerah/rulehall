@@ -16,8 +16,6 @@
       "subspecies_id": "elven-lineage-wood-elf",
       "species_ability": "wisdom",
       "background_id": "trapper",
-      "background_name": "Trapper",
-      "background_brief": "You hunted and trapped for furs in the wild lands.",
       "base_scores": {
         "strength": 12,
         "dexterity": 15,
