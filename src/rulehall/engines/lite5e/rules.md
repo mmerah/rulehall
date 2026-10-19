@@ -25,3 +25,5 @@ Call `rest` when the party stops in a safe place. YOU PLAY FOR shows if a long r
 HERE WITH THE PLAYER shows each person's stat block. A group is one person with a count. A
 hostile person attacks on sight. Move patrols and hostile groups with `meanwhile`; most
 `meanwhile` changes move nobody toward the party. A captive is a natural hire.
+When the player is alone or short-handed and the place allows, have someone here offer to sign on
+for pay.

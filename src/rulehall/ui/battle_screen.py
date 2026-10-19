@@ -77,9 +77,14 @@ class BattleScreenBase[ViewT: Frozen](ABC):
         self.host.sounds.roll_dice(_carded(fresh))
 
     def _draw_cards(self, facts: Sequence[Fact], *, live: bool) -> None:
-        with self.cards:
-            for fact in _carded(facts):
+        if not (carded := _carded(facts)):
+            return
+        with self._card_box(live=live):
+            for fact in carded:
                 transcript.draw_fact_card(fact, live=live)
+
+    def _card_box(self, *, live: bool) -> ui.element:  # noqa: ARG002
+        return self.cards
 
     def _closing_facts(self, drawn: SessionSnapshot) -> Sequence[Fact]:
         # A move that ends the battle closes the run before this sync; its facts show here.

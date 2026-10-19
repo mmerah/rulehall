@@ -1,5 +1,5 @@
-/* The battle fits one screen and never scrolls: the scene shrinks so the choices stay whole.
-   A tall column stacks scene, log, fielded Pokemon and choices; a wide one adds a rail. */
+/* In a phone column the scene's size comes from the width only and the column scrolls;
+   a wide one adds a rail and fits the screen. */
 .game-battle { container: battle / size; overflow-y: auto; padding: .6rem .6rem calc(.6rem + env(safe-area-inset-bottom)) }
 .game-battle .game-eyebrow { font-size: .62rem }
 .game-battle-grid {
@@ -174,7 +174,6 @@
   .game-battle-cards .game-fact > .items-start { order: -1 }
   .game-battle-cards .game-fact .text-xs, .game-battle-cards .game-fact-icon { display: none }
   .game-battle-cards .game-fact-head { font-size: .85rem; line-height: 1.3 }
-  .game-battle-cards .game-die { zoom: .7 }
   /* Open, the log is a sheet over the scene; the choices stay where they are. */
   .game-battle-journal:has(.game-showdown-journal-open) { grid-row: scene-start / journal-end; z-index: 3; box-shadow: var(--game-shadow-lg) }
   /* Collapsed, the log is one whole line, not a faded strip. */
@@ -190,7 +189,15 @@
   .game-battle-team .game-choice-head > * { justify-self: start; text-align: left }
   .game-battle-team .game-choice-head .game-tags { margin: 0 }
 }
-@container battle (max-height: 620px) {
+@container battle (max-width: 599.98px) {
+  .game-battle-grid { flex: 1 0 auto; grid-template-rows: auto auto 1fr auto auto auto auto }
+  .game-battle-scene { min-height: auto }
+  .game-showdown { flex: none; width: 100% }
+}
+@container battle (min-width: 600px) and (not ((min-width: 700px) and (min-aspect-ratio: 4 / 5))) {
+  .game-battle-cards .game-die { zoom: .7 }
+}
+@container battle (min-width: 600px) and (max-height: 620px) {
   .game-battle-grid { gap: .4rem }
   .q-btn.game-battle-move { min-height: 3.3rem; padding: .35rem .6rem }
   .game-move-body { gap: .2rem }

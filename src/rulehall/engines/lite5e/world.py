@@ -411,8 +411,7 @@ class Lite5eWorld(MapWorld[Lite5ePerson, Lite5eItem, Lite5ePlace, Lite5eWay]):
                 if condition == "exhaustion" and member.sheet is not None:
                     exhausted = True
             if trap:
-                facts.append(Fact(trace=f"{member.ref}: {numbers}", dice=tuple(dice)))
-                dice = []
+                facts.append(Fact(trace=f"{member.ref}: {numbers}"))
             else:
                 line = line.replace(f"{ability} save", numbers, 1)
             facts.append(_member_fact(member, line, tuple(dice)))
@@ -1203,8 +1202,8 @@ def _test_facts(
         numbers = f"{actor.ref}: {label} {test.total} vs DC {test.dc}"
         line = f"{label}{extra} → {outcome}"
         return [
-            Fact(trace=numbers, dice=test.dice),
-            actor.fact(f"{actor.mention}: {line}", card=actor.card_line(line)),
+            Fact(trace=numbers),
+            actor.fact(f"{actor.mention}: {line}", card=actor.card_line(line), dice=test.dice),
         ]
     line = f"{label} {test.total} vs DC {test.dc}{extra} → {outcome}"
     return [actor.fact(f"{actor.mention}: {line}", card=actor.card_line(line), dice=test.dice)]

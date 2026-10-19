@@ -87,7 +87,7 @@ from rulehall.engines.panels import here_panel
 from rulehall.engines.sheet import PLAYER_ID
 
 ASSETS = Path(__file__).parent / "assets"
-MAX_COMPANIONS = 2
+MAX_COMPANIONS = 3
 CLASS = "class"
 SPECIES = "species"
 SUBSPECIES = "subspecies"
@@ -487,7 +487,7 @@ class Lite5eEngine(
         """Make a person here travel with the player. Set `terms` when the player hires them to
         work, also someone who already travels with the player: the worldsmith writes their
         sheet at the end of the turn, and nothing more happens this turn. Leave `terms` empty
-        for someone who only comes along. The party holds two hired companions at most. A
+        for someone who only comes along. The party holds three hired companions at most. A
         group never joins whole: one person steps out of it and joins."""
         world = draft.world
         person = world.require_person_here(args.target_id)

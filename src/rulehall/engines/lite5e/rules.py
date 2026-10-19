@@ -56,7 +56,7 @@ CHALLENGE_RATINGS: tuple[ChallengeRating, ...] = (
     "4",
     "5",
 )
-COMPANION_CR_CAP: dict[int, ChallengeRating] = {1: "1/4", 2: "1", 3: "1", 4: "2", 5: "2"}
+COMPANION_CR_CAP: dict[int, ChallengeRating] = {1: "1/2", 2: "1", 3: "1", 4: "2", 5: "2"}
 INSTINCT_STEPS: tuple[tuple[int, int], ...] = ((3, 8), (7, 6), (11, 4))
 INSTINCT_TOP_SCORE = 2
 COIN_CAP_CP = 100 * 100

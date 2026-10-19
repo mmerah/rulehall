@@ -120,10 +120,12 @@ def roll_initiative(fight: Fight, surprised_ids: Collection[Slug]) -> list[Fact]
             dexterity = sheet.score("dexterity")
             bonus, lucky = sheet.initiative_bonus(), sheet.rerolls_ones()
             edges.append("advantage" if sheet.has_advantage("initiative") else "none")
-        face, events, _ = roll_d20("Initiative", combined_edge(*edges), fight.rng, lucky=lucky)
+        name = first.group_name if isinstance(first, FoeCombatant) else fight.name_of(first)
+        face, events, _ = roll_d20(
+            f"{name} initiative", combined_edge(*edges), fight.rng, lucky=lucky
+        )
         for combatant in group:
             ranks[combatant.combatant_id] = (-(face + bonus), -dexterity, first.side == "foes")
-        name = first.group_name if isinstance(first, FoeCombatant) else fight.name_of(first)
         numbers.append(f"{name} {face + bonus}")
         dice.extend(events)
     battle.order = sorted(ranks, key=ranks.__getitem__)
@@ -131,8 +133,8 @@ def roll_initiative(fight: Fight, surprised_ids: Collection[Slug]) -> list[Fact]
     battle.round = 1
     names = ", ".join(fight.name_of(battle.require_combatant(c_id)) for c_id in battle.order)
     facts = [
-        Fact(trace=f"initiative: {'; '.join(numbers)}", dice=tuple(dice)),
-        told(f"Initiative: {names}"),
+        Fact(trace=f"initiative: {'; '.join(numbers)}"),
+        told(f"Initiative: {names}", tuple(dice)),
         *(
             fact
             for member in battle.member_combatants()

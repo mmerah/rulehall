@@ -36,6 +36,8 @@ WORLDSMITH_GUIDANCE = (
     f"{BUDGET_LINES}\n"
     "Write a few hostile groups and patrols in each region. The master can move a patrol with "
     "`meanwhile`.\n"
+    "Put one or two people willing to sign on for pay in each settled region, so a lone player "
+    "can hire help.\n"
     "STAT BLOCKS (id by challenge rating)\n"
     f"{STAT_BLOCK_LINES}"
 )

@@ -16,6 +16,8 @@
       "subspecies_id": "giant-ancestry-hills-tumble",
       "species_ability": null,
       "background_id": "drover",
+      "background_name": "Drover",
+      "background_brief": "You drove herds along the long roads to market.",
       "base_scores": {
         "strength": 15,
         "dexterity": 13,

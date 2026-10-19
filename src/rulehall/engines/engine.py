@@ -158,6 +158,8 @@ class Engine[P: Person, W: World[Any], K: Pack, R: BaseModel](ABC):
         Apply world changes through the other tools before calling direct."""
         if (refusal := self.direct_refusal(draft)) is not None:
             raise Refusal(refusal)
+        if secret := args.secret.strip():
+            draft.remember(f"turn {draft.turn_number()}: {secret}")
         return [Fact(trace=f"the game master directs: {args.text}", told=True)]
 
     def direct_refusal(self, _draft: Game[W], /) -> str | None:

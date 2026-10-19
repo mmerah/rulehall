@@ -286,6 +286,27 @@ async def test_a_complication_writes_and_installs_at_the_same_place(tmp_path: Pa
     assert state.request is None
 
 
+async def test_a_secret_reaches_the_next_master_prompt_and_not_the_worldsmith(
+    tmp_path: Path,
+) -> None:
+    table = open_crew(tmp_path, rng=Random(TROUBLE_SEED))
+    table.roles.answers["worldsmith"] = [_scene()]
+    _ = await play_turn(
+        table,
+        "I keep watch on the airlock.",
+        tool_call("direct", text="Quiet.", secret="the breach is a decoy"),
+        tool_call("next_scene", complication="A second crew breaches the airlock."),
+    )
+
+    _ = await play_turn(table, "I wait.", tool_call("direct", text="Quiet."))
+
+    assert (
+        "# YOUR PRIVATE NOTES (only you see these; oldest first)\n- turn 1: the breach is a decoy"
+        in (table.roles.prompt("master", 1))
+    )
+    assert "decoy" not in table.roles.prompt("worldsmith")
+
+
 async def test_a_failed_write_after_a_complication_leaves_the_turn_committed(
     tmp_path: Path,
 ) -> None:

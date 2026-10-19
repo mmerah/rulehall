@@ -7,6 +7,7 @@ from rulehall.core.validation import Slug
 from rulehall.core.views import Meter, Panel, PanelRow, PanelRows, Score, Tag
 from rulehall.engines.lite5e.args import GearUseKind
 from rulehall.engines.lite5e.data import (
+    Ability,
     Armor,
     FeatureUse,
     Gear,
@@ -22,6 +23,7 @@ from rulehall.engines.lite5e.rules import (
     MADE_SLOT_COST,
     MADE_SLOT_SORCERER_LEVEL,
     MAX_LEVEL,
+    MAX_SCORE,
     SKILL_ABILITY,
     XP_FOR_LEVEL,
     FormationRow,
@@ -130,9 +132,17 @@ def person_rows(person: Lite5ePerson, world: Lite5eWorld | None = None) -> Panel
         )
     return (
         *text_rows("Class", SHEET_HELP["Class"], f"{sheet.srd_class().name} {sheet.level}"),
-        *text_rows("Species", "", _species_name(sheet)),
-        *text_rows(
-            "Background", SHEET_HELP["Background"], sheet.background_id.replace("-", " ").title()
+        *tag_list("Species", "", [_species_tag(sheet)]),
+        *tag_list(
+            "Background",
+            SHEET_HELP["Background"],
+            [
+                described_tag(
+                    sheet.background_name,
+                    sheet.background_brief,
+                    stat_line=_background_grants(sheet),
+                )
+            ],
         ),
         _hp_row(person),
         *score_block("Abilities", SHEET_HELP["Abilities"], _ability_scores(sheet)),
@@ -171,6 +181,14 @@ def level_pick_option(sheet: Lite5eSheet, kind: LevelPickKind, pick_id: Slug) ->
         name=sheet.level_pick_name(kind, pick_id),
         brief=srd().require_spell(pick_id).brief() if spell else "",
     )
+
+
+def use_source(sheet: Lite5eSheet, use: FeatureUse) -> tuple[str, str]:
+    options = srd().character_options
+    source_id = options.feature_uses[use].source_id or f"{sheet.class_id}-{use}"
+    traits = [trait for trait in sheet.traits() if use in trait.trait_id]
+    source = options.features.get(source_id) or options.feats.get(source_id) or traits[0]
+    return source.name, source.description
 
 
 def _spell_tag(spell_id: Slug) -> Tag:
@@ -241,11 +259,38 @@ def _armor_summary(armor: Armor) -> str:
     return f"{armor.category.title()} armor: AC {armor.base_ac}{dexterity}{stealth}"
 
 
-def _species_name(sheet: Lite5eSheet) -> str:
+def _species_tag(sheet: Lite5eSheet) -> Tag:
     species = srd().character_options.species[sheet.species_id]
-    if sheet.subspecies_id is None:
-        return species.name
-    return f"{species.name} ({species.subspecies[sheet.subspecies_id].name})"
+    name = species.name
+    if sheet.subspecies_id is not None:
+        name = f"{name} ({species.subspecies[sheet.subspecies_id].name})"
+    return described_tag(
+        name,
+        f"Speed {species.speed} ft.",
+        stat_line=", ".join(trait.name for trait in sheet.traits()),
+    )
+
+
+def _background_grants(sheet: Lite5eSheet) -> str:
+    increases = " ".join(
+        f"+{amount} {ability[:3].upper()}" for ability, amount in sheet.background_increases.items()
+    )
+    return " · ".join(
+        (
+            f"Skills {', '.join(skill_name(skill) for skill in sheet.background_skills)}",
+            f"Tool {gear_name(sheet.background_tool_id)}",
+            f"Feat {srd().character_options.feats[sheet.background_feat_id].name}",
+            increases,
+        )
+    )
+
+
+def _score_breakdown(sheet: Lite5eSheet, ability: Ability) -> str:
+    parts = " + ".join(
+        f"{amount} {label}" + (f" ({sheet.background_name})" if label == "background" else "")
+        for label, amount in sheet.score_parts(ability)
+    )
+    return f"{sheet.score(ability)} = {parts} (max {MAX_SCORE})."
 
 
 def _ability_scores(sheet: Lite5eSheet) -> tuple[Score, ...]:
@@ -255,13 +300,15 @@ def _ability_scores(sheet: Lite5eSheet) -> tuple[Score, ...]:
         modifier = sheet.modifier(ability)
         save = sheet.save_bonus(ability)
         proficient = ability in saves
+        breakdown = _score_breakdown(sheet, ability)
         scores.append(
             Score(
                 name=ability[:3].upper(),
                 value=str(sheet.score(ability)),
                 note=f"{modifier:+d} · save {save:+d}" if proficient else f"{modifier:+d}",
-                help=f"{ability.title()} {sheet.score(ability)}, modifier {modifier:+d}. "
+                help=f"{breakdown} Modifier {modifier:+d}. "
                 f"Saving throw {save:+d}{', proficient' if proficient else ''}.",
+                detail=breakdown,
             )
         )
     return tuple(scores)
@@ -336,7 +383,7 @@ def _slot_rows(sheet: Lite5eSheet) -> PanelRows:
         Meter(
             name=f"L{level}",
             current=sheet.slots_left(level),
-            maximum=total + sheet.made_slots.get(level, 0),
+            maximum=sheet.slot_maximum(level),
             look="pips",
         )
         for level, total in enumerate(slot_totals, 1)
@@ -348,7 +395,7 @@ def _slot_rows(sheet: Lite5eSheet) -> PanelRows:
 
 
 def _use_score(sheet: Lite5eSheet, use: FeatureUse, note: str) -> Score:
-    name, text = _use_source(sheet, use)
+    name, text = use_source(sheet, use)
     return Score(
         name=name,
         value=f"{sheet.uses_left(use)}/{sheet.use_limit(use)}",
@@ -356,14 +403,6 @@ def _use_score(sheet: Lite5eSheet, use: FeatureUse, note: str) -> Score:
         help=first_sentence(text),
         detail=text,
     )
-
-
-def _use_source(sheet: Lite5eSheet, use: FeatureUse) -> tuple[str, str]:
-    options = srd().character_options
-    source_id = options.feature_uses[use].source_id or f"{sheet.class_id}-{use}"
-    traits = [trait for trait in sheet.traits() if use in trait.trait_id]
-    source = options.features.get(source_id) or options.feats.get(source_id) or traits[0]
-    return source.name, source.description
 
 
 def _spell_rows(sheet: Lite5eSheet) -> PanelRows:

@@ -16,6 +16,8 @@
       "subspecies_id": null,
       "species_ability": null,
       "background_id": "steeplejack",
+      "background_name": "Steeplejack",
+      "background_brief": "You climbed towers and roofs to repair stone and bells.",
       "base_scores": {
         "strength": 8,
         "dexterity": 15,

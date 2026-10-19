@@ -25,8 +25,8 @@ One short job: find the way into the mill cellar and clear it of raiders.
 # MAP SO FAR
 The Harrowford Ford[ford] — The river runs shallow over flat stones below the walls of Harrowford. A track climbs to the market and another leads to an old mill.
   known ways out: Harrowford Market, The Old Mill
-  here: Watchman Dunstan[watchman] (met)
-ids in use: cellar, ford, market, mill, old-dagger, peddler, raiders, snare, watchman
+  here: Watchman Dunstan[watchman] (met), Wren the Tracker[tracker] (met)
+ids in use: cellar, ford, market, mill, old-dagger, peddler, raiders, sellsword, snare, tracker, watchman
 
 # SCENES SO FAR
 ## Scene: The Harrowford Ford
@@ -66,6 +66,7 @@ party level 3: low 150, moderate 225, high 400
 party level 4: low 250, moderate 375, high 500
 party level 5: low 500, moderate 750, high 1100
 Write a few hostile groups and patrols in each region. The master can move a patrol with `meanwhile`.
+Put one or two people willing to sign on for pay in each settled region, so a lone player can hire help.
 STAT BLOCKS (id by challenge rating)
 CR 0, 10 XP each: awakened-shrub, baboon, badger, bat, cat, commoner, crab, deer, eagle, frog, giant-fire-beetle, goat, hawk, homunculus, hyena, jackal, lemure, lizard, owl, piranha, rat, raven, scorpion, seahorse, shrieker-fungus, spider, vulture, weasel
 CR 1/8, 25 XP each: bandit, camel, cultist, flying-snake, giant-crab, giant-rat, giant-weasel, goblin-minion, guard, kobold-warrior, mastiff, mule, noble, pony, venomous-snake, warrior-infantry

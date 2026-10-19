@@ -15,6 +15,12 @@
     "trace": "Kael[player]: Search the mill floor — Investigation 5 vs DC 15",
     "told": false,
     "card": "",
+    "dice": []
+  },
+  {
+    "trace": "the player Kael[player]: Search the mill floor — Investigation → failure",
+    "told": true,
+    "card": "Search the mill floor — Investigation → failure",
     "dice": [
       {
         "label": "Investigation",
@@ -27,12 +33,6 @@
         "highlight": []
       }
     ]
-  },
-  {
-    "trace": "the player Kael[player]: Search the mill floor — Investigation → failure",
-    "told": true,
-    "card": "Search the mill floor — Investigation → failure",
-    "dice": []
   },
   {
     "trace": "learned of Hidden snare[snare]",

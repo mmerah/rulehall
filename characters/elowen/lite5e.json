@@ -16,6 +16,8 @@
       "subspecies_id": "elven-lineage-high-elf",
       "species_ability": "intelligence",
       "background_id": "sage",
+      "background_name": "Sage",
+      "background_brief": "You spent your youth among books and scholars.",
       "base_scores": {
         "intelligence": 15,
         "constitution": 14,

@@ -24,6 +24,8 @@ type AnyCharacter = Character[Any]
 type AnyGame = Game[Any]
 type Check[T] = Callable[[T], object]
 
+MASTER_NOTES_KEPT = 20
+
 
 class ScenarioDescription(Frozen):
     title: str
@@ -87,6 +89,7 @@ class Game[W: BaseModel](Mutable):
     # `exclude=True` keeps it out of every save, so `restore` only refuses a hand-edited one.
     request: WorldsmithRequest | None = Field(default=None, exclude=True)
     notes: list[str] = Field(default_factory=list)
+    master_notes: list[str] = Field(default_factory=list)
     unnarrated: list[Fact] = Field(default_factory=list)
     chapters: list[Chapter] = Field(default_factory=list)
     world: W
@@ -94,8 +97,15 @@ class Game[W: BaseModel](Mutable):
     def note(self, text: str) -> None:
         self.notes.append(text)
 
+    def remember(self, note: str) -> None:
+        self.master_notes.append(note)
+        del self.master_notes[:-MASTER_NOTES_KEPT]
+
     def log_entries(self) -> tuple[LogEntry, ...]:
         return tuple(entry for chapter in self.chapters for entry in chapter.entries)
+
+    def turn_number(self) -> int:
+        return len(self.log_entries()) + 1
 
     def last_words(self) -> str:
         return next(

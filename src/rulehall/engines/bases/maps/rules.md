@@ -40,6 +40,7 @@ to make such a scene easier.
 
 When a turn shows ELSEWHERE, call `meanwhile` before `direct`. Move the people of the world toward
 what they want. Most calls move nobody toward the player. An empty list means that nothing moves.
+Say why each change happened in `direct`'s `secret`.
 
 A dweller at a place marked "next to the player" can walk in now. The player sees a change at their
 place only when they know what changed. A stranger who walks in stays unseen until you reveal them.
