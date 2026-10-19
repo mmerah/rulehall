@@ -78,13 +78,13 @@ class ActionSpec(Frozen):
     heals_half_dealt: bool = False
     missed_damage_parts: int = Field(default=0, ge=0)
 
-    def summary(self) -> str:
+    def summary_parts(self) -> list[str]:
         parts: list[str] = []
         if self.to_hit is not None:
             parts.append(f"{self.to_hit:+d} to hit")
         if self.save is not None:
-            half = ", half on a success" if self.half_on_save else ""
-            parts.append(f"DC {self.save.dc} {self.save.ability.title()} save{half}")
+            half = " · ½" if self.half_on_save else ""
+            parts.append(f"DC {self.save.dc} {self.save.ability[:3].title()}{half}")
         if self.area is not None:
             parts.append(self.area.text())
         elif self.range_feet is not None:
@@ -95,7 +95,7 @@ class ActionSpec(Frozen):
             bonus = f"{self.healing.bonus:+d}" if self.healing.bonus else ""
             parts.append(f"heals {self.healing.dice}{bonus}")
         parts.extend(found for rider in self.riders if (found := rider.summary()))
-        return " · ".join(parts)
+        return parts
 
 
 class SpellNumbers(Frozen):

@@ -83,7 +83,6 @@ def render_master(
     *,
     notes: Sequence[str] = (),
 ) -> Prompt:
-    played = len(state.log_entries())
     return Prompt(
         system=sections(
             (
@@ -96,7 +95,11 @@ def render_master(
                 *_scenario_sections(state),
                 ("THE SCOPE OF PLAY", state.scenario_description.scope),
                 *engine_sections,
-                (f"RECENT PLAY (turn {played + 1})", render_log(state.chapters)),
+                *section_if(
+                    "YOUR PRIVATE NOTES (only you see these; oldest first)",
+                    "\n".join(f"- {note}" for note in state.master_notes),
+                ),
+                (f"RECENT PLAY (turn {state.turn_number()})", render_log(state.chapters)),
                 ("NOTES FROM THE RULES", lines_of(f"- {note}" for note in notes)),
                 ("PLAYER ACTION", action),
             )

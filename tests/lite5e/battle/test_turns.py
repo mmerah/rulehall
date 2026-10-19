@@ -31,7 +31,7 @@ from rulehall.engines.lite5e.battle.turns import (
     surrender,
     toggle_auto,
 )
-from rulehall.engines.lite5e.battle.views import battle_view
+from rulehall.engines.lite5e.battle.views import BattleChoice, battle_view
 from rulehall.engines.lite5e.sheet import Lite5ePerson
 
 
@@ -101,9 +101,11 @@ def _companion_turn() -> Fight:
 
 def test_a_companion_s_plans_read_as_action_and_target_names() -> None:
     view = battle_view(_companion_turn(), live=True, thinking=False, aiming="", picks=())
-    plans = [(choice.name, choice.brief) for choice in view.choices if choice.kind == "plan"]
+    plans = [(choice.name, choice.stats) for choice in view.choices if choice.kind == "plan"]
     assert plans and all("-" not in name for name, _ in plans)
-    assert ("Spear", "Wolf-1") in plans
+    assert ("Spear", ("Wolf-1",)) in plans
+    spear = next(choice for choice in view.choices if choice.name == "Spear")
+    assert spear.category == "attacks"
 
 
 def test_auto_turned_on_in_a_companion_s_own_turn_plays_that_turn() -> None:
@@ -231,3 +233,52 @@ def test_extra_attack_gives_two_attacks_for_one_action() -> None:
     _ = play(f, "act longsword", "ogre")
     with pytest.raises(Refusal, match="no pick"):
         _ = play(f, "act longsword", "ogre")
+
+
+def test_a_spell_family_grids_its_damage_types_by_metamagic() -> None:
+    sorcerer = member("player", "sorcerer", level=3)
+    sheet = sorcerer.require_sheet()
+    sheet.picks["metamagic"] = ["quickened"]
+    f = fight([(sorcerer, "back")], [foe("wolf-1", "wolf")], Random(1))
+    kinds = ("acid", "cold", "fire", "lightning", "poison", "psychic", "thunder")
+
+    head = _burst_head(f)
+    assert head.options == ("", "Quickened · 2 SP")
+    assert [(way.variant, way.commands) for way in head.ways] == [
+        (kind.title(), (f"act sorcerous-burst+{kind}", f"bonus sorcerous-burst+{kind}+quickened"))
+        for kind in kinds
+    ]
+
+    sheet.spend_use("sorcery-points", sheet.uses_left("sorcery-points"))
+    head = _burst_head(f)
+    assert head.options == ("", "Quickened · 2 SP")
+    assert [way.commands for way in head.ways] == [
+        (f"act sorcerous-burst+{kind}", None) for kind in kinds
+    ]
+
+
+def _burst_head(f: Fight) -> BattleChoice:
+    view = battle_view(f, live=True, thinking=False, aiming="", picks=())
+    return next(c for c in view.choices if c.name == "Sorcerous Burst" and not c.family)
+
+
+def test_shove_folds_its_two_ways_under_one_family() -> None:
+    f = fight([(_hero(), "front")], [foe("wolf-1", "wolf")], Random(1))
+    view = battle_view(f, live=True, thinking=False, aiming="", picks=())
+    shoves = [choice for choice in view.choices if choice.name == "Shove"]
+    assert [(choice.command, choice.variant, choice.family) for choice in shoves] == [
+        ("act shove-prone", "Knock prone", ""),
+        ("act shove-push", "Push", "act shove-prone"),
+    ]
+
+
+def test_the_budget_and_pools_show_only_in_a_member_s_turn() -> None:
+    wizard = member("player", "wizard", level=3)
+    f = fight([(wizard, "front")], [foe("wolf-1", "wolf")], Random(1))
+    view = battle_view(f, live=True, thinking=False, aiming="", picks=())
+    assert view.budget is not None and view.budget.action and not view.budget.attacks_left
+    slots = [(pool.name, pool.left, pool.maximum, pool.slot_level) for pool in view.pools]
+    assert ("1st", 4, 4, 1) in slots
+    _ = end_turn(f)
+    foes_turn = battle_view(f, live=True, thinking=False, aiming="", picks=())
+    assert foes_turn.budget is None and not foes_turn.pools

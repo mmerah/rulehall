@@ -43,16 +43,16 @@ def test_a_group_never_joins_whole(engine: Lite5eEngine) -> None:
     assert draft.world.party_ids == [f"{BANDITS}-2"]
 
 
-def test_a_follower_cannot_be_hired_past_the_two_companions(engine: Lite5eEngine) -> None:
-    draft = _game(engine, world(*(person(person_id, GATE) for person_id in ("a", "b", "c"))))
-    for person_id in ("a", "b"):
+def test_a_follower_cannot_be_hired_past_the_three_companions(engine: Lite5eEngine) -> None:
+    draft = _game(engine, world(*(person(person_id, GATE) for person_id in ("a", "b", "c", "d"))))
+    for person_id in ("a", "b", "c"):
         hired = draft.world.npcs[person_id]
         draft.world.join(hired)
         _ = engine.sign_on(draft, hired, HireAnswer(hire=StatBlockHire(kind="stat_block")))
-    _ = engine.join_party(draft, HireOrJoin(target_id="c"), Random(1))
+    _ = engine.join_party(draft, HireOrJoin(target_id="d"), Random(1))
 
-    with pytest.raises(Refusal, match="2 hired companions at most"):
-        _ = engine.join_party(draft, HireOrJoin(target_id="c", terms="pay"), Random(1))
+    with pytest.raises(Refusal, match="3 hired companions at most"):
+        _ = engine.join_party(draft, HireOrJoin(target_id="d", terms="pay"), Random(1))
 
 
 def test_a_companion_who_rejoins_comes_up_to_the_party_level(engine: Lite5eEngine) -> None:

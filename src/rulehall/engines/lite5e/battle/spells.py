@@ -148,8 +148,8 @@ def spell_variant_ids(sheet: Lite5eSheet, spell_id: Slug) -> tuple[str | None, .
     points = sheet.uses_left("sorcery-points")
     options = [
         option
-        for option in sheet.metamagic_ids()
-        if srd().character_options.metamagic[option].cost <= points and _fits(spell, option)
+        for option in fitting_metamagic(sheet, spell)
+        if srd().character_options.metamagic[option].cost <= points
     ]
     return (
         *bases,
@@ -159,6 +159,10 @@ def spell_variant_ids(sheet: Lite5eSheet, spell_id: Slug) -> tuple[str | None, .
             for base in bases
         ),
     )
+
+
+def fitting_metamagic(sheet: Lite5eSheet, spell: Spell) -> tuple[MetamagicId, ...]:
+    return tuple(option for option in sheet.metamagic_ids() if _fits(spell, option))
 
 
 def base_variant_ids(spell: Spell) -> tuple[str | None, ...]:

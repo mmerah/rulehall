@@ -7,6 +7,7 @@ from rulehall.core.validation import Frozen, Slug
 
 ACTOR = "Exact id of a hired party member here who acts. Null for the player."
 NAME_MAX = 48
+MASTER_NOTE_MAX = 300
 BE_SHORT = f"Name it in three or four words, never more than {NAME_MAX} characters."
 ShortName = Annotated[PlayerFacing, Field(max_length=NAME_MAX)]
 
@@ -56,5 +57,14 @@ class Direct(Frozen):
             "choice. For a request or warning, give what the person wants and the reason they "
             "share. Use facts the player can know now. Identify claims and unknown reasons as "
             "such. Keep every outcome consistent with tool results."
+        ),
+    )
+    secret: str = Field(
+        default="",
+        max_length=MASTER_NOTE_MAX,
+        description=(
+            "Private notes for your later turns, never told to the narrator or the player: why "
+            "you moved people or things, what someone hides or plans, what you set up to pay off "
+            "later. Empty when there is nothing new to keep."
         ),
     )

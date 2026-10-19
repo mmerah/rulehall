@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from pydantic import JsonValue
 
@@ -7,6 +7,7 @@ from rulehall.core.validation import Slug
 from rulehall.core.views import Meter, Panel, PanelRow, PanelRows, Score, Tag
 from rulehall.engines.lite5e.args import GearUseKind
 from rulehall.engines.lite5e.data import (
+    Ability,
     Armor,
     FeatureUse,
     Gear,
@@ -14,6 +15,7 @@ from rulehall.engines.lite5e.data import (
     Weapon,
     srd,
 )
+from rulehall.engines.lite5e.pack import Background
 from rulehall.engines.lite5e.rules import (
     ABILITIES,
     FONT_OF_MAGIC,
@@ -22,6 +24,7 @@ from rulehall.engines.lite5e.rules import (
     MADE_SLOT_COST,
     MADE_SLOT_SORCERER_LEVEL,
     MAX_LEVEL,
+    MAX_SCORE,
     SKILL_ABILITY,
     XP_FOR_LEVEL,
     FormationRow,
@@ -74,11 +77,12 @@ SHEET_HELP = {
     "Price": "What the shop asks for it. A shop pays half.",
     "Row": "The row this member starts a battle in. The front row fights in melee.",
 }
+BackgroundLookup = Callable[[Slug], Background]
 LEVEL_UP = "level-up"
 FORMATION_ROWS: tuple[FormationRow, ...] = ("front", "back")
 
 
-def sheet_panel(world: Lite5eWorld) -> Panel:
+def sheet_panel(world: Lite5eWorld, require_background: BackgroundLookup) -> Panel:
     player = world.player
     sheet = player.require_sheet()
     upcoming = (
@@ -87,16 +91,17 @@ def sheet_panel(world: Lite5eWorld) -> Panel:
     return character_panel(
         player.subject(),
         (
-            *_member_rows(world, player),
+            *_member_rows(world, player, require_background),
             _coins_row(sheet),
             PanelRow(name="XP", brief=upcoming, help=SHEET_HELP["XP"]),
         ),
     )
 
 
-def party_panel(world: Lite5eWorld) -> Panel | None:
+def party_panel(world: Lite5eWorld, require_background: BackgroundLookup) -> Panel | None:
     return shared_party_panel(
-        world.hired_party_members(), lambda member: _member_rows(world, member)
+        world.hired_party_members(),
+        lambda member: _member_rows(world, member, require_background),
     )
 
 
@@ -116,7 +121,11 @@ def gear_panel(world: Lite5eWorld) -> Panel:
     )
 
 
-def person_rows(person: Lite5ePerson, world: Lite5eWorld | None = None) -> PanelRows:
+def person_rows(
+    person: Lite5ePerson,
+    require_background: BackgroundLookup,
+    world: Lite5eWorld | None = None,
+) -> PanelRows:
     sheet = person.sheet
     if sheet is None:
         block = person.stat_block()
@@ -128,14 +137,23 @@ def person_rows(person: Lite5ePerson, world: Lite5eWorld | None = None) -> Panel
             ),
             _hp_row(person),
         )
+    background = require_background(sheet.background_id)
     return (
         *text_rows("Class", SHEET_HELP["Class"], f"{sheet.srd_class().name} {sheet.level}"),
-        *text_rows("Species", "", _species_name(sheet)),
-        *text_rows(
-            "Background", SHEET_HELP["Background"], sheet.background_id.replace("-", " ").title()
+        *tag_list("Species", "", [_species_tag(sheet)]),
+        *tag_list(
+            "Background",
+            SHEET_HELP["Background"],
+            [
+                described_tag(
+                    background.name,
+                    background.brief,
+                    stat_line=_background_grants(sheet),
+                )
+            ],
         ),
         _hp_row(person),
-        *score_block("Abilities", SHEET_HELP["Abilities"], _ability_scores(sheet)),
+        *score_block("Abilities", SHEET_HELP["Abilities"], _ability_scores(sheet, background)),
         *score_block("Defense", SHEET_HELP["Defense"], _defense_scores(sheet)),
         *score_block("Resources", SHEET_HELP["Resources"], _resource_scores(sheet)),
         *_slot_rows(sheet),
@@ -171,6 +189,14 @@ def level_pick_option(sheet: Lite5eSheet, kind: LevelPickKind, pick_id: Slug) ->
         name=sheet.level_pick_name(kind, pick_id),
         brief=srd().require_spell(pick_id).brief() if spell else "",
     )
+
+
+def use_source(sheet: Lite5eSheet, use: FeatureUse) -> tuple[str, str]:
+    options = srd().character_options
+    source_id = options.feature_uses[use].source_id or f"{sheet.class_id}-{use}"
+    traits = [trait for trait in sheet.traits() if use in trait.trait_id]
+    source = options.features.get(source_id) or options.feats.get(source_id) or traits[0]
+    return source.name, source.description
 
 
 def _spell_tag(spell_id: Slug) -> Tag:
@@ -241,27 +267,56 @@ def _armor_summary(armor: Armor) -> str:
     return f"{armor.category.title()} armor: AC {armor.base_ac}{dexterity}{stealth}"
 
 
-def _species_name(sheet: Lite5eSheet) -> str:
+def _species_tag(sheet: Lite5eSheet) -> Tag:
     species = srd().character_options.species[sheet.species_id]
-    if sheet.subspecies_id is None:
-        return species.name
-    return f"{species.name} ({species.subspecies[sheet.subspecies_id].name})"
+    name = species.name
+    if sheet.subspecies_id is not None:
+        name = f"{name} ({species.subspecies[sheet.subspecies_id].name})"
+    return described_tag(
+        name,
+        f"Speed {species.speed} ft.",
+        stat_line=", ".join(trait.name for trait in sheet.traits()),
+    )
 
 
-def _ability_scores(sheet: Lite5eSheet) -> tuple[Score, ...]:
+def _background_grants(sheet: Lite5eSheet) -> str:
+    increases = " ".join(
+        f"+{amount} {ability[:3].upper()}" for ability, amount in sheet.background_increases.items()
+    )
+    return " · ".join(
+        (
+            f"Skills {', '.join(skill_name(skill) for skill in sheet.background_skills)}",
+            f"Tool {gear_name(sheet.background_tool_id)}",
+            f"Feat {srd().character_options.feats[sheet.background_feat_id].name}",
+            increases,
+        )
+    )
+
+
+def _score_breakdown(sheet: Lite5eSheet, background: Background, ability: Ability) -> str:
+    parts = " + ".join(
+        f"{amount} {label}" + (f" ({background.name})" if label == "background" else "")
+        for label, amount in sheet.score_parts(ability)
+    )
+    return f"{sheet.score(ability)} = {parts} (max {MAX_SCORE})."
+
+
+def _ability_scores(sheet: Lite5eSheet, background: Background) -> tuple[Score, ...]:
     saves = sheet.srd_class().saving_throws
     scores: list[Score] = []
     for ability in ABILITIES:
         modifier = sheet.modifier(ability)
         save = sheet.save_bonus(ability)
         proficient = ability in saves
+        breakdown = _score_breakdown(sheet, background, ability)
         scores.append(
             Score(
                 name=ability[:3].upper(),
                 value=str(sheet.score(ability)),
                 note=f"{modifier:+d} · save {save:+d}" if proficient else f"{modifier:+d}",
-                help=f"{ability.title()} {sheet.score(ability)}, modifier {modifier:+d}. "
+                help=f"{breakdown} Modifier {modifier:+d}. "
                 f"Saving throw {save:+d}{', proficient' if proficient else ''}.",
+                detail=breakdown,
             )
         )
     return tuple(scores)
@@ -336,7 +391,7 @@ def _slot_rows(sheet: Lite5eSheet) -> PanelRows:
         Meter(
             name=f"L{level}",
             current=sheet.slots_left(level),
-            maximum=total + sheet.made_slots.get(level, 0),
+            maximum=sheet.slot_maximum(level),
             look="pips",
         )
         for level, total in enumerate(slot_totals, 1)
@@ -348,7 +403,7 @@ def _slot_rows(sheet: Lite5eSheet) -> PanelRows:
 
 
 def _use_score(sheet: Lite5eSheet, use: FeatureUse, note: str) -> Score:
-    name, text = _use_source(sheet, use)
+    name, text = use_source(sheet, use)
     return Score(
         name=name,
         value=f"{sheet.uses_left(use)}/{sheet.use_limit(use)}",
@@ -356,14 +411,6 @@ def _use_score(sheet: Lite5eSheet, use: FeatureUse, note: str) -> Score:
         help=first_sentence(text),
         detail=text,
     )
-
-
-def _use_source(sheet: Lite5eSheet, use: FeatureUse) -> tuple[str, str]:
-    options = srd().character_options
-    source_id = options.feature_uses[use].source_id or f"{sheet.class_id}-{use}"
-    traits = [trait for trait in sheet.traits() if use in trait.trait_id]
-    source = options.features.get(source_id) or options.feats.get(source_id) or traits[0]
-    return source.name, source.description
 
 
 def _spell_rows(sheet: Lite5eSheet) -> PanelRows:
@@ -478,8 +525,10 @@ def _condition_tags(member: Lite5ePerson) -> tuple[Tag, ...]:
     return (*(described_tag(entry.name, entry.description) for entry in held), *exhausted)
 
 
-def _member_rows(world: Lite5eWorld, member: Lite5ePerson) -> PanelRows:
-    return (*person_rows(member, world), _formation_row(member))
+def _member_rows(
+    world: Lite5eWorld, member: Lite5ePerson, require_background: BackgroundLookup
+) -> PanelRows:
+    return (*person_rows(member, require_background, world), _formation_row(member))
 
 
 def _coins_row(sheet: Lite5eSheet) -> PanelRow:

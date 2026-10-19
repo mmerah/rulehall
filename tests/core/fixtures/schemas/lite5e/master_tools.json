@@ -42,6 +42,11 @@
         "text": {
           "description": "Brief factual notes for the narrator to phrase. Answer each question in the player action. Include the result, its known reason, and details needed for the next choice. For a request or warning, give what the person wants and the reason they share. Use facts the player can know now. Identify claims and unknown reasons as such. Keep every outcome consistent with tool results.",
           "type": "string"
+        },
+        "secret": {
+          "default": "",
+          "description": "Private notes for your later turns, never told to the narrator or the player: why you moved people or things, what someone hides or plans, what you set up to pay off later. Empty when there is nothing new to keep.",
+          "type": "string"
         }
       },
       "required": [
@@ -286,7 +291,7 @@
   },
   {
     "name": "join_party",
-    "description": "Make a person here travel with the player. Set `terms` when the player hires them to work, also someone who already travels with the player: the worldsmith writes their sheet at the end of the turn, and nothing more happens this turn. Leave `terms` empty for someone who only comes along. The party holds two hired companions at most. A group never joins whole: one person steps out of it and joins.",
+    "description": "Make a person here travel with the player. Set `terms` when the player hires them to work, also someone who already travels with the player: the worldsmith writes their sheet at the end of the turn, and nothing more happens this turn. Leave `terms` empty for someone who only comes along. The party holds three hired companions at most. A group never joins whole: one person steps out of it and joins.",
     "parameters": {
       "additionalProperties": false,
       "properties": {

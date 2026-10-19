@@ -53,12 +53,40 @@ async def test_the_screen_draws_the_battle_plays_the_foe_turns_by_itself_and_sen
     assert _battle(table).phase == "member"
     assert _battle(table).turn_index > 0
     assert len(_classed(panel, "game-lite5e-card")) == len(_battle(table).combatants)
-    assert {"end", "surrender"} <= set(panel.choice_buttons)
+    assert "end" in panel.choice_buttons
 
     await panel._choose("end")  # pyright: ignore[reportPrivateUsage]
 
     assert _battle(table).phase == "foes"
     assert panel.column.visible
+
+
+async def test_a_family_tile_opens_its_ways_and_a_way_sends_its_command(
+    tmp_path: Path, page: Callable[[], Client]
+) -> None:
+    table = _in_battle(tmp_path)
+    page()
+    panel = Lite5eBattleScreen(
+        ScreenHost(session=table.session, sounds=Sounds(), on_toggle=lambda: None)
+    )
+    panel.build_banner()
+    drawn = table.session.snapshot()
+    panel.build(drawn)
+    panel.show()
+    for _ in range(len(_battle(table).order) + 2):
+        drawn = await _synced(panel, drawn)
+        if _battle(table).phase == "member":
+            break
+    drawn = await _synced(panel, drawn)
+
+    await panel._pick_tab("attacks")  # pyright: ignore[reportPrivateUsage]
+    await panel._select("act shove-prone")  # pyright: ignore[reportPrivateUsage]
+    assert {"act shove-prone", "act shove-push"} <= panel.choice_buttons.keys()
+
+    await panel._choose("act shove-push")  # pyright: ignore[reportPrivateUsage]
+    _ = await _synced(panel, drawn)
+
+    assert panel.shown_view is not None and panel.shown_view.aiming == "act shove-push"
 
 
 async def test_a_closed_page_leaves_the_foe_turn_to_the_pages_still_open(

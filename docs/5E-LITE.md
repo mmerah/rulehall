@@ -1,6 +1,6 @@
 # 5e Lite
 
-A cut of the fifth edition rules from the System Reference Document 5.2.1 (the 2024 rules): one hero and up to two hired companions, levels 1 to 5, and turn-based battles on a battle screen. Outside a battle the master tells the story and names words, not numbers, to its tools. Inside a battle the player plays the party, the opponent role plays the foes, and code resolves every action.
+A cut of the fifth edition rules from the System Reference Document 5.2.1 (the 2024 rules): one hero and up to three hired companions, levels 1 to 5, and turn-based battles on a battle screen. Outside a battle the master tells the story and names words, not numbers, to its tools. Inside a battle the player plays the party, the opponent role plays the foes, and code resolves every action.
 
 ## Official sources
 
@@ -123,7 +123,7 @@ Every divergence between the code and SRD 5.2.1, with the reason it stands. A ru
 39. **Heroic Inspiration once between long rests.** The master gives Heroic Inspiration to a member at most once between long rests. This is because the SRD leaves the gift to the GM, and a model gives it too often.
 40. **Rest pacing without a clock.** A long rest needs a battle or a first visit to a place since the last one, and two short rests at most come between long rests. No rest while a hostile person is here or one open way away. At a long rest, a hostile group with a path to the party breaks it on a 1 on a d6. This is because the game has no hours: a battle or a new place stands in for the 16-hour limit, and a die, not the master, decides an interruption.
 41. **XP goes to the hero, and the party levels with the hero.** A battle pays the XP of the foes that dropped, surrendered or fled, split equally among the members alive at its end, rounded down; the hero gains its share. A goal pays the hero the XP budget of its size at the party's level. A group whose XP was paid, such as captives or a routed group, gives none again. Every member levels up when the hero does. This is because the SRD does not say how hired companions count, and a rout should never cost the party.
-42. **The player plays the companions.** A companion is a class companion built at the party's level, or a stat-block companion of CR up to 1/4 at level 1, 1 at levels 2-3 and 2 at levels 4-5. Auto plays a companion for a player who does not want to. This is because the SRD has one player per character and no rule for monster companions, and the cap keeps one from outfighting the party.
+42. **The player plays the companions.** A companion is a class companion built at the party's level, or a stat-block companion of CR up to 1/2 at level 1, 1 at levels 2-3 and 2 at levels 4-5. Auto plays a companion for a player who does not want to. This is because the SRD has one player per character and no rule for monster companions, and the cap keeps one from outfighting the party.
 
 ### Also narrowed
 

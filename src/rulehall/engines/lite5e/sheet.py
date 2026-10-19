@@ -124,6 +124,7 @@ DEATH_SAVE = "death save"
 ROUTED_NAME_SUFFIX = ", routed"
 
 type EquipSlot = Literal["body", "shield", "weapon"]
+type ScorePart = Literal["base", "background", "level-up"]
 type DeathSaveOutcome = Literal["success", "failure", "stable", "revived", "dead"]
 
 SKILL_PICK_KINDS: tuple[LevelPickKind, ...] = (
@@ -467,8 +468,15 @@ class Lite5eSheet(Mutable):
         return self.class_level().proficiency_bonus
 
     def score(self, ability: Ability) -> int:
-        raised = self.base_scores[ability] + self.background_increases.get(ability, 0)
-        return min(raised + self.pick_ids("ability").count(ability), MAX_SCORE)
+        return min(sum(amount for _, amount in self.score_parts(ability)), MAX_SCORE)
+
+    def score_parts(self, ability: Ability) -> tuple[tuple[ScorePart, int], ...]:
+        parts: tuple[tuple[ScorePart, int], ...] = (
+            ("base", self.base_scores[ability]),
+            ("background", self.background_increases.get(ability, 0)),
+            ("level-up", self.pick_ids("ability").count(ability)),
+        )
+        return tuple(part for part in parts if part[1])
 
     def modifier(self, ability: Ability) -> int:
         return modifier(self.score(ability))
@@ -782,11 +790,13 @@ class Lite5eSheet(Mutable):
     def spell_attack_bonus(self, spell_id: Slug) -> int:
         return self.modifier(self.spell_ability(spell_id)) + self.proficiency_bonus()
 
-    def slots_left(self, slot_level: int) -> int:
+    def slot_maximum(self, slot_level: int) -> int:
         slot_totals = self.class_level().slots
         total = 0 if slot_totals is None else slot_totals[slot_level - 1]
-        made = self.made_slots.get(slot_level, 0)
-        return total + made - self.slots_spent.get(slot_level, 0)
+        return total + self.made_slots.get(slot_level, 0)
+
+    def slots_left(self, slot_level: int) -> int:
+        return self.slot_maximum(slot_level) - self.slots_spent.get(slot_level, 0)
 
     def spend_slot(self, slot_level: int) -> None:
         if self.slots_left(slot_level) <= 0:

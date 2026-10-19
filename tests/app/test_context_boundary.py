@@ -1,6 +1,6 @@
-from support.table import ENGINES_BUILT, TWENTYFOURXX, game, narrowed, refused
+from support.table import ENGINES_BUILT, TWENTYFOURXX, change, game, narrowed, refused
 
-from rulehall.app.role_prompts import render_master, render_narrator
+from rulehall.app.role_prompts import render_debrief, render_master, render_narrator
 from rulehall.app.turn import ANSWERED_BY_OPTION
 from rulehall.core.log import Chapter, LogEntry, SpokenLine
 from rulehall.core.narration import NarratorView
@@ -131,3 +131,34 @@ def test_a_direction_that_names_someone_the_player_has_not_met_is_refused() -> N
     reason = refused(_engine(), state.draft(), "direct", text="The Secret steps out of the dark.")
 
     assert "The Secret" in reason
+
+
+def test_a_direct_with_a_secret_stores_a_turn_stamped_note() -> None:
+    state = _state().draft()
+
+    _ = change(_engine(), state, "direct", text="The door opens.", secret="  The Secret waits.  ")
+
+    assert state.master_notes == ["turn 1: The Secret waits."]
+
+
+def test_a_direct_with_a_blank_secret_stores_no_note() -> None:
+    state = _state().draft()
+
+    _ = change(_engine(), state, "direct", text="The door opens.", secret="  ")
+
+    assert state.master_notes == []
+
+
+def test_a_private_note_reaches_the_master_and_no_other_role() -> None:
+    state = _state().draft()
+    state.remember("turn 1: the lantern is a lure")
+
+    master = _master_prompt(state, "I wait.").text
+    narrator = render_narrator(
+        _engine().narrator_view(state), state, evidence="- (nothing changed)", cue="I wait."
+    ).text
+    debrief = render_debrief(_engine().narrator_view(state), state).text
+
+    assert "YOUR PRIVATE NOTES (only you see these; oldest first)\n- turn 1: the lantern" in master
+    for other in (narrator, debrief):
+        assert "lantern is a lure" not in other

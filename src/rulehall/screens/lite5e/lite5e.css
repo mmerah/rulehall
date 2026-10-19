@@ -1,39 +1,248 @@
-/* The 5e Lite battle: the foe rows, the turn order, the party rows, the menu, then the fact cards. */
-.game-lite5e { overflow-y: auto; padding: .6rem .6rem calc(.6rem + env(safe-area-inset-bottom)) }
+/* The 5e Lite battle: the foes, the turn order, the dice ribbon, the party, then the command dock.
+   On a desktop or tablet the column fills the panel: the field keeps its size and the dock takes
+   the rest, scrolling its options and its detail inside. */
+.game-lite5e {
+  container: lite5e / inline-size; overflow-y: auto; overflow-x: hidden;
+  padding: .75rem .75rem calc(.75rem + env(safe-area-inset-bottom));
+}
+.game-lite5e > * { flex-shrink: 0 }
 .game-lite5e-thinking { align-self: center; padding: .25rem .8rem; border-radius: 999px; background: var(--game-accent-soft); color: var(--game-accent); font-size: .8rem; font-weight: 700 }
-.game-lite5e-field { display: flex; flex-direction: column; gap: .45rem }
-.game-lite5e-row { display: flex; flex-direction: column; gap: .25rem }
-.game-lite5e-row-name { color: var(--game-muted); font-size: .62rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase }
-.game-lite5e-row-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: .4rem }
+.game-lite5e-field { display: flex; flex-direction: column; gap: .5rem; width: 100%; padding-top: .55rem }
+
+/* Each side runs on one line; a card wraps only when the line cannot hold its least width. */
+.game-lite5e-side { display: flex; flex-wrap: wrap; gap: .55rem .4rem }
 .game-lite5e-card {
-  display: flex; align-items: center; gap: .55rem; min-width: 0;
-  padding: .3rem .65rem .35rem .45rem;
+  position: relative; flex: 1 1 0; min-width: 10.5rem; max-width: 24rem;
+  display: flex; align-items: center; gap: .5rem; min-height: 3.75rem;
+  padding: .4rem .6rem .4rem .45rem;
   background: var(--game-surface-raised);
   border: 1px solid var(--game-border-soft);
-  border-radius: calc(var(--game-radius) * .7);
+  border-radius: calc(var(--game-radius) * .8);
+  transition: border-color var(--game-fast) var(--game-ease), box-shadow var(--game-fast) var(--game-ease), opacity var(--game-fast) var(--game-ease);
 }
-.game-lite5e-card-current { border-color: color-mix(in srgb, var(--game-accent) 70%, transparent); box-shadow: inset 0 0 0 1px var(--game-accent-soft) }
-.game-lite5e-card-body { flex: 1 1 auto; min-width: 0 }
-.game-lite5e-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .4rem; min-width: 0 }
-.game-lite5e-card-name { min-width: 0; overflow-wrap: break-word; font-weight: 700; font-size: .9rem; line-height: 1.2 }
+.game-lite5e-card-foes { border-color: color-mix(in srgb, var(--game-danger) 22%, transparent) }
+.game-lite5e-card-current {
+  border-color: var(--game-accent);
+  box-shadow: 0 0 0 1px var(--game-accent-glow), 0 0 22px -8px var(--game-accent-glow);
+}
+.game-lite5e-now {
+  position: absolute; top: -.6rem; right: .5rem; padding: 0 .4rem; border-radius: 3px;
+  background: var(--game-accent); color: var(--game-bg);
+  font-size: .6rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+}
+.game-lite5e-card-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: .15rem }
+.game-lite5e-card:has(.game-lite5e-auto) .game-lite5e-card-body { padding-right: 3.2rem }
+.game-lite5e-card-name { font-weight: 700; font-size: .9rem; line-height: 1.2; overflow-wrap: break-word }
 .game-lite5e-card .game-tags { margin: 0; gap: .2rem }
-.game-lite5e-card .game-tag { font-size: .56rem; padding: 0 .45em }
-.game-lite5e-card .game-meters { margin: .2rem 0 0 }
-.game-lite5e-card .game-meter { grid-template-columns: 1.3rem 1fr auto; font-size: .72rem; margin: 0 }
-.q-btn.game-lite5e-auto { flex: none; font-size: .72rem }
-.game-lite5e-order {
-  display: flex; flex-wrap: wrap; align-items: center; gap: .3rem;
-  padding: .3rem .6rem; background: var(--game-wash); border: 1px solid var(--game-border-soft); border-radius: 999px;
+.game-lite5e-card .game-tag { font-size: .58rem; padding: 0 .45em }
+.game-lite5e-card .game-meters { margin: .1rem 0 0 }
+.game-lite5e-card .game-meter { grid-template-columns: 1fr auto; font-size: .72rem; margin: 0 }
+.q-btn.game-lite5e-auto { position: absolute; top: .3rem; right: .35rem; min-height: 1.75rem; padding: 0 .5rem; font-size: .72rem }
+
+/* Aiming: the cards a pick may land on light up, and a tap on one sends it. */
+.game-lite5e-aiming:has(.game-lite5e-card-target) .game-lite5e-card:not(.game-lite5e-card-target, .game-lite5e-card-current) { opacity: .5 }
+.game-lite5e-card-target { cursor: pointer; border-color: var(--game-accent-glow); box-shadow: 0 0 0 1px var(--game-accent-glow) }
+.game-lite5e-card-target:hover { border-color: var(--game-accent) }
+.game-lite5e-card-aimed { background: color-mix(in srgb, var(--game-accent) 18%, var(--game-surface-raised)); border-color: var(--game-accent) }
+.q-btn.game-lite5e-card-hit { position: absolute; inset: 0; z-index: 2; width: 100%; min-height: 0; padding: 0; border-radius: inherit; background: transparent }
+.game-lite5e-chance { position: absolute; top: .25rem; right: .45rem; color: var(--game-accent); font-size: .62rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase }
+.game-lite5e-picked {
+  position: absolute; right: -.4rem; bottom: -.5rem; z-index: 3; display: inline-flex; align-items: center; gap: .15rem;
+  padding: .05rem .45rem; border-radius: 999px; background: var(--game-accent); color: var(--game-bg);
+  font-size: .8rem; font-weight: 800; box-shadow: var(--game-shadow-sm);
 }
-.game-lite5e-round { color: var(--game-accent); font-size: .72rem; font-weight: 700; margin-right: .3rem }
-.game-lite5e-turn { color: var(--game-muted); font-size: .76rem }
-.game-lite5e-turn + .game-lite5e-turn:before { content: "›"; margin-right: .3rem; opacity: .6 }
-.game-lite5e-turn-current { color: inherit; font-weight: 700 }
-.game-lite5e-menu { display: flex; flex-direction: column; gap: .5rem }
-.game-lite5e-group { display: flex; flex-direction: column; gap: .3rem }
-.game-lite5e-group-name { color: var(--game-muted); font-size: .7rem; font-weight: 700 }
-.game-lite5e-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: .4rem }
-.game-lite5e-cards { display: flex; flex-direction: column; gap: .5rem }
-.game-lite5e-cards:empty { display: none }
-.game-battle-resolving .game-lite5e-auto { pointer-events: none }
-.game-lite5e-choices > .q-btn { min-width: 0 }
+.game-lite5e-picked .q-icon { font-size: .85rem }
+.game-battle-resolving .game-lite5e-auto, .game-battle-resolving .game-lite5e-card-hit { pointer-events: none }
+
+.game-lite5e-order { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .35rem; font-size: .78rem; color: var(--game-muted) }
+.game-lite5e-round { color: var(--game-accent); font-weight: 700; margin-right: .3rem; white-space: nowrap }
+.game-lite5e-turn { white-space: nowrap }
+.game-lite5e-turn-sep { font-size: .95rem; opacity: .5 }
+.game-lite5e-turn-current { color: var(--game-text); font-weight: 700; background: var(--game-accent-soft); padding: .05rem .5rem; border-radius: 999px }
+.game-lite5e-order-short { display: none }
+
+/* Each update draws its cards as one batch. Closed, the ribbon shows the newest batch with dice and
+   the dice-less batches after it, its dice cards side by side; a full redraw shows its last roll and
+   what followed. Open, the log scrolls every batch. */
+.game-lite5e-ribbon {
+  position: relative; padding: .5rem 5rem .5rem .7rem;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--game-die-body) 22%, var(--game-surface)), var(--game-surface));
+  border: 1px solid var(--game-border-soft); border-left: 3px solid var(--game-accent); border-radius: var(--game-radius);
+}
+.game-lite5e-ribbon:has(.game-lite5e-cards:empty) { display: none }
+.q-btn.game-lite5e-log-toggle { position: absolute; top: .4rem; right: .4rem; min-height: 2.25rem; font-size: .8rem }
+.game-lite5e-cards, .game-lite5e-batch { display: flex; flex-direction: column; gap: .4rem }
+.game-lite5e-ribbon .game-fact { min-width: 0; padding: 0; background: none; border: 0; box-shadow: none }
+.game-lite5e-ribbon .game-fact:before, .game-lite5e-ribbon .game-fact-icon { display: none }
+.game-lite5e-ribbon .game-fact-head { font-size: .92rem; overflow-wrap: break-word }
+.game-lite5e-ribbon:not(.game-lite5e-log-open) .game-lite5e-cards { flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: .5rem 1.25rem }
+.game-lite5e-ribbon:not(.game-lite5e-log-open) .game-lite5e-batch { display: contents }
+.game-lite5e-ribbon:not(.game-lite5e-log-open) .game-lite5e-batch:has(~ .game-lite5e-batch .game-die),
+.game-lite5e-ribbon:not(.game-lite5e-log-open) .game-lite5e-cards:not(:has(.game-die)) > .game-lite5e-batch:not(:last-child),
+.game-lite5e-ribbon:not(.game-lite5e-log-open) .game-lite5e-batch:not(.live) .game-fact:has(~ .game-fact .game-die) { display: none }
+.game-lite5e-ribbon:not(.game-lite5e-log-open) .game-fact { flex: 1 1 100% }
+.game-lite5e-ribbon:not(.game-lite5e-log-open) .game-fact:has(.game-die) {
+  flex: 1 1 17rem; flex-direction: row !important; flex-wrap: wrap; align-items: center; gap: .3rem .75rem !important;
+}
+.game-lite5e-ribbon:not(.game-lite5e-log-open) .game-fact:has(.game-die) > * { flex: 1 1 100% }
+.game-lite5e-ribbon:not(.game-lite5e-log-open) .game-fact:has(.game-die) > :first-child { flex: 1 1 10rem; min-width: 0 }
+.game-lite5e-ribbon:not(.game-lite5e-log-open) .game-fact:has(.game-die) > :last-child { order: -1; flex: 0 1 auto; flex-wrap: wrap !important; gap: .5rem !important }
+.game-lite5e-ribbon:not(.game-lite5e-log-open) .game-die { min-width: 2.9rem; --game-die-line: 2.1rem }
+.game-lite5e-ribbon:not(.game-lite5e-log-open) .game-die-value { font-size: 1.65rem }
+.game-lite5e-log-open .game-lite5e-log { display: flex; flex-direction: column-reverse; max-height: 22rem; overflow-y: auto }
+.game-lite5e-log-open .game-lite5e-batch + .game-lite5e-batch, .game-lite5e-log-open .game-fact + .game-fact { padding-top: .45rem; border-top: 1px solid var(--game-border-soft) }
+
+/* The dock: the turn's budget, the tabs, the options, and the detail that confirms one. */
+.game-lite5e-dock {
+  --game-meter: var(--game-accent);
+  flex: 1 1 0; min-height: 20rem; width: 100%; margin-top: .75rem; padding-top: .7rem;
+  display: flex; flex-direction: column; gap: .5rem; border-top: 1px solid var(--game-border-soft);
+}
+.game-lite5e-dock > * { flex-shrink: 0 }
+.game-lite5e-dock-wait, .game-lite5e-dock-aim { flex: none; min-height: 0 }
+.game-lite5e-dock-wait { flex-direction: row; flex-wrap: wrap; align-items: center; gap: .6rem 1rem }
+.game-lite5e-who { font-family: var(--game-heading); font-size: 1.2rem; font-weight: 600; line-height: 1.2 }
+.q-btn.game-lite5e-command { min-height: 2.6rem; padding: .3rem .9rem; font-size: .88rem; font-weight: 700 }
+.game-lite5e-budget { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem 1rem }
+.game-lite5e-econ { display: flex; flex-wrap: wrap; gap: .3rem }
+.game-lite5e-econ-pill {
+  display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 999px;
+  font-size: .76rem; font-weight: 700; color: var(--game-accent); background: var(--game-accent-soft); border: 1px solid var(--game-accent-glow);
+}
+.game-lite5e-econ-pill:before { content: ""; width: .5rem; height: .5rem; border-radius: 50%; background: currentColor }
+.game-lite5e-econ-pill.used { color: var(--game-muted); background: none; border-color: var(--game-border-soft); text-decoration: line-through }
+.game-lite5e-pools { order: 2; flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem 1rem }
+.game-lite5e-pool { display: inline-flex; align-items: center; gap: .35rem; font-size: .76rem; font-weight: 600; color: var(--game-muted) }
+.game-lite5e-pool-count { color: var(--game-accent); font-weight: 700; font-variant-numeric: tabular-nums }
+.game-lite5e-budget-end { margin-left: auto; display: flex; gap: .4rem }
+
+.game-lite5e-tabs {
+  display: flex; flex-wrap: wrap; gap: .25rem; padding: .25rem; border-radius: 8px;
+  background: color-mix(in srgb, var(--game-bg) 55%, transparent); border: 1px solid var(--game-border-soft);
+}
+.q-btn.game-lite5e-tab { flex: 1 1 auto; min-height: 2.6rem; padding: 0 .5rem; border-radius: 6px; font-size: .92rem; font-weight: 600 }
+.q-btn.game-lite5e-tab-on { background: var(--game-surface-raised); color: var(--game-accent) !important; box-shadow: var(--game-shadow-sm), var(--game-highlight) }
+
+.game-lite5e-dock-main { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: .75rem }
+.game-lite5e-browse { min-height: 0; display: flex; flex-direction: column; gap: .5rem }
+.game-lite5e-browse > .game-lite5e-tabs { flex: none }
+.game-lite5e-list { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: .4rem; padding-right: .2rem }
+.game-lite5e-tiles + .game-lite5e-level { margin-top: .6rem }
+.game-lite5e-level { display: flex; align-items: center; gap: .5rem; color: var(--game-muted); font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase }
+.game-lite5e-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: .4rem }
+.q-btn.game-lite5e-tile {
+  min-height: 3.6rem; padding: .4rem; text-align: left; color: var(--game-text) !important;
+  background: var(--game-surface); border: 1px solid var(--game-border-soft); border-radius: var(--game-radius);
+}
+.q-btn.game-lite5e-tile .q-btn__content {
+  display: grid; grid-template-columns: 2rem minmax(0, 1fr); column-gap: .5rem; justify-items: start; align-items: center; width: 100%; text-align: left;
+}
+.game-lite5e-tile-icon { grid-row: 1 / 3; justify-self: center; font-size: 1.5rem; color: var(--game-accent) }
+.game-lite5e-tile-head { display: flex; align-items: center; gap: .3rem; width: 100%; min-width: 0 }
+.game-lite5e-tile-name { flex: 1 1 auto; min-width: 0; font-weight: 700; font-size: .92rem; line-height: 1.25; overflow-wrap: break-word }
+.game-lite5e-tile-more { flex: none; font-size: 1.15rem; color: var(--game-accent) }
+.game-lite5e-tile-brief {
+  font-size: .76rem; color: var(--game-muted); line-height: 1.3; overflow-wrap: break-word;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.q-btn.game-lite5e-tile-on { border-color: var(--game-accent); background: var(--game-accent-soft); box-shadow: 0 0 0 1px var(--game-accent-glow) }
+
+/* The detail scrolls its text and keeps Confirm pinned at its bottom. */
+.game-lite5e-detail {
+  min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--game-surface); border: 1px solid var(--game-border-soft); border-radius: var(--game-radius);
+}
+.game-lite5e-detail-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: .45rem; padding: .7rem .8rem }
+.game-lite5e-detail-body > * { flex-shrink: 0 }
+.game-lite5e-detail-empty { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem; padding: .8rem; color: var(--game-muted) }
+.game-lite5e-detail-icon { font-size: 2rem; color: var(--game-accent) }
+.game-lite5e-detail-hint { font-size: .95rem; font-weight: 700 }
+.game-lite5e-detail-name { font-family: var(--game-heading); font-size: 1.3rem; font-weight: 600; line-height: 1.15 }
+.game-lite5e-stats { display: flex; flex-wrap: wrap; gap: .3rem }
+.game-lite5e-stat { padding: .2rem .5rem; border: 1px solid var(--game-border-soft); border-radius: calc(var(--game-radius) * .7); font-size: .8rem; font-weight: 600 }
+.game-lite5e-stat-bonus { color: var(--game-accent); border-color: var(--game-accent-glow); background: var(--game-accent-soft) }
+.game-lite5e-detail-text { font-size: .86rem; line-height: 1.55; color: color-mix(in srgb, var(--game-text) 85%, var(--game-muted)) }
+.game-lite5e-rules { margin: 0 -.4rem; border-radius: calc(var(--game-radius) * .7) }
+.game-lite5e-rules .q-item { min-height: 2.25rem; padding: 0 .4rem; color: var(--game-muted); font-size: .8rem; font-weight: 700 }
+.game-lite5e-rules .q-expansion-item__content { display: flex; flex-direction: column; gap: .4rem; padding: 0 .4rem .4rem }
+.game-lite5e-toggle { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem }
+.game-lite5e-option-label { margin-right: .2rem; color: var(--game-muted); font-size: .66rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase }
+.q-btn.game-lite5e-toggle-button { min-height: 2.25rem; padding: 0 .7rem; border-radius: 999px; border: 1px solid var(--game-border-soft); font-size: .8rem; font-weight: 600 }
+.q-btn.game-lite5e-toggle-on { color: var(--game-accent) !important; border-color: var(--game-accent-glow); background: var(--game-accent-soft) }
+.game-lite5e-variants { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: .35rem }
+.q-btn.game-lite5e-variant { min-height: 2.6rem; padding: .2rem .5rem; font-size: .84rem; font-weight: 700; line-height: 1.2 }
+.q-btn.game-lite5e-variant .q-btn__content { white-space: normal; overflow-wrap: break-word }
+.game-lite5e-confirm { flex: none; display: flex; gap: .4rem; padding: .55rem .8rem .7rem; border-top: 1px solid var(--game-border-soft); background: var(--game-surface) }
+.game-lite5e-confirm .primary { flex: 1 }
+.game-lite5e-confirm .q-btn__content { flex-wrap: nowrap; text-align: left; line-height: 1.2 }
+.game-lite5e-confirm .q-btn__content .block { white-space: normal; overflow-wrap: break-word }
+.q-btn.game-lite5e-cancel { flex: none; min-width: 2.75rem; min-height: 2.6rem; padding: 0 .6rem }
+
+/* Aiming and slot steps: the step, the slot buttons, Back and Done. */
+.game-lite5e-dock-aim {
+  flex-direction: row; flex-wrap: wrap; align-items: center; gap: .6rem; padding: .6rem .75rem;
+  background: color-mix(in srgb, var(--game-accent) 10%, var(--game-surface)); border: 1px dashed var(--game-accent-glow); border-radius: var(--game-radius);
+}
+.game-lite5e-aim-text { flex: 1 1 16rem; display: flex; align-items: center; gap: .55rem; min-width: 0 }
+.game-lite5e-aim-icon { flex: none; font-size: 1.6rem; color: var(--game-accent) }
+.game-lite5e-aim-step { color: var(--game-accent); font-weight: 700; font-size: 1rem; line-height: 1.3 }
+.game-lite5e-aim-repeat { flex: none; font-size: 1.2rem; color: var(--game-muted) }
+.game-lite5e-aim-actions { order: 1; display: flex; gap: .4rem; margin-left: auto }
+.game-lite5e-aim-picks { order: 2; flex: 0 0 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: .4rem }
+.q-btn.game-lite5e-option .q-btn__content { flex-direction: column; align-items: flex-start }
+.game-lite5e-option-name { font-weight: 700; font-size: .92rem }
+.game-lite5e-option-brief { font-size: .76rem; color: var(--game-muted) }
+
+/* A tablet keeps the detail beside the options, narrower. */
+@container lite5e (max-width: 759.98px) {
+  .game-lite5e-dock-main { grid-template-columns: minmax(0, 1fr) 18rem }
+}
+
+/* A phone keeps every size: two cards a line, the dock in the flow after the party, the latest
+   ribbon batch in compact lines, the selected detail as a bottom sheet, and the aiming bar at the
+   bottom. */
+@container lite5e (max-width: 599.98px) {
+  .game-lite5e-side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .game-lite5e-card { min-width: 0; max-width: none }
+  .game-lite5e-card:has(.game-lite5e-auto) .game-lite5e-card-body { padding-right: 0 }
+  .game-lite5e-card:has(.game-lite5e-auto) { padding-bottom: 2.4rem }
+  .q-btn.game-lite5e-auto { top: auto; bottom: .3rem }
+  .game-lite5e-order > :not(.game-lite5e-order-short) { display: none }
+  .game-lite5e-order-short { display: inline; color: var(--game-text); font-weight: 600 }
+  .game-lite5e-ribbon { padding-right: .7rem }
+  .q-btn.game-lite5e-log-toggle { position: static; float: right; margin: -.2rem -.3rem 0 .4rem }
+  .game-lite5e-ribbon:not(.game-lite5e-log-open) .game-fact .text-xs { display: none }
+  .game-lite5e-ribbon:not(.game-lite5e-log-open) .game-lite5e-cards { gap: .35rem 1rem }
+  .game-lite5e-dock { flex: none; min-height: 0 }
+  .game-lite5e-dock-wait { margin-top: auto }
+  .game-lite5e-dock-aim {
+    position: sticky; bottom: calc(-.75rem - env(safe-area-inset-bottom)); z-index: 5; margin-top: auto;
+    margin-bottom: calc(-.75rem - env(safe-area-inset-bottom)); padding-bottom: calc(.75rem + env(safe-area-inset-bottom));
+    border: 0; border-top: 1px solid var(--game-accent-glow); border-radius: 14px 14px 0 0; box-shadow: 0 -18px 40px -12px rgb(0 0 0 / .8);
+  }
+  .game-lite5e-aim-actions { flex: 1 1 100% }
+  .game-lite5e-aim-actions .q-btn { flex: 1; min-height: 3rem }
+  .game-lite5e-budget-end { order: 1 }
+  .game-lite5e-econ { order: 2; flex-basis: 100% }
+  .game-lite5e-pools { display: none }
+  .game-lite5e-browse { display: contents }
+  .game-lite5e-dock-main { flex: none; display: flex; flex-direction: column }
+  .game-lite5e-list { flex: none; overflow: visible; padding-right: 0 }
+  .game-lite5e-tiles { grid-template-columns: minmax(0, 1fr) }
+  .q-btn.game-lite5e-tile .q-btn__content { grid-template-columns: 1.6rem minmax(0, 1fr) }
+  .game-lite5e-detail { display: none }
+  .game-lite5e-dock-selected .game-lite5e-detail {
+    display: flex; position: sticky; bottom: calc(-.75rem - env(safe-area-inset-bottom)); z-index: 5; max-height: 85vh;
+    margin: 0 -.75rem calc(-.75rem - env(safe-area-inset-bottom)); border: 0; border-top: 1px solid var(--game-accent-glow);
+    border-radius: 14px 14px 0 0; box-shadow: 0 -18px 40px -12px rgb(0 0 0 / .8);
+  }
+  .game-lite5e-detail-body { padding: .8rem .75rem .6rem }
+  .game-lite5e-confirm { padding: .6rem .75rem calc(.75rem + env(safe-area-inset-bottom)) }
+  .game-lite5e-confirm .q-btn { min-height: 3rem }
+}
+
+/* A touch screen keeps no hover or focus look on a button after a tap. */
+@media (hover: none) {
+  .game-lite5e .q-btn .q-focus-helper { display: none }
+  .game-lite5e .game-choice:not(.disabled):hover { transform: none; box-shadow: none }
+}

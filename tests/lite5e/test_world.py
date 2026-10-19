@@ -60,6 +60,15 @@ def test_the_narrator_never_reads_a_persons_dc_or_passive_perception() -> None:
     assert "success" in told(facts)
 
 
+def test_a_hidden_dc_check_shows_dice_on_the_told_card_without_the_dc() -> None:
+    built = world()
+    facts = checked(built, 15, skill="perception", target_id=PURSE)
+    card = next(fact for fact in facts if fact.told and fact.card)
+    assert card.dice
+    assert "DC" not in told(facts)
+    assert all(not fact.dice for fact in facts if not fact.told)
+
+
 def test_a_search_reveals_and_a_failure_waits_for_a_move() -> None:
     built = world()
     with pytest.raises(Refusal, match="perception or investigation"):
@@ -123,6 +132,16 @@ def test_a_save_and_a_fall_stop_at_1_hp() -> None:
     sheet.vitals.hp.current = sheet.vitals.hp.maximum
     _ = harmed(built, 6, 6, 6, 6, 6, 6, kind="fall", falling_feet=60)
     assert sheet.vitals.hp.current == 1
+
+
+def test_a_trap_save_shows_dice_on_the_told_card_without_the_dc() -> None:
+    built = world()
+    _ = built.move(HALL, ())
+    facts = harmed(built, 10, 3, kind="trap", hazard_id=PIT)
+    card = next(fact for fact in facts if fact.told and fact.card)
+    assert card.dice
+    assert "DC" not in told(facts)
+    assert all(not fact.dice for fact in facts if not fact.told)
 
 
 def test_kill_takes_only_a_captive() -> None:
