@@ -71,6 +71,7 @@ class Composer:
         session: GameSession,
         now: SessionSnapshot,
         choose: Callable[[PlayerInput], Awaitable[bool]],
+        stop: Callable[[], Awaitable[None]],
         speech: Speech | None,
     ) -> None:
         self.session = session
@@ -130,6 +131,12 @@ class Composer:
                         .on("mousedown", js_handler=KEEP_FOCUS)
                     )
                     self.entry_controls += (self.send_button,)
+                    self.stop_button = (
+                        ui.button(icon="sym_r_stop", on_click=stop, color=None)
+                        .props('round flat aria-label="Stop the turn"')
+                        .classes("game-send game-stop")
+                        .on("mousedown", js_handler=KEEP_FOCUS)
+                    )
         self._clear_spent_draft(now)
         self._draw_chips()
         self._show(now, entering=False)
@@ -139,7 +146,8 @@ class Composer:
         self.lock = composer_lock(now)
         if len(now.log_entries) > len(drawn.log_entries):
             self._clear_spent_draft(now)
-        if self.armed not in self.view.standing_options:
+        # A running move passes through states that lack the option; a stop brings it back.
+        if not now.can_stop and self.armed not in self.view.standing_options:
             self.armed = None
         if offered(self.view) != offered(drawn.view):
             self._draw_chips()
@@ -213,6 +221,9 @@ class Composer:
             self._show_armed()
 
     def set_input(self, words: str = "") -> None:
+        # The box already shows them; `updateValue` would copy the stale client prop over them.
+        if words == self.words_input.value:
+            return
         self.words_input.value = words
         # Quasar never saw the value change, so only an explicit push empties the composer.
         self.words_input.run_method("updateValue")
@@ -290,7 +301,9 @@ class Composer:
         worded = lock != "choose" and (
             view.allows_text or any(option.needs_words for option in view.standing_options)
         )
-        self.input_row.set_visibility(worded)
+        self.input_row.set_visibility(worded or now.can_stop)
+        self.send_button.set_visibility(not now.can_stop)
+        self.stop_button.set_visibility(now.can_stop)
         for widget in self.entry_controls:
             widget.set_enabled(self.acting and worded)
         state: PromptState | None

@@ -1,4 +1,5 @@
 import logging
+from asyncio import CancelledError, Task, create_task, current_task
 from collections.abc import Generator
 from contextlib import contextmanager
 from copy import deepcopy
@@ -36,11 +37,23 @@ from rulehall.engines.engine import AnyEngine
 LOGGER = logging.getLogger(__name__)
 
 NOTHING_TO_REWIND = "there is no turn to rewind"
+TURN_STOPPED = "the turn was stopped"
 NO_WORDS_NOW = "the page takes one of its options now, not words"
 BATTLE_ON = "a battle is on: finish it on the battle screen"
 NOTHING_TO_UNDO = "there is no edit to undo"
 NOT_AN_EDIT = "{name} is not an edit now"
 GAME_OVER_FOR_PLAYER = "the game is over ({ending}): it continues only after a restart"
+
+
+class TurnStopped(Refusal):
+    def __init__(self) -> None:
+        super().__init__(TURN_STOPPED)
+
+
+@dataclass(frozen=True, slots=True)
+class RunningMove:
+    work: Task[None]
+    words: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,6 +101,7 @@ class SessionSnapshot:
     held_elsewhere: bool
     in_battle: bool
     can_rewind: bool
+    can_stop: bool
     battle: BattleSnapshot | None
     screen_slots: tuple[ScreenSlot, ...]
 
@@ -136,6 +150,7 @@ class GameSession:
     battle_run: BattleRun | None = None
     view_cache: CachedViews | None = field(default=None, repr=False, compare=False)
     debriefed: DebriefMemo | None = field(default=None, repr=False, compare=False)
+    running: RunningMove | None = field(default=None, repr=False, compare=False)
 
     async def open(self) -> None:
         # A second tab's timer must not run the page reset over an opening already in flight.
@@ -151,13 +166,20 @@ class GameSession:
 
     async def choose(self, answer: PlayerInput) -> None:
         with self.gate.admit(self), self._remember_change(words=answer.text):
-            match self._route(answer):
-                case SilentOption(option):
-                    await self._play_silent(option)
-                case OptionIntoTurn(option, words):
-                    await self._play_into_turn(option, words)
-                case PlainTurn():
-                    await self._turn(answer, self.state, self.rng)
+            route = self._route(answer)
+            before, dice, character = self.state, deepcopy(self.rng), self.character
+            work = create_task(self._play(route, answer))
+            self.running = RunningMove(work, answer.text)
+            try:
+                await work
+            except CancelledError:
+                self._restore(before, dice, character)
+                outer = current_task()
+                if work.cancelled() and outer is not None and outer.cancelling() == 0:
+                    raise TurnStopped from None
+                raise
+            finally:
+                self.running = None
 
     async def open_battle(self, *, ask_opponent: bool) -> None:
         with self.gate.admit(self):
@@ -194,6 +216,13 @@ class GameSession:
             self.save(change.before)
             self.illustrate_later()
             return words
+
+    def stop(self) -> str:
+        # Silent when nothing stops: a double press, or a move that ended before the press landed.
+        if (running := self.running) is None or not running.work.cancel():
+            return ""
+        self.running = None
+        return running.words
 
     async def restart(self) -> None:
         with self.gate.admit(self):
@@ -235,6 +264,7 @@ class GameSession:
             held_elsewhere=admitted is not None and admitted is not self,
             in_battle=self.engine.in_battle(self.state),
             can_rewind=self._find_rewind() is not None,
+            can_stop=self.running is not None,
             battle=None
             if run is None
             else BattleSnapshot(
@@ -326,6 +356,22 @@ class GameSession:
         if offered.needs_words or offered.told_in_turn:
             return OptionIntoTurn(option, answer.text or offered.name)
         return SilentOption(option)
+
+    async def _play(self, route: Route, answer: PlayerInput) -> None:
+        match route:
+            case SilentOption(option):
+                await self._play_silent(option)
+            case OptionIntoTurn(option, words):
+                await self._play_into_turn(option, words)
+            case PlainTurn():
+                await self._turn(answer, self.state, self.rng)
+
+    def _restore(self, before: AnyGame, dice: Random, character: AnyCharacter) -> None:
+        if self.state is not before:
+            self.save(before)
+        self.rng.setstate(dice.getstate())
+        if self.character != character:
+            self._rewrite_character(character)
 
     def _find_undoable_change(self) -> Change | None:
         change = self.last_change
@@ -423,6 +469,9 @@ class GameSession:
         character = self.engine.grown_character(self.state)
         if character is None or character == self.character:
             return
+        self._rewrite_character(character)
+
+    def _rewrite_character(self, character: AnyCharacter) -> None:
         self.character = character
         try:
             self.library.rewrite_character(character)

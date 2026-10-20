@@ -1,6 +1,7 @@
 import json
 import re
 from asyncio import Event, create_task, sleep
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from random import Random
 
@@ -31,6 +32,7 @@ from rulehall.app.game_session import (
     PlainTurn,
     Route,
     SilentOption,
+    TurnStopped,
 )
 from rulehall.app.gate import IN_FLIGHT_ELSEWHERE, Busy
 from rulehall.app.runtime import Runtime
@@ -247,6 +249,64 @@ async def test_a_failed_commit_still_frees_the_game(tmp_path: Path) -> None:
         _ = await play_turn(table, "I take the map.")
 
     assert (table.session.working_role, table.session.turn) == (None, None)
+
+
+async def test_a_stop_abandons_the_running_turn_and_hands_back_its_words(tmp_path: Path) -> None:
+    table = open_game(tmp_path)
+    before = await play_turn(table, "I wait.", narration="Nothing stirs.")
+    released = Event()
+    table.roles.hooks.append(_hold("master", released))
+
+    play = create_task(table.session.choose(PlayerInput(text="I look around.")))
+    while table.session.working_role is None:
+        await sleep(0)
+    assert table.session.snapshot().can_stop
+
+    assert table.session.stop() == "I look around."
+    assert table.session.stop() == ""
+    with pytest.raises(TurnStopped):
+        await play
+
+    assert table.state == before
+    assert table.saved() == before
+    assert table.session.working_role is None
+    assert not table.runtime.gate.busy
+    assert not table.session.snapshot().can_stop
+    released.set()
+    assert len((await play_turn(table, "I look around.")).log_entries()) == 2
+
+
+async def test_a_stop_while_the_world_grows_restores_the_save_from_before_the_move(
+    tmp_path: Path,
+) -> None:
+    table = open_crew(tmp_path, rng=Random(TROUBLE_SEED))
+    before = table.state
+    table.roles.hooks.append(_hold("worldsmith", Event()))
+    table.roles.turns.append(
+        table.plays([tool_call("next_scene", complication="A second crew breaches the airlock.")])
+    )
+    table.roles.answers["narrator"] = [narrated("You wait.")]
+
+    play = create_task(table.session.choose(PlayerInput(text="I keep watch.")))
+    while table.session.working_role != "worldsmith":
+        await sleep(0)
+    assert table.saved() != before
+
+    _ = table.session.stop()
+    with pytest.raises(TurnStopped):
+        await play
+
+    assert table.saved() == before
+    assert table.session.rng.getstate() == Random(TROUBLE_SEED).getstate()
+
+
+def _hold(held: Role, released: Event) -> Callable[[Role, str], Awaitable[None]]:
+    async def hold(role: Role, prompt: str) -> None:
+        del prompt
+        if role == held:
+            await released.wait()
+
+    return hold
 
 
 def _scene() -> str:

@@ -7,6 +7,7 @@ from typing import Literal
 
 from nicegui import app, ui
 
+from rulehall.app.game_session import TurnStopped
 from rulehall.app.gate import Busy
 from rulehall.core.facts import Fact
 from rulehall.core.validation import Refusal
@@ -155,6 +156,8 @@ async def attempt(
         # Silent when it is this game's own turn: a double-click guard, not a message.
         if busy.elsewhere and not client.is_deleted:
             alert(str(busy))
+        return False
+    except TurnStopped:
         return False
     except Refusal as refused:
         if not client.is_deleted:
