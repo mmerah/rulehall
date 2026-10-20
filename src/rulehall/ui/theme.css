@@ -868,6 +868,11 @@ a.game-chip { display: inline-flex; align-items: center; min-height: 2.4rem; pad
 }
 .q-btn.game-send:not(.disabled):hover { transform: translateY(-1px) scale(1.05) }
 .q-btn.game-send.disabled { background: var(--game-border); box-shadow: none }
+.q-btn.game-stop, .q-btn.game-stop:hover {
+  background: var(--game-surface-raised); color: var(--game-danger) !important;
+  box-shadow: inset 0 0 0 1.5px var(--game-danger);
+}
+.q-btn.game-stop:not(.disabled):hover { transform: none }
 .q-btn.game-mic { color: var(--game-muted) }
 .q-btn.game-mic.game-mic-on { color: var(--game-danger); animation: game-mic-pulse 1.2s var(--game-ease) infinite }
 @keyframes game-mic-pulse {

@@ -43,6 +43,7 @@ from rulehall.ui.widgets import (
 
 TURN_FAILED = failure_notice("The turn did not complete.")
 REWIND_FAILED = failure_notice("The rewind did not complete.")
+STOP_FAILED = failure_notice("The stop did not complete.")
 RESTART_FAILED = failure_notice("The restart did not complete.")
 NEAR_END = 48
 SOUND_ICONS = {True: "sym_r_volume_up", False: "sym_r_volume_off"}
@@ -323,6 +324,7 @@ class GamePage:
                 self.session,
                 now,
                 self.choose,
+                self.stop,
                 None if self.voice_player is None else self.voice_player.speech,
             )
 
@@ -368,6 +370,10 @@ class GamePage:
     async def rewind(self) -> None:
         if await attempt(self._rewound, failed=REWIND_FAILED):
             self.tick()
+
+    async def stop(self) -> None:
+        # No tick here: the move unwinds on the next loop turns, and the move's own tick redraws.
+        _ = await attempt(self._stopped, failed=STOP_FAILED)
 
     async def show_debrief(self) -> None:
         view = self.drawn.view
@@ -496,6 +502,10 @@ class GamePage:
 
     async def _rewound(self) -> None:
         if words := await self.session.rewind():
+            self.composer.set_input(words)
+
+    async def _stopped(self) -> None:
+        if words := self.session.stop():
             self.composer.set_input(words)
 
     async def _open_game(self, opener: ui.timer) -> None:

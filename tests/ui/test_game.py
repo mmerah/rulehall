@@ -390,8 +390,11 @@ async def test_the_composer_asks_on_the_tick_that_brings_a_decision_and_not_the_
     async def choose(_answer: PlayerInput) -> bool:
         return True
 
+    async def stop() -> None:
+        return
+
     drawn = service.snapshot()
-    bar = Composer(service, drawn, choose, None)
+    bar = Composer(service, drawn, choose, stop, None)
     assert "game-asking" not in bar.row.classes
 
     _suspend(table, _pick(allows_text=True))
@@ -417,8 +420,11 @@ async def test_the_composer_hides_the_words_box_when_a_decision_takes_no_words(
     async def choose(_answer: PlayerInput) -> bool:
         return True
 
+    async def stop() -> None:
+        return
+
     idle = service.snapshot()
-    bar = Composer(service, idle, choose, None)
+    bar = Composer(service, idle, choose, stop, None)
     assert (bar.prompt_row.visible, bar.input_row.visible) == (False, True)
     assert bar.words_input.props["placeholder"] == idle.view.hint
 
