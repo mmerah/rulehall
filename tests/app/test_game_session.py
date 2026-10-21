@@ -2,6 +2,7 @@ import json
 import re
 from asyncio import Event, create_task, sleep
 from collections.abc import Awaitable, Callable
+from copy import deepcopy
 from pathlib import Path
 from random import Random
 
@@ -256,6 +257,7 @@ async def test_a_stop_abandons_the_running_turn_and_hands_back_its_words(tmp_pat
     before = await play_turn(table, "I wait.", narration="Nothing stirs.")
     released = Event()
     table.roles.hooks.append(_hold("master", released))
+    dice = deepcopy(table.session.rng)
 
     play = create_task(table.session.choose(PlayerInput(text="I look around.")))
     while table.session.working_role is None:
@@ -272,6 +274,7 @@ async def test_a_stop_abandons_the_running_turn_and_hands_back_its_words(tmp_pat
     assert table.session.working_role is None
     assert not table.runtime.gate.busy
     assert not table.session.snapshot().can_stop
+    assert table.session.rng.random() != dice.random()
     released.set()
     assert len((await play_turn(table, "I look around.")).log_entries()) == 2
 
@@ -297,7 +300,7 @@ async def test_a_stop_while_the_world_grows_restores_the_save_from_before_the_mo
         await play
 
     assert table.saved() == before
-    assert table.session.rng.getstate() == Random(TROUBLE_SEED).getstate()
+    assert table.session.rng.random() != Random(TROUBLE_SEED).random()
 
 
 def _hold(held: Role, released: Event) -> Callable[[Role, str], Awaitable[None]]:
