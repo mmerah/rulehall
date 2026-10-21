@@ -167,13 +167,13 @@ class GameSession:
     async def choose(self, answer: PlayerInput) -> None:
         with self.gate.admit(self), self._remember_change(words=answer.text):
             route = self._route(answer)
-            before, dice, character = self.state, deepcopy(self.rng), self.character
+            before, character = self.state, self.character
             work = create_task(self._play(route, answer))
             self.running = RunningMove(work, answer.text)
             try:
                 await work
             except CancelledError:
-                self._restore(before, dice, character)
+                self._restore(before, character)
                 outer = current_task()
                 if work.cancelled() and outer is not None and outer.cancelling() == 0:
                     raise TurnStopped from None
@@ -366,10 +366,11 @@ class GameSession:
             case PlainTurn():
                 await self._turn(answer, self.state, self.rng)
 
-    def _restore(self, before: AnyGame, dice: Random, character: AnyCharacter) -> None:
+    def _restore(self, before: AnyGame, character: AnyCharacter) -> None:
         if self.state is not before:
             self.save(before)
-        self.rng.setstate(dice.getstate())
+        # The stopped move may have shown its rolls: a resend must not draw the same dice again.
+        self.rng.seed(self.rng.getrandbits(64))
         if self.character != character:
             self._rewrite_character(character)
 
