@@ -31,7 +31,7 @@ from rulehall.ui.composer import Composer, composer_lock
 from rulehall.ui.drawer import DrawerTab, choosing
 from rulehall.ui.game import GamePage, game_page
 from rulehall.ui.screen_host import ScreenHost
-from rulehall.ui.transcript import Transcript
+from rulehall.ui.transcript import EARLIER_LABEL, SHOWN_TURNS, Transcript
 from rulehall.ui.voice import VoicePlayer
 from rulehall.ui.widgets import Sounds, Speech
 
@@ -141,6 +141,10 @@ def _texts(held: ui.element, *, eased: bool = False) -> list[str]:
     ]
 
 
+def _chat_messages(held: ui.element) -> list[ui.chat_message]:
+    return [message for message in held.descendants() if isinstance(message, ui.chat_message)]
+
+
 def test_the_composer_lock_names_what_closes_the_composer(tmp_path: Path) -> None:
     now = replace(open_game(tmp_path).session.snapshot(), working_role=None, in_battle=False)
     assert composer_lock(replace(now, view=_view())) is None
@@ -173,6 +177,56 @@ async def test_a_tick_follows_only_on_the_readers_own_move(
     table.session.working_role = "narrator"
     screen.tick()
     assert screen.unseen_activity is True
+
+
+async def test_an_idle_tick_sends_no_update(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, page: Callable[[], Client]
+) -> None:
+    monkeypatch.setattr("nicegui.storage.Storage.tab", property(lambda _storage: {}))
+    table = open_game(tmp_path)
+    _ = await play_turn(table, "I wait.", narration="Nothing stirs.")
+    client = page()
+    screen = GamePage(table.session, {})
+    screen.build()
+    screen.tick()
+    client.outbox.updates.clear()
+
+    screen.tick()
+    assert not client.outbox.updates
+
+
+async def test_a_long_transcript_draws_the_last_turns_and_shows_earlier_ones_on_demand(
+    tmp_path: Path, page: Callable[[], Client]
+) -> None:
+    service = open_game(tmp_path).session
+    page()
+    entries = tuple(
+        LogEntry(words=f"Turn {index}.", lines=(SpokenLine(text=f"Reply {index}."),))
+        for index in range(SHOWN_TURNS + 3)
+    )
+    long = replace(service.snapshot(), log_entries=entries, live=())
+    held = ui.element("div")
+    with held:
+        chat = Transcript(long, service.icon, Sounds(), None)
+
+    def texts(shown: Sequence[LogEntry]) -> list[str]:
+        return [text for entry in shown for text in (entry.words, entry.lines[0].text)]
+
+    assert _texts(held) == texts(entries[3:])
+    assert chat.earlier_button.visible
+    assert chat.earlier_button.text == EARLIER_LABEL
+    assert chat.earlier_count.text == "3 more"
+    window = _chat_messages(held)
+
+    chat.show_earlier()
+    assert _texts(held) == texts(entries)
+    assert _chat_messages(held)[-len(window) :] == window
+    assert not chat.earlier_button.visible
+
+    rewound = replace(long, log_entries=entries[:-1])
+    chat.sync(rewound, long)
+    assert _texts(held) == texts(entries[2:-1])
+    assert chat.earlier_button.visible
 
 
 async def test_the_page_hosts_a_screen_for_each_screen_slot_and_hides_the_story_while_one_shows(

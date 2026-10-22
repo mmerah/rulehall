@@ -24,7 +24,7 @@ from rulehall.app.catalog import SavedGameKey
 from rulehall.app.game_session import GameSession
 from rulehall.app.illustration import Illustrator
 from rulehall.app.runtime import Runtime
-from rulehall.config import LOOPBACK_HOST, MediaConfig, ServerConfig, Settings
+from rulehall.config import LOOPBACK_HOST, MediaConfig, ServerConfig, Settings, SpeechConfig
 from rulehall.main import mount
 from rulehall.ui.widgets import ICONS_DIR
 
@@ -38,6 +38,9 @@ def main() -> None:
     parser.add_argument("--delay", type=float, default=0)
     parser.add_argument("--fresh", action="store_true", help="wipe the work directory first")
     parser.add_argument("--art", action="store_true", help="draw placeholder scene art offline")
+    parser.add_argument(
+        "--speech", action="store_true", help="read aloud on, from a local provider that is absent"
+    )
     parsed = parser.parse_args()
     work: Path = parsed.work.resolve()
     if parsed.fresh and work.exists():
@@ -59,6 +62,7 @@ def main() -> None:
         server=ServerConfig(port=parsed.port),
         # Only under `--art`: the default provider is what the settings scenario checks against.
         media=MediaConfig(enabled=True, provider="local") if parsed.art else MediaConfig(),
+        speech=SpeechConfig(enabled=True, provider="local") if parsed.speech else SpeechConfig(),
     )
     _seed_dice()
     agents = ScriptedAgents(delay=parsed.delay)

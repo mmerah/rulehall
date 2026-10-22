@@ -101,7 +101,7 @@ class Composer:
                     "w-full no-wrap items-end game-composer-line game-gap-lg"
                 ) as self.input_row:
                     self.words_input = (
-                        ui.input()
+                        ui.input(placeholder="")
                         .classes("flex-grow")
                         # theme.py's default w-full would fight flex-grow and squeeze the send.
                         .classes(remove="w-full")
@@ -334,7 +334,9 @@ class Composer:
             placeholder = self.armed.help or f"Type your words, then press {self.armed.name}."
         else:
             placeholder = forced.help if forced and forced.help else self.view.hint
-        self.words_input.props["placeholder"] = placeholder
+        # A props write always sends, and each send re-renders the whole transcript on the client.
+        if self.words_input.props["placeholder"] != placeholder:
+            self.words_input.props["placeholder"] = placeholder
         self.send_button.set_text("" if option is None else option.name)
         if option is None:
             self.send_button.props("round").classes(remove="game-send-named")

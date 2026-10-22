@@ -15,7 +15,7 @@ from rulehall.core.validation import Frozen, Refusal, Slug, content_id, parse
 from rulehall.core.views import PanelRow, PlayerView
 from rulehall.ui import theme
 from rulehall.ui.composer import CLOSED_REASONS, Composer, composer_lock
-from rulehall.ui.drawer import Drawer
+from rulehall.ui.drawer import PHONE_WIDTH, Drawer
 from rulehall.ui.panel_parts import CHOICES_ROW, choice_groups, panel_row
 from rulehall.ui.routes import hall_path
 from rulehall.ui.screen_host import (
@@ -49,8 +49,8 @@ NEAR_END = 48
 SOUND_ICONS = {True: "sym_r_volume_up", False: "sym_r_volume_off"}
 AUTO_READ_ICONS = {True: "sym_r_record_voice_over", False: "sym_r_voice_over_off"}
 JUMP_LABEL = "Jump to latest"
-# Collapsed turns size themselves late: one scroll lands short, so the hold follows each resize.
-HOLD_AT_END = """<script>
+SCROLL_HOLDS = """<script>
+// Collapsed turns size themselves late: one scroll lands short, so the hold follows each resize.
 window.holdAtEnd = (id, nearEnd) => {
   const started = performance.now();
   const attach = () => {
@@ -62,6 +62,7 @@ window.holdAtEnd = (id, nearEnd) => {
       return;
     }
     area.releaseEnd?.();
+    area.releasePlace?.();
     pinEnd(box, nearEnd);
     const grabs = ["wheel", "touchstart", "pointerdown", "keydown"];
     let quiet;
@@ -101,8 +102,79 @@ window.showReplyTop = (areaId, elementId) => {
   const element = getHtmlElement(elementId);
   if (!box || !element) return;
   area.releaseEnd?.();
+  area.releasePlace?.();
   box.scrollTop += element.getBoundingClientRect().top - box.getBoundingClientRect().top;
 };
+// Turns drawn above keep the reader's top turn in place; Safari has no scroll anchoring.
+// Each frame corrects too: WebKit sizes an off-screen turn after the resize observers run.
+window.keepPlace = (target) => {
+  const control = target.closest(".game-earlier");
+  const box = control.closest(".q-scrollarea__container");
+  const turn = box.querySelector(".game-turn:has(> div > *)");
+  if (!turn) return;
+  const area = box.closest(".q-scrollarea");
+  area.releaseEnd?.();
+  area.releasePlace?.();
+  const seen = turn.getBoundingClientRect().top;
+  const grabs = ["wheel", "touchstart", "pointerdown", "keydown"];
+  let quiet = setTimeout(release, 30000);
+  let frame;
+  const hold = () => {
+    if (!turn.isConnected) return release();
+    const moved = turn.getBoundingClientRect().top - seen;
+    // scrollTop snaps to device pixels, so a smaller offset never closes.
+    if (Math.abs(moved) >= 1) {
+      box.scrollTop += moved;
+      clearTimeout(quiet);
+      quiet = setTimeout(release, 1000);
+    }
+    const lost = [control, document.body].includes(document.activeElement);
+    if (control.offsetParent === null && lost) {
+      const first = box.querySelector(".game-turn:has(> div > *)");
+      first.tabIndex = -1;
+      first.focus({preventScroll: true});
+    }
+  };
+  const step = () => {
+    hold();
+    frame = requestAnimationFrame(step);
+  };
+  const sizes = new ResizeObserver(hold);
+  function release() {
+    sizes.disconnect();
+    cancelAnimationFrame(frame);
+    clearTimeout(quiet);
+    area.classList.remove("game-keeping-place");
+    for (const name of grabs) area.removeEventListener(name, release);
+    delete area.releasePlace;
+  }
+  for (const name of grabs) area.addEventListener(name, release, {passive: true});
+  area.releasePlace = release;
+  area.classList.add("game-keeping-place");
+  sizes.observe(box.querySelector(".q-scrollarea__content"));
+  frame = requestAnimationFrame(step);
+};
+</script>"""
+# The fold sits on <html>: set before the card draws, so it never flashes open, and out of the
+# reach of the card's redraws. A phone always starts closed and remembers nothing.
+SCENE_FOLD = f"""<script>
+window.sceneFold = (() => {{
+  const key = "rulehall.scene";
+  const root = document.documentElement;
+  const phone = () => innerWidth < {PHONE_WIDTH};
+  root.classList.toggle("game-scene-closed", phone() || localStorage.getItem(key) === "closed");
+  const mark = (button) => {{
+    button.setAttribute("aria-expanded", String(!root.classList.contains("game-scene-closed")));
+  }};
+  return {{
+    mark,
+    toggle: (card) => {{
+      const closed = root.classList.toggle("game-scene-closed");
+      mark(card.querySelector(".game-scene-chevron"));
+      if (!phone()) localStorage.setItem(key, closed ? "closed" : "open");
+    }},
+  }};
+}})();
 </script>"""
 
 
@@ -116,9 +188,16 @@ class HeaderCard:
         self.session = session
         self.art = session.scene_art()
         card = ui.element("div").classes("game-scene")
-        card.on("click", lambda: card.classes(toggle="game-scene-open"))
+        card.on("click", js_handler="(event) => sceneFold.toggle(event.currentTarget)")
         with card:
             self.draw(now.view, self.art)
+            with (
+                ui.element("button")
+                .classes("game-scene-chevron")
+                .props('type=button aria-label="Scene details"') as button
+            ):
+                ui.icon("sym_r_expand_more")
+        ui.run_javascript(f"sceneFold.mark(getHtmlElement({button.id}))")
 
     def sync(self, now: SessionSnapshot, drawn: SessionSnapshot) -> None:
         view, before = now.view, drawn.view
@@ -142,7 +221,6 @@ class HeaderCard:
                 ui.label(view.situation).classes("text-sm opacity-80 game-scene-situation")
             if art is not None:
                 ui.image(media_url(art)).props("fit=contain").classes("game-scene-art")
-        ui.icon("sym_r_expand_more").classes("game-scene-chevron lt-sm")
 
 
 class GamePage:
@@ -540,7 +618,7 @@ async def game_page(
         refused_page(str(refused))
         return
     # A script added after the handshake is inserted as inert HTML and never runs.
-    ui.add_body_html(HOLD_AT_END)
+    ui.add_body_html(SCROLL_HOLDS + SCENE_FOLD)
     theme.fit_to_viewport()
     # Tab storage (the composer draft) is readable only after the handshake.
     await ui.context.client.connected()

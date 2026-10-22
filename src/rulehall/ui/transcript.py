@@ -35,6 +35,10 @@ CAUSE_LABELS: dict[Cause, str] = {
 FACT_ICONS = {False: "sym_r_bolt", True: "sym_r_casino"}
 SPUN_LINES = 12
 READ_ALOUD = "Read aloud"
+SHOWN_TURNS = 20
+EARLIER_LABEL = "Show earlier turns"
+# Runs on the client before the click reaches the server, so the place is read before the redraw.
+KEEP_PLACE = "(event) => { keepPlace(event.target); emit(); }"
 
 type ReadAloud = Callable[[SpokenLine, int], None]
 
@@ -128,6 +132,11 @@ class Transcript:
         self.icon_of = icon_of
         self.sounds = sounds
         self.read_aloud = read_aloud
+        self.log_entries: Sequence[LogEntry]
+        self.hidden_turns: int
+        self.earlier_button: ui.button
+        self.earlier_count: ui.label
+        self.earlier_turns: ui.element
         self.premise: ui.label | None = None
         self.pause_line: ui.label | None = None
         self.column = ui.element("div").style(PASS_THROUGH)
@@ -155,6 +164,7 @@ class Transcript:
         if appended is None:
             self.redraw(now)
         else:
+            self.log_entries = now.log_entries
             self.land(appended, entering=True)
             self.show_live(now, entering=True)
         self.show_pause(now.view)
@@ -167,12 +177,44 @@ class Transcript:
         self.column.clear()
         self.premise = self.pause_line = None
         self.landed_block = None
+        self.log_entries = now.log_entries
+        self.hidden_turns = max(0, len(now.log_entries) - SHOWN_TURNS)
         with self.column:
+            with (
+                ui.button(EARLIER_LABEL, icon="sym_r_expand_less")
+                .props("flat no-caps")
+                .classes("game-earlier")
+                .on("click", self.show_earlier, js_handler=KEEP_PLACE) as self.earlier_button
+            ):
+                self.earlier_count = ui.label().classes("game-earlier-count")
+            self.earlier_turns = ui.element("div").classes("game-earlier-turns").style(PASS_THROUGH)
             if not now.log_entries:
                 self.premise = ui.label(now.view.premise).classes("game-lead text-sm italic")
             self.live_block = TurnBlock(self.icon_of)
-        self.land(now.log_entries, entering=False)
+        self.show_hidden_count()
+        self.land(now.log_entries[self.hidden_turns :], entering=False)
         self.show_live(now, entering=False)
+
+    def show_earlier(self) -> None:
+        if not self.hidden_turns:
+            return
+        start = max(0, self.hidden_turns - SHOWN_TURNS)
+        with self.earlier_turns:
+            chunk = ui.element("div").style(PASS_THROUGH).move(target_index=0)
+        with chunk:
+            for entry in self.log_entries[start : self.hidden_turns]:
+                block = TurnBlock(self.icon_of)
+                _ = block.show_entry(entry, entering=False)
+                if self.read_aloud is not None:
+                    block.add_read_aloud(self.read_aloud)
+                if entry.decision:
+                    _ = draw_pause_line(entry.decision)
+        self.hidden_turns = start
+        self.show_hidden_count()
+
+    def show_hidden_count(self) -> None:
+        self.earlier_count.set_text(f"{self.hidden_turns} more")
+        self.earlier_button.set_visibility(self.hidden_turns > 0)
 
     def land(self, entries: Sequence[LogEntry], *, entering: bool) -> None:
         if not entries:
@@ -192,11 +234,7 @@ class Transcript:
                     self.sounds.roll_dice(told_cards(fresh))
                 self.take_finished(block, landed=True)
             with self.column:
-                self.pause_line = (
-                    ui.label(f"Paused: {entry.decision}").classes("game-paused")
-                    if entry.decision
-                    else None
-                )
+                self.pause_line = draw_pause_line(entry.decision) if entry.decision else None
                 self.live_block = TurnBlock(self.icon_of)
 
     def show_live(self, now: SessionSnapshot, *, entering: bool) -> None:
@@ -228,6 +266,10 @@ def appended_since[T](now: Sequence[T], drawn: Sequence[T]) -> Sequence[T] | Non
     if len(now) < kept or (kept and now[kept - 1] != drawn[-1]):
         return None
     return now[kept:]
+
+
+def draw_pause_line(decision: str) -> ui.label:
+    return ui.label(f"Paused: {decision}").classes("game-paused")
 
 
 def draw_fact_cards(facts: Sequence[Fact], *, live: bool = False) -> None:

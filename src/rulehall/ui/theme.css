@@ -564,7 +564,7 @@ a.game-chip { display: inline-flex; align-items: center; min-height: 2.4rem; pad
 .game-measure, .game-transcript { max-width: var(--game-measure); margin-inline: auto }
 .game-scene {
   --game-scene-height: clamp(7rem, 17vh, 10.5rem);
-  position: relative; overflow: hidden; flex: none;
+  position: relative; overflow: hidden; flex: none; cursor: pointer;
   align-self: stretch; margin: var(--game-inset);
   border: 1px solid var(--game-border-soft);
   border-radius: calc(var(--game-radius) * .85);
@@ -597,7 +597,7 @@ a.game-chip { display: inline-flex; align-items: center; min-height: 2.4rem; pad
 .game-scene-text {
   flex: 1 1 auto; min-width: 0;
   height: 100%; overflow-y: auto;
-  padding: .75rem 1rem;
+  padding: .75rem 2.75rem .75rem 1rem;
   padding-left: calc(
     max(0px, (100% + 2 * var(--game-inset) - var(--game-measure)) / 2) + 1rem - var(--game-inset)
   );
@@ -606,10 +606,28 @@ a.game-chip { display: inline-flex; align-items: center; min-height: 2.4rem; pad
 .game-scene-situation { font-size: .84rem !important; line-height: 1.45; max-width: 38rem }
 .game-scene .game-eyebrow { font-size: .62rem }
 .game-scene-chevron {
-  position: absolute; right: .6rem; top: 50%; margin-top: -.75rem; z-index: 2;
+  position: absolute; right: .6rem; top: .6rem; z-index: 2; transform: rotate(180deg);
+  display: flex; padding: 0; border: 0; background: none; cursor: pointer;
   color: var(--game-accent); font-size: 1.5rem; transition: transform var(--game-medium) var(--game-ease);
 }
-.game-scene-open .game-scene-chevron { top: .6rem; margin-top: 0; transform: rotate(180deg) }
+.game-scene-chevron:focus-visible { outline: 2px solid var(--game-accent); outline-offset: 2px; border-radius: 50% }
+/* Closed: a strip, the art a dim band cropped behind the title, the situation put away. */
+html.game-scene-closed .game-scene { height: 3rem }
+html.game-scene-closed .game-scene-chevron { top: 50%; margin-top: -.75rem; transform: none }
+html.game-scene-closed .game-scene .game-eyebrow, html.game-scene-closed .game-scene-situation { display: none }
+html.game-scene-closed .game-scene-title { font-size: 1.25rem }
+html.game-scene-closed .game-scene-art {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; aspect-ratio: auto; opacity: .55;
+  -webkit-mask-image: linear-gradient(to top, transparent 15%, #000 70%);
+  mask-image: linear-gradient(to top, transparent 15%, #000 70%);
+}
+/* `fit=contain` is an inline style Quasar writes on the frame, so the band has to shout. */
+html.game-scene-closed .game-scene-art .q-img__image { object-fit: cover !important }
+html.game-scene-closed .game-scene-text {
+  position: relative; z-index: 1;
+  height: 100%; justify-content: center; padding-block: 0;
+}
 
 /* No side padding: an avatar starts on the measure's edge, where the scene title starts. */
 .game-transcript { --game-chat-avatar: 2.1rem }
@@ -673,6 +691,19 @@ a.game-chip { display: inline-flex; align-items: center; min-height: 2.4rem; pad
 .game-cause:before, .game-cause:after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--game-border)) }
 .game-cause:after { background: linear-gradient(to left, transparent, var(--game-border)) }
 .game-paused { color: var(--game-muted); font-size: .78rem; font-style: italic; padding-left: calc(var(--game-chat-avatar) + .65rem) }
+/* Earlier turns wait above the drawn ones: a quiet row in the transcript's voice, a full touch target. */
+.q-btn.game-earlier {
+  align-self: stretch; min-height: 2.75rem; padding: .35rem 1rem;
+  border: 1px dashed var(--game-border); border-radius: var(--game-radius);
+  color: var(--game-muted); font-size: .8rem; letter-spacing: .02em;
+}
+.q-btn.game-earlier:hover { color: var(--game-accent); border-color: var(--game-accent-glow); background: var(--game-accent-soft) }
+.q-btn.game-earlier .q-icon { font-size: 1.25rem; margin-right: .4rem }
+.q-btn.game-earlier:focus-visible { outline-offset: 2px }
+.game-earlier-count { margin-left: .6rem; font-size: .72rem; font-style: italic; opacity: .75 }
+/* While the place holds, earlier turns lay out at their real height, so the kept turn does not shift. */
+.game-keeping-place .game-earlier-turns .game-turn { content-visibility: visible }
+.game-turn:focus { outline: none }
 /* The working step reads as the bubble it will become: the same frame, still being written. */
 .game-working {
   position: relative; overflow: hidden;
@@ -1056,7 +1087,6 @@ a.game-chip { display: inline-flex; align-items: center; min-height: 2.4rem; pad
   }
   .game-main, .game-scene { border-top: 0 }
   .game-drawer-panel { height: 100% }
-  .game-scene { cursor: pointer }
   /* Open: no room beside the text, so the frame goes full width on top and fades into the words. */
   .game-scene:has(.game-scene-art) { height: auto }
   .game-scene-body { flex-direction: column-reverse }
@@ -1066,24 +1096,8 @@ a.game-chip { display: inline-flex; align-items: center; min-height: 2.4rem; pad
     -webkit-mask-image: linear-gradient(to bottom, #000 68%, transparent);
     mask-image: linear-gradient(to bottom, #000 68%, transparent);
   }
-  .game-scene-text { height: auto; padding: .2rem .9rem .9rem }
+  .game-scene-text { height: auto; padding: .2rem 2.75rem .9rem .9rem }
   .game-scene-title { font-size: 1.25rem }
-  /* Closed: a strip, the art a dim band cropped behind the title, the situation put away. */
-  .game-scene:not(.game-scene-open) { height: 3rem }
-  .game-scene:not(.game-scene-open) .game-eyebrow { display: none }
-  .game-scene:not(.game-scene-open) .game-scene-art {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%; aspect-ratio: auto; opacity: .55;
-    -webkit-mask-image: linear-gradient(to top, transparent 15%, #000 70%);
-    mask-image: linear-gradient(to top, transparent 15%, #000 70%);
-  }
-  /* `fit=contain` is an inline style Quasar writes on the frame, so the band has to shout. */
-  .game-scene:not(.game-scene-open) .game-scene-art .q-img__image { object-fit: cover !important }
-  .game-scene:not(.game-scene-open) .game-scene-text {
-    position: relative; z-index: 1;
-    height: 100%; justify-content: center; padding: 0 2.75rem 0 .9rem;
-  }
-  .game-scene:not(.game-scene-open) .game-scene-situation { display: none }
   .game-transcript { --game-chat-avatar: 1.75rem }
   .game-message .q-message-text { padding: .5rem .75rem }
   .game-message.q-message-received .q-message-text-content { font-size: 1.02rem }
