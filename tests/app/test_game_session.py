@@ -27,6 +27,7 @@ from support.twentyfourxx import TROUBLE_SEED, open_crew
 
 from rulehall.app.catalog import SavedGameKey
 from rulehall.app.game_session import (
+    GAME_NOT_OVER,
     NO_WORDS_NOW,
     NOTHING_TO_REWIND,
     OptionIntoTurn,
@@ -41,6 +42,8 @@ from rulehall.config import Role
 from rulehall.core.decisions import ActionOption, Decision, PlayerInput
 from rulehall.core.facts import Fact
 from rulehall.core.game import AnyGame, WorldsmithRequest
+from rulehall.core.log import Chapter, LogEntry, SpokenLine
+from rulehall.core.prompt import TAIL_EXCHANGES, WHOLE_SCENES
 from rulehall.core.stores import SaveStore
 from rulehall.core.tools import edit
 from rulehall.core.validation import Frozen, Refusal
@@ -54,6 +57,10 @@ from rulehall.engines.sheet import PLAYER_ID
 from rulehall.engines.twentyfourxx.sheet import STARTING_CREDITS
 
 NOTES_SCREEN_ID = "notes"
+_EPILOGUE = {
+    "paragraphs": ["You kept the vault's key.", "The town forgot the door."],
+    "open_trouble": "The door has opened again.",
+}
 WORDED = ActionOption(id="worded", name="Worded", action_name="take_breather", needs_words=True)
 TOLD = ActionOption(id="told", name="Told", action_name="move_on", told_in_turn=True)
 QUIET = ActionOption(id="quiet", name="Quiet", action_name="move_on")
@@ -112,6 +119,19 @@ def _clear_slot(slot: int, *, refusal: str = "") -> ActionOption:
         args=_SlotEdit(slot=slot).model_dump(mode="json"),
         refusal=refusal,
     )
+
+
+def _ended_table(directory: Path) -> Table[Loner4eGame]:
+    table = open_game(directory)
+    hidden = Loner4ePerson(
+        id="the-lurker", name="The Lurker", voice="other", brief="It waits.", known=False
+    )
+    draft = with_entity(table.state, hidden).draft()
+    draft.world.ended = True
+    facts = (Fact(trace="The door creaks.", told=True), Fact(trace="A trap arms below."))
+    lines = (SpokenLine(text="The hinges groan as you push."),)
+    table.session.save(table.session.engine.record(draft, lines, facts, words="I open the door."))
+    return table
 
 
 def _notes_dirty(table: Table[Loner4eGame]) -> bool:
@@ -647,6 +667,87 @@ async def test_the_debrief_prompt_holds_no_hidden_entity_and_no_untold_fact(
     assert "The Lurker" not in prompt
     assert "A trap arms below." not in prompt
     assert debrief.current_aim == "Find the relic."
+
+
+async def test_the_epilogue_prompt_holds_no_hidden_entity_and_no_untold_fact(
+    tmp_path: Path,
+) -> None:
+    table = _ended_table(tmp_path)
+    table.roles.answers["narrator"] = [json.dumps(_EPILOGUE)]
+
+    epilogue = await table.session.epilogue(10)
+
+    prompt = table.roles.prompt("narrator")
+    assert "10 years later" in prompt
+    assert "The door creaks." in prompt
+    assert "The Lurker" not in prompt
+    assert "A trap arms below." not in prompt
+    assert epilogue.open_trouble == _EPILOGUE["open_trouble"]
+
+
+async def test_an_epilogue_is_refused_while_the_game_is_on_and_for_zero_years(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(Refusal, match=GAME_NOT_OVER):
+        _ = await open_game(tmp_path / "on").session.epilogue(10)
+    with pytest.raises(Refusal, match="not 0"):
+        _ = await _ended_table(tmp_path / "over").session.epilogue(0)
+
+
+async def test_the_same_state_and_years_ask_for_the_epilogue_once(tmp_path: Path) -> None:
+    table = _ended_table(tmp_path)
+    table.roles.answers["narrator"] = [json.dumps(_EPILOGUE)]
+
+    first = await table.session.epilogue(10)
+    again = await table.session.epilogue(10)
+
+    assert again is first
+    assert sum(role == "narrator" for role, _ in table.roles.prompts) == 1
+
+
+async def test_the_previous_adventure_holds_the_told_log_and_the_ending(tmp_path: Path) -> None:
+    table = _ended_table(tmp_path)
+    table.roles.answers["narrator"] = [json.dumps(_EPILOGUE)]
+    _ = await table.session.epilogue(10)
+
+    previous = table.session.previous_adventure()
+
+    assert previous.startswith("THE ADVENTURE BEFORE")
+    assert "The hinges groan as you push." in previous
+    assert "HOW IT ENDED: The adventure is over." in previous
+    assert f"10 YEARS LATER:\n{_EPILOGUE['paragraphs'][0]}" in previous
+    assert "A trap arms below." not in previous
+
+
+def test_the_previous_adventure_holds_an_old_long_scene_in_full(tmp_path: Path) -> None:
+    table = _ended_table(tmp_path)
+    draft = table.state.draft()
+    said = [f"Old line {index}." for index in range(TAIL_EXCHANGES + 1)]
+    old = Chapter(
+        title="The first hall",
+        entries=[LogEntry(words="I look.", lines=(SpokenLine(text=text),)) for text in said],
+    )
+    draft.chapters = [old, *draft.chapters, *(Chapter(title="later") for _ in range(WHOLE_SCENES))]
+    table.session.save(draft.validated())
+
+    previous = table.session.previous_adventure()
+
+    assert "## Scene: The first hall" in previous
+    assert all(text in previous for text in said)
+
+
+async def test_a_sequel_keeps_the_backdrop_and_carries_the_epilogue(tmp_path: Path) -> None:
+    table = _ended_table(tmp_path)
+    before = table.state.scenario_description
+    assert table.session.sequel_description().title == f"{before.title}: the sequel"
+    table.roles.answers["narrator"] = [json.dumps(_EPILOGUE)]
+    _ = await table.session.epilogue(10)
+
+    sequel = table.session.sequel_description()
+
+    assert sequel.backdrop == before.backdrop
+    assert sequel.title == f"{before.title}: 10 years later"
+    assert sequel.premise.endswith(f"\n\n{_EPILOGUE['open_trouble']}")
 
 
 def test_an_edit_saves_the_state_without_a_log_entry(tmp_path: Path) -> None:

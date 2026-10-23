@@ -73,11 +73,12 @@ class Runtime:
         pack_id: Slug,
         extra_pack_ids: tuple[Slug, ...],
         character_id: Slug,
+        continues: SavedGameKey | None,
     ) -> Slug:
         engine = self.require_engine(engine_id)
         character = self.library.read_character(character_id, engine.id, engine.character_model)
         engine.packs.require_joined(pack_id, extra_pack_ids)
-        source = await to_thread(given_text, description.premise, document)
+        source = await self._scenario_source(engine.id, description.premise, document, continues)
         scenario_id = slug(description.title, self.library.scenario_ids())
 
         def check(built: AnyScenario) -> None:
@@ -120,6 +121,27 @@ class Runtime:
         if key.save_id not in self._sessions:
             self._sessions[key.save_id] = self._open(key)
         return self._sessions[key.save_id]
+
+    async def _scenario_source(
+        self,
+        engine_id: EngineId,
+        premise: str,
+        document: Path | None,
+        continues: SavedGameKey | None,
+    ) -> str:
+        previous = None if continues is None else self._previous_adventure(engine_id, continues)
+        if previous is not None and not premise and document is None:
+            return previous
+        given = await to_thread(given_text, premise, document)
+        return given if previous is None else f"{given}\n\n{previous}"
+
+    def _previous_adventure(self, engine_id: EngineId, continues: SavedGameKey) -> str:
+        session = self.session_for(continues)
+        if session.engine.id != engine_id:
+            raise Refusal(
+                f"{continues.save_id} is played under {session.engine.id!r}, not {engine_id!r}"
+            )
+        return session.previous_adventure()
 
     def _open(self, key: SavedGameKey) -> GameSession:
         scenario = self.library.read_scenario(key.scenario_id, self.scenario_models)

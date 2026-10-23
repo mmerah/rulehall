@@ -18,7 +18,7 @@ def test_rolling_a_seed_writes_one_of_the_chosen_packs_seeds(
 ) -> None:
     runtime = Runtime(offline_settings(tmp_path), roles=ScriptedRoles())
     page()
-    form = ScenarioForm(runtime, LONER4E)
+    form = ScenarioForm(runtime, LONER4E, None)
     form.pack_id = FANTASY
 
     form.roll_seed()

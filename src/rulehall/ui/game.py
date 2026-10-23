@@ -7,8 +7,9 @@ from nicegui import ui
 from nicegui.events import GenericEventArguments, ScrollEventArguments
 
 from rulehall.app.catalog import SavedGameKey
-from rulehall.app.game_session import GameSession, SessionSnapshot
+from rulehall.app.game_session import FEWEST_YEARS, MOST_YEARS, GameSession, SessionSnapshot
 from rulehall.app.gate import Busy
+from rulehall.app.role_prompts import Epilogue
 from rulehall.app.runtime import Runtime
 from rulehall.core.decisions import ActionOption, PlayerInput
 from rulehall.core.validation import Frozen, Refusal, Slug, content_id, parse
@@ -17,7 +18,7 @@ from rulehall.ui import theme
 from rulehall.ui.composer import CLOSED_REASONS, Composer, composer_lock
 from rulehall.ui.drawer import PHONE_WIDTH, Drawer
 from rulehall.ui.panel_parts import CHOICES_ROW, choice_groups, panel_row
-from rulehall.ui.routes import hall_path
+from rulehall.ui.routes import hall_path, sequel_path
 from rulehall.ui.screen_host import (
     Screen,
     ScreenFactories,
@@ -28,6 +29,7 @@ from rulehall.ui.screen_host import (
 from rulehall.ui.transcript import Transcript
 from rulehall.ui.voice import VoicePlayer
 from rulehall.ui.widgets import (
+    NEW_ADVENTURE_ICON,
     PASS_THROUGH,
     Confirm,
     Sounds,
@@ -39,12 +41,16 @@ from rulehall.ui.widgets import (
     media_url,
     page_header,
     refused_page,
+    warn,
 )
 
 TURN_FAILED = failure_notice("The turn did not complete.")
 REWIND_FAILED = failure_notice("The rewind did not complete.")
 STOP_FAILED = failure_notice("The stop did not complete.")
 RESTART_FAILED = failure_notice("The restart did not complete.")
+YEARS_LATER = "Years later"
+WRITE_SEQUEL = "Write a sequel"
+DEFAULT_YEARS = 10
 NEAR_END = 48
 SOUND_ICONS = {True: "sym_r_volume_up", False: "sym_r_volume_off"}
 AUTO_READ_ICONS = {True: "sym_r_record_voice_over", False: "sym_r_voice_over_off"}
@@ -245,9 +251,12 @@ class GamePage:
         self.restart_item: ui.menu_item
         self.rewind_button: ui.button
         self.debrief_button: ui.button
+        self.epilogue_button: ui.button
+        self.sequel_item: ui.menu_item
         self.restart_dialog: Confirm
         self.row_dialog = ui.dialog()
         self.debrief_dialog = ui.dialog()
+        self.epilogue_dialog = ui.dialog()
         self.at_end: bool = True
         self.unseen_activity: bool = False
         self.jump_shown: tuple[bool, bool] = (False, False)
@@ -352,6 +361,10 @@ class GamePage:
         self.restart_item.set_enabled(idle)
         self.rewind_button.set_enabled(not now.held_elsewhere and idle and now.can_rewind)
         self.debrief_button.set_enabled(bool(now.log_entries) and idle and not now.held_elsewhere)
+        over = now.view.ending is not None
+        self.epilogue_button.set_visibility(over)
+        self.epilogue_button.set_enabled(idle and not now.held_elsewhere)
+        self.sequel_item.set_visibility(over)
 
     def draw_header(self) -> None:
         session = self.session
@@ -364,6 +377,7 @@ class GamePage:
             ui.space()
             self.rewind_button = icon_button("sym_r_undo", "Rewind last turn", self.rewind)
             self.debrief_button = icon_button("sym_r_summarize", "Story so far", self.show_debrief)
+            self.epilogue_button = icon_button("sym_r_history_edu", YEARS_LATER, self.show_epilogue)
             self.sound = icon_button(SOUND_ICONS[True], "Sound", self.toggle_sound)
             if (player := self.voice_player) is not None:
                 self.auto_read_button = icon_button(
@@ -372,14 +386,15 @@ class GamePage:
             ui.button("Sheet", icon="sym_r_menu_book", on_click=self.drawer.toggle).props(
                 "flat no-caps aria-label=Sheet"
             ).classes("game-sheet-button")
-            with (
-                icon_button("sym_r_more_vert", "More"),
-                ui.menu(),
-                ui.menu_item(on_click=self.confirm_restart) as self.restart_item,
-            ):
-                with ui.item_section().props("avatar"):
-                    ui.icon("sym_r_restart_alt").classes("text-negative")
-                ui.item_section("Restart this game")
+            with icon_button("sym_r_more_vert", "More"), ui.menu():
+                with ui.menu_item(on_click=self.write_sequel) as self.sequel_item:
+                    with ui.item_section().props("avatar"):
+                        ui.icon(NEW_ADVENTURE_ICON)
+                    ui.item_section(WRITE_SEQUEL)
+                with ui.menu_item(on_click=self.confirm_restart) as self.restart_item:
+                    with ui.item_section().props("avatar"):
+                        ui.icon("sym_r_restart_alt").classes("text-negative")
+                    ui.item_section("Restart this game")
 
     def draw_foot(self, now: SessionSnapshot) -> None:
         """In the column, not `ui.footer`: a page-wide footer ignores the rail and the drawer."""
@@ -482,6 +497,59 @@ class GamePage:
                 heading(title)
                 for line in lines:
                     ui.label(line)
+
+    def show_epilogue(self) -> None:
+        memo = self.session.find_epilogue()
+        self.epilogue_dialog.clear()
+        with self.epilogue_dialog, ui.card().classes("game-row-dialog game-gap-md"):
+            ui.label(YEARS_LATER).classes("game-title")
+            with ui.row().classes("items-center game-gap-lg"):
+                years = ui.number(
+                    "Years",
+                    value=DEFAULT_YEARS if memo is None else memo.years,
+                    min=FEWEST_YEARS,
+                    max=MOST_YEARS,
+                    step=1,
+                    precision=0,
+                )
+                write = ui.button("Write").props("color=primary")
+                write.on_click(lambda: self.write_epilogue(years, write, body))
+            with ui.column().classes("w-full game-gap-md") as body:
+                if memo is not None:
+                    _draw_epilogue(memo.epilogue)
+            ui.button(WRITE_SEQUEL, icon=NEW_ADVENTURE_ICON, on_click=self.write_sequel).props(
+                "outline"
+            )
+        self.epilogue_dialog.open()
+
+    async def write_epilogue(self, years: ui.number, write: ui.button, body: ui.column) -> None:
+        if years.value is None:
+            warn("Give the number of years.")
+            return
+        write.props("loading")
+        write.disable()
+        body.clear()
+        with body:
+            ui.spinner()
+        try:
+            written: Epilogue | Refusal = await self.session.epilogue(round(years.value))
+        except Refusal as refused:
+            written = refused
+        finally:
+            if not write.is_deleted:
+                write.props(remove="loading")
+                write.enable()
+        if body.is_deleted or not self.epilogue_dialog.value:
+            return
+        body.clear()
+        with body:
+            if isinstance(written, Refusal):
+                ui.label(str(written))
+                return
+            _draw_epilogue(written)
+
+    def write_sequel(self) -> None:
+        ui.navigate.to(sequel_path(self.session.engine.id, self.session.key))
 
     async def restart(self) -> None:
         if await attempt(self.session.restart, failed=RESTART_FAILED):
@@ -638,3 +706,10 @@ def moved_since(now: SessionSnapshot, drawn: SessionSnapshot) -> bool:
         or now.live != drawn.live
         or now.view.ending != drawn.view.ending
     )
+
+
+def _draw_epilogue(epilogue: Epilogue) -> None:
+    for paragraph in epilogue.paragraphs:
+        ui.label(paragraph)
+    heading("Open trouble")
+    ui.label(epilogue.open_trouble)

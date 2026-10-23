@@ -1,6 +1,11 @@
 from support.table import ENGINES_BUILT, TWENTYFOURXX, change, game, narrowed, refused
 
-from rulehall.app.role_prompts import render_debrief, render_master, render_narrator
+from rulehall.app.role_prompts import (
+    render_debrief,
+    render_epilogue,
+    render_master,
+    render_narrator,
+)
 from rulehall.app.turn import ANSWERED_BY_OPTION
 from rulehall.core.log import Chapter, LogEntry, SpokenLine
 from rulehall.core.narration import NarratorView
@@ -158,7 +163,8 @@ def test_a_private_note_reaches_the_master_and_no_other_role() -> None:
         _engine().narrator_view(state), state, evidence="- (nothing changed)", cue="I wait."
     ).text
     debrief = render_debrief(_engine().narrator_view(state), state).text
+    epilogue = render_epilogue(_engine().narrator_view(state), state, 10).text
 
     assert "YOUR PRIVATE NOTES (only you see these; oldest first)\n- turn 1: the lantern" in master
-    for other in (narrator, debrief):
+    for other in (narrator, debrief, epilogue):
         assert "lantern is a lure" not in other
