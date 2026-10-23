@@ -28,7 +28,9 @@ type ComposerLock = Literal["over", "battle", "answer", "choose"] | Role
 type PromptState = Literal["asking", "over"]
 type ChipCell = tuple[str, tuple[ActionOption, ...]]
 
-GAME_OVER_PLACEHOLDER = "The game is over. Restart it from the menu."
+GAME_OVER_PLACEHOLDER = (
+    "The game is over. Read what came years later, write a sequel, or restart it from the menu."
+)
 BATTLE_ON = "A battle is on. Finish it on the battle screen."
 ANSWER_FIRST = "Answer the question above first."
 HEARING_FAILED = failure_notice("The speech was not understood.")

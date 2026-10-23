@@ -14,10 +14,13 @@ from rulehall.app.illustration import Illustrator, find_sprite
 from rulehall.app.role_prompts import (
     OPENING_NARRATION,
     Debrief,
+    Epilogue,
     render_debrief,
+    render_epilogue,
     render_evidence,
     render_master,
     render_narrator,
+    years_later,
 )
 from rulehall.app.roles import RoleRunner, ask_with_retry, role_answer
 from rulehall.app.speech import Speaker
@@ -25,9 +28,10 @@ from rulehall.app.turn import Turn
 from rulehall.config import LiveSettings, Role
 from rulehall.core.decisions import ActionOption, PlayerInput, find_option
 from rulehall.core.facts import Fact, Resolution
-from rulehall.core.game import AnyCharacter, AnyGame, AnyScenario
+from rulehall.core.game import AnyCharacter, AnyGame, AnyScenario, ScenarioDescription
 from rulehall.core.log import Cause, LogEntry, SpokenLine
 from rulehall.core.narration import Narration, NarratorView, partial_lines
+from rulehall.core.prompt import render_whole_log
 from rulehall.core.stores import Library, SaveStore
 from rulehall.core.validation import Frozen, Refusal, Slug
 from rulehall.core.views import PlayerView, ScreenSlot, Sprite
@@ -43,6 +47,14 @@ BATTLE_ON = "a battle is on: finish it on the battle screen"
 NOTHING_TO_UNDO = "there is no edit to undo"
 NOT_AN_EDIT = "{name} is not an edit now"
 GAME_OVER_FOR_PLAYER = "the game is over ({ending}): it continues only after a restart"
+GAME_NOT_OVER = "the game is not over yet"
+FEWEST_YEARS = 1
+MOST_YEARS = 100
+YEARS_OUT_OF_RANGE = f"years later must be from {FEWEST_YEARS} to {MOST_YEARS}, not {{years}}"
+PREVIOUS_ADVENTURE = (
+    "THE ADVENTURE BEFORE\nThis new adventure continues the one below. What happened in it "
+    "stands: build on it, and contradict none of it."
+)
 
 
 class TurnStopped(Refusal):
@@ -126,6 +138,13 @@ class DebriefMemo:
     debrief: Debrief
 
 
+@dataclass(frozen=True, slots=True)
+class EpilogueMemo:
+    state: AnyGame
+    years: int
+    epilogue: Epilogue
+
+
 @dataclass(slots=True, kw_only=True)
 class GameSession:
     key: SavedGameKey
@@ -150,6 +169,7 @@ class GameSession:
     battle_run: BattleRun | None = None
     view_cache: CachedViews | None = field(default=None, repr=False, compare=False)
     debriefed: DebriefMemo | None = field(default=None, repr=False, compare=False)
+    epilogued: EpilogueMemo | None = field(default=None, repr=False, compare=False)
     running: RunningMove | None = field(default=None, repr=False, compare=False)
 
     async def open(self) -> None:
@@ -240,6 +260,49 @@ class GameSession:
             answer = await ask_with_retry(self.roles, "narrator", prompt, Debrief, Debrief.check)
             self.debriefed = DebriefMemo(state, answer)
             return answer
+
+    async def epilogue(self, years: int) -> Epilogue:
+        if not FEWEST_YEARS <= years <= MOST_YEARS:
+            raise Refusal(YEARS_OUT_OF_RANGE.format(years=years))
+        with self.gate.admit(self):
+            state = self.state
+            require_over(self.engine, state)
+            if (memo := self.epilogued) is not None and memo.state is state and memo.years == years:
+                return memo.epilogue
+            prompt = render_epilogue(self.engine.narrator_view(state), state, years)
+            answer = await ask_with_retry(self.roles, "narrator", prompt, Epilogue, Epilogue.check)
+            self.epilogued = EpilogueMemo(state, years, answer)
+            return answer
+
+    def find_epilogue(self) -> EpilogueMemo | None:
+        memo = self.epilogued
+        return memo if memo is not None and memo.state is self.state else None
+
+    def sequel_description(self) -> ScenarioDescription:
+        require_over(self.engine, self.state)
+        description = self.state.scenario_description
+        memo = self.find_epilogue()
+        later = "the sequel" if memo is None else years_later(memo.years)
+        return description.model_copy(
+            update={
+                "title": f"{description.title}: {later}",
+                "premise": "" if memo is None else memo.epilogue.render(),
+            }
+        )
+
+    def previous_adventure(self) -> str:
+        state = self.state
+        ending = require_over(self.engine, state)
+        description = state.scenario_description
+        parts = [
+            PREVIOUS_ADVENTURE,
+            f"{description.title}\n{description.premise}",
+            render_whole_log(state.chapters),
+            f"HOW IT ENDED: {ending}",
+        ]
+        if (memo := self.find_epilogue()) is not None:
+            parts.append(f"{years_later(memo.years).upper()}:\n{memo.epilogue.render()}")
+        return "\n\n".join(parts)
 
     def require_idle(self) -> None:
         save_id = self.key.save_id
@@ -571,6 +634,12 @@ class GameSession:
 def require_not_over(engine: AnyEngine, state: AnyGame) -> None:
     if (ended := engine.ending(state)) is not None:
         raise Refusal(GAME_OVER_FOR_PLAYER.format(ending=ended.rstrip(".")))
+
+
+def require_over(engine: AnyEngine, state: AnyGame) -> str:
+    if (ended := engine.ending(state)) is None:
+        raise Refusal(GAME_NOT_OVER)
+    return ended
 
 
 def require_playable(engine: AnyEngine, state: AnyGame) -> None:

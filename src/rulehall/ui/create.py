@@ -21,7 +21,14 @@ from rulehall.core.game import ScenarioDescription
 from rulehall.core.log import Voice
 from rulehall.core.validation import EngineId, Refusal, Slug, content_id
 from rulehall.ui.panel_parts import panel_row
-from rulehall.ui.routes import NEW_PACK, assets_route, engine_path, game_path, hall_path
+from rulehall.ui.routes import (
+    CONTINUES,
+    NEW_PACK,
+    assets_route,
+    engine_path,
+    game_path,
+    hall_path,
+)
 from rulehall.ui.widgets import (
     NEW_ADVENTURE_ICON,
     NEW_CHARACTER_ICON,
@@ -192,7 +199,7 @@ class CharacterForm:
 
     @ui.refreshable_method
     def draw_steps(self) -> None:
-        _pack_select(self.engine.packs.options(), self.pack_id, self.choose_pack)
+        _ = _pack_select(self.engine.packs.options(), self.pack_id, self.choose_pack)
         for step in self.engine.creation_steps(self.pack_id, self.picks):
             self.field(step)
 
@@ -219,12 +226,18 @@ class CharacterForm:
 
 
 class ScenarioForm:
-    def __init__(self, runtime: Runtime, engine_id: EngineId) -> None:
+    def __init__(self, runtime: Runtime, engine_id: EngineId, continues_id: str | None) -> None:
         self.runtime = runtime
         self.engine = engine = runtime.require_engine(engine_id)
-        self.characters = runtime.catalog().characters_for(engine_id)
+        catalog = runtime.catalog()
+        self.characters = catalog.characters_for(engine_id)
+        self.ended_saves = {
+            save.key.save_id: save for save in catalog.saves_for(engine_id) if save.over
+        }
         self.pack_id = engine.packs.options()[0].id
         self.extra_pack_ids: tuple[Slug, ...] = ()
+        self.continues_key: SavedGameKey | None = None
+        self.pack_select: ui.select | None
         self.seed_button: ui.button
         self.backdrop_button: ui.button
         self.character: ui.select
@@ -235,6 +248,17 @@ class ScenarioForm:
             title="New adventure",
             lead="Describe the adventure, or upload one, and the worldsmith writes its opening.",
         ):
+            self.continues_select = ui.select(
+                options={
+                    save_id: f"{save.scenario_label} — {save.character_label}"
+                    for save_id, save in self.ended_saves.items()
+                },
+                value=None,
+                label="Continues",
+                clearable=True,
+                on_change=self.choose_continues,
+            )
+            self.continues_select.set_visibility(bool(self.ended_saves))
             self.title = ui.input(label="Title")
             self.draw_character_fields()
             self.backdrop = ui.textarea(
@@ -257,13 +281,15 @@ class ScenarioForm:
             heading("Or upload the adventure")
             self.upload = DocumentUpload()
             self.draw_button_row()
+        if continues_id in self.ended_saves:
+            self.continues_select.value = continues_id
 
     @property
     def pack(self):
         return self.engine.packs.require_pack(self.pack_id)
 
     def draw_character_fields(self) -> None:
-        _pack_select(self.engine.packs.options(), self.pack_id, self.choose_pack)
+        self.pack_select = _pack_select(self.engine.packs.options(), self.pack_id, self.choose_pack)
         self.draw_extra_packs()
         with ui.row().classes("items-center game-gap-lg"):
             self.seed_button = ui.button(
@@ -306,6 +332,33 @@ class ScenarioForm:
     def choose_extra_packs(self, event: ValueChangeEventArguments[list[str]]) -> None:
         self.extra_pack_ids = tuple(content_id(value) for value in event.value)
 
+    def choose_continues(self, event: ValueChangeEventArguments[str | None]) -> None:
+        if event.value is None:
+            self.continues_key = None
+            return
+        key = self.ended_saves[event.value].key
+        try:
+            session = self.runtime.session_for(key)
+            description = session.sequel_description()
+        except Refusal as refused:
+            alert(str(refused))
+            self.continues_select.value = None
+            return
+        self.continues_key = key
+        self.title.value = description.title
+        self.backdrop.value = description.backdrop
+        self.premise.value = description.premise
+        self.scope.value = description.scope
+        self.style.value = description.art_style
+        self.extra_pack_ids = session.state.extra_pack_ids
+        if self.pack_select is None or self.pack_select.value == session.state.pack_id:
+            self.pack_id = session.state.pack_id
+            self.draw_extra_packs.refresh()
+            self._show_pack_buttons()
+        else:
+            self.pack_select.value = session.state.pack_id
+        self.character.value = key.character_id
+
     def roll_seed(self) -> None:
         if seeds := self.pack.seeds:
             self.premise.value = random.choice(seeds)  # the page's own die: it rolls no game die
@@ -331,8 +384,16 @@ class ScenarioForm:
         scope = entered_text(self.scope)
         character_id = self.character.value
         document = self.upload.document
-        if not (title and backdrop and scope) or not (premise or document) or character_id is None:
-            warn("A title, a backdrop, a scope, a character, and a premise or a document.")
+        continues = self.continues_key
+        if (
+            not (title and backdrop and scope)
+            or not (premise or document or continues)
+            or character_id is None
+        ):
+            warn(
+                "A title, a backdrop, a scope, a character, and a premise, a document "
+                "or an adventure it continues."
+            )
             return
         description = ScenarioDescription(
             title=title,
@@ -351,6 +412,7 @@ class ScenarioForm:
                 self.pack_id,
                 self.extra_pack_ids,
                 played_id,
+                continues,
             )
             LOGGER.info("scenario created: scenario_id=%s", scenario_id)
             ui.navigate.to(game_path(SavedGameKey(scenario_id=scenario_id, character_id=played_id)))
@@ -425,6 +487,11 @@ def packs_page(runtime: Runtime, engine_id: EngineId) -> None:
             ).props("color=primary")
 
 
+def scenario_page(runtime: Runtime, engine_id: EngineId) -> None:
+    continues_id = ui.context.client.request.query_params.get(CONTINUES)
+    ScenarioForm(runtime, engine_id, continues_id)
+
+
 @contextmanager
 def _form_page(runtime: Runtime, engine_id: EngineId, *, title: str, lead: str) -> Generator[None]:
     engine = runtime.require_engine(engine_id)
@@ -445,10 +512,10 @@ def _pack_select(
     offered: tuple[Option, ...],
     chosen_id: Slug,
     on_change: Callable[[ValueChangeEventArguments[str]], None],
-) -> None:
+) -> ui.select | None:
     if len(offered) == 1:
-        return
-    ui.select(
+        return None
+    return ui.select(
         options={option.id: option.name for option in offered},
         value=chosen_id,
         label="Pack",

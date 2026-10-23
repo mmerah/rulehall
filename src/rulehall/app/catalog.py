@@ -51,6 +51,7 @@ class SaveOption:
     engine_id: EngineId
     saved_at: datetime
     cover: Path | None
+    over: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,6 +174,7 @@ def _save_option(
         engine_id=engine.id,
         saved_at=saved_at,
         cover=find_cover(store.media_dir(save_id)),
+        over=engine.ending(state) is not None,
     )
 
 

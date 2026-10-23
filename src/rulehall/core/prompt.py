@@ -9,6 +9,7 @@ type Sections = tuple[tuple[str, str], ...]
 SCENE_EXCHANGES = 20
 WHOLE_SCENES = 2
 TAIL_EXCHANGES = 3
+NOT_STARTED = "(the game has not started yet)"
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,9 +40,17 @@ def sentence(text: str) -> str:
 
 def render_log(chapters: Sequence[Chapter]) -> str:
     if not any(chapter.entries for chapter in chapters):
-        return "(the game has not started yet)"
+        return NOT_STARTED
     total = len(chapters)
     return "\n\n".join(_block(chapter, index, total) for index, chapter in enumerate(chapters))
+
+
+def render_whole_log(chapters: Sequence[Chapter]) -> str:
+    if not any(chapter.entries for chapter in chapters):
+        return NOT_STARTED
+    return "\n\n".join(
+        f"{_heading(chapter)}\n\n{_told(chapter, len(chapter.entries))}" for chapter in chapters
+    )
 
 
 def ref_of(name: str, entity_id: Slug) -> str:

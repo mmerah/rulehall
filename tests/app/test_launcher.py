@@ -124,6 +124,17 @@ def test_launcher_lists_and_resolves_an_existing_save(tmp_path: Path) -> None:
     assert saved.key == KEY
 
 
+def test_an_ended_save_is_listed_as_over(tmp_path: Path) -> None:
+    settings = offline_settings(tmp_path)
+    draft = _opening_state(settings).draft()
+    draft.world.ended = True
+    SaveStore(tmp_path).write(KEY.save_id, draft)
+
+    (saved,) = _catalog(settings, ENGINES_BUILT).saves
+
+    assert saved.over
+
+
 def test_saves_are_listed_newest_first_and_grouped_by_rules(tmp_path: Path) -> None:
     settings = offline_settings(tmp_path)
     runtime = Runtime(settings, roles=ScriptedRoles())
@@ -258,7 +269,7 @@ async def test_a_written_opening_becomes_a_playable_scenario(tmp_path: Path) -> 
         scope="One crossing, before the tide turns.",
         art_style="woodcut",
     )
-    scenario_id = await runtime.new_scenario(LONER4E, description, None, "srd", (), "kael")
+    scenario_id = await runtime.new_scenario(LONER4E, description, None, "srd", (), "kael", None)
 
     # The scene bar refuses the first answer, and the reason goes back as the submit's result.
     assert "these name nobody" in roles.submitted[0][1]
@@ -297,6 +308,7 @@ async def test_an_opening_the_rules_will_not_play_never_reaches_disk(tmp_path: P
             "srd",
             (),
             "kael",
+            None,
         )
 
     assert not scenarios.exists()
@@ -309,7 +321,9 @@ async def test_a_scenario_for_unknown_rules_is_refused(tmp_path: Path) -> None:
     )
 
     with pytest.raises(Refusal, match="no rules 'nowhere'"):
-        _ = await runtime.new_scenario(EngineId("nowhere"), description, None, "srd", (), "kael")
+        _ = await runtime.new_scenario(
+            EngineId("nowhere"), description, None, "srd", (), "kael", None
+        )
 
 
 async def test_a_scenario_written_from_a_document_carries_its_text(tmp_path: Path) -> None:
@@ -326,12 +340,36 @@ async def test_a_scenario_written_from_a_document_carries_its_text(tmp_path: Pat
         "srd",
         (),
         "kael",
+        None,
     )
 
     state = runtime.session_for(SavedGameKey(scenario_id=scenario_id, character_id="kael")).state
     assert state.source.startswith("SOURCE DOCUMENT:")
     # The premise the player never wrote is the scene's own words.
     assert state.scenario_description.premise == _OPENING["situation"]
+
+
+async def test_a_sequel_gives_the_worldsmith_the_adventure_before(tmp_path: Path) -> None:
+    settings = offline_settings(tmp_path, tmp_path / "scenarios")
+    roles = ScriptedRoles(answers={"worldsmith": [json.dumps(_OPENING)]})
+    runtime = Runtime(settings, roles=roles)
+    ended = runtime.session_for(KEY)
+    draft = ended.state.draft()
+    draft.world.ended = True
+    ended.save(draft)
+
+    _ = await runtime.new_scenario(
+        LONER4E,
+        ended.sequel_description(),
+        None,
+        "srd",
+        (),
+        "kael",
+        KEY,
+    )
+
+    assert "THE ADVENTURE BEFORE" in roles.prompt("worldsmith")
+    assert "HOW IT ENDED: The adventure is over." in roles.prompt("worldsmith")
 
 
 def test_a_rule_set_holds_its_modes_in_registry_order(tmp_path: Path) -> None:

@@ -15,6 +15,7 @@ SOUNDS = "/sounds/"
 ICONS = "/icons/"
 ASSETS = "/assets"
 CHOSEN_CHARACTER = "character"
+CONTINUES = "continues"
 
 
 def game_path(key: SavedGameKey) -> str:
@@ -28,6 +29,10 @@ def engine_path(route: str, engine_id: EngineId) -> str:
 def hall_path(engine_id: EngineId, character_id: Slug | None = None) -> str:
     path = engine_path(HALL, engine_id)
     return path if character_id is None else f"{path}?{urlencode({CHOSEN_CHARACTER: character_id})}"
+
+
+def sequel_path(engine_id: EngineId, key: SavedGameKey) -> str:
+    return f"{engine_path(NEW_SCENARIO, engine_id)}?{urlencode({CONTINUES: key.save_id})}"
 
 
 def assets_route(engine_id: EngineId) -> str:

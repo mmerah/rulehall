@@ -10,7 +10,7 @@ from rulehall.app.runtime import Runtime
 from rulehall.config import ENV_FILE, read_settings, unknown_setting_keys
 from rulehall.core.validation import EngineId, Refusal
 from rulehall.ui import theme
-from rulehall.ui.create import CharacterForm, PackForm, ScenarioForm, packs_page
+from rulehall.ui.create import CharacterForm, PackForm, packs_page, scenario_page
 from rulehall.ui.game import game_page
 from rulehall.ui.hall import hall_page
 from rulehall.ui.home import home_page
@@ -44,7 +44,7 @@ def mount(runtime: Runtime, screen_factories: ScreenFactories, styles: Sequence[
     engine_pages: tuple[tuple[str, EnginePage], ...] = (
         (HALL, hall_page),
         (NEW_CHARACTER, CharacterForm),
-        (NEW_SCENARIO, ScenarioForm),
+        (NEW_SCENARIO, scenario_page),
         (NEW_PACK, PackForm),
         (PACKS, packs_page),
     )

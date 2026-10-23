@@ -15,6 +15,7 @@ PROMPTS_DIR = Path(__file__).parent / "prompts"
 MASTER_ROLE = PROMPTS_DIR / "master.md"
 NARRATOR_ROLE = PROMPTS_DIR / "narrator.md"
 DEBRIEF_ROLE = PROMPTS_DIR / "debrief.md"
+EPILOGUE_ROLE = PROMPTS_DIR / "epilogue.md"
 WRITING_GUIDE = PROMPTS_DIR / "writing.md"
 # Stated in the prompt, not checked: a model counts words badly; a refusal loop costs the turn.
 NARRATION_WORDS = 180
@@ -61,18 +62,40 @@ class Debrief(Frozen):
     )
 
     def check(self) -> None:
-        blank = [
-            name
-            for name, value in (
+        _refuse_blank(
+            (
                 ("story_so_far", (self.story_so_far,)),
                 ("current_aim", (self.current_aim,)),
                 ("open_threads", self.open_threads),
                 ("last_beats", self.last_beats),
             )
-            if not value or not all(line.strip() for line in value)
-        ]
-        if blank:
-            raise Refusal(f"these fields are blank: {', '.join(blank)}")
+        )
+
+
+class Epilogue(Frozen):
+    """What became of the player years after the adventure: built only on what the player read."""
+
+    paragraphs: tuple[str, ...] = Field(
+        description=(
+            "Two to four paragraphs on what became of the player, the people and the places "
+            'the player knew, in the years later. Tell it to the player as "you".'
+        )
+    )
+    open_trouble: str = Field(
+        description=(
+            "One sentence: a trouble in that later time that a new adventure could start from."
+        )
+    )
+
+    def check(self) -> None:
+        _refuse_blank((("paragraphs", self.paragraphs), ("open_trouble", (self.open_trouble,))))
+
+    def render(self) -> str:
+        return "\n\n".join((*self.paragraphs, self.open_trouble))
+
+
+def years_later(years: int) -> str:
+    return f"{years} year{'' if years == 1 else 's'} later"
 
 
 def render_master(
@@ -129,8 +152,6 @@ def render_narrator(view: NarratorView, state: AnyGame, *, evidence: str, cue: s
 
 
 def render_debrief(view: NarratorView, state: AnyGame) -> Prompt:
-    entries = state.log_entries()
-    evidence = render_traces(entries[-1].facts if entries else (), told_only=True)
     return Prompt(
         system=sections(
             (
@@ -138,7 +159,27 @@ def render_debrief(view: NarratorView, state: AnyGame) -> Prompt:
                 ("HOW TO WRITE", read_cached_text(WRITING_GUIDE)),
             )
         ),
-        user=sections((*_picture(view, state, evidence), ("ANSWER WITH", render_schema(Debrief)))),
+        user=sections(
+            (*_picture(view, state, _last_told(state)), ("ANSWER WITH", render_schema(Debrief)))
+        ),
+    )
+
+
+def render_epilogue(view: NarratorView, state: AnyGame, years: int) -> Prompt:
+    return Prompt(
+        system=sections(
+            (
+                ("YOUR ROLE", read_cached_text(EPILOGUE_ROLE)),
+                ("HOW TO WRITE", read_cached_text(WRITING_GUIDE)),
+            )
+        ),
+        user=sections(
+            (
+                *_picture(view, state, _last_told(state)),
+                ("THE TIME JUMP", years_later(years)),
+                ("ANSWER WITH", render_schema(Epilogue)),
+            )
+        ),
     )
 
 
@@ -174,9 +215,20 @@ def _picture(view: NarratorView, state: AnyGame, evidence: str) -> Sections:
     )
 
 
+def _last_told(state: AnyGame) -> str:
+    entries = state.log_entries()
+    return render_traces(entries[-1].facts if entries else (), told_only=True)
+
+
 def _scenario_sections(state: AnyGame) -> Sections:
     opening = f"{state.scenario_description.title}\n{state.scenario_description.premise}"
     return (
         *section_if("SCENARIO", "" if state.log_entries() else opening),
         ("BACKDROP", state.scenario_description.backdrop),
     )
+
+
+def _refuse_blank(fields: Sequence[tuple[str, Sequence[str]]]) -> None:
+    blank = [name for name, value in fields if not value or not all(line.strip() for line in value)]
+    if blank:
+        raise Refusal(f"these fields are blank: {', '.join(blank)}")
