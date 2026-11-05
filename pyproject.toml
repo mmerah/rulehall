@@ -11,7 +11,7 @@ dependencies = [
     "pydantic-settings==2.16.1",
     "python-dotenv==1.2.4",
     "httpx==0.28.1",
-    "pypdf==6.21.3",
+    "pypdf==6.21.4",
     "mcp==2.3.0",
 ]
 
