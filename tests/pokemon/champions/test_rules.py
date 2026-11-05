@@ -8,6 +8,7 @@ from rulehall.core.validation import Refusal
 from rulehall.engines.pokemon.champions.data import champions_data
 from rulehall.engines.pokemon.champions.engine import ChampionsEngine
 from rulehall.engines.pokemon.champions.rules import (
+    UNKNOWN_NATURE,
     battler_of_set,
     build_key_team,
     build_rival,
@@ -15,6 +16,7 @@ from rulehall.engines.pokemon.champions.rules import (
     draw_field,
     estimated_spread,
     field_id,
+    require_archetype,
     standard_spread,
 )
 from rulehall.engines.pokemon.champions.sheet import ChampionsSheet
@@ -113,15 +115,17 @@ def test_the_estimate_comes_from_the_species_never_from_the_real_set() -> None:
 
     estimates = [battler_of_set(each, "incineroar").estimate for each in (preset, other)]
 
+    data = champions_data()
+    unseen_species_id = next(each for each in data.legal.species if each not in data.assumed)
     assert estimates == [estimated_spread("incineroar")] * 2
-    assert estimated_spread("alakazam").nature == "Hardy"
+    assert estimated_spread(unseen_species_id).nature == UNKNOWN_NATURE
 
 
 def test_a_key_team_gets_its_ace() -> None:
     real_team, sets = build_key_team("tailwind", "garchomp", (), (), Random(1))
     assert real_team is None
     assert "garchomp" in {each.species_id for each in sets}
-    assert "salamence" in {each.species_id for each in sets}
+    assert require_archetype("tailwind").setter_id in {each.species_id for each in sets}
     check_team(sets, None)
 
 
