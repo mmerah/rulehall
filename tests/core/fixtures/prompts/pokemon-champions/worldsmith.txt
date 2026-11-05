@@ -42,18 +42,18 @@ place: Prism Games
 CP 0; tiers allowed for the next event: Locals (locals)
 
 # ARCHETYPES
-- Tailwind (tailwind): setter Salamence, cores Sneasler, Kingambit
-- Trick Room (trickroom): setter Indeedee-F, cores Sneasler, Gardevoir
-- Rain (rain): setter Pelipper, cores Archaludon, Grimmsnarl
+- Tailwind (tailwind): setter Staraptor, cores Gholdengo, Arcanine-Hisui
+- Trick Room (trickroom): setter Indeedee-F, cores Gardevoir, Sneasler
+- Rain (rain): setter Pelipper, cores Archaludon, Sneasler
 - Sun (sun): setter Charizard, cores Garchomp, Venusaur
-- Sand (sand): setter Tyranitar, cores Excadrill, Sneasler
-- Snow (snow): setter Froslass, cores Sneasler, Kingambit
-- Psychic Terrain (psychicterrain): setter Indeedee, cores Sneasler, Milotic
-- Grassy Terrain (grassyterrain): setter Rillaboom, cores Incineroar, Sneasler
+- Sand (sand): setter Tyranitar, cores Excadrill, Gholdengo
+- Snow (snow): setter Froslass, cores Kingambit, Sneasler
+- Psychic Terrain (psychicterrain): setter Indeedee, cores Sneasler, Excadrill
+- Grassy Terrain (grassyterrain): setter Rillaboom, cores Incineroar, Raichu
 - Goodstuffs (goodstuffs): setter Sneasler, cores Kingambit, Incineroar
 
 # ACE SPECIES
-rillaboom, sneasler, incineroar, kingambit, garchomp, salamence, gholdengo, charizard, raichu, floetteeternal, basculegion, arcaninehisui, archaludon, sylveon, indeedeef, farigiraf, pelipper, volcarona, gengar, milotic, staraptor, grimmsnarl, venusaur, politoed, whimsicott, golisopod, kommoo, sinistcha, froslass, swampert, delphox, dragonite, tyranitar, gardevoir, glimmora, aerodactyl, excadrill, indeedee, metagross, armarouge, scovillain, hydreigon, lycanrocdusk, mawile, kangaskhan, mamoswine, sableye, scrafty, tsareena, rotomwash, drampa, aegislash, gallade, meowscarada, gyarados, snorlax, vileplume, samurotthisui, hawlucha, mimikyu, weavile
+sneasler, rillaboom, incineroar, garchomp, kingambit, raichu, basculegion, archaludon, floetteeternal, charizard, pelipper, gholdengo, staraptor, arcaninehisui, golisopod, basculegionf, milotic, sylveon, indeedeef, gengar, farigiraf, delphox, whimsicott, volcarona, venusaur, sinistcha, gardevoir, primarina, dragonite, salamence, kommoo, grimmsnarl, tyranitar, froslass, politoed, toxapex, excadrill, glimmora, vivillon, torkoal, maushold, hydreigon, lycanrocdusk, pyroar, mamoswine, lucario, rotomwash, sableye, scrafty, tsareena, drampa, espathra, aegislash, snorlax, baxcalibur, gallade, meowscarada, hatterene, typhlosionhisui, gyarados, hawlucha, vileplume, araquanid, houndstone, mimikyu, samurotthisui, weavile, malamar, meganium
 
 # WHAT COMES NEXT
 Deeper in, toward the sound.

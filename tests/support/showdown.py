@@ -16,6 +16,7 @@ from rulehall.engines.pokemon.battle.models import (
     BattleResult,
     BattleSetup,
     Gender,
+    Spread,
     Throw,
 )
 from rulehall.engines.pokemon.battle.simulator import DUMPED
@@ -132,6 +133,7 @@ def champion(
     nature: str,
     stat_points: Stats,
     gender: Gender,
+    estimate: Spread | None = None,
 ) -> Battler:
     species = dex().species[species_id]
     ivs = (31, 31, 31, 31, 31, 31)
@@ -148,7 +150,7 @@ def champion(
         friendship=255,
         item_id=item_id,
         holds_mega_stone=champions_data().legal.find_mega_forme_id(item_id, species_id) is not None,
-        estimate=estimated_spread(species_id),
+        estimate=estimate or estimated_spread(species_id),
         moves=tuple(
             BattleMove(
                 move_id=move_id,
@@ -170,6 +172,8 @@ CHARIZARD = champion(
     "Timid",
     (2, 0, 0, 32, 0, 32),
     "M",
+    # champions.txt was recorded with this estimate. The monthly data must not move it.
+    Spread(nature="Modest", sp=(28, 0, 13, 1, 0, 24)),
 )
 VENUSAUR = champion(
     "venusaur",
@@ -204,6 +208,7 @@ CHAMPIONS_SETUP = DOUBLES_SETUP.model_copy(
                 "Careful",
                 (32, 2, 0, 0, 32, 0),
                 "M",
+                Spread(nature="Impish", sp=(32, 0, 10, 0, 1, 23)),
             ),
             champion(
                 "pelipper",
