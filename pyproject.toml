@@ -6,9 +6,9 @@ license = "MIT AND CC-BY-SA-4.0 AND CC-BY-4.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.13"
 dependencies = [
-    "nicegui==3.18.0",
-    "pydantic==2.14.1",
-    "pydantic-settings==2.16.1",
+    "nicegui==3.19.0",
+    "pydantic==2.14.2",
+    "pydantic-settings==2.16.2",
     "python-dotenv==1.2.4",
     "httpx==0.28.1",
     "pypdf==6.21.4",
@@ -28,7 +28,7 @@ packages = ["src/rulehall"]
 [dependency-groups]
 dev = [
     "basedpyright==1.40.2",
-    "pytest==9.1.1",
+    "pytest==9.2.0",
     "pytest-asyncio==1.4.1",
     "ruff==0.17.3",
 ]
